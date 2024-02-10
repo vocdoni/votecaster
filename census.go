@@ -27,9 +27,9 @@ const (
 )
 
 type CensusInfo struct {
-	Root []byte `json:"root"`
-	Url  string `json:"url"`
-	Size uint64 `json:"size"`
+	Root types.HexBytes `json:"root"`
+	Url  string         `json:"url"`
+	Size uint64         `json:"size"`
 }
 
 func (c *CensusInfo) FromFile(file string) error {
