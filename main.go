@@ -19,8 +19,11 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
+var serverURL = "http://localhost"
+
 func main() {
-	tlsDomain := flag.String("tlsDomain", "", "The domain to use for the TLS certificate")
+	server := flag.String("server", "serverURL", "The full URL of the server (http or https)")
+	tlsDomain := flag.Bool("tlsDomain", false, "Should a TLS certificate be fetched from letsencrypt for the domain?")
 	tlsDirCert := flag.String("tlsDirCert", "", "The directory to use for the TLS certificate")
 	host := flag.String("listenHost", "", "The host to listen on")
 	port := flag.Int("listenPort", 0, "The port to listen on")
@@ -33,6 +36,15 @@ func main() {
 	flag.Parse()
 	log.Init(*logLevel, "stdout", nil)
 
+	// check the server URL is http or https and extract the domain
+	if !strings.HasPrefix(*server, "http://") && !strings.HasPrefix(*server, "https://") {
+		log.Fatal("server URL must start with http:// or https://")
+	}
+	serverURL = *server
+	domain := strings.Split(serverURL, "/")[2]
+	log.Infow("server URL", "URL", serverURL, "domain", domain)
+
+	// Create the Vocdoni handler
 	handler, err := NewVocdoniHandler(*apiEndpoint, *vocdoniPrivKey)
 	if err != nil {
 		log.Fatal(err)
@@ -56,7 +68,9 @@ func main() {
 
 	// Create the HTTP API router
 	router := new(httprouter.HTTProuter)
-	router.TLSdomain = *tlsDomain
+	if *tlsDomain {
+		router.TLSdomain = domain
+	}
 	router.TLSdirCert = *tlsDirCert
 	if err := router.Init(*host, *port); err != nil {
 		log.Fatal(err)
@@ -70,14 +84,14 @@ func main() {
 	// Register the API methods
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodGet, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(strings.ReplaceAll(frameMain, "{processID}", electionID.String())), http.StatusOK)
+		return ctx.Send([]byte(strings.ReplaceAll(frame(frameMain), "{processID}", electionID.String())), http.StatusOK)
 	}); err != nil {
 		log.Fatal(err)
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(strings.ReplaceAll(frameMain, "{processID}", electionID.String())), http.StatusOK)
+		return ctx.Send([]byte(strings.ReplaceAll(frame(frameMain), "{processID}", electionID.String())), http.StatusOK)
 	}); err != nil {
 		log.Fatal(err)
 	}

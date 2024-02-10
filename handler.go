@@ -78,7 +78,7 @@ func (v *vocodniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	}
 
 	// send the response
-	response := strings.ReplaceAll(frameVote, "{image}", base64.StdEncoding.EncodeToString(png))
+	response := strings.ReplaceAll(frame(frameVote), "{image}", base64.StdEncoding.EncodeToString(png))
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
 	for i, r := range election.Metadata.Questions[0].Choices {
 		response = strings.ReplaceAll(response, fmt.Sprintf("{option%d}", i), r.Title["default"])
@@ -103,7 +103,7 @@ func (v *vocodniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frameError, "{image}", base64.StdEncoding.EncodeToString(png))
+		response := strings.ReplaceAll(frame(frameError), "{image}", base64.StdEncoding.EncodeToString(png))
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
@@ -122,7 +122,7 @@ func (v *vocodniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frameNotElegible, "{image}", base64.StdEncoding.EncodeToString(png))
+		response := strings.ReplaceAll(frame(frameNotElegible), "{image}", base64.StdEncoding.EncodeToString(png))
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
@@ -133,7 +133,7 @@ func (v *vocodniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frameAlreadyVoted, "{image}", base64.StdEncoding.EncodeToString(png))
+		response := strings.ReplaceAll(frame(frameAlreadyVoted), "{image}", base64.StdEncoding.EncodeToString(png))
 		response = strings.ReplaceAll(response, "{nullifier}", fmt.Sprintf("%x", nullifier))
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
@@ -145,12 +145,12 @@ func (v *vocodniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frameError, "{image}", base64.StdEncoding.EncodeToString(png))
+		response := strings.ReplaceAll(frame(frameError), "{image}", base64.StdEncoding.EncodeToString(png))
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
 
-	response := strings.ReplaceAll(frameAfterVote, "{nullifier}", fmt.Sprintf("%x", nullifier))
+	response := strings.ReplaceAll(frame(frameAfterVote), "{nullifier}", fmt.Sprintf("%x", nullifier))
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
@@ -189,7 +189,7 @@ func (v *vocodniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return fmt.Errorf("failed to create image: %w", err)
 	}
 
-	response := strings.ReplaceAll(frameResults, "{image}", base64.StdEncoding.EncodeToString(png))
+	response := strings.ReplaceAll(frame(frameResults), "{image}", base64.StdEncoding.EncodeToString(png))
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
