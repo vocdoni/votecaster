@@ -70,7 +70,7 @@ func (v *vocodniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	text.WriteString("\n----------------------------------------\n\n")
 	text.WriteString(fmt.Sprintf("> Started %s ago\n", time.Since(election.StartDate).Round(time.Minute).String()))
 	text.WriteString(fmt.Sprintf("> Remaining time %s\n", time.Until(election.EndDate).Round(time.Minute).String()))
-	text.WriteString(fmt.Sprintf("> Census size %d\n", election.Census.MaxCensusSize))
+	// text.WriteString(fmt.Sprintf("> Census size %d\n", election.Census.MaxCensusSize))
 	text.WriteString(fmt.Sprintf("> Executed on network %s\n", v.cli.ChainID()))
 	png, err := textToImage(text.String(), "#33ff33", "#000000", Pixeloid, 42)
 	if err != nil {

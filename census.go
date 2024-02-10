@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
+	"os"
 
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
@@ -19,14 +21,27 @@ var testPubKeys = []string{
 	"d6424e655287aa61df38205da19ddab23b0ff9683c6800e0dbc3e8b65d3eb2e3",
 }
 
-type censusInfo struct {
-	root []byte
-	url  string
-	size uint64
+const (
+	// maxElectionSize is the maximum number of participants in an election
+	maxElectionSize = 15000
+)
+
+type CensusInfo struct {
+	Root []byte `json:"root"`
+	Url  string `json:"url"`
+	Size uint64 `json:"size"`
+}
+
+func (c *CensusInfo) FromFile(file string) error {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, c)
 }
 
 // createTestCensus creates a test census with the hardcoded public keys for testing purposes.
-func createTestCensus(cli *apiclient.HTTPclient) (*censusInfo, error) {
+func createTestCensus(cli *apiclient.HTTPclient) (*CensusInfo, error) {
 	censusID, err := cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
 		return nil, err
@@ -58,9 +73,9 @@ func createTestCensus(cli *apiclient.HTTPclient) (*censusInfo, error) {
 		return nil, err
 	}
 
-	return &censusInfo{
-		root: root,
-		url:  url,
-		size: size,
+	return &CensusInfo{
+		Root: root,
+		Url:  url,
+		Size: size,
 	}, nil
 }

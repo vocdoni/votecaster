@@ -30,6 +30,7 @@ func main() {
 	dataDir := flag.String("dataDir", "", "The directory to use for the data")
 	apiEndpoint := flag.String("apiEndpoint", "https://api-dev.vocdoni.net/v2", "The Vocdoni API endpoint to use")
 	vocdoniPrivKey := flag.String("vocdoniPrivKey", "", "The Vocdoni private key to use for orchestrating the election (hex)")
+	censusFromFile := flag.String("censusFromFile", "", "Take census details from JSON file")
 	logLevel := flag.String("logLevel", "info", "The log level to use")
 
 	// Parse the command line flags
@@ -50,10 +51,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Create the test census
-	censusInfo, err := createTestCensus(handler.cli)
-	if err != nil {
-		log.Fatal(err)
+	// Create or load the census
+	censusInfo := &CensusInfo{}
+	if *censusFromFile != "" {
+		if err := censusInfo.FromFile(*censusFromFile); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		// Create a test census
+		censusInfo, err = createTestCensus(handler.cli)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// Create a new test election

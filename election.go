@@ -18,7 +18,7 @@ type electionDescription struct {
 	overwrite bool
 }
 
-func newElectionDescription(description *electionDescription, census *censusInfo) *api.ElectionDescription {
+func newElectionDescription(description *electionDescription, census *CensusInfo) *api.ElectionDescription {
 	choices := []api.ChoiceMetadata{}
 
 	for i, choice := range description.choices {
@@ -26,6 +26,11 @@ func newElectionDescription(description *electionDescription, census *censusInfo
 			Title: map[string]string{"default": choice},
 			Value: uint32(i + 1),
 		})
+	}
+
+	size := census.Size
+	if size > maxElectionSize {
+		size = maxElectionSize
 	}
 
 	return &api.ElectionDescription{
@@ -55,15 +60,15 @@ func newElectionDescription(description *electionDescription, census *censusInfo
 		TempSIKs: false,
 		Census: api.CensusTypeDescription{
 			Type:     api.CensusTypeFarcaster,
-			RootHash: census.root,
-			URL:      census.url,
-			Size:     census.size,
+			RootHash: census.Root,
+			URL:      census.Url,
+			Size:     size,
 		},
 	}
 }
 
 // createElection creates a new election with the given description and census. Waits until the election is created or returns an error.
-func createElection(cli *apiclient.HTTPclient, description *electionDescription, census *censusInfo) (types.HexBytes, error) {
+func createElection(cli *apiclient.HTTPclient, description *electionDescription, census *CensusInfo) (types.HexBytes, error) {
 	electionID, err := cli.NewElection(newElectionDescription(description, census))
 	if err != nil {
 		return nil, err
