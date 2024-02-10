@@ -3,8 +3,13 @@ module github.com/vocdoni/farcaster-poc
 go 1.21.6
 
 require (
+	github.com/ethereum/go-ethereum v1.13.8
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
+	github.com/google/uuid v1.5.0
 	github.com/spf13/flag v0.0.0-20140426202619-916eaf9e2dc5
-	go.vocdoni.io/dvote v1.10.2-0.20240205124120-cdec49f2004f
+	go.vocdoni.io/dvote v1.10.2-0.20240209173644-8e1ec02f2550
+	go.vocdoni.io/proto v1.15.6-0.20240209115732-27836380ccae
+	golang.org/x/image v0.15.0
 	google.golang.org/protobuf v1.32.0
 	lukechampine.com/blake3 v1.2.1
 )
@@ -63,7 +68,6 @@ require (
 	github.com/elastic/gosigar v0.14.2 // indirect
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302 // indirect
 	github.com/ethereum/c-kzg-4844 v0.4.0 // indirect
-	github.com/ethereum/go-ethereum v1.13.8 // indirect
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/flynn/noise v1.0.0 // indirect
@@ -97,7 +101,6 @@ require (
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/orderedcode v0.0.1 // indirect
 	github.com/google/pprof v0.0.0-20231101202521-4ca4178f5c7a // indirect
-	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
@@ -303,7 +306,6 @@ require (
 	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	go.vocdoni.io/proto v1.15.5-0.20240105001622-a1cf91555159 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/exp v0.0.0-20231127185646-65229373498e // indirect
