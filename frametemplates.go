@@ -7,19 +7,21 @@ func frame(template string) string {
 }
 
 var frameMain = `
+<!DOCTYPE html>
 <html lang="en">
       <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="https://images.unsplash.com/photo-1604065985083-86231f74c233" />
         <meta property="fc:frame:post_url" content="{server}/router/{processID}" />
-	
-		<meta property="fc:frame:button:1" content="Results" />
+  
+    <meta property="fc:frame:button:1" content="Results" />
     	<meta property="fc:frame:button:1:action" content="post" />
     	<meta property="fc:frame:button:1:target" content="{server}/poll/results/{processID}" />
-
-
-		<meta property="fc:frame:button:2" content="Vote" />
-		<meta property="fc:frame:button:2:action" content="post" />
+      
+    <meta property="fc:frame:button:2" content="Vote" />
+    <meta property="fc:frame:button:2:action" content="post" />
     	<meta property="fc:frame:button:2:target" content="{server}/poll/{processID}" />
 
           <title>Vocdoni vote frame</title>
@@ -31,10 +33,13 @@ var frameMain = `
 `
 
 var frameVote = `
+<!DOCTYPE html>
 <html lang="en">
       <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta property="fc:frame" content="vNext" />
-		<meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
         <meta property="fc:frame:post_url" content="{server}/vote/{processID}" />
         <meta property="fc:frame:button:1" content="{option0}" />
         <meta property="fc:frame:button:2" content="{option1}" />
@@ -48,81 +53,92 @@ var frameVote = `
 `
 
 var frameAfterVote = `
-    <!DOCTYPE html>
-    <html>
+<!DOCTYPE html>
+<html>
       <head>
-				<meta property="fc:frame" content="vNext" />
-				<meta property="fc:frame:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta property="fc:frame" content="vNext" />
+        <meta property="fc:frame:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
         		<meta property="fc:frame:post_url" content="{server}/poll/results/{processID}" />
-				<meta property="fc:frame:button:1" content="Results" />
-				<meta property="fc:frame:button:2" content="Verify on explorer" />
+        <meta property="fc:frame:button:1" content="Results" />
+        <meta property="fc:frame:button:2" content="Verify on explorer" />
   			  	<meta property="fc:frame:button:2:action" content="link" />
     			<meta property="fc:frame:button:2:target" content="https://dev.explorer.vote/verify/#/{nullifier}" />
-	</head>
+  </head>
       <body>
         <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
       </body>
-    </html>
+</html>
 `
+
 var frameResults = `
-    <!DOCTYPE html>
-    <html>
+<!DOCTYPE html>
+<html>
       <head>
-				<meta property="fc:frame" content="vNext" />
-				<meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta property="fc:frame" content="vNext" />
+        <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
         		<meta property="fc:frame:post_url" content="{server}/" />
         		<meta property="fc:frame:button:1" content="Back" />
       </head>
       <body>
         <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
       </body>
-    </html>
+</html>
 `
 
 var frameAlreadyVoted = `
-    <!DOCTYPE html>
-    <html>
+<!DOCTYPE html>
+<html>
       <head>
-				<meta property="fc:frame" content="vNext" />
-				<meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta property="fc:frame" content="vNext" />
+        <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
         		<meta property="fc:frame:post_url" content="{server}/" />
         		<meta property="fc:frame:button:1" content="Back" />
-				<meta property="fc:frame:button:2" content="Verify on explorer" />
+        <meta property="fc:frame:button:2" content="Verify on explorer" />
   			  	<meta property="fc:frame:button:2:action" content="link" />
     			<meta property="fc:frame:button:2:target" content="https://dev.explorer.vote/verify/#/{nullifier}" />
-		</head>
+    </head>
       <body>
         <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
       </body>
-    </html>
+</html>
 `
 
 var frameNotElegible = `
-    <!DOCTYPE html>
-    <html>
+<!DOCTYPE html>
+<html>
       <head>
-				<meta property="fc:frame" content="vNext" />
-				<meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta property="fc:frame" content="vNext" />
+        <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
         		<meta property="fc:frame:post_url" content="{server}/" />
         		<meta property="fc:frame:button:1" content="Back" />
-		</head>
+    </head>
       <body>
         <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
       </body>
-    </html>
+</html>
 `
 
 var frameError = `
-    <!DOCTYPE html>
-    <html>
+<!DOCTYPE html>
+<html>
       <head>
-				<meta property="fc:frame" content="vNext" />
-				<meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta property="fc:frame" content="vNext" />
+        <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
         		<meta property="fc:frame:post_url" content="{server}/" />
         		<meta property="fc:frame:button:1" content="Back" />
-		</head>
+    </head>
       <body>
         <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
       </body>
-    </html>
+</html>
 `
