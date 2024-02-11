@@ -10,10 +10,12 @@ var frameMain = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="fc:frame" content="vNext" />
     <meta name="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
+    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta name="fc:frame:post_url" content="{server}/router/{processID}" />
 
     <meta name="fc:frame:button:1" content="Results" />
@@ -36,10 +38,10 @@ var frameVote = `
 <!DOCTYPE html>
 <html lang="en">
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta property="fc:frame" content="vNext" />
-    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+        <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
         <meta property="fc:frame:post_url" content="{server}/vote/{processID}" />
         <meta property="fc:frame:button:1" content="{option0}" />
         <meta property="fc:frame:button:2" content="{option1}" />
@@ -56,8 +58,8 @@ var frameAfterVote = `
 <!DOCTYPE html>
 <html>
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
         		<meta property="fc:frame:post_url" content="{server}/poll/results/{processID}" />
@@ -76,8 +78,8 @@ var frameResults = `
 <!DOCTYPE html>
 <html>
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
         		<meta property="fc:frame:post_url" content="{server}/" />
@@ -93,8 +95,8 @@ var frameAlreadyVoted = `
 <!DOCTYPE html>
 <html>
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
         		<meta property="fc:frame:post_url" content="{server}/" />
@@ -113,8 +115,8 @@ var frameNotElegible = `
 <!DOCTYPE html>
 <html>
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
         		<meta property="fc:frame:post_url" content="{server}/" />
@@ -130,8 +132,8 @@ var frameError = `
 <!DOCTYPE html>
 <html>
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta property="fc:frame" content="vNext" />
         <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
         		<meta property="fc:frame:post_url" content="{server}/" />
