@@ -159,6 +159,10 @@ func main() {
 	if err := uAPI.Endpoint.RegisterMethod("/vote/{electionID}", http.MethodPost, "public", handler.vote); err != nil {
 		log.Fatal(err)
 	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/create", http.MethodPost, "public", handler.createElection); err != nil {
+		log.Fatal(err)
+	}
 	log.Infof("API methods registered, the election URL is %s/poll/%s", serverURL, electionID.String())
 	// close if interrupt received
 	log.Infof("startup complete at %s", time.Now().Format(time.RFC850))
