@@ -11,17 +11,18 @@ import (
 	"go.vocdoni.io/dvote/types"
 )
 
-type electionDescription struct {
-	question  string
-	choices   []string
-	duration  time.Duration
-	overwrite bool
+// ElectionDescription defines the parameters for a new election.
+type ElectionDescription struct {
+	Question  string        `json:"question"`
+	Options   []string      `json:"options"`
+	Duration  time.Duration `json:"duration"`
+	Overwrite bool          `json:"overwrite"`
 }
 
-func newElectionDescription(description *electionDescription, census *CensusInfo) *api.ElectionDescription {
+func newElectionDescription(description *ElectionDescription, census *CensusInfo) *api.ElectionDescription {
 	choices := []api.ChoiceMetadata{}
 
-	for i, choice := range description.choices {
+	for i, choice := range description.Options {
 		choices = append(choices, api.ChoiceMetadata{
 			Title: map[string]string{"default": choice},
 			Value: uint32(i + 1),
@@ -34,13 +35,13 @@ func newElectionDescription(description *electionDescription, census *CensusInfo
 	}
 
 	return &api.ElectionDescription{
-		Title:       map[string]string{"default": description.question},
+		Title:       map[string]string{"default": description.Question},
 		Description: map[string]string{"default": ""},
-		EndDate:     time.Now().Add(description.duration),
+		EndDate:     time.Now().Add(description.Duration),
 
 		Questions: []api.Question{
 			{
-				Title:       map[string]string{"default": description.question},
+				Title:       map[string]string{"default": description.Question},
 				Description: map[string]string{"default": ""},
 				Choices:     choices,
 			},
@@ -51,7 +52,7 @@ func newElectionDescription(description *electionDescription, census *CensusInfo
 		},
 		VoteType: api.VoteType{
 			MaxVoteOverwrites: func() int {
-				if description.overwrite {
+				if description.Overwrite {
 					return 1
 				}
 				return 0
@@ -68,7 +69,7 @@ func newElectionDescription(description *electionDescription, census *CensusInfo
 }
 
 // createElection creates a new election with the given description and census. Waits until the election is created or returns an error.
-func createElection(cli *apiclient.HTTPclient, description *electionDescription, census *CensusInfo) (types.HexBytes, error) {
+func createElection(cli *apiclient.HTTPclient, description *ElectionDescription, census *CensusInfo) (types.HexBytes, error) {
 	electionID, err := cli.NewElection(newElectionDescription(description, census))
 	if err != nil {
 		return nil, err

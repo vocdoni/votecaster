@@ -20,10 +20,11 @@ import (
 )
 
 type vocodniHandler struct {
-	cli *apiclient.HTTPclient
+	cli    *apiclient.HTTPclient
+	census *CensusInfo
 }
 
-func NewVocdoniHandler(apiEndpoint, accountPrivKey string) (*vocodniHandler, error) {
+func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo) (*vocodniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
 		accountPrivKey = util.RandomHex(32)
@@ -49,7 +50,8 @@ func NewVocdoniHandler(apiEndpoint, accountPrivKey string) (*vocodniHandler, err
 
 	// Create the account if it doesn't exist and return the handler
 	return &vocodniHandler{
-		cli: cli,
+		cli:    cli,
+		census: census,
 	}, ensureAccountExist(cli)
 }
 
@@ -196,35 +198,17 @@ func (v *vocodniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-type ElectionRequest struct {
-	Question string   `json:"question"`
-	Options  []string `json:"options"`
-}
-
 func (v *vocodniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	var req ElectionRequest
+	var req *ElectionDescription
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return fmt.Errorf("failed to unmarshal election request: %w", err)
 	}
-
-	censusInfo := &CensusInfo{}
-	if err := censusInfo.FromFile("farcaster_census.json"); err != nil {
-		log.Fatal(err)
-	}
-
-	electionID, err := createElection(v.cli, &electionDescription{
-		question:  req.Question,
-		choices:   req.Options,
-		duration:  time.Hour * 24,
-		overwrite: false,
-	}, censusInfo)
+	electionID, err := createElection(v.cli, req, v.census)
 
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
 
 	ctx.Writer.Header().Set("Content-Type", "application/json")
-	ctx.Send([]byte(electionID.String()), http.StatusOK)
-
-	return nil
+	return ctx.Send([]byte(electionID.String()), http.StatusOK)
 }

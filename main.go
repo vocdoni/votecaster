@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -20,19 +19,20 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
-var serverURL = "http://localhost"
+var serverURL = "http://localhost:8888"
 
 func main() {
-	server := flag.String("server", "serverURL", "The full URL of the server (http or https)")
-	tlsDomain := flag.Bool("tlsDomain", false, "Should a TLS certificate be fetched from letsencrypt for the domain?")
-	tlsDirCert := flag.String("tlsDirCert", "", "The directory to use for the TLS certificate")
-	host := flag.String("listenHost", "", "The host to listen on")
-	port := flag.Int("listenPort", 0, "The port to listen on")
+	server := flag.String("server", serverURL, "The full URL of the server (http or https)")
+	tlsDomain := flag.Bool("tlsDomain", false, "Should a TLS certificate be fetched from letsencrypt for the domain? (requires port 443)")
+	tlsDirCert := flag.String("tlsDirCert", "", "The directory to use to store the TLS certificate")
+	host := flag.String("listenHost", "0.0.0.0", "The host to listen on")
+	port := flag.Int("listenPort", 8888, "The port to listen on")
 	dataDir := flag.String("dataDir", "", "The directory to use for the data")
 	apiEndpoint := flag.String("apiEndpoint", "https://api-dev.vocdoni.net/v2", "The Vocdoni API endpoint to use")
 	vocdoniPrivKey := flag.String("vocdoniPrivKey", "", "The Vocdoni private key to use for orchestrating the election (hex)")
-	censusFromFile := flag.String("censusFromFile", "", "Take census details from JSON file")
+	censusFromFile := flag.String("censusFromFile", "farcaster_census.json", "Take census details from JSON file")
 	logLevel := flag.String("logLevel", "info", "The log level to use")
+	webAppDir := flag.String("web", "fc-create-election/dist", "The path where the static web app is located")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -46,12 +46,6 @@ func main() {
 	domain := strings.Split(serverURL, "/")[2]
 	log.Infow("server URL", "URL", serverURL, "domain", domain)
 
-	// Create the Vocdoni handler
-	handler, err := NewVocdoniHandler(*apiEndpoint, *vocdoniPrivKey)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Create or load the census
 	censusInfo := &CensusInfo{}
 	if *censusFromFile != "" {
@@ -59,19 +53,11 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
-		// Create a test census
-		censusInfo, err = createTestCensus(handler.cli)
-		if err != nil {
-			log.Fatal(err)
-		}
+		log.Fatal("censusFromFile is required")
 	}
 
-	// Create a new test election
-	electionID, err := createElection(handler.cli, &electionDescription{
-		question: "How do you take kiwi?",
-		choices:  []string{"skin on", "skin off", "I don't like kiwi"},
-		duration: 24 * time.Hour,
-	}, censusInfo)
+	// Create the Vocdoni handler
+	handler, err := NewVocdoniHandler(*apiEndpoint, *vocdoniPrivKey, censusInfo)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,38 +72,38 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Add handler to serve the static files
+	router.AddRawHTTPHandler("/app/*", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
+		log.Infow("serving static file", "path", r.URL.Path)
+		http.ServeFile(w, r, *webAppDir)
+	})
+	router.AddRawHTTPHandler("/app", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
+		log.Infow("serving static file", "path", r.URL.Path)
+		http.ServeFile(w, r, *webAppDir)
+	})
+
+	// Create the API handler
 	uAPI, err := urlapi.NewAPI(router, "/", *dataDir, db.TypePebble)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Register the API methods
+	// The root endpoint redirects to /app
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodGet, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-		png, err := textToImage("Hello, Farcaster!\nThis is Vocdoni testing a voting frame. Let's go!", "#33ff33", "#000000", Pixeloid, 42)
-		if err != nil {
-			return fmt.Errorf("failed to create image: %w", err)
-		}
-		response := strings.ReplaceAll(frame(frameMain), "{processID}", electionID.String())
-		response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
-		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(response), http.StatusOK)
+		ctx.Writer.Header().Add("Location", "/app")
+		return ctx.Send([]byte("Redirecting to /app"), http.StatusTemporaryRedirect)
 	}); err != nil {
 		log.Fatal(err)
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-		png, err := textToImage("Hello, Farcaster!\nThis is Vocdoni testing a voting frame. Let's go!", "#33ff33", "#000000", Pixeloid, 42)
-		if err != nil {
-			return fmt.Errorf("failed to create image: %w", err)
-		}
-		response := strings.ReplaceAll(frame(frameMain), "{processID}", electionID.String())
-		response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
-		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(response), http.StatusOK)
+		ctx.Writer.Header().Add("Location", "/app")
+		return ctx.Send([]byte("Redirecting to /app"), http.StatusTemporaryRedirect)
 	}); err != nil {
 		log.Fatal(err)
 	}
 
+	// Register the API methods
 	if err := uAPI.Endpoint.RegisterMethod("/router/{electionID}", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 		electionID := ctx.URLParam("electionID")
 		packet := &FrameSignaturePacket{}
@@ -163,7 +149,7 @@ func main() {
 	if err := uAPI.Endpoint.RegisterMethod("/create", http.MethodPost, "public", handler.createElection); err != nil {
 		log.Fatal(err)
 	}
-	log.Infof("API methods registered, the election URL is %s/poll/%s", serverURL, electionID.String())
+
 	// close if interrupt received
 	log.Infof("startup complete at %s", time.Now().Format(time.RFC850))
 	c := make(chan os.Signal, 1)
