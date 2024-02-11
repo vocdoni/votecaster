@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -92,15 +93,27 @@ func main() {
 
 	// Register the API methods
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodGet, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+		png, err := textToImage("Hello, Farcaster!\nThis is Vocdoni testing a voting frame. Let's go!", "#33ff33", "#000000", Pixeloid, 42)
+		if err != nil {
+			return fmt.Errorf("failed to create image: %w", err)
+		}
+		response := strings.ReplaceAll(frame(frameMain), "{processID}", electionID.String())
+		response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
 		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(strings.ReplaceAll(frame(frameMain), "{processID}", electionID.String())), http.StatusOK)
+		return ctx.Send([]byte(response), http.StatusOK)
 	}); err != nil {
 		log.Fatal(err)
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+		png, err := textToImage("Hello, Farcaster!\nThis is Vocdoni testing a voting frame. Let's go!", "#33ff33", "#000000", Pixeloid, 42)
+		if err != nil {
+			return fmt.Errorf("failed to create image: %w", err)
+		}
+		response := strings.ReplaceAll(frame(frameMain), "{processID}", electionID.String())
+		response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
 		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(strings.ReplaceAll(frame(frameMain), "{processID}", electionID.String())), http.StatusOK)
+		return ctx.Send([]byte(response), http.StatusOK)
 	}); err != nil {
 		log.Fatal(err)
 	}

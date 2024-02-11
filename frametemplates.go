@@ -9,26 +9,26 @@ func frame(template string) string {
 var frameMain = `
 <!DOCTYPE html>
 <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta property="fc:frame" content="vNext" />
-        <meta property="fc:frame:image" content="https://images.unsplash.com/photo-1604065985083-86231f74c233" />
-        <meta property="fc:frame:post_url" content="{server}/router/{processID}" />
-  
-    <meta property="fc:frame:button:1" content="Results" />
-    	<meta property="fc:frame:button:1:action" content="post" />
-    	<meta property="fc:frame:button:1:target" content="{server}/poll/results/{processID}" />
-      
-    <meta property="fc:frame:button:2" content="Vote" />
-    <meta property="fc:frame:button:2:action" content="post" />
-    	<meta property="fc:frame:button:2:target" content="{server}/poll/{processID}" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="fc:frame" content="vNext" />
+    <meta name="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta name="fc:frame:post_url" content="{server}/router/{processID}" />
 
-          <title>Vocdoni vote frame</title>
-      </head>
-      <body>
-        <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
-      </body>
+    <meta name="fc:frame:button:1" content="Results" />
+    <meta name="fc:frame:button:1:action" content="post" />
+    <meta name="fc:frame:button:1:target" content="{server}/poll/results/{processID}" />
+
+    <meta name="fc:frame:button:2" content="Vote" />
+    <meta name="fc:frame:button:2:action" content="post" />
+    <meta name="fc:frame:button:2:target" content="{server}/poll/{processID}" />
+
+    <title>Vocdoni vote frame</title>
+</head>
+<body>
+    <h1>Hello Farcaster! This is <a href="https://vocdoni.io">Vocdoni</a>.</h1>
+</body>
 </html>
 `
 
