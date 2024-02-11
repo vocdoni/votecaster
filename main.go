@@ -127,11 +127,11 @@ func main() {
 		redirectURL := ""
 		switch packet.UntrustedData.ButtonIndex {
 		case 1:
-			redirectURL = fmt.Sprintf("https://celoni.vocdoni.net/poll/results/%s", electionID)
+			redirectURL = fmt.Sprintf(serverURL+"/poll/results/%s", electionID)
 		case 2:
-			redirectURL = fmt.Sprintf("https://celoni.vocdoni.net/poll/%s", electionID)
+			redirectURL = fmt.Sprintf(serverURL+"/poll/%s", electionID)
 		default:
-			redirectURL = "https://celoni.vocdoni.net/"
+			redirectURL = serverURL + "/"
 		}
 		log.Infow("received router request", "electionID", electionID, "buttonIndex", packet.UntrustedData.ButtonIndex, "redirectURL", redirectURL)
 		ctx.Writer.Header().Add("Location", redirectURL)
