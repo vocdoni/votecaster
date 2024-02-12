@@ -26,10 +26,18 @@ var frameMain = `
     <meta name="fc:frame:button:2:action" content="post" />
     <meta name="fc:frame:button:2:target" content="{server}/poll/{processID}" />
 
+    <meta name="fc:frame:button:3" content="Create new" />
+    <meta name="fc:frame:button:3:action" content="link" />
+    <meta name="fc:frame:button:3:target" content="{server}" />
+
+    <meta name="fc:frame:button:4" content="onvote.app" />
+    <meta name="fc:frame:button:4:action" content="link" />
+    <meta name="fc:frame:button:4:target" content="https://onvote.app" />
+
     <title>Vocdoni vote frame</title>
   </head>
   <body>
-    <h1>Hello Farcaster! This is <a href="https://vocdoni.io">Vocdoni</a>.</h1>
+    <h1>Hello Farcaster! This is <a href="{server}">Vocdoni</a>.</h1>
   </body>
 </html>
 `
@@ -48,10 +56,11 @@ var frameVote = `
     <meta property="fc:frame:button:1" content="{option0}" />
     <meta property="fc:frame:button:2" content="{option1}" />
     <meta property="fc:frame:button:3" content="{option2}" />
+    <meta property="fc:frame:button:4" content="{option3}" />
     <title>Vocdoni Frame</title>
   </head>
   <body>
-    <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
+    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
   </body>
 </html>
 `
@@ -73,7 +82,7 @@ var frameAfterVote = `
     <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
   </head>
   <body>
-    <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
+    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
   </body>
 </html>
 `
@@ -88,11 +97,11 @@ var frameResults = `
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
-    <meta property="fc:frame:post_url" content="{server}/poll/{processID}" />
+    <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
   </head>
   <body>
-    <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
+    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
   </body>
 </html>
 `
@@ -107,14 +116,14 @@ var frameAlreadyVoted = `
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:post_url" content="{server}/poll/{processID}" />
+    <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
     <meta property="fc:frame:button:2" content="Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
   </head>
   <body>
-    <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
+    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
   </body>
 </html>
 `
@@ -129,11 +138,11 @@ var frameNotElegible = `
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:post_url" content="{server}/poll/{processID}" />
+    <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
   </head>
   <body>
-    <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
+    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
   </body>
 </html>
 `
@@ -148,11 +157,11 @@ var frameError = `
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:post_url" content="{server}/" />
+    <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
   </head>
   <body>
-    <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
+    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
   </body>
 </html>
 `

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -140,6 +141,19 @@ func main() {
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 		ctx.Writer.Header().Add("Location", "/app")
 		return ctx.Send([]byte("Redirecting to /app"), http.StatusTemporaryRedirect)
+	}); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/main/{electionID}", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+		png, err := textToImage("farcaster.vote by Vocdoni", "#000000", LandingImagePath, Pixeloid, 50)
+		if err != nil {
+			return err
+		}
+		response := strings.ReplaceAll(frameMain, "{server}", serverURL)
+		response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
+		response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
+		return ctx.Send([]byte(response), http.StatusOK)
 	}); err != nil {
 		log.Fatal(err)
 	}

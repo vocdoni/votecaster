@@ -22,6 +22,7 @@ const (
 	Pixeloid            = "PixeloidSans.ttf"
 	FontsDir            = "fonts/"
 	BackgroundImagePath = FontsDir + "background.png"
+	LandingImagePath    = FontsDir + "landing.png"
 )
 
 func loadFont(fn string) (*truetype.Font, error) {
