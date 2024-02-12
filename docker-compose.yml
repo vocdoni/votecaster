@@ -1,0 +1,28 @@
+version: '3.1'
+
+services:
+  voteframe:
+    env_file:
+      - .env
+    build:
+      context: ./
+      args: 
+        - APP_URL=${SERVER_URL}
+    ports:
+      - 8888:8888
+    command:
+      - "--listenPort=8888"
+      - "--logLevel=${LOG_LEVEL}"
+      - "--vocdoniPrivKey=${PRIV_KEY}"
+      - "--server=${SERVER_URL}"
+      - "--apiEndpoint=${VOCDONI_API_ENDPOINT}"
+      - "--dataDir=/app/data"
+      - "--web=/app/webapp"
+    sysctls:
+      net.core.somaxconn: 8128
+    volumes:
+      - voteframe:/app/data
+    restart: ${RESTART:-unless-stopped}
+
+volumes:
+  voteframe: {}

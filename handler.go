@@ -230,7 +230,6 @@ func (v *vocodniHandler) staticHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		p = path.Join(v.webappdir, strings.TrimPrefix(path.Clean(r.URL.Path), "/app"))
 	}
-	log.Infow("serving static file", "path", p)
 
 	// Open the file
 	file, err := os.Open(p)
