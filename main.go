@@ -186,6 +186,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/testimage", http.MethodGet, "public", handler.testImage); err != nil {
+		log.Fatal(err)
+	}
+
 	// close if interrupt received
 	log.Infof("startup complete at %s", time.Now().Format(time.RFC850))
 	c := make(chan os.Signal, 1)

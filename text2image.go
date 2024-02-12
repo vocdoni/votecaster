@@ -21,7 +21,7 @@ const (
 	UbuntuMono          = "UbuntuMono-R.ttf"
 	Pixeloid            = "PixeloidSans.ttf"
 	FontsDir            = "fonts/"
-	BackgroundImagePath = "path/to/your/background.png"
+	BackgroundImagePath = FontsDir + "background.png"
 )
 
 func loadFont(fn string) (*truetype.Font, error) {
@@ -37,9 +37,9 @@ func loadFont(fn string) (*truetype.Font, error) {
 	return f, nil
 }
 
-func textToImage(textContent string, fgColorHex string, bgColorHex string, fontName string, fontSize float64) ([]byte, error) {
+func textToImage(textContent string, fgColorHex string, bgImagePath string, fontName string, fontSize float64) ([]byte, error) {
 	// Load the background image
-	bgImgFile, err := os.Open(BackgroundImagePath)
+	bgImgFile, err := os.Open(bgImagePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load background image: %w", err)
 	}
@@ -81,8 +81,8 @@ func textToImage(textContent string, fgColorHex string, bgColorHex string, fontN
 	c.SetSrc(fg)
 	c.SetHinting(font.HintingNone)
 
-	textXOffset := 50
-	textYOffset := 40 + int(c.PointToFixed(fontSize)>>6) // Note shift/truncate 6 bits first
+	textXOffset := 140
+	textYOffset := 180 + int(c.PointToFixed(fontSize)>>6) // Note shift/truncate 6 bits first
 
 	pt := freetype.Pt(textXOffset, textYOffset)
 	for _, s := range text {

@@ -36,6 +36,7 @@ RUN apt-get update && \
 WORKDIR /app
 COPY --from=builder /src/farcastervote ./
 COPY --from=builder /src/farcaster_census.json ./
+COPY --from=builder /src/fonts ./
 COPY --from=web /app/dist webapp
 
 ENTRYPOINT ["/app/farcastervote"]

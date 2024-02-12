@@ -22,13 +22,13 @@ import (
 	"go.vocdoni.io/dvote/util"
 )
 
-type vocodniHandler struct {
+type vocdoniHandler struct {
 	cli       *apiclient.HTTPclient
 	census    *CensusInfo
 	webappdir string
 }
 
-func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, webappdir string) (*vocodniHandler, error) {
+func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, webappdir string) (*vocdoniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
 		accountPrivKey = util.RandomHex(32)
@@ -53,14 +53,14 @@ func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, w
 	}
 
 	// Create the account if it doesn't exist and return the handler
-	return &vocodniHandler{
+	return &vocdoniHandler{
 		cli:       cli,
 		census:    census,
 		webappdir: webappdir,
 	}, ensureAccountExist(cli)
 }
 
-func (v *vocodniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
@@ -72,19 +72,10 @@ func (v *vocodniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	if err != nil {
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
-	text := strings.Builder{}
-	text.WriteString(fmt.Sprintf(election.Metadata.Title["default"]))
-	text.WriteString("\n----------------------------------------\n\n")
-	text.WriteString(fmt.Sprintf("> Started %s ago\n", time.Since(election.StartDate).Round(time.Minute).String()))
-	text.WriteString(fmt.Sprintf("> Remaining time %s\n", time.Until(election.EndDate).Round(time.Minute).String()))
-	text.WriteString(fmt.Sprintf("> Census hash %x...\n", election.Census.CensusRoot[0:8]))
-	// text.WriteString(fmt.Sprintf("> Census size %d\n", election.Census.MaxCensusSize))
-	text.WriteString(fmt.Sprintf("> Executed on network %s\n", v.cli.ChainID()))
-	png, err := textToImage(text.String(), "#33ff33", "#000000", Pixeloid, 42)
+	png, err := generateElectionImage(election.Metadata.Title["default"], v.cli.ChainID(), election.StartDate, election.EndDate, election.Census.CensusRoot)
 	if err != nil {
-		return fmt.Errorf("failed to create image: %w", err)
+		return fmt.Errorf("failed to generate image: %v", err)
 	}
-
 	// send the response
 	response := strings.ReplaceAll(frame(frameVote), "{image}", base64.StdEncoding.EncodeToString(png))
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
@@ -96,7 +87,19 @@ func (v *vocodniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-func (v *vocodniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+func generateElectionImage(title, chainID string, startDate, endDate time.Time, censusRoot []byte) ([]byte, error) {
+	text := strings.Builder{}
+	text.WriteString(title)
+	text.WriteString("\n--------------------------------------------------------------------------------\n\n")
+	text.WriteString(fmt.Sprintf("> Started %s ago\n", time.Since(startDate).Round(time.Minute).String()))
+	text.WriteString(fmt.Sprintf("> Remaining time %s\n", time.Until(endDate).Round(time.Minute).String()))
+	text.WriteString(fmt.Sprintf("> Census hash %x...\n", censusRoot[0:8]))
+	// text.WriteString(fmt.Sprintf("> Census size %d\n", election.Census.MaxCensusSize))
+	text.WriteString(fmt.Sprintf("> Executed on network %s\n", chainID))
+	return textToImage(text.String(), "#33ff33", BackgroundImagePath, Pixeloid, 42)
+}
+
+func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	// get the electionID from the URL and the frame signature packet from the body of the request
 	electionID := ctx.URLParam("electionID")
 	electionIDbytes, err := hex.DecodeString(electionID)
@@ -164,7 +167,7 @@ func (v *vocodniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-func (v *vocodniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	electionID := ctx.URLParam("electionID")
 	log.Infow("received results request", "electionID", electionID)
 	electionIDbytes, err := hex.DecodeString(electionID)
@@ -203,7 +206,7 @@ func (v *vocodniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-func (v *vocodniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	var req *ElectionDescription
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return fmt.Errorf("failed to unmarshal election request: %w", err)
@@ -220,10 +223,25 @@ func (v *vocodniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)
 }
 
+func (v *vocdoniHandler) testImage(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	png, err := generateElectionImage(
+		"How would you like to take kiwi in Mumbai?", "vocdoni/dev/54",
+		time.Now(),
+		time.Now().Add(time.Hour*24),
+		util.RandomBytes(32),
+	)
+	if err != nil {
+		return err
+	}
+	response := strings.ReplaceAll(frame(testImageHTML), "{image}", base64.StdEncoding.EncodeToString(png))
+	ctx.SetResponseContentType("text/html; charset=utf-8")
+	return ctx.Send([]byte(response), http.StatusOK)
+}
+
 // Note: I know this is not the way to serve static files... the http.ServeFile function should be used.
 // however for some reason it does not work for the index.html file (it does for any other file!).
 // So I'm using this workaround for now...
-func (v *vocodniHandler) staticHandler(w http.ResponseWriter, r *http.Request) {
+func (v *vocdoniHandler) staticHandler(w http.ResponseWriter, r *http.Request) {
 	var p string
 	if r.URL.Path == "/app" || r.URL.Path == "/app/" {
 		p = path.Join(v.webappdir, "index.html")
