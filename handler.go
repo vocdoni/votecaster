@@ -115,6 +115,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 			return fmt.Errorf("failed to create image: %w", err)
 		}
 		response := strings.ReplaceAll(frame(frameError), "{image}", base64.StdEncoding.EncodeToString(png))
+		response = strings.ReplaceAll(response, "{processID}", electionID)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
@@ -134,6 +135,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 			return fmt.Errorf("failed to create image: %w", err)
 		}
 		response := strings.ReplaceAll(frame(frameNotElegible), "{image}", base64.StdEncoding.EncodeToString(png))
+		response = strings.ReplaceAll(response, "{processID}", electionID)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
@@ -146,6 +148,8 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		}
 		response := strings.ReplaceAll(frame(frameAlreadyVoted), "{image}", base64.StdEncoding.EncodeToString(png))
 		response = strings.ReplaceAll(response, "{nullifier}", fmt.Sprintf("%x", nullifier))
+		response = strings.ReplaceAll(response, "{processID}", electionID)
+		response = strings.ReplaceAll(response, "{explorer}", explorerURL)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
@@ -157,12 +161,14 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 			return fmt.Errorf("failed to create image: %w", err)
 		}
 		response := strings.ReplaceAll(frame(frameError), "{image}", base64.StdEncoding.EncodeToString(png))
+		response = strings.ReplaceAll(response, "{processID}", electionID)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
 
 	response := strings.ReplaceAll(frame(frameAfterVote), "{nullifier}", fmt.Sprintf("%x", nullifier))
 	response = strings.ReplaceAll(response, "{processID}", electionID)
+	response = strings.ReplaceAll(response, "{explorer}", explorerURL)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
@@ -186,7 +192,7 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 
 	text := strings.Builder{}
 	for _, r := range election.Metadata.Questions[0].Choices {
-		_, err := text.WriteString(fmt.Sprintf("%s: %s\n",
+		_, err := text.WriteString(fmt.Sprintf("> %s: %s\n",
 			r.Title["default"],
 			election.Results[0][r.Value].String(),
 		))

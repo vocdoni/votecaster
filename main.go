@@ -21,7 +21,10 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
-var serverURL = "http://localhost:8888"
+var (
+	serverURL   = "http://localhost:8888"
+	explorerURL = "https://dev.explorer.vote"
+)
 
 func main() {
 	flag.String("server", serverURL, "The full URL of the server (http or https)")
@@ -35,6 +38,7 @@ func main() {
 	flag.String("censusFromFile", "farcaster_census.json", "Take census details from JSON file")
 	flag.String("logLevel", "info", "The log level to use")
 	flag.String("web", "./webapp/dist", "The path where the static web app is located")
+	flag.String("explorerURL", explorerURL, "The full URL of the explorer (http or https)")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -58,6 +62,7 @@ func main() {
 	censusFromFile := viper.GetString("censusFromFile")
 	logLevel := viper.GetString("logLevel")
 	webAppDir := viper.GetString("web")
+	explorerURL = viper.GetString("explorerURL")
 
 	log.Init(logLevel, "stdout", nil)
 

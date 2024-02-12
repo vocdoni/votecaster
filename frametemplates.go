@@ -70,7 +70,7 @@ var frameAfterVote = `
     <meta property="fc:frame:button:1" content="Results" />
     <meta property="fc:frame:button:2" content="Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
-    <meta property="fc:frame:button:2:target" content="https://dev.explorer.vote/verify/#/{nullifier}" />
+    <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
   </head>
   <body>
     <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
@@ -88,7 +88,7 @@ var frameResults = `
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
-    <meta property="fc:frame:post_url" content="{server}/" />
+    <meta property="fc:frame:post_url" content="{server}/poll/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
   </head>
   <body>
@@ -107,11 +107,11 @@ var frameAlreadyVoted = `
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:post_url" content="{server}/" />
+    <meta property="fc:frame:post_url" content="{server}/poll/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
     <meta property="fc:frame:button:2" content="Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
-    <meta property="fc:frame:button:2:target" content="https://dev.explorer.vote/verify/#/{nullifier}" />
+    <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
   </head>
   <body>
     <h1>Hello Farcaster! this is <a href="https://vocdoni.io">Vocdoni</a></h1>
@@ -129,7 +129,7 @@ var frameNotElegible = `
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:post_url" content="{server}/" />
+    <meta property="fc:frame:post_url" content="{server}/poll/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
   </head>
   <body>
