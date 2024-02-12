@@ -110,7 +110,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	election, err := v.cli.Election(electionIDbytes)
 	if err != nil {
 		log.Warnw("failed to fetch election", "error", err)
-		png, err := textToImage(fmt.Sprintf("Error: %s", err.Error()), "#ff0000", "#000000", Pixeloid, 36)
+		png, err := textToImage(fmt.Sprintf("Error: %s", err.Error()), "#ff0000", BackgroundImagePath, Pixeloid, 36)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -129,7 +129,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	// handle the vote result
 	if errors.Is(err, ErrNotInCensus) {
 		log.Infow("participant not in the census", "voterID", fmt.Sprintf("%x", voterID))
-		png, err := textToImage("Sorry, you are not elegible! 🔍", "#ff0000", "#000000", Pixeloid, 52)
+		png, err := textToImage("Sorry, you are not elegible!", "#ff0000", BackgroundImagePath, Pixeloid, 52)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -140,7 +140,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	if errors.Is(err, ErrAlreadyVoted) {
 		log.Infow("participant already voted", "voterID", fmt.Sprintf("%x", voterID))
-		png, err := textToImage("You already voted!", "#ff0000", "#000000", Pixeloid, 52)
+		png, err := textToImage("You already voted!", "#ff0000", BackgroundImagePath, Pixeloid, 52)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -152,7 +152,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	if err != nil {
 		log.Warnw("failed to vote", "error", err)
-		png, err := textToImage(fmt.Sprintf("Error: %s", err.Error()), "#ff0000", "#000000", Pixeloid, 36)
+		png, err := textToImage(fmt.Sprintf("Error: %s", err.Error()), "#ff0000", BackgroundImagePath, Pixeloid, 36)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -195,7 +195,7 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		}
 	}
 
-	png, err := textToImage(text.String(), "#33ff33", "#000000", Pixeloid, 42)
+	png, err := textToImage(text.String(), "#33ff33", BackgroundImagePath, Pixeloid, 42)
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
