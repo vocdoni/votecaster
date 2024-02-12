@@ -36,6 +36,7 @@ const Form: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const backendUrl = import.meta.env.BACKEND_URL
 
   const onSubmit = async (data: FormValues) => {
     setError(null)
@@ -51,7 +52,7 @@ const Form: React.FC = () => {
         }
       }
 
-      const res = await axios.post('http://localhost:8002/create', election)
+      const res = await axios.post(`${backendUrl}/create`, election)
       setPid(res.data.replace('\n', ''))
     } catch (e) {
       if ('message' in e) {

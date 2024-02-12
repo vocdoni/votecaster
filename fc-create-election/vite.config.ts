@@ -10,5 +10,8 @@ export default defineConfig({
   build: {
     outDir,
   },
+  define: {
+    'import.meta.env.BACKEND_URL': process.env.BACKEND_URL || '',
+  },
   plugins: [react()],
 })
