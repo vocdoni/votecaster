@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"strings"
 	"syscall"
 	"time"
@@ -32,7 +33,7 @@ func main() {
 	vocdoniPrivKey := flag.String("vocdoniPrivKey", "", "The Vocdoni private key to use for orchestrating the election (hex)")
 	censusFromFile := flag.String("censusFromFile", "farcaster_census.json", "Take census details from JSON file")
 	logLevel := flag.String("logLevel", "info", "The log level to use")
-	webAppDir := flag.String("web", "fc-create-election/dist", "The path where the static web app is located")
+	webAppDir := flag.String("web", "./webapp/dist", "The path where the static web app is located")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -57,7 +58,7 @@ func main() {
 	}
 
 	// Create the Vocdoni handler
-	handler, err := NewVocdoniHandler(*apiEndpoint, *vocdoniPrivKey, censusInfo)
+	handler, err := NewVocdoniHandler(*apiEndpoint, *vocdoniPrivKey, censusInfo, *webAppDir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,15 +74,10 @@ func main() {
 	}
 
 	// Add handler to serve the static files
-	router.AddRawHTTPHandler("/app/*", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
-		log.Infow("serving static file", "path", r.URL.Path)
-		http.ServeFile(w, r, *webAppDir)
+	router.AddRawHTTPHandler("/app*", http.MethodGet, handler.staticHandler)
+	router.AddRawHTTPHandler("/favicon.ico", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, path.Join(*webAppDir, "favicon.ico"))
 	})
-	router.AddRawHTTPHandler("/app", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
-		log.Infow("serving static file", "path", r.URL.Path)
-		http.ServeFile(w, r, *webAppDir)
-	})
-
 	// Create the API handler
 	uAPI, err := urlapi.NewAPI(router, "/", *dataDir, db.TypePebble)
 	if err != nil {

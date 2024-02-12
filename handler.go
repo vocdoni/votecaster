@@ -6,8 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -20,11 +23,12 @@ import (
 )
 
 type vocodniHandler struct {
-	cli    *apiclient.HTTPclient
-	census *CensusInfo
+	cli       *apiclient.HTTPclient
+	census    *CensusInfo
+	webappdir string
 }
 
-func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo) (*vocodniHandler, error) {
+func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, webappdir string) (*vocodniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
 		accountPrivKey = util.RandomHex(32)
@@ -50,8 +54,9 @@ func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo) (
 
 	// Create the account if it doesn't exist and return the handler
 	return &vocodniHandler{
-		cli:    cli,
-		census: census,
+		cli:       cli,
+		census:    census,
+		webappdir: webappdir,
 	}, ensureAccountExist(cli)
 }
 
@@ -203,12 +208,67 @@ func (v *vocodniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return fmt.Errorf("failed to unmarshal election request: %w", err)
 	}
+	if req.Duration == 0 {
+		req.Duration = time.Hour * 24
+	}
 	electionID, err := createElection(v.cli, req, v.census)
-
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
 
 	ctx.Writer.Header().Set("Content-Type", "application/json")
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)
+}
+
+// Note: I know this is not the way to serve static files... the http.ServeFile function should be used.
+// however for some reason it does not work for the index.html file (it does for any other file!).
+// So I'm using this workaround for now...
+func (v *vocodniHandler) staticHandler(w http.ResponseWriter, r *http.Request) {
+	var p string
+	if r.URL.Path == "/app" || r.URL.Path == "/app/" {
+		p = path.Join(v.webappdir, "index.html")
+	} else {
+		p = path.Join(v.webappdir, strings.TrimPrefix(path.Clean(r.URL.Path), "/app"))
+	}
+	log.Infow("serving static file", "path", p)
+
+	// Open the file
+	file, err := os.Open(p)
+	if err != nil {
+		// If the file does not exist or there's an error, return 404
+		http.Error(w, "Nothing here...", http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	// Set the Content-Type header
+	var contentType string
+	if strings.HasSuffix(p, ".js") {
+		contentType = "application/javascript"
+	} else if strings.HasSuffix(p, ".html") {
+		contentType = "text/html"
+	} else {
+		// Read the first 512 bytes to pass to DetectContentType
+		buf := make([]byte, 512)
+		n, err := file.Read(buf)
+		if err != nil && err != io.EOF {
+			// If there's an error reading the file, return an internal server error
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		// Reset the read pointer back to the start of the file
+		if _, err := file.Seek(0, 0); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		// Detect the content type and set the Content-Type header
+		contentType = http.DetectContentType(buf[:n])
+	}
+	w.Header().Set("Content-Type", contentType)
+
+	// Write the file content to the response
+	_, err = io.Copy(w, file)
+	if err != nil {
+		log.Warnf("error writing file to response: %v", err.Error())
+	}
 }
