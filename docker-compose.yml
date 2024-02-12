@@ -17,7 +17,7 @@ services:
       - "--server=${SERVER_URL}"
       - "--apiEndpoint=${VOCDONI_API_ENDPOINT}"
       - "--dataDir=/app/data"
-      - "--web=/app/webapp"
+      - "--web=${WEBAPP_DIR}"
     sysctls:
       net.core.somaxconn: 8128
     volumes:
