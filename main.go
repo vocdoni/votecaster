@@ -39,6 +39,19 @@ func main() {
 	flag.Parse()
 	log.Init(*logLevel, "stdout", nil)
 
+	log.Infow("configuration loaded",
+		"server", *server,
+		"tlsDomain", *tlsDomain,
+		"tlsDirCert", *tlsDirCert,
+		"host", *host,
+		"port", *port,
+		"dataDir", *dataDir,
+		"apiEndpoint", *apiEndpoint,
+		"censusFromFile", *censusFromFile,
+		"logLevel", *logLevel,
+		"webAppDir", *webAppDir,
+	)
+
 	// check the server URL is http or https and extract the domain
 	if !strings.HasPrefix(*server, "http://") && !strings.HasPrefix(*server, "https://") {
 		log.Fatal("server URL must start with http:// or https://")
@@ -74,6 +87,11 @@ func main() {
 	}
 
 	// Add handler to serve the static files
+	log.Infow("serving webapp static files from", "dir", *webAppDir)
+	// check index.html exists
+	if _, err := os.Stat(path.Join(*webAppDir, "index.html")); err != nil {
+		log.Fatalf("index.html not found in webapp directory %s", *webAppDir)
+	}
 	router.AddRawHTTPHandler("/app*", http.MethodGet, handler.staticHandler)
 	router.AddRawHTTPHandler("/favicon.ico", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, path.Join(*webAppDir, "favicon.ico"))
