@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -25,6 +24,7 @@ import (
 var (
 	serverURL   = "http://localhost:8888"
 	explorerURL = "https://dev.explorer.vote"
+	onvoteURL   = "https://dev.onvote.vote"
 )
 
 func main() {
@@ -40,6 +40,7 @@ func main() {
 	flag.String("logLevel", "info", "The log level to use")
 	flag.String("web", "./webapp/dist", "The path where the static web app is located")
 	flag.String("explorerURL", explorerURL, "The full URL of the explorer (http or https)")
+	flag.String("onvoteURL", onvoteURL, "The full URL of the onvote.app application (http or https)")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -64,6 +65,7 @@ func main() {
 	logLevel := viper.GetString("logLevel")
 	webAppDir := viper.GetString("web")
 	explorerURL = viper.GetString("explorerURL")
+	onvoteURL = viper.GetString("onvoteURL")
 
 	log.Init(logLevel, "stdout", nil)
 
@@ -78,6 +80,8 @@ func main() {
 		"censusFromFile", censusFromFile,
 		"logLevel", logLevel,
 		"webAppDir", webAppDir,
+		"explorerURL", explorerURL,
+		"onvoteURL", onvoteURL,
 	)
 
 	// check the server URL is http or https and extract the domain
@@ -145,16 +149,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/main/{electionID}", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-		png, err := textToImage("", "#000000", LandingImagePath, Pixeloid, 50)
-		if err != nil {
-			return err
-		}
-		response := strings.ReplaceAll(frameMain, "{server}", serverURL)
-		response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
-		response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
-		return ctx.Send([]byte(response), http.StatusOK)
-	}); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/main/{electionID}", http.MethodPost, "public", handler.landing); err != nil {
 		log.Fatal(err)
 	}
 
@@ -171,6 +166,8 @@ func main() {
 			redirectURL = fmt.Sprintf(serverURL+"/poll/results/%s", electionID)
 		case 2:
 			redirectURL = fmt.Sprintf(serverURL+"/poll/%s", electionID)
+		case 3:
+			redirectURL = fmt.Sprintf(serverURL+"/info/%s", electionID)
 		default:
 			redirectURL = serverURL + "/"
 		}
@@ -198,6 +195,10 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/vote/{electionID}", http.MethodPost, "public", handler.vote); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/info/{electionID}", http.MethodPost, "public", handler.info); err != nil {
 		log.Fatal(err)
 	}
 

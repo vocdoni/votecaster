@@ -16,14 +16,44 @@ import (
 )
 
 const (
-	FreeMono            = "FreeMono.ttf"
-	FreeSans            = "FreeSans.ttf"
-	UbuntuMono          = "UbuntuMono-R.ttf"
-	Pixeloid            = "PixeloidSans.ttf"
-	FontsDir            = "fonts/"
-	BackgroundImagePath = FontsDir + "background.png"
-	LandingImagePath    = FontsDir + "landing.png"
+	FontsDir   = "fonts/"
+	FreeMono   = "FreeMono.ttf"
+	FreeSans   = "FreeSans.ttf"
+	UbuntuMono = "UbuntuMono-R.ttf"
+	Pixeloid   = "PixeloidSans.ttf"
+
+	BackgroundsDir         = "images/"
+	BackgroundAfterVote    = BackgroundsDir + "aftervote.png"
+	BackgroundAlreadyVoted = BackgroundsDir + "alreadyvoted.png"
+	BackgroundGeneric      = BackgroundsDir + "generic.png"
+	BackgroundResults      = BackgroundsDir + "results.png"
+	BackgroundNotElegible  = BackgroundsDir + "notelegible.png"
+	BackgroundError        = BackgroundsDir + "error.png"
 )
+
+func loadImages() (map[string]image.Image, error) {
+	images := make(map[string]image.Image)
+	for _, img := range []string{
+		BackgroundAfterVote,
+		BackgroundAlreadyVoted,
+		BackgroundGeneric,
+		BackgroundResults,
+		BackgroundNotElegible,
+		BackgroundError,
+	} {
+		imgFile, err := os.Open(img)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load image %s: %w", img, err)
+		}
+		defer imgFile.Close()
+
+		images[img], _, err = image.Decode(imgFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode image %s: %w", img, err)
+		}
+	}
+	return images, nil
+}
 
 func loadFont(fn string) (*truetype.Font, error) {
 	fontFile := fmt.Sprintf("fonts/%s", fn)
@@ -38,19 +68,7 @@ func loadFont(fn string) (*truetype.Font, error) {
 	return f, nil
 }
 
-func textToImage(textContent string, fgColorHex string, bgImagePath string, fontName string, fontSize float64) ([]byte, error) {
-	// Load the background image
-	bgImgFile, err := os.Open(bgImagePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load background image: %w", err)
-	}
-	defer bgImgFile.Close()
-
-	bgImg, _, err := image.Decode(bgImgFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode background image: %w", err)
-	}
-
+func textToImage(textContent string, fgColorHex string, bgImg image.Image, fontName string, fontSize float64) ([]byte, error) {
 	// Set foreground color
 	fgColor := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff} // Default font color
 	if len(fgColorHex) == 7 {

@@ -26,13 +26,13 @@ var frameMain = `
     <meta name="fc:frame:button:2:action" content="post" />
     <meta name="fc:frame:button:2:target" content="{server}/poll/{processID}" />
 
-    <meta name="fc:frame:button:3" content="Create new" />
-    <meta name="fc:frame:button:3:action" content="link" />
-    <meta name="fc:frame:button:3:target" content="{server}" />
+    <meta name="fc:frame:button:3" content="Info" />
+    <meta name="fc:frame:button:3:action" content="post" />
+    <meta name="fc:frame:button:3:target" content="{server}/info/{processID}" />
 
-    <meta name="fc:frame:button:4" content="onvote.app" />
+    <meta name="fc:frame:button:4" content="Create new" />
     <meta name="fc:frame:button:4:action" content="link" />
-    <meta name="fc:frame:button:4:target" content="https://onvote.app" />
+    <meta name="fc:frame:button:4:target" content="{server}" />
 
     <meta http-equiv="refresh" content="0; url={server}" />
     <title>Vocdoni vote frame</title>
@@ -102,6 +102,35 @@ var frameResults = `
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
+    <meta http-equiv="refresh" content="0; url={server}" />
+  </head>
+  <body>
+    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
+  </body>
+</html>
+`
+
+var frameInfo = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta property="fc:frame" content="vNext" />
+    <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
+    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
+    <meta property="fc:frame:button:1" content="Back" />
+
+    <meta property="fc:frame:button:2" content="See at onvote.app" />
+    <meta property="fc:frame:button:2:action" content="link" />
+    <meta property="fc:frame:button:2:target" content="{onvote}/processes/{processID}" />
+
+    <meta property="fc:frame:button:3" content="About us" />
+    <meta property="fc:frame:button:3:action" content="link" />
+    <meta property="fc:frame:button:3:target" content="https://warpcast.com/vocdoni" />
+
     <meta http-equiv="refresh" content="0; url={server}" />
   </head>
   <body>
