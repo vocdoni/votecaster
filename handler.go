@@ -236,18 +236,34 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 }
 
 func (v *vocdoniHandler) testImage(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	png, err := generateElectionImage(
-		"How would you like to take kiwi in Mumbai?", "vocdoni/dev/54",
-		time.Now(),
-		time.Now().Add(time.Hour*24),
-		util.RandomBytes(32),
-	)
-	if err != nil {
-		return err
+	if ctx.Request.Method == http.MethodGet {
+		png, err := generateElectionImage(
+			"How would you like to take kiwi in Mumbai?", "vocdoni/dev/54",
+			time.Now(),
+			time.Now().Add(time.Hour*24),
+			util.RandomBytes(32),
+		)
+		if err != nil {
+			return err
+		}
+		response := strings.ReplaceAll(frame(testImageHTML), "{image}", base64.StdEncoding.EncodeToString(png))
+		ctx.SetResponseContentType("text/html; charset=utf-8")
+		return ctx.Send([]byte(response), http.StatusOK)
 	}
-	response := strings.ReplaceAll(frame(testImageHTML), "{image}", base64.StdEncoding.EncodeToString(png))
-	ctx.SetResponseContentType("text/html; charset=utf-8")
-	return ctx.Send([]byte(response), http.StatusOK)
+	description := &ElectionDescription{}
+	if err := json.Unmarshal(msg.Data, description); err != nil {
+		return fmt.Errorf("failed to unmarshal election description: %w", err)
+	}
+	png, err := generateElectionImage(description.Question, v.cli.ChainID(), time.Now(), time.Now().Add(description.Duration), util.RandomBytes(32))
+	if err != nil {
+		return fmt.Errorf("failed to create image: %w", err)
+	}
+	jresponse, err := json.Marshal(map[string]string{"image": base64.StdEncoding.EncodeToString(png)})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
+	return ctx.Send(jresponse, http.StatusOK)
 }
 
 // Note: I know this is not the way to serve static files... the http.ServeFile function should be used.

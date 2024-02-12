@@ -34,6 +34,7 @@ var frameMain = `
     <meta name="fc:frame:button:4:action" content="link" />
     <meta name="fc:frame:button:4:target" content="https://onvote.app" />
 
+    <meta http-equiv="refresh" content="0; url={server}" />
     <title>Vocdoni vote frame</title>
   </head>
   <body>
@@ -57,6 +58,7 @@ var frameVote = `
     <meta property="fc:frame:button:2" content="{option1}" />
     <meta property="fc:frame:button:3" content="{option2}" />
     <meta property="fc:frame:button:4" content="{option3}" />
+    <meta http-equiv="refresh" content="0; url={server}" />
     <title>Vocdoni Frame</title>
   </head>
   <body>
@@ -80,6 +82,7 @@ var frameAfterVote = `
     <meta property="fc:frame:button:2" content="Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
+    <meta http-equiv="refresh" content="0; url={server}" />
   </head>
   <body>
     <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
@@ -99,6 +102,7 @@ var frameResults = `
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
+    <meta http-equiv="refresh" content="0; url={server}" />
   </head>
   <body>
     <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
@@ -121,6 +125,7 @@ var frameAlreadyVoted = `
     <meta property="fc:frame:button:2" content="Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
+    <meta http-equiv="refresh" content="0; url={server}" />
   </head>
   <body>
     <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
@@ -140,6 +145,7 @@ var frameNotElegible = `
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
+    <meta http-equiv="refresh" content="0; url={server}" />
   </head>
   <body>
     <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
@@ -159,6 +165,7 @@ var frameError = `
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
+    <meta http-equiv="refresh" content="0; url={server}" />
   </head>
   <body>
     <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
