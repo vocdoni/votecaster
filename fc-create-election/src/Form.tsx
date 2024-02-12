@@ -27,6 +27,8 @@ interface FormValues {
   choice4?: string
 }
 
+const appUrl = import.meta.env.APP_URL
+
 const Form: React.FC = () => {
   const {
     register,
@@ -36,7 +38,6 @@ const Form: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const backendUrl = import.meta.env.BACKEND_URL
 
   const onSubmit = async (data: FormValues) => {
     setError(null)
@@ -52,7 +53,7 @@ const Form: React.FC = () => {
         }
       }
 
-      const res = await axios.post(`${backendUrl}/create`, election)
+      const res = await axios.post(`${appUrl}/create`, election)
       setPid(res.data.replace('\n', ''))
     } catch (e) {
       if ('message' in e) {
@@ -84,7 +85,9 @@ const Form: React.FC = () => {
               <Text display='inline'>
                 Done! You can now share it using this link:
                 <br />
-                <Link href={`https://farcaster.vote/${pid}`}>https://farcaster.vote/{pid}</Link>
+                <Link href={`${appUrl}/${pid}`}>
+                  {appUrl}/{pid}
+                </Link>
               </Text>
             ) : (
               <>

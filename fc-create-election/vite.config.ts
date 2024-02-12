@@ -11,7 +11,7 @@ export default defineConfig({
     outDir,
   },
   define: {
-    'import.meta.env.BACKEND_URL': process.env.BACKEND_URL || '',
+    'import.meta.env.APP_URL': JSON.stringify(process.env.APP_URL || ''),
   },
   plugins: [react()],
 })
