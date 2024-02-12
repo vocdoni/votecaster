@@ -146,7 +146,7 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/main/{electionID}", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-		png, err := textToImage("farcaster.vote by Vocdoni", "#000000", LandingImagePath, Pixeloid, 50)
+		png, err := textToImage("", "#000000", LandingImagePath, Pixeloid, 50)
 		if err != nil {
 			return err
 		}

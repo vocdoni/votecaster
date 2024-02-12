@@ -79,8 +79,14 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	// send the response
 	response := strings.ReplaceAll(frame(frameVote), "{image}", base64.StdEncoding.EncodeToString(png))
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
-	for i, r := range election.Metadata.Questions[0].Choices {
-		response = strings.ReplaceAll(response, fmt.Sprintf("{option%d}", i), r.Title["default"])
+
+	r := election.Metadata.Questions[0].Choices
+	for i := 0; i < 4; i++ {
+		if len(r) > i {
+			response = strings.ReplaceAll(response, fmt.Sprintf("{option%d}", i), r[i].Title["default"])
+			continue
+		}
+		response = strings.ReplaceAll(response, fmt.Sprintf("{option%d}", i), "")
 	}
 
 	ctx.SetResponseContentType("text/html; charset=utf-8")
