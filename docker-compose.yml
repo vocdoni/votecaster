@@ -7,17 +7,9 @@ services:
     build:
       context: ./
       args: 
-        - APP_URL=${SERVER_URL}
+        - APP_URL=${VOCDONI_SERVER}
     ports:
       - 8888:8888
-    command:
-      - "--listenPort=8888"
-      - "--logLevel=${LOG_LEVEL}"
-      - "--vocdoniPrivKey=${PRIV_KEY}"
-      - "--server=${SERVER_URL}"
-      - "--apiEndpoint=${VOCDONI_API_ENDPOINT}"
-      - "--dataDir=/app/data"
-      - "--web=${WEBAPP_DIR}"
     sysctls:
       net.core.somaxconn: 8128
     volumes:

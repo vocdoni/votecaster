@@ -11,8 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/spf13/flag"
-
+	"github.com/spf13/pflag"
+	flag "github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	urlapi "go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/db"
 	"go.vocdoni.io/dvote/httprouter"
@@ -23,47 +24,68 @@ import (
 var serverURL = "http://localhost:8888"
 
 func main() {
-	server := flag.String("server", serverURL, "The full URL of the server (http or https)")
-	tlsDomain := flag.Bool("tlsDomain", false, "Should a TLS certificate be fetched from letsencrypt for the domain? (requires port 443)")
-	tlsDirCert := flag.String("tlsDirCert", "", "The directory to use to store the TLS certificate")
-	host := flag.String("listenHost", "0.0.0.0", "The host to listen on")
-	port := flag.Int("listenPort", 8888, "The port to listen on")
-	dataDir := flag.String("dataDir", "", "The directory to use for the data")
-	apiEndpoint := flag.String("apiEndpoint", "https://api-dev.vocdoni.net/v2", "The Vocdoni API endpoint to use")
-	vocdoniPrivKey := flag.String("vocdoniPrivKey", "", "The Vocdoni private key to use for orchestrating the election (hex)")
-	censusFromFile := flag.String("censusFromFile", "farcaster_census.json", "Take census details from JSON file")
-	logLevel := flag.String("logLevel", "info", "The log level to use")
-	webAppDir := flag.String("web", "./webapp/dist", "The path where the static web app is located")
+	flag.String("server", serverURL, "The full URL of the server (http or https)")
+	flag.Bool("tlsDomain", false, "Should a TLS certificate be fetched from letsencrypt for the domain? (requires port 443)")
+	flag.String("tlsDirCert", "", "The directory to use to store the TLS certificate")
+	flag.String("listenHost", "0.0.0.0", "The host to listen on")
+	flag.Int("listenPort", 8888, "The port to listen on")
+	flag.String("dataDir", "", "The directory to use for the data")
+	flag.String("apiEndpoint", "https://api-dev.vocdoni.net/v2", "The Vocdoni API endpoint to use")
+	flag.String("vocdoniPrivKey", "", "The Vocdoni private key to use for orchestrating the election (hex)")
+	flag.String("censusFromFile", "farcaster_census.json", "Take census details from JSON file")
+	flag.String("logLevel", "info", "The log level to use")
+	flag.String("web", "./webapp/dist", "The path where the static web app is located")
 
 	// Parse the command line flags
 	flag.Parse()
-	log.Init(*logLevel, "stdout", nil)
+
+	// Initialize Viper
+	viper.SetEnvPrefix("VOCDONI")
+	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
+		panic(err)
+	}
+	viper.AutomaticEnv()
+
+	// Using Viper to access the variables
+	server := viper.GetString("server")
+	tlsDomain := viper.GetBool("tlsDomain")
+	tlsDirCert := viper.GetString("tlsDirCert")
+	host := viper.GetString("listenHost")
+	port := viper.GetInt("listenPort")
+	dataDir := viper.GetString("dataDir")
+	apiEndpoint := viper.GetString("apiEndpoint")
+	vocdoniPrivKey := viper.GetString("vocdoniPrivKey")
+	censusFromFile := viper.GetString("censusFromFile")
+	logLevel := viper.GetString("logLevel")
+	webAppDir := viper.GetString("web")
+
+	log.Init(logLevel, "stdout", nil)
 
 	log.Infow("configuration loaded",
-		"server", *server,
-		"tlsDomain", *tlsDomain,
-		"tlsDirCert", *tlsDirCert,
-		"host", *host,
-		"port", *port,
-		"dataDir", *dataDir,
-		"apiEndpoint", *apiEndpoint,
-		"censusFromFile", *censusFromFile,
-		"logLevel", *logLevel,
-		"webAppDir", *webAppDir,
+		"server", server,
+		"tlsDomain", tlsDomain,
+		"tlsDirCert", tlsDirCert,
+		"host", host,
+		"port", port,
+		"dataDir", dataDir,
+		"apiEndpoint", apiEndpoint,
+		"censusFromFile", censusFromFile,
+		"logLevel", logLevel,
+		"webAppDir", webAppDir,
 	)
 
 	// check the server URL is http or https and extract the domain
-	if !strings.HasPrefix(*server, "http://") && !strings.HasPrefix(*server, "https://") {
+	if !strings.HasPrefix(server, "http://") && !strings.HasPrefix(server, "https://") {
 		log.Fatal("server URL must start with http:// or https://")
 	}
-	serverURL = *server
+	serverURL = server
 	domain := strings.Split(serverURL, "/")[2]
 	log.Infow("server URL", "URL", serverURL, "domain", domain)
 
 	// Create or load the census
 	censusInfo := &CensusInfo{}
-	if *censusFromFile != "" {
-		if err := censusInfo.FromFile(*censusFromFile); err != nil {
+	if censusFromFile != "" {
+		if err := censusInfo.FromFile(censusFromFile); err != nil {
 			log.Fatal(err)
 		}
 	} else {
@@ -71,33 +93,33 @@ func main() {
 	}
 
 	// Create the Vocdoni handler
-	handler, err := NewVocdoniHandler(*apiEndpoint, *vocdoniPrivKey, censusInfo, *webAppDir)
+	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Create the HTTP API router
 	router := new(httprouter.HTTProuter)
-	if *tlsDomain {
+	if tlsDomain {
 		router.TLSdomain = domain
 	}
-	router.TLSdirCert = *tlsDirCert
-	if err := router.Init(*host, *port); err != nil {
+	router.TLSdirCert = tlsDirCert
+	if err := router.Init(host, port); err != nil {
 		log.Fatal(err)
 	}
 
 	// Add handler to serve the static files
-	log.Infow("serving webapp static files from", "dir", *webAppDir)
+	log.Infow("serving webapp static files from", "dir", webAppDir)
 	// check index.html exists
-	if _, err := os.Stat(path.Join(*webAppDir, "index.html")); err != nil {
-		log.Fatalf("index.html not found in webapp directory %s", *webAppDir)
+	if _, err := os.Stat(path.Join(webAppDir, "index.html")); err != nil {
+		log.Fatalf("index.html not found in webapp directory %s", webAppDir)
 	}
 	router.AddRawHTTPHandler("/app*", http.MethodGet, handler.staticHandler)
 	router.AddRawHTTPHandler("/favicon.ico", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, path.Join(*webAppDir, "favicon.ico"))
+		http.ServeFile(w, r, path.Join(webAppDir, "favicon.ico"))
 	})
 	// Create the API handler
-	uAPI, err := urlapi.NewAPI(router, "/", *dataDir, db.TypePebble)
+	uAPI, err := urlapi.NewAPI(router, "/", dataDir, db.TypePebble)
 	if err != nil {
 		log.Fatal(err)
 	}

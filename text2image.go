@@ -16,11 +16,12 @@ import (
 )
 
 const (
-	FreeMono   = "FreeMono.ttf"
-	FreeSans   = "FreeSans.ttf"
-	UbuntuMono = "UbuntuMono-R.ttf"
-	Pixeloid   = "PixeloidSans.ttf"
-	FontsDir   = "fonts/"
+	FreeMono            = "FreeMono.ttf"
+	FreeSans            = "FreeSans.ttf"
+	UbuntuMono          = "UbuntuMono-R.ttf"
+	Pixeloid            = "PixeloidSans.ttf"
+	FontsDir            = "fonts/"
+	BackgroundImagePath = "path/to/your/background.png"
 )
 
 func loadFont(fn string) (*truetype.Font, error) {
@@ -37,17 +38,22 @@ func loadFont(fn string) (*truetype.Font, error) {
 }
 
 func textToImage(textContent string, fgColorHex string, bgColorHex string, fontName string, fontSize float64) ([]byte, error) {
+	// Load the background image
+	bgImgFile, err := os.Open(BackgroundImagePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load background image: %w", err)
+	}
+	defer bgImgFile.Close()
+
+	bgImg, _, err := image.Decode(bgImgFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode background image: %w", err)
+	}
+
+	// Set foreground color
 	fgColor := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff} // Default font color
 	if len(fgColorHex) == 7 {
 		_, err := fmt.Sscanf(fgColorHex, "#%02x%02x%02x", &fgColor.R, &fgColor.G, &fgColor.B)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	bgColor := color.RGBA{R: 0x30, G: 0x0a, B: 0x24, A: 0xff} // Default background color
-	if len(bgColorHex) == 7 {
-		_, err := fmt.Sscanf(bgColorHex, "#%02x%02x%02x", &bgColor.R, &bgColor.G, &bgColor.B)
 		if err != nil {
 			return nil, err
 		}
@@ -58,13 +64,14 @@ func textToImage(textContent string, fgColorHex string, bgColorHex string, fontN
 		return nil, err
 	}
 
+	// Prepare the image canvas based on the background image size
+	rgba := image.NewRGBA(bgImg.Bounds())
+	draw.Draw(rgba, rgba.Bounds(), bgImg, image.Point{}, draw.Src)
+
 	code := strings.Replace(textContent, "\t", "    ", -1) // convert tabs into spaces
 	text := strings.Split(code, "\n")                      // split newlines into arrays
 
 	fg := image.NewUniform(fgColor)
-	bg := image.NewUniform(bgColor)
-	rgba := image.NewRGBA(image.Rect(0, 0, 1200, 630))
-	draw.Draw(rgba, rgba.Bounds(), bg, image.Pt(0, 0), draw.Src)
 	c := freetype.NewContext()
 	c.SetDPI(72)
 	c.SetFont(loadedFont)
