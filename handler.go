@@ -89,6 +89,7 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	response := strings.ReplaceAll(frameMain, "{server}", serverURL)
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
 	response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
+	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
