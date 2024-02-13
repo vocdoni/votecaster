@@ -50,7 +50,7 @@ var backgrounds = map[string]*background{
 	BackgroundResults:      {nil, "#33ff33", Pixeloid, 20, 10, 30, 25},
 	BackgroundNotElegible:  {nil, "#ff3333", Pixeloid, 40, 10, 30, 20},
 	BackgroundError:        {nil, "#ff3333", Pixeloid, 40, 10, 200, 40},
-	BackgroundInfo:         {nil, "#33ff33", Pixeloid, 18, 10, 30, 60},
+	BackgroundInfo:         {nil, "#33ff33", Pixeloid, 40, 10, 30, 70},
 }
 
 func loadImages() error {
