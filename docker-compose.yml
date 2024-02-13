@@ -9,7 +9,7 @@ services:
       args: 
         - APP_URL=${VOCDONI_SERVER}
     ports:
-      - 8888:8888
+      - ${VOCDONI_LISTENPORT}:${VOCDONI_LISTENPORT}
     sysctls:
       net.core.somaxconn: 8128
     volumes:
