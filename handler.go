@@ -309,6 +309,8 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	}
 	if req.Duration == 0 {
 		req.Duration = time.Hour * 24
+	} else {
+		req.Duration *= time.Hour
 	}
 	electionID, err := createElection(v.cli, req, v.census)
 	if err != nil {
