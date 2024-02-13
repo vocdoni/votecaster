@@ -22,6 +22,7 @@ const (
 	FreeSans   = "FreeSans.ttf"
 	UbuntuMono = "UbuntuMono-R.ttf"
 	Pixeloid   = "PixeloidSans.ttf"
+	Inter      = "Inter.ttf"
 
 	BackgroundsDir         = "images/"
 	BackgroundAfterVote    = "aftervote.png"
@@ -44,13 +45,13 @@ type background struct {
 }
 
 var backgrounds = map[string]*background{
-	BackgroundAfterVote:    {nil, "#33ff33", Pixeloid, 50, 10, 30, 20},
-	BackgroundAlreadyVoted: {nil, "#ff3333", Pixeloid, 50, 10, 30, 20},
-	BackgroundGeneric:      {nil, "#33ff33", Pixeloid, 50, 30, 30, 40},
-	BackgroundResults:      {nil, "#33ff33", Pixeloid, 50, 30, 100, 40},
-	BackgroundNotElegible:  {nil, "#ff3333", Pixeloid, 40, 10, 30, 20},
-	BackgroundError:        {nil, "#ff3333", Pixeloid, 30, 10, 200, 80},
-	BackgroundInfo:         {nil, "#33ff33", Pixeloid, 50, 10, 30, 60},
+	BackgroundAfterVote:    {nil, "#33ff33", Inter, 50, 10, 30, 20},
+	BackgroundAlreadyVoted: {nil, "#ff3333", Inter, 50, 10, 30, 20},
+	BackgroundGeneric:      {nil, "#33ff33", Inter, 50, 100, 30, 40},
+	BackgroundResults:      {nil, "#33ff33", Inter, 50, 30, 100, 40},
+	BackgroundNotElegible:  {nil, "#ff3333", Inter, 40, 10, 30, 20},
+	BackgroundError:        {nil, "#ff3333", Inter, 30, 10, 200, 80},
+	BackgroundInfo:         {nil, "#33ff33", Inter, 50, 10, 30, 60},
 }
 
 func loadImages() error {

@@ -82,7 +82,7 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	}
 	question := election.Metadata.Questions[0].Title["default"]
 
-	png, err := textToImage(question, backgrounds[BackgroundGeneric])
+	png, err := textToImage(fmt.Sprintf("> %s", question), backgrounds[BackgroundGeneric])
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	text := strings.Builder{}
-	text.WriteString("Vocdoni is the blockchain for voting!\n")
+	text.WriteString(" Vocdoni is the blockchain for voting\n")
 	text.WriteString("--------------------------------------------\n\n")
 	text.WriteString(fmt.Sprintf("> Started %s ago\n", time.Since(election.StartDate).Round(time.Minute).String()))
 	text.WriteString(fmt.Sprintf("> Remaining time %s\n", time.Until(election.EndDate).Round(time.Minute).String()))
