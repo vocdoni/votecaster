@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
+	"math/big"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,6 +21,7 @@ import (
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
+	"go.vocdoni.io/dvote/types"
 	"go.vocdoni.io/dvote/util"
 )
 
@@ -147,7 +150,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	text.WriteString(fmt.Sprintf("> Poll id %x...\n", election.ElectionID[0:12]))
 	text.WriteString(fmt.Sprintf("> Census hash %x...\n", election.Census.CensusRoot[0:12]))
 	text.WriteString(fmt.Sprintf("> Executed on network %s\n", v.cli.ChainID()))
-	png, err := textToImage(text.String(), backgrounds[BackgroundGeneric])
+	png, err := textToImage(text.String(), backgrounds[BackgroundInfo])
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
@@ -248,18 +251,35 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
-	if election.Results == nil {
+	if election.Results == nil || len(election.Results) == 0 {
 		return fmt.Errorf("election results not ready")
 	}
 
+	castedVotes := new(types.BigInt)
+	for i := 0; i < len(election.Results[0]); i++ {
+		castedVotes.Add(castedVotes, election.Results[0][i])
+	}
+
 	text := strings.Builder{}
-	for _, r := range election.Metadata.Questions[0].Choices {
-		_, err := text.WriteString(fmt.Sprintf("> %s: %s\n",
-			r.Title["default"],
-			election.Results[0][r.Value].String(),
-		))
-		if err != nil {
-			return fmt.Errorf("failed to write results: %w", err)
+
+	// Check for division by zero error
+	if castedVotes.MathBigInt().Cmp(big.NewInt(0)) == 0 {
+		text.WriteString("No votes casted yet")
+	} else {
+		text.WriteString(fmt.Sprintf("Total votes casted: %s\n", castedVotes.String()))
+		for _, r := range election.Metadata.Questions[0].Choices {
+			votesForOption := election.Results[0][r.Value]
+			percentage := new(big.Float).Quo(new(big.Float).SetInt(votesForOption.MathBigInt()), new(big.Float).SetInt(castedVotes.MathBigInt()))
+			percentageFloat, _ := percentage.Float64()             // Convert to float64 for rounding
+			roundedPercentage := math.Round(percentageFloat * 100) // Round to nearest whole number and multiply by 100 for percentage
+
+			_, err := text.WriteString(fmt.Sprintf("> %s: %.0f%%\n",
+				r.Title["default"],
+				roundedPercentage, // Use rounded percentage here
+			))
+			if err != nil {
+				return fmt.Errorf("failed to write results: %w", err)
+			}
 		}
 	}
 

@@ -24,7 +24,7 @@ import (
 var (
 	serverURL   = "http://localhost:8888"
 	explorerURL = "https://dev.explorer.vote"
-	onvoteURL   = "https://dev.onvote.vote"
+	onvoteURL   = "https://dev.onvote.app"
 )
 
 func main() {

@@ -27,27 +27,30 @@ const (
 	BackgroundAfterVote    = "aftervote.png"
 	BackgroundAlreadyVoted = "alreadyvoted.png"
 	BackgroundGeneric      = "generic.png"
+	BackgroundInfo         = "info.png"
 	BackgroundResults      = "results.png"
 	BackgroundNotElegible  = "notelegible.png"
 	BackgroundError        = "error.png"
 )
 
 type background struct {
-	img        image.Image
-	fgColorHex string
-	fontName   string
-	fontSize   float64
-	xOffset    int
-	yOffset    int
+	img             image.Image
+	fgColorHex      string
+	fontName        string
+	fontSize        float64
+	xOffset         int
+	yOffset         int
+	maxTextLineSize int
 }
 
 var backgrounds = map[string]*background{
-	BackgroundAfterVote:    {nil, "#33ff33", Pixeloid, 40, 140, 180},
-	BackgroundAlreadyVoted: {nil, "#ff3333", Pixeloid, 40, 140, 180},
-	BackgroundGeneric:      {nil, "#33ff33", Pixeloid, 40, 40, 40},
-	BackgroundResults:      {nil, "#33ff33", Pixeloid, 50, 40, 40},
-	BackgroundNotElegible:  {nil, "#ff3333", Pixeloid, 40, 140, 180},
-	BackgroundError:        {nil, "#ff3333", Pixeloid, 40, 40, 200},
+	BackgroundAfterVote:    {nil, "#33ff33", Pixeloid, 20, 10, 30, 20},
+	BackgroundAlreadyVoted: {nil, "#ff3333", Pixeloid, 40, 10, 30, 20},
+	BackgroundGeneric:      {nil, "#33ff33", Pixeloid, 20, 10, 30, 25},
+	BackgroundResults:      {nil, "#33ff33", Pixeloid, 20, 10, 30, 25},
+	BackgroundNotElegible:  {nil, "#ff3333", Pixeloid, 40, 10, 30, 20},
+	BackgroundError:        {nil, "#ff3333", Pixeloid, 40, 10, 200, 40},
+	BackgroundInfo:         {nil, "#33ff33", Pixeloid, 18, 10, 30, 60},
 }
 
 func loadImages() error {
@@ -100,6 +103,32 @@ func textToImage(textContent string, img *background) ([]byte, error) {
 
 	code := strings.Replace(textContent, "\t", "    ", -1) // convert tabs into spaces
 	text := strings.Split(code, "\n")                      // split newlines into arrays
+
+	// Check if the text is too long and needs to be split.
+	if img.maxTextLineSize > 0 {
+		var newText []string
+		for _, s := range text {
+			if len(s) <= img.maxTextLineSize {
+				newText = append(newText, s)
+				continue
+			}
+			// Split the string by words and respect maxTextLineSize
+			words := strings.Fields(s)
+			line := ""
+			for _, w := range words {
+				if len(line)+len(w)+1 > img.maxTextLineSize {
+					newText = append(newText, strings.TrimSpace(line))
+					line = w // Start a new line with the current word
+				} else {
+					line += w + " "
+				}
+			}
+			if line != "" {
+				newText = append(newText, strings.TrimSpace(line)) // Append any remaining text
+			}
+		}
+		text = newText // Replace original text with the reformatted text
+	}
 
 	fg := image.NewUniform(fgColor)
 	c := freetype.NewContext()
