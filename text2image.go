@@ -8,6 +8,7 @@ import (
 	"image/draw"
 	"image/png"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/golang/freetype"
@@ -23,36 +24,46 @@ const (
 	Pixeloid   = "PixeloidSans.ttf"
 
 	BackgroundsDir         = "images/"
-	BackgroundAfterVote    = BackgroundsDir + "aftervote.png"
-	BackgroundAlreadyVoted = BackgroundsDir + "alreadyvoted.png"
-	BackgroundGeneric      = BackgroundsDir + "generic.png"
-	BackgroundResults      = BackgroundsDir + "results.png"
-	BackgroundNotElegible  = BackgroundsDir + "notelegible.png"
-	BackgroundError        = BackgroundsDir + "error.png"
+	BackgroundAfterVote    = "aftervote.png"
+	BackgroundAlreadyVoted = "alreadyvoted.png"
+	BackgroundGeneric      = "generic.png"
+	BackgroundResults      = "results.png"
+	BackgroundNotElegible  = "notelegible.png"
+	BackgroundError        = "error.png"
 )
 
-func loadImages() (map[string]image.Image, error) {
-	images := make(map[string]image.Image)
-	for _, img := range []string{
-		BackgroundAfterVote,
-		BackgroundAlreadyVoted,
-		BackgroundGeneric,
-		BackgroundResults,
-		BackgroundNotElegible,
-		BackgroundError,
-	} {
-		imgFile, err := os.Open(img)
+type background struct {
+	img        image.Image
+	fgColorHex string
+	fontName   string
+	fontSize   float64
+	xOffset    int
+	yOffset    int
+}
+
+var backgrounds = map[string]*background{
+	BackgroundAfterVote:    {nil, "#33ff33", Pixeloid, 40, 140, 180},
+	BackgroundAlreadyVoted: {nil, "#ff3333", Pixeloid, 40, 140, 180},
+	BackgroundGeneric:      {nil, "#33ff33", FreeMono, 40, 140, 180},
+	BackgroundResults:      {nil, "#33ff33", FreeMono, 50, 140, 180},
+	BackgroundNotElegible:  {nil, "#ff3333", Pixeloid, 40, 140, 180},
+	BackgroundError:        {nil, "#ff3333", Pixeloid, 40, 140, 180},
+}
+
+func loadImages() error {
+	for name, bg := range backgrounds {
+		imgFile, err := os.Open(path.Join(BackgroundsDir, name))
 		if err != nil {
-			return nil, fmt.Errorf("failed to load image %s: %w", img, err)
+			return fmt.Errorf("failed to load image %s: %w", name, err)
 		}
 		defer imgFile.Close()
-
-		images[img], _, err = image.Decode(imgFile)
+		img, _, err := image.Decode(imgFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode image %s: %w", img, err)
+			return fmt.Errorf("failed to decode image %s: %w", name, err)
 		}
+		bg.img = img
 	}
-	return images, nil
+	return nil
 }
 
 func loadFont(fn string) (*truetype.Font, error) {
@@ -68,24 +79,24 @@ func loadFont(fn string) (*truetype.Font, error) {
 	return f, nil
 }
 
-func textToImage(textContent string, fgColorHex string, bgImg image.Image, fontName string, fontSize float64) ([]byte, error) {
+func textToImage(textContent string, img *background) ([]byte, error) {
 	// Set foreground color
 	fgColor := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff} // Default font color
-	if len(fgColorHex) == 7 {
-		_, err := fmt.Sscanf(fgColorHex, "#%02x%02x%02x", &fgColor.R, &fgColor.G, &fgColor.B)
+	if len(img.fgColorHex) == 7 {
+		_, err := fmt.Sscanf(img.fgColorHex, "#%02x%02x%02x", &fgColor.R, &fgColor.G, &fgColor.B)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	loadedFont, err := loadFont(fontName)
+	loadedFont, err := loadFont(img.fontName)
 	if err != nil {
 		return nil, err
 	}
 
 	// Prepare the image canvas based on the background image size
-	rgba := image.NewRGBA(bgImg.Bounds())
-	draw.Draw(rgba, rgba.Bounds(), bgImg, image.Point{}, draw.Src)
+	rgba := image.NewRGBA(img.img.Bounds())
+	draw.Draw(rgba, rgba.Bounds(), img.img, image.Point{}, draw.Src)
 
 	code := strings.Replace(textContent, "\t", "    ", -1) // convert tabs into spaces
 	text := strings.Split(code, "\n")                      // split newlines into arrays
@@ -94,14 +105,14 @@ func textToImage(textContent string, fgColorHex string, bgImg image.Image, fontN
 	c := freetype.NewContext()
 	c.SetDPI(72)
 	c.SetFont(loadedFont)
-	c.SetFontSize(fontSize)
+	c.SetFontSize(img.fontSize)
 	c.SetClip(rgba.Bounds())
 	c.SetDst(rgba)
 	c.SetSrc(fg)
 	c.SetHinting(font.HintingNone)
 
-	textXOffset := 140
-	textYOffset := 180 + int(c.PointToFixed(fontSize)>>6) // Note shift/truncate 6 bits first
+	textXOffset := img.xOffset
+	textYOffset := img.yOffset + int(c.PointToFixed(img.fontSize)>>6) // Note shift/truncate 6 bits first
 
 	pt := freetype.Pt(textXOffset, textYOffset)
 	for _, s := range text {
@@ -109,7 +120,7 @@ func textToImage(textContent string, fgColorHex string, bgImg image.Image, fontN
 		if err != nil {
 			return nil, err
 		}
-		pt.Y += c.PointToFixed(fontSize * 1.5)
+		pt.Y += c.PointToFixed(img.fontSize * 1.5)
 	}
 
 	b := new(bytes.Buffer)
