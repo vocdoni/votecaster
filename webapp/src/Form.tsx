@@ -85,8 +85,8 @@ const Form: React.FC = () => {
               <Text display='inline'>
                 Done! You can now share it using this link:
                 <br />
-                <Link href={`${appUrl}/main/${pid}`}>
-                  {appUrl}/main/{pid}
+                <Link href={`${appUrl}/${pid}`}>
+                  {appUrl}/{pid}
                 </Link>
               </Text>
             ) : (

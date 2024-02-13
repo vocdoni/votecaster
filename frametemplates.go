@@ -100,7 +100,7 @@ var frameResults = `
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
-    <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
+    <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
     <meta http-equiv="refresh" content="0; url={server}" />
   </head>
@@ -120,7 +120,7 @@ var frameInfo = `
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
-    <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
+    <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
 
     <meta property="fc:frame:button:2" content="See at onvote.app" />
@@ -149,7 +149,7 @@ var frameAlreadyVoted = `
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
+    <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
     <meta property="fc:frame:button:2" content="Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
@@ -172,7 +172,7 @@ var frameNotElegible = `
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
+    <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
     <meta http-equiv="refresh" content="0; url={server}" />
   </head>
@@ -192,7 +192,7 @@ var frameError = `
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:post_url" content="{server}/main/{processID}" />
+    <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
     <meta http-equiv="refresh" content="0; url={server}" />
   </head>

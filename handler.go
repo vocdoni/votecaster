@@ -146,7 +146,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	text := strings.Builder{}
 	text.WriteString("Vocdoni is the blockchain for voting!\n")
-	text.WriteString("-------------------------------------\n\n")
+	text.WriteString("--------------------------------------------\n\n")
 	text.WriteString(fmt.Sprintf("> Started %s ago\n", time.Since(election.StartDate).Round(time.Minute).String()))
 	text.WriteString(fmt.Sprintf("> Remaining time %s\n", time.Until(election.EndDate).Round(time.Minute).String()))
 	text.WriteString(fmt.Sprintf("> Poll id %x...\n", election.ElectionID[0:16]))

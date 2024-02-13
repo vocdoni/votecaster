@@ -149,11 +149,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/main/{electionID}", http.MethodPost, "public", handler.landing); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/{electionID}", http.MethodPost, "public", handler.landing); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/main/{electionID}", http.MethodGet, "public", handler.landing); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/{electionID}", http.MethodGet, "public", handler.landing); err != nil {
 		log.Fatal(err)
 	}
 
