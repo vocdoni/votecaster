@@ -44,13 +44,13 @@ type background struct {
 }
 
 var backgrounds = map[string]*background{
-	BackgroundAfterVote:    {nil, "#33ff33", Pixeloid, 20, 10, 30, 20},
-	BackgroundAlreadyVoted: {nil, "#ff3333", Pixeloid, 40, 10, 30, 20},
-	BackgroundGeneric:      {nil, "#33ff33", Pixeloid, 40, 10, 30, 25},
-	BackgroundResults:      {nil, "#33ff33", Pixeloid, 40, 10, 30, 25},
+	BackgroundAfterVote:    {nil, "#33ff33", Pixeloid, 50, 10, 30, 20},
+	BackgroundAlreadyVoted: {nil, "#ff3333", Pixeloid, 50, 10, 30, 20},
+	BackgroundGeneric:      {nil, "#33ff33", Pixeloid, 50, 30, 30, 60},
+	BackgroundResults:      {nil, "#33ff33", Pixeloid, 50, 30, 30, 60},
 	BackgroundNotElegible:  {nil, "#ff3333", Pixeloid, 40, 10, 30, 20},
-	BackgroundError:        {nil, "#ff3333", Pixeloid, 40, 10, 200, 40},
-	BackgroundInfo:         {nil, "#33ff33", Pixeloid, 40, 10, 30, 70},
+	BackgroundError:        {nil, "#ff3333", Pixeloid, 30, 10, 200, 80},
+	BackgroundInfo:         {nil, "#33ff33", Pixeloid, 50, 10, 30, 80},
 }
 
 func loadImages() error {
@@ -116,11 +116,18 @@ func textToImage(textContent string, img *background) ([]byte, error) {
 			words := strings.Fields(s)
 			line := ""
 			for _, w := range words {
-				if len(line)+len(w)+1 > img.maxTextLineSize {
-					newText = append(newText, strings.TrimSpace(line))
+				// Check if adding the next word exceeds line length
+				if len(line)+len(w) > img.maxTextLineSize {
+					if line != "" {
+						newText = append(newText, strings.TrimSpace(line)) // Append the current line if it's not empty
+					}
 					line = w // Start a new line with the current word
 				} else {
-					line += w + " "
+					// Add a space before the word if the line is not empty
+					if line != "" {
+						line += " "
+					}
+					line += w
 				}
 			}
 			if line != "" {
