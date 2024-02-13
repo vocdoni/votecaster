@@ -234,6 +234,11 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	response := strings.ReplaceAll(frame(frameAfterVote), "{nullifier}", fmt.Sprintf("%x", nullifier))
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	response = strings.ReplaceAll(response, "{explorer}", explorerURL)
+	png, err := textToImage("", backgrounds[BackgroundAfterVote])
+	if err != nil {
+		return fmt.Errorf("failed to create image: %w", err)
+	}
+	response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }

@@ -76,7 +76,7 @@ var frameAfterVote = `
     <meta property="fc:frame" content="vNext" />
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
+    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta property="fc:frame:post_url" content="{server}/poll/results/{processID}" />
     <meta property="fc:frame:button:1" content="Results" />
     <meta property="fc:frame:button:2" content="Verify on explorer" />
