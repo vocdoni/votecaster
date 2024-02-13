@@ -192,6 +192,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	if err := json.Unmarshal(msg.Data, packet); err != nil {
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
 	}
+
 	// cast the vote
 	nullifier, voterID, err := vote(packet, electionIDbytes, election.Census.CensusRoot, v.cli)
 

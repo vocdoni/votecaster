@@ -3,12 +3,11 @@ module github.com/vocdoni/farcaster-poc
 go 1.21.6
 
 require (
-	github.com/ethereum/go-ethereum v1.13.8
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/uuid v1.5.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
-	go.vocdoni.io/dvote v1.10.2-0.20240209173644-8e1ec02f2550
+	go.vocdoni.io/dvote v1.10.2-0.20240213213148-5cc88b9d4ffa
 	go.vocdoni.io/proto v1.15.6-0.20240209115732-27836380ccae
 	golang.org/x/image v0.15.0
 	google.golang.org/protobuf v1.32.0
@@ -69,6 +68,7 @@ require (
 	github.com/elastic/gosigar v0.14.2 // indirect
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302 // indirect
 	github.com/ethereum/c-kzg-4844 v0.4.0 // indirect
+	github.com/ethereum/go-ethereum v1.13.8 // indirect
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/flynn/noise v1.0.0 // indirect

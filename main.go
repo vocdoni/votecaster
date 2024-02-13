@@ -113,6 +113,7 @@ func main() {
 	if tlsDomain {
 		router.TLSdomain = domain
 	}
+
 	router.TLSdirCert = tlsDirCert
 	if err := router.Init(host, port); err != nil {
 		log.Fatal(err)

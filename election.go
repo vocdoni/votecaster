@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"go.vocdoni.io/dvote/api"
@@ -74,12 +75,30 @@ func createElection(cli *apiclient.HTTPclient, description *ElectionDescription,
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	// Wait until the election is created
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-
-	election, err := cli.WaitUntilElectionCreated(ctx, electionID)
-	if err != nil {
-		log.Fatal(err)
+	election := &api.Election{}
+	startTime := time.Now()
+	for {
+		election, err = cli.Election(electionID)
+		if err != nil {
+			// Return an error if the received error is not a '404 - Not found'
+			// error which means that the election has not yet been created.
+			if !strings.Contains(err.Error(), "API error: 404") {
+				log.Warnw("failed to get election", "id", electionID, "err", err)
+			}
+		}
+		if election != nil {
+			break
+		}
+		select {
+		case <-time.After(time.Second * 2):
+			continue
+		case <-ctx.Done():
+			return nil, fmt.Errorf("election %x not created after %s: %w",
+				electionID, time.Since(startTime).String(), ctx.Err())
+		}
 	}
 	log.Infow("created new election", "id", election.ElectionID.String())
 	return electionID, nil

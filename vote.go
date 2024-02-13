@@ -7,12 +7,12 @@ import (
 
 	"go.vocdoni.io/proto/build/go/models"
 
-	"github.com/ethereum/go-ethereum/common"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 	"go.vocdoni.io/dvote/util"
 	"go.vocdoni.io/dvote/vochain/state"
+	"go.vocdoni.io/dvote/vochain/transaction/proofs/farcasterproof"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -27,7 +27,7 @@ var (
 // It returns the nullifier of the vote (which is the unique identifier of the vote), the voterID and an error.
 func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, cli *apiclient.HTTPclient) (types.HexBytes, types.HexBytes, error) {
 	// fetch the public key from the signature and generate the census proof
-	_, pubKey, err := VerifyFrameSignature(packet)
+	actionMessage, message, pubKey, err := VerifyFrameSignature(packet)
 	if err != nil {
 		return nil, nil, ErrFrameSignature
 	}
@@ -43,7 +43,7 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 	}
 
 	// compute the nullifier for the vote (a hash of the voterID and the electionID)
-	nullifier := state.GenerateNullifier(common.Address(voterID.Address()), electionID)
+	nullifier := farcasterproof.GenerateNullifier(message.Data.Fid, electionID)
 
 	// check if the voter already voted
 	_, code, err := cli.Request("GET", nil, "votes", "verify", electionID.String(), fmt.Sprintf("%x", nullifier))
@@ -56,7 +56,7 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 
 	// build the vote package
 	votePackage := &state.VotePackage{
-		Votes: []int{packet.UntrustedData.ButtonIndex},
+		Votes: []int{packet.UntrustedData.ButtonIndex - 1},
 	}
 	votePackageBytes, err := votePackage.Encode()
 	if err != nil {
@@ -69,6 +69,13 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 		ProcessId:   electionID,
 		VotePackage: votePackageBytes,
 	}
+
+	log.Debugw("received",
+		"msg", packet.TrustedData.MessageBytes,
+		"fid", message.Data.Fid,
+		"pubkey", fmt.Sprintf("%x", pubKey),
+		"button", actionMessage.ButtonIndex,
+		"url", actionMessage.Url)
 
 	// build the proof for the vote transaction
 	frameSignedMessage, err := hex.DecodeString(packet.TrustedData.MessageBytes)
