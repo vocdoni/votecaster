@@ -44,10 +44,10 @@ type background struct {
 var backgrounds = map[string]*background{
 	BackgroundAfterVote:    {nil, "#33ff33", Pixeloid, 40, 140, 180},
 	BackgroundAlreadyVoted: {nil, "#ff3333", Pixeloid, 40, 140, 180},
-	BackgroundGeneric:      {nil, "#33ff33", FreeMono, 40, 140, 180},
-	BackgroundResults:      {nil, "#33ff33", FreeMono, 50, 140, 180},
+	BackgroundGeneric:      {nil, "#33ff33", Pixeloid, 40, 40, 40},
+	BackgroundResults:      {nil, "#33ff33", Pixeloid, 50, 40, 40},
 	BackgroundNotElegible:  {nil, "#ff3333", Pixeloid, 40, 140, 180},
-	BackgroundError:        {nil, "#ff3333", Pixeloid, 40, 140, 180},
+	BackgroundError:        {nil, "#ff3333", Pixeloid, 40, 40, 200},
 }
 
 func loadImages() error {
