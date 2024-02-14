@@ -14,6 +14,7 @@ import (
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
+	"golang.org/x/image/math/fixed"
 )
 
 const (
@@ -83,7 +84,12 @@ func loadFont(fn string) (*truetype.Font, error) {
 	return f, nil
 }
 
-func textToImage(textContent string, img *background) ([]byte, error) {
+type TextToImageContents struct {
+	title     string
+	questions []string
+}
+
+func textToImage(contents TextToImageContents, img *background) ([]byte, error) {
 	// Set foreground color
 	fgColor := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff} // Default font color
 	if len(img.fgColorHex) == 7 {
@@ -102,8 +108,59 @@ func textToImage(textContent string, img *background) ([]byte, error) {
 	rgba := image.NewRGBA(img.img.Bounds())
 	draw.Draw(rgba, rgba.Bounds(), img.img, image.Point{}, draw.Src)
 
-	code := strings.Replace(textContent, "\t", "    ", -1) // convert tabs into spaces
-	text := strings.Split(code, "\n")                      // split newlines into arrays
+	text := prepareImageText(img, contents.title)
+
+	fg := image.NewUniform(fgColor)
+	c := freetype.NewContext()
+	c.SetDPI(72)
+	c.SetFont(loadedFont)
+	c.SetClip(rgba.Bounds())
+	c.SetDst(rgba)
+	c.SetSrc(fg)
+	c.SetHinting(font.HintingNone)
+	c.SetFontSize(img.fontSize)
+
+	textXOffset := img.xOffset
+	textYOffset := img.yOffset + int(c.PointToFixed(img.fontSize)>>6) // Note shift/truncate 6 bits first
+	pt := freetype.Pt(textXOffset, textYOffset)
+
+	// draw title
+	pt, err = drawTextOnImage(c, img, text, img.fontSize*1.4, pt)
+	if err != nil {
+		return nil, err
+	}
+	// draw questions
+	for _, q := range contents.questions {
+		text = prepareImageText(img, q)
+		pt, err = drawTextOnImage(c, img, text, img.fontSize, pt)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	b := new(bytes.Buffer)
+	if err := png.Encode(b, rgba); err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
+}
+
+func drawTextOnImage(c *freetype.Context, img *background, text []string, fontSize float64, pt fixed.Point26_6) (fixed.Point26_6, error) {
+	c.SetFontSize(fontSize)
+
+	for _, s := range text {
+		_, err := c.DrawString(strings.Replace(s, "\r", "", -1), pt)
+		if err != nil {
+			return pt, err
+		}
+		pt.Y += c.PointToFixed(img.fontSize * 1.5)
+	}
+	return pt, nil
+}
+
+func prepareImageText(img *background, t string) []string {
+	code := strings.Replace(t, "\t", "    ", -1) // convert tabs into spaces
+	text := strings.Split(code, "\n")            // split newlines into arrays
 
 	// Check if the text is too long and needs to be split.
 	if img.maxTextLineSize > 0 {
@@ -138,31 +195,5 @@ func textToImage(textContent string, img *background) ([]byte, error) {
 		text = newText // Replace original text with the reformatted text
 	}
 
-	fg := image.NewUniform(fgColor)
-	c := freetype.NewContext()
-	c.SetDPI(72)
-	c.SetFont(loadedFont)
-	c.SetFontSize(img.fontSize)
-	c.SetClip(rgba.Bounds())
-	c.SetDst(rgba)
-	c.SetSrc(fg)
-	c.SetHinting(font.HintingNone)
-
-	textXOffset := img.xOffset
-	textYOffset := img.yOffset + int(c.PointToFixed(img.fontSize)>>6) // Note shift/truncate 6 bits first
-
-	pt := freetype.Pt(textXOffset, textYOffset)
-	for _, s := range text {
-		_, err = c.DrawString(strings.Replace(s, "\r", "", -1), pt)
-		if err != nil {
-			return nil, err
-		}
-		pt.Y += c.PointToFixed(img.fontSize * 1.5)
-	}
-
-	b := new(bytes.Buffer)
-	if err := png.Encode(b, rgba); err != nil {
-		return nil, err
-	}
-	return b.Bytes(), nil
+	return text
 }
