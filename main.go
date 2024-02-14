@@ -230,6 +230,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/preview/{electionID}", http.MethodGet, "public", handler.preview); err != nil {
+		log.Fatal(err)
+	}
+
 	// close if interrupt received
 	log.Infof("startup complete at %s", time.Now().Format(time.RFC850))
 	c := make(chan os.Signal, 1)

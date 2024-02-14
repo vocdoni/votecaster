@@ -364,6 +364,33 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)
 }
 
+func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	election, err := v.cli.Election(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to get election: %w", err)
+	}
+
+	if len(election.Metadata.Questions) == 0 {
+		return fmt.Errorf("election has no questions")
+	}
+	question := election.Metadata.Questions[0].Title["default"]
+
+	png, err := textToImage(fmt.Sprintf("> %s", question), backgrounds[BackgroundGeneric])
+	if err != nil {
+		return err
+	}
+
+	// set png headers and return response as is
+	ctx.Writer.Header().Set("Content-Type", "image/png")
+	_, err = ctx.Writer.Write(png)
+	return err
+	// return ctx.Send(png, http.StatusOK)
+}
+
 func (v *vocdoniHandler) testImage(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	if ctx.Request.Method == http.MethodGet {
 		png, err := generateElectionImage("How would you like to take kiwi in Mumbai?")
@@ -412,11 +439,16 @@ func (v *vocdoniHandler) staticHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Set the Content-Type header
 	var contentType string
-	if strings.HasSuffix(p, ".js") {
+	switch {
+	case strings.HasSuffix(p, ".js"):
 		contentType = "application/javascript"
-	} else if strings.HasSuffix(p, ".html") {
+	case strings.HasSuffix(p, ".css"):
+		contentType = "text/css"
+	case strings.HasSuffix(p, ".html"):
 		contentType = "text/html"
-	} else {
+	case strings.HasSuffix(p, ".svg"):
+		contentType = "image/svg+xml"
+	default:
 		// Read the first 512 bytes to pass to DetectContentType
 		buf := make([]byte, 512)
 		n, err := file.Read(buf)
@@ -433,6 +465,7 @@ func (v *vocdoniHandler) staticHandler(w http.ResponseWriter, r *http.Request) {
 		// Detect the content type and set the Content-Type header
 		contentType = http.DetectContentType(buf[:n])
 	}
+
 	w.Header().Set("Content-Type", contentType)
 
 	// Write the file content to the response

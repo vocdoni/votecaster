@@ -87,7 +87,7 @@ const Form: React.FC = (props: FlexProps) => {
 
   return (
     <Flex flexDir='column' alignItems='center' {...props}>
-      <Card maxW={600}>
+      <Card maxW={{ base: '100%', md: 400, lg: 600 }}>
         <CardHeader align='center'>
           <Image src={logo} alt='farcaster.vote logo' mb={4} />
           <Heading as='h1' size='lg' textAlign='center'>
@@ -140,6 +140,7 @@ const Form: React.FC = (props: FlexProps) => {
                     {...register('duration')}
                     type='number'
                     min={1}
+                    max={360} // 15 days
                   />
                   <FormErrorMessage>{errors.duration?.message?.toString()}</FormErrorMessage>
                   <FormHelperText>24h by default</FormHelperText>
