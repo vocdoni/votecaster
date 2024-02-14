@@ -358,6 +358,7 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 
 	// set png headers and return response as is
 	ctx.Writer.Header().Set("Content-Type", "image/png")
+	ctx.Writer.Header().Set("Content-Length", fmt.Sprintf("%d", len(png)))
 	_, err = ctx.Writer.Write(png)
 	return err
 }
