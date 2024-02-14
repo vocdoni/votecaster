@@ -33,7 +33,7 @@ const devs = [
       'https://res.cloudinary.com/merkle-manufactory/image/fetch/c_fill,f_jpg,w_168/https%3A%2F%2Fi.imgur.com%2F89SvQ0Q.jpg',
   },
   {
-    name: 'k4cuatro',
+    name: 'kacuatro',
     image:
       'https://res.cloudinary.com/merkle-manufactory/image/fetch/c_fill,f_jpg,w_168/https%3A%2F%2Fi.imgur.com%2FA5TjFNp.jpg',
   },
@@ -49,7 +49,7 @@ export const Credits = (props: FlexProps) => {
 
   return (
     <Flex {...props}>
-      <Flex gap={4} flexDir='column' maxW={500}>
+      <Flex gap={4} flexDir='column' maxW={600}>
         <Heading as='h1' size='md' textAlign='center'>
           Why Farcaster.vote?
         </Heading>
