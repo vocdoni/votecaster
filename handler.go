@@ -239,8 +239,8 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	go func() {
-		if !v.db.Exists(fid) {
-			if err := v.db.AddUser(fid, "", []string{}); err != nil {
+		if !v.db.UserExists(fid) {
+			if err := v.db.AddUser(fid, "", []string{}, 0); err != nil {
 				log.Errorw(err, "failed to add user to database")
 			}
 		}
@@ -317,35 +317,48 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-type FarcasterProfile struct {
-	Bio           string
-	Custody       string // hex address actually
-	DisplayName   string `json:"displayName"`
-	FID           uint64 `json:"fid"` // BigInt probably
-	Avatar        string `json:"pfpUrl"`
-	Username      string
-	Verifications []string // hex addresses too
-}
-
-type ElectionCreateRequest struct {
-	ElectionDescription // embedded... not sure how to handle this with json unless I Unmarshal it myself
-	Profile             FarcasterProfile
-}
-
 func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	var req *ElectionDescription
+	var req *ElectionCreateRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return fmt.Errorf("failed to unmarshal election request: %w", err)
 	}
+
 	if req.Duration == 0 {
 		req.Duration = time.Hour * 24
 	} else {
 		req.Duration *= time.Hour
+		if req.Duration > maxElectionDuration {
+			return fmt.Errorf("election duration too long")
+		}
 	}
-	electionID, err := createElection(v.cli, req, v.census)
+
+	electionID, err := createElection(v.cli, &req.ElectionDescription, v.census)
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
+
+	go func() {
+		if err := v.db.AddElection(electionID, req.Profile.FID); err != nil {
+			log.Errorw(err, "failed to add election to database")
+		}
+		u, err := v.db.User(req.Profile.FID)
+		if err != nil {
+			if !errors.Is(err, mongo.ErrUserUnknown) {
+				log.Errorw(err, "failed to get user from database")
+				return
+			}
+			if err := v.db.AddUser(req.Profile.FID, req.Profile.DisplayName, req.Profile.Verifications, 1); err != nil {
+				log.Errorw(err, "failed to add user to database")
+			}
+			return
+		}
+		u.Addresses = req.Profile.Verifications
+		u.Username = req.Profile.DisplayName
+		u.ElectionCount++
+		if err := v.db.UpdateUser(u); err != nil {
+			log.Errorw(err, "failed to update user in database")
+		}
+	}()
 
 	ctx.Writer.Header().Set("Content-Type", "application/json")
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)

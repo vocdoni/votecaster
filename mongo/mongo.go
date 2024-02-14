@@ -151,7 +151,7 @@ func (ms *MongoStorage) Users() (*Users, error) {
 	return &users, nil
 }
 
-func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []string) error {
+func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []string, elections uint64) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
@@ -313,10 +313,17 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 	return ms.updateElection(election)
 }
 
-func (ms *MongoStorage) Exists(userFID uint64) bool {
+func (ms *MongoStorage) UserExists(userFID uint64) bool {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 	_, err := ms.getUserData(userFID)
+	return err == nil
+}
+
+func (ms *MongoStorage) ElectionExists(electionID types.HexBytes) bool {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	_, err := ms.getElection(electionID)
 	return err == nil
 }
 

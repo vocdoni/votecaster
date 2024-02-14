@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/spf13/pflag"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/vocdoni/farcaster-poc/mongo"
@@ -49,7 +48,7 @@ func main() {
 
 	// Initialize Viper
 	viper.SetEnvPrefix("VOCDONI")
-	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
+	if err := viper.BindPFlags(flag.CommandLine); err != nil {
 		panic(err)
 	}
 	viper.AutomaticEnv()

@@ -12,14 +12,6 @@ import (
 	"go.vocdoni.io/dvote/types"
 )
 
-// ElectionDescription defines the parameters for a new election.
-type ElectionDescription struct {
-	Question  string        `json:"question"`
-	Options   []string      `json:"options"`
-	Duration  time.Duration `json:"duration"`
-	Overwrite bool          `json:"overwrite"`
-}
-
 func newElectionDescription(description *ElectionDescription, census *CensusInfo) *api.ElectionDescription {
 	choices := []api.ChoiceMetadata{}
 
