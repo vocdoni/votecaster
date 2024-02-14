@@ -1,4 +1,4 @@
-import { Box, Button, Code, IconButton, Text, useClipboard } from '@chakra-ui/react'
+import { Box, Button, Code, IconButton, Image, Text, useClipboard } from '@chakra-ui/react'
 import { FaArchway, FaCheck, FaRegCopy } from 'react-icons/fa6'
 
 const appUrl = import.meta.env.APP_URL
@@ -25,6 +25,7 @@ export const Done = ({ pid }: { pid: string }) => {
           title={hasCopied ? 'Copied!' : 'Copy to clipboard'}
         />
       </Box>
+      <Image src={`${appUrl}/preview/${pid}`} alt='poll preview' />
       <Button colorScheme='purple' rightIcon={<FaArchway />} onClick={() => cast(pid)}>
         Cast it!
       </Button>

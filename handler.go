@@ -337,6 +337,33 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)
 }
 
+func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	election, err := v.cli.Election(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to get election: %w", err)
+	}
+
+	if len(election.Metadata.Questions) == 0 {
+		return fmt.Errorf("election has no questions")
+	}
+	question := election.Metadata.Questions[0].Title["default"]
+
+	png, err := textToImage(fmt.Sprintf("> %s", question), backgrounds[BackgroundGeneric])
+	if err != nil {
+		return err
+	}
+
+	// set png headers and return response as is
+	ctx.Writer.Header().Set("Content-Type", "image/png")
+	_, err = ctx.Writer.Write(png)
+	return err
+	// return ctx.Send(png, http.StatusOK)
+}
+
 func (v *vocdoniHandler) testImage(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	if ctx.Request.Method == http.MethodGet {
 		png, err := generateElectionImage("How would you like to take kiwi in Mumbai?")
