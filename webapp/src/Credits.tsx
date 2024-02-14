@@ -76,8 +76,11 @@ export const Credits = (props: FlexProps) => {
               Roadmap
             </Heading>
             <UnorderedList>
-              <ListItem>Token-based votes</ListItem>
-              <ListItem>Channel-based votes</ListItem>
+              <ListItem>Token-gated polls</ListItem>
+              <ListItem>Channel-based polls</ListItem>
+              <ListItem>Gitcoin passport gated</ListItem>
+              <ListItem>POAP event gated</ListItem>
+              <ListItem>Multiple token strategy polls</ListItem>
             </UnorderedList>
           </Box>
           <Text fontWeight='bold' textAlign='center'>
@@ -96,7 +99,7 @@ export const Credits = (props: FlexProps) => {
             <Flex direction='row' gap={3} justifyContent='space-between' px={10} wrap='wrap'>
               {devs.map((dev) => (
                 <Box key={dev.name}>
-                  <Link fontWeight='bold' href={`https://warpcast.com/${dev.name}`} target='_blank'>
+                  <Link fontWeight='600' href={`https://warpcast.com/${dev.name}`} target='_blank'>
                     <Avatar name={dev.name} src={dev.image} />
                     <Text display='block'>@{dev.name}</Text>
                   </Link>

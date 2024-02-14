@@ -140,6 +140,7 @@ const Form: React.FC = (props: FlexProps) => {
                     {...register('duration')}
                     type='number'
                     min={1}
+                    max={360} // 15 days
                   />
                   <FormErrorMessage>{errors.duration?.message?.toString()}</FormErrorMessage>
                   <FormHelperText>24h by default</FormHelperText>

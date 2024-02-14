@@ -1,10 +1,11 @@
 import { Box, Flex } from '@chakra-ui/react'
 import { SignInButton, useProfile } from '@farcaster/auth-kit'
-import '@farcaster/auth-kit/styles.css'
 import { Credits } from './Credits'
 import Form from './Form'
 
-const App = () => {
+import '@farcaster/auth-kit/styles.css'
+
+export const App = () => {
   const { isAuthenticated } = useProfile()
   return (
     <Flex minH='100vh' justifyContent='center' alignItems='center' p={{ base: 0, sm: 5, xl: 10 }}>
@@ -21,5 +22,3 @@ const App = () => {
     </Flex>
   )
 }
-
-export default App
