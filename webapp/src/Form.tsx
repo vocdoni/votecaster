@@ -18,6 +18,7 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
+import { useProfile } from '@farcaster/auth-kit'
 import axios from 'axios'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -41,6 +42,7 @@ const Form: React.FC = (props: FlexProps) => {
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>()
+  const { profile } = useProfile()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +55,7 @@ const Form: React.FC = (props: FlexProps) => {
         question: data.question,
         duration: Number(data.duration),
         options: [],
+        profile,
       }
 
       for (let i = 1; i < 5; i++) {

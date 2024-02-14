@@ -1,17 +1,17 @@
-import { ChakraProvider, extendTheme } from '@chakra-ui/react'
+import { ChakraProvider } from '@chakra-ui/react'
+import { AuthKitProvider } from '@farcaster/auth-kit'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
-
-const theme = extendTheme({
-  colors: {},
-})
+import { theme } from './theme'
 
 const rootElement = document.getElementById('root')
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <ChakraProvider theme={theme}>
-      <App />
+      <AuthKitProvider>
+        <App />
+      </AuthKitProvider>
     </ChakraProvider>
   </React.StrictMode>
 )
