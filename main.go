@@ -14,8 +14,8 @@ import (
 	"github.com/spf13/pflag"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/vocdoni/farcaster-poc/mongo"
 	urlapi "go.vocdoni.io/dvote/api"
-	"go.vocdoni.io/dvote/db"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
@@ -41,6 +41,8 @@ func main() {
 	flag.String("web", "./webapp/dist", "The path where the static web app is located")
 	flag.String("explorerURL", explorerURL, "The full URL of the explorer (http or https)")
 	flag.String("onvoteURL", onvoteURL, "The full URL of the onvote.app application (http or https)")
+	flag.String("mongoURL", "", "The URL of the MongoDB server")
+	flag.String("mongoDB", "voteframe", "The name of the MongoDB database")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -66,6 +68,8 @@ func main() {
 	webAppDir := viper.GetString("web")
 	explorerURL = viper.GetString("explorerURL")
 	onvoteURL = viper.GetString("onvoteURL")
+	mongoURL := viper.GetString("mongoURL")
+	mongoDB := viper.GetString("mongoDB")
 
 	log.Init(logLevel, "stdout", nil)
 
@@ -82,6 +86,8 @@ func main() {
 		"webAppDir", webAppDir,
 		"explorerURL", explorerURL,
 		"onvoteURL", onvoteURL,
+		"mongoURL", mongoURL,
+		"mongoDB", mongoDB,
 	)
 
 	// check the server URL is http or https and extract the domain
@@ -102,8 +108,14 @@ func main() {
 		log.Fatal("censusFromFile is required")
 	}
 
+	// Create the MongoDB connection
+	db, err := mongo.New(mongoURL, mongoDB)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Create the Vocdoni handler
-	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir)
+	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -130,7 +142,7 @@ func main() {
 		http.ServeFile(w, r, path.Join(webAppDir, "favicon.ico"))
 	})
 	// Create the API handler
-	uAPI, err := urlapi.NewAPI(router, "/", dataDir, db.TypePebble)
+	uAPI, err := urlapi.NewAPI(router, "/", dataDir, "")
 	if err != nil {
 		log.Fatal(err)
 	}

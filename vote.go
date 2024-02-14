@@ -25,33 +25,33 @@ var (
 
 // vote creates a vote transaction, including the frame signature packet and sends it to the vochain.
 // It returns the nullifier of the vote (which is the unique identifier of the vote), the voterID and an error.
-func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, cli *apiclient.HTTPclient) (types.HexBytes, types.HexBytes, error) {
+func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, cli *apiclient.HTTPclient) (types.HexBytes, types.HexBytes, uint64, error) {
 	// fetch the public key from the signature and generate the census proof
 	actionMessage, message, pubKey, err := VerifyFrameSignature(packet)
 	if err != nil {
-		return nil, nil, ErrFrameSignature
+		return nil, nil, 0, ErrFrameSignature
 	}
 
 	// compute the voterID, based on the public key
 	voterID := state.NewVoterID(state.VoterIDTypeEd25519, pubKey)
 	log.Infow("received vote request", "electionID", electionID, "voterID", fmt.Sprintf("%x", voterID.Address()))
 
+	// compute the nullifier for the vote (a hash of the voterID and the electionID)
+	nullifier := farcasterproof.GenerateNullifier(message.Data.Fid, electionID)
+
 	// check if the voter is elegible to vote (in the census)
 	proof, err := cli.CensusGenProof(root, voterID.Address())
 	if err != nil {
-		return nil, voterID.Address(), ErrNotInCensus
+		return nil, voterID.Address(), message.Data.Fid, ErrNotInCensus
 	}
-
-	// compute the nullifier for the vote (a hash of the voterID and the electionID)
-	nullifier := farcasterproof.GenerateNullifier(message.Data.Fid, electionID)
 
 	// check if the voter already voted
 	_, code, err := cli.Request("GET", nil, "votes", "verify", electionID.String(), fmt.Sprintf("%x", nullifier))
 	if err != nil {
-		return nullifier, voterID.Address(), fmt.Errorf("failed to verify vote: %w", err)
+		return nullifier, voterID.Address(), 0, fmt.Errorf("failed to verify vote: %w", err)
 	}
 	if code == http.StatusOK {
-		return nullifier, voterID.Address(), ErrAlreadyVoted
+		return nullifier, voterID.Address(), message.Data.Fid, ErrAlreadyVoted
 	}
 
 	// build the vote package
@@ -60,7 +60,7 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 	}
 	votePackageBytes, err := votePackage.Encode()
 	if err != nil {
-		return nullifier, voterID.Address(), fmt.Errorf("failed to encode vote package: %w", err)
+		return nullifier, voterID.Address(), 0, fmt.Errorf("failed to encode vote package: %w", err)
 	}
 
 	// build the vote transaction
@@ -80,7 +80,7 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 	// build the proof for the vote transaction
 	frameSignedMessage, err := hex.DecodeString(packet.TrustedData.MessageBytes)
 	if err != nil {
-		return nullifier, voterID.Address(), fmt.Errorf("failed to decode frame signed message: %w", err)
+		return nullifier, voterID.Address(), 0, fmt.Errorf("failed to decode frame signed message: %w", err)
 	}
 
 	arboProof := &models.ProofArbo{
@@ -105,14 +105,14 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 	stx := models.SignedTx{}
 	stx.Tx, err = proto.Marshal(&models.Tx{Payload: &models.Tx_Vote{Vote: vote}})
 	if err != nil {
-		return nullifier, voterID.Address(), fmt.Errorf("failed to marshal vote transaction: %w", err)
+		return nullifier, voterID.Address(), 0, fmt.Errorf("failed to marshal vote transaction: %w", err)
 	}
 
 	txHash, nullifier, err := cli.SignAndSendTx(&stx)
 	if err != nil {
-		return nullifier, voterID.Address(), fmt.Errorf("failed to sign and send vote transaction: %w", err)
+		return nullifier, voterID.Address(), 0, fmt.Errorf("failed to sign and send vote transaction: %w", err)
 	}
 
 	log.Infow("vote transaction sent", "txHash", fmt.Sprintf("%x", txHash), "nullifier", fmt.Sprintf("%x", nullifier))
-	return nullifier, voterID.Address(), nil
+	return nullifier, voterID.Address(), message.Data.Fid, nil
 }

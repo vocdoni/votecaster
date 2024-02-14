@@ -7,6 +7,7 @@ require (
 	github.com/google/uuid v1.5.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
+	go.mongodb.org/mongo-driver v1.12.1
 	go.vocdoni.io/dvote v1.10.2-0.20240213213148-5cc88b9d4ffa
 	go.vocdoni.io/proto v1.15.6-0.20240209115732-27836380ccae
 	golang.org/x/image v0.15.0
@@ -297,7 +298,6 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.8 // indirect
-	go.mongodb.org/mongo-driver v1.12.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.42.0 // indirect
 	go.opentelemetry.io/otel v1.21.0 // indirect

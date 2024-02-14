@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vocdoni/farcaster-poc/mongo"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
@@ -29,9 +30,10 @@ type vocdoniHandler struct {
 	cli       *apiclient.HTTPclient
 	census    *CensusInfo
 	webappdir string
+	db        *mongo.MongoStorage
 }
 
-func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, webappdir string) (*vocdoniHandler, error) {
+func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, webappdir string, db *mongo.MongoStorage) (*vocdoniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
 		accountPrivKey = util.RandomHex(32)
@@ -64,6 +66,7 @@ func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, w
 		cli:       cli,
 		census:    census,
 		webappdir: webappdir,
+		db:        db,
 	}, ensureAccountExist(cli)
 }
 
@@ -194,7 +197,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	// cast the vote
-	nullifier, voterID, err := vote(packet, electionIDbytes, election.Census.CensusRoot, v.cli)
+	nullifier, voterID, fid, err := vote(packet, electionIDbytes, election.Census.CensusRoot, v.cli)
 
 	// handle the vote result
 	if errors.Is(err, ErrNotInCensus) {
@@ -234,6 +237,17 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
+
+	go func() {
+		if !v.db.Exists(fid) {
+			if err := v.db.AddUser(fid, "", []string{}); err != nil {
+				log.Errorw(err, "failed to add user to database")
+			}
+		}
+		if err := v.db.IncreaseVoteCount(fid, electionIDbytes); err != nil {
+			log.Errorw(err, "failed to increase vote count")
+		}
+	}()
 
 	response := strings.ReplaceAll(frame(frameAfterVote), "{nullifier}", fmt.Sprintf("%x", nullifier))
 	response = strings.ReplaceAll(response, "{processID}", electionID)
