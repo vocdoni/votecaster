@@ -54,7 +54,8 @@ export const Credits = (props: FlexProps) => {
           Why Farcaster.vote?
         </Heading>
         <Text>
-          Farcaster.vote is the first onchain voting system for Farcaster that enables voting securely within a Frame!
+          Farcaster.vote is the first blockchain based voting system for Farcaster that enables voting securely within a
+          Frame!
         </Text>
         <Text>
           As Farcaster expands its user base, there is a rising need for solutions for social coordination. But
