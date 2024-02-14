@@ -11,8 +11,8 @@ export const Done = ({ pid }: { pid: string }) => {
   return (
     <>
       <Text display='inline'>Done! You can now cast it using this link:</Text>
-      <Box display='flex' alignItems='center' gap={1}>
-        <Code isTruncated maxW='95%'>
+      <Box display='flex' alignItems='center' justifyContent='space-between' overflow='hidden'>
+        <Code overflowX='auto' whiteSpace='nowrap' flex={1} isTruncated>
           {pollUrl(pid)}
         </Code>
         <IconButton

@@ -87,7 +87,7 @@ const Form: React.FC = (props: FlexProps) => {
 
   return (
     <Flex flexDir='column' alignItems='center' {...props}>
-      <Card maxW={600}>
+      <Card maxW={{ base: '100%', md: 400, lg: 600 }}>
         <CardHeader align='center'>
           <Image src={logo} alt='farcaster.vote logo' mb={4} />
           <Heading as='h1' size='lg' textAlign='center'>
