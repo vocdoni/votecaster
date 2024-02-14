@@ -69,7 +69,7 @@ export const Credits = (props: FlexProps) => {
           Thanks to the magic of the Vocdoni protocol, we ensure that your votes are not only secure but also fully
           verifiable.
         </Text>
-        <Text>Read to know more ↗️</Text>
+        {/* <Text>Read to know more ↗️</Text> */}
         <Flex flexDir='column' gap={8} align='center'>
           <Box>
             <Heading as='h2' size='sm' mb={4} textAlign='center'>
