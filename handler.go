@@ -317,6 +317,21 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
+type FarcasterProfile struct {
+	Bio           string
+	Custody       string // hex address actually
+	DisplayName   string `json:"displayName"`
+	FID           uint64 `json:"fid"` // BigInt probably
+	Avatar        string `json:"pfpUrl"`
+	Username      string
+	Verifications []string // hex addresses too
+}
+
+type ElectionCreateRequest struct {
+	ElectionDescription // embedded... not sure how to handle this with json unless I Unmarshal it myself
+	Profile             FarcasterProfile
+}
+
 func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	var req *ElectionDescription
 	if err := json.Unmarshal(msg.Data, &req); err != nil {

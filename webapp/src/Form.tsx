@@ -6,6 +6,7 @@ import {
   CardBody,
   CardHeader,
   Flex,
+  FlexProps,
   FormControl,
   FormErrorMessage,
   FormHelperText,
@@ -13,12 +14,16 @@ import {
   Heading,
   Image,
   Input,
+  Link,
+  Text,
   VStack,
 } from '@chakra-ui/react'
+import { useProfile } from '@farcaster/auth-kit'
 import axios from 'axios'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Done } from './Done'
+import logo from '/logo.svg'
 
 interface FormValues {
   question: string
@@ -31,12 +36,13 @@ interface FormValues {
 
 const appUrl = import.meta.env.APP_URL
 
-const Form: React.FC = () => {
+const Form: React.FC = (props: FlexProps) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>()
+  const { profile } = useProfile()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +55,7 @@ const Form: React.FC = () => {
         question: data.question,
         duration: Number(data.duration),
         options: [],
+        profile,
       }
 
       for (let i = 1; i < 5; i++) {
@@ -79,14 +86,10 @@ const Form: React.FC = () => {
   }
 
   return (
-    <Flex minH='100vh' justifyContent='center' alignItems='center'>
-      <Card maxW={500}>
+    <Flex flexDir='column' alignItems='center' {...props}>
+      <Card maxW={600}>
         <CardHeader align='center'>
-          <Image
-            src='https://assets-global.website-files.com/6398d7c1bcc2b775ebaa4f2f/6398d7c1bcc2b75440aa4f50_vocdoni-imagotype.svg'
-            alt='Logo'
-            mb={4}
-          />
+          <Image src={logo} alt='farcaster.vote logo' mb={4} />
           <Heading as='h1' size='lg' textAlign='center'>
             Create a new farcaster voting
           </Heading>
@@ -155,6 +158,11 @@ const Form: React.FC = () => {
           </VStack>
         </CardBody>
       </Card>
+      <Text mt={3} fontSize='.8em' textAlign='center'>
+        <Link href='https://warpcast.com/vocdoni' target='_blank'>
+          By @vocdoni
+        </Link>
+      </Text>
     </Flex>
   )
 }
