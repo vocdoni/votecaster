@@ -3,8 +3,6 @@ package mongo
 import (
 	"fmt"
 	"time"
-
-	"go.vocdoni.io/dvote/types"
 )
 
 var (
@@ -28,11 +26,11 @@ type User struct {
 
 // Election represents an election and its details owned by a user.
 type Election struct {
-	ElectionID   types.HexBytes `json:"electionId" bson:"_id"`
-	UserID       uint64         `json:"userId" bson:"userId"`
-	CastedVotes  uint64         `json:"castedVotes" bson:"castedVotes"`
-	LastVoteTime time.Time      `json:"lastVoteTime" bson:"lastVoteTime"`
-	CreatedTime  time.Time      `json:"createdTime" bson:"createdTime"`
+	ElectionID   string    `json:"electionId" bson:"_id"`
+	UserID       uint64    `json:"userId" bson:"userId"`
+	CastedVotes  uint64    `json:"castedVotes" bson:"castedVotes"`
+	LastVoteTime time.Time `json:"lastVoteTime" bson:"lastVoteTime"`
+	CreatedTime  time.Time `json:"createdTime" bson:"createdTime"`
 }
 
 // UserCollection is a dataset containing several users (used for dump and import).
@@ -54,8 +52,8 @@ type UserRanking struct {
 
 // ElectionRanking is an election ranking entry.
 type ElectionRanking struct {
-	ElectionID        types.HexBytes `json:"electionId" bson:"_id"`
-	VoteCount         uint64         `json:"voteCount" bson:"voteCount"`
-	CreatedByFID      uint64         `json:"createdByFID" bson:"createdByFID"`
-	CreatedByUsername string         `json:"createdByUsername" bson:"createdByUsername"`
+	ElectionID        string `json:"electionId" bson:"_id"`
+	VoteCount         uint64 `json:"voteCount" bson:"voteCount"`
+	CreatedByFID      uint64 `json:"createdByFID" bson:"createdByFID"`
+	CreatedByUsername string `json:"createdByUsername" bson:"createdByUsername"`
 }
