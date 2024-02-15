@@ -15,6 +15,37 @@ services:
     volumes:
       - voteframe:/app/data
     restart: ${RESTART:-unless-stopped}
+    depends_on: 
+      - mongo
+
+  mongo:
+    image: mongo
+    restart: ${RESTART:-unless-stopped}
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=vocdoni
+      - MONGO_INITDB_DATABASE=voteframe
+
+    volumes:
+      - mongodb:/data/mongodb
+
+
+  mongo-express:
+    image: mongo-express
+    restart: ${RESTART:-unless-stopped}
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: vocdoni
+      ME_CONFIG_MONGODB_URL: mongodb://root:vocdoni@mongo:27017/
 
 volumes:
   voteframe: {}
+  mongodb: {}
+# Use root/example as user/password credentials
+
+
+
