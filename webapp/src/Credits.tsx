@@ -54,21 +54,19 @@ export const Credits = (props: FlexProps) => {
           Why Farcaster.vote?
         </Heading>
         <Text>
-          Farcaster.vote is the first blockchain based voting system for Farcaster that enables voting securely within a
-          Frame!
+          <strong>Farcaster.vote</strong> introduces{' '}
+          <strong>the first verifiable & decentralized polls within Farcaster Frames</strong>!
         </Text>
         <Text>
-          As Farcaster expands its user base, there is a rising need for solutions for social coordination. But
-          centralized polling fall short as the votes can't be verifiable, leaving room for vote tampering and
-          censorship.
+          As Farcaster grows, the demand for collective coordination solutions increases. However,{' '}
+          <strong>centralized polls are not the best for decision-making</strong>, as the votes can't be verifiable,
+          leaving room for vote tampering and censorship.
         </Text>
         <Text>
-          This is where Farcaster.vote comes to play merging Farcaster technologies like Frames and FIDs with Vocdoni, a
-          decentralized protocol for digital voting.
-        </Text>
-        <Text>
-          Thanks to the magic of the Vocdoni protocol, we ensure that your votes are not only secure but also fully
-          verifiable.
+          This is where Farcaster.vote comes to play, <strong>combining Farcaster</strong>'s social network and identity
+          system
+          <strong>with the Vocdoni Protocol for tamper-proof and censorship-resistant digital voting</strong>,
+          positioning Farcaster as the go-to platform for digital communities!
         </Text>
         {/* <Text>Read to know more ↗️</Text> */}
         <Flex flexDir='column' gap={8} align='center'>

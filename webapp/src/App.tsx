@@ -1,12 +1,14 @@
 import { Box, Flex } from '@chakra-ui/react'
-import { SignInButton, useProfile } from '@farcaster/auth-kit'
+import { SignInButton } from '@farcaster/auth-kit'
 import { Credits } from './Credits'
 import Form from './Form'
 
 import '@farcaster/auth-kit/styles.css'
+import { useLogin } from './useLogin'
 
 export const App = () => {
-  const { isAuthenticated } = useProfile()
+  const { isAuthenticated } = useLogin()
+
   return (
     <Flex
       minH='100vh'
@@ -20,8 +22,16 @@ export const App = () => {
         {isAuthenticated ? (
           <Form mb={5} order={{ base: 0, md: 1 }} />
         ) : (
-          <Box minW={{ base: 0, lg: 400 }} mb={5} display='flex' justifyContent='center' alignItems='center'>
+          <Box
+            minW={{ base: 0, lg: 400 }}
+            mb={5}
+            display='flex'
+            justifyContent='center'
+            alignItems='center'
+            flexDir='column'
+          >
             <SignInButton />
+            to create a poll
           </Box>
         )}
       </Flex>
