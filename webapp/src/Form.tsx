@@ -92,7 +92,7 @@ const Form: React.FC = (props: FlexProps) => {
         <CardHeader align='center'>
           <Image src={logo} alt='farcaster.vote logo' mb={4} />
           <Heading as='h1' size='lg' textAlign='center'>
-            Create a new farcaster voting
+            Create a new farcaster poll
           </Heading>
         </CardHeader>
         <CardBody>
