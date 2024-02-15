@@ -151,19 +151,21 @@ func (ms *MongoStorage) Users() (*Users, error) {
 	return &users, nil
 }
 
+// AddUser adds a new user to the database. If the user already exists, it returns an error.
 func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []string, elections uint64) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
 	user := User{
-		UserID:    userFID,
-		Username:  usernanme,
-		Addresses: addresses,
+		UserID:        userFID,
+		Username:      usernanme,
+		Addresses:     addresses,
+		ElectionCount: elections,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
 	_, err := ms.users.InsertOne(ctx, user)
+	log.Infow("added new user", "userID", userFID, "username", usernanme)
 	return err
 }
 
@@ -187,16 +189,7 @@ func (ms *MongoStorage) AddElection(electionID types.HexBytes, userFID uint64) e
 		ElectionID:  electionID,
 		CreatedTime: time.Now(),
 	}
-
-	user, err := ms.getUserData(userFID)
-	if err != nil {
-		return err
-	}
-	user.ElectionCount++
-
-	if err := ms.updateUser(user); err != nil {
-		return err
-	}
+	log.Infow("added new election", "electionID", electionID.String(), "userID", userFID)
 	return ms.addElection(&election)
 }
 
@@ -320,13 +313,6 @@ func (ms *MongoStorage) UserExists(userFID uint64) bool {
 	return err == nil
 }
 
-func (ms *MongoStorage) ElectionExists(electionID types.HexBytes) bool {
-	ms.keysLock.RLock()
-	defer ms.keysLock.RUnlock()
-	_, err := ms.getElection(electionID)
-	return err == nil
-}
-
 func (ms *MongoStorage) DelUser(userFID uint64) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
@@ -334,6 +320,106 @@ func (ms *MongoStorage) DelUser(userFID uint64) error {
 	defer cancel()
 	_, err := ms.users.DeleteOne(ctx, bson.M{"_id": userFID})
 	return err
+}
+
+// UsersByElectionNumber returns the list of users ordered by the number of elections they have created.
+func (ms *MongoStorage) UsersByElectionNumber() ([]UserRanking, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	opts := options.FindOptions{}
+	opts.SetSort(bson.M{"electionCount": -1})
+	opts.SetProjection(bson.M{"_id": true})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cur, err := ms.users.Find(ctx, bson.M{}, &opts)
+	if err != nil {
+		return nil, err
+	}
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel2()
+	var ranking []UserRanking
+	for cur.Next(ctx2) {
+		user := User{}
+		err := cur.Decode(&user)
+		if err != nil {
+			log.Warn(err)
+		}
+		ranking = append(ranking, UserRanking{
+			FID:      user.UserID,
+			Username: user.Username,
+			Count:    user.ElectionCount,
+		})
+	}
+	return ranking, nil
+}
+
+// UsersByVoteNumber returns the list of users ordered by the number of votes they have casted.
+func (ms *MongoStorage) UsersByVoteNumber() ([]UserRanking, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	opts := options.FindOptions{}
+	opts.SetSort(bson.M{"castedVotes": -1})
+	opts.SetProjection(bson.M{"_id": true})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cur, err := ms.users.Find(ctx, bson.M{}, &opts)
+	if err != nil {
+		return nil, err
+	}
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel2()
+	var ranking []UserRanking
+	for cur.Next(ctx2) {
+		user := User{}
+		err := cur.Decode(&user)
+		if err != nil {
+			log.Warn(err)
+		}
+		ranking = append(ranking, UserRanking{
+			FID:      user.UserID,
+			Username: user.Username,
+			Count:    user.CastedVotes,
+		})
+	}
+	return ranking, nil
+}
+
+// ElectionsByVoteNumber returns the list elections ordered by the number of votes casted.
+func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	opts := options.FindOptions{}
+	opts.SetSort(bson.M{"castedVotes": -1})
+	opts.SetProjection(bson.M{"_id": true})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cur, err := ms.elections.Find(ctx, bson.M{}, &opts)
+	if err != nil {
+		return nil, err
+	}
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel2()
+	var ranking []ElectionRanking
+	for cur.Next(ctx2) {
+		election := Election{}
+		err := cur.Decode(&election)
+		if err != nil {
+			log.Warn(err)
+		}
+		ranking := append(ranking, ElectionRanking{
+			ElectionID:   election.ElectionID,
+			VoteCount:    election.CastedVotes,
+			CreatedByFID: election.UserID,
+		})
+
+		user, err := ms.getUserData(election.UserID)
+		if err != nil {
+			log.Warn(err)
+		} else {
+			ranking[len(ranking)-1].CreatedByUsername = user.Username
+		}
+	}
+	return ranking, nil
 }
 
 func (ms *MongoStorage) Search(term string) (*Users, error) {
@@ -421,10 +507,11 @@ func (ms *MongoStorage) String() string {
 		elections.Elections = append(elections.Elections, election)
 	}
 
-	data, err := json.MarshalIndent(map[string]any{
-		"users":     users,
-		"elections": elections,
-	}, "", " ")
+	data, err := json.MarshalIndent(struct {
+		UserCollection
+		ElectionCollection
+	}{users, elections},
+		"", " ")
 	if err != nil {
 		log.Warn(err)
 	}

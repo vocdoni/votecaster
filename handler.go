@@ -482,3 +482,47 @@ func (v *vocdoniHandler) staticHandler(w http.ResponseWriter, r *http.Request) {
 		log.Warnf("error writing file to response: %v", err.Error())
 	}
 }
+
+// dumpDB is a handler to dump the database contents (testing purposes).
+func (v *vocdoniHandler) dumpDB(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	return ctx.Send([]byte(v.db.String()), http.StatusOK)
+}
+
+func (v *vocdoniHandler) rankingByElectionsCreated(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	users, err := v.db.UsersByElectionNumber()
+	if err != nil {
+		return fmt.Errorf("failed to get ranking: %w", err)
+	}
+	jresponse, err := json.Marshal(users)
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
+	return ctx.Send(jresponse, http.StatusOK)
+}
+
+func (v *vocdoniHandler) rankingByVotes(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	users, err := v.db.UsersByVoteNumber()
+	if err != nil {
+		return fmt.Errorf("failed to get ranking: %w", err)
+	}
+	jresponse, err := json.Marshal(users)
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
+	return ctx.Send(jresponse, http.StatusOK)
+}
+
+func (v *vocdoniHandler) rankingOfElections(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	elections, err := v.db.ElectionsByVoteNumber()
+	if err != nil {
+		return fmt.Errorf("failed to get ranking: %w", err)
+	}
+	jresponse, err := json.Marshal(elections)
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.Writer.Header().Set("Content-Type", "application/json")
+	return ctx.Send(jresponse, http.StatusOK)
+}

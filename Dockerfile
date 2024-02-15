@@ -14,8 +14,10 @@ FROM golang:1.21.6 AS builder
 
 WORKDIR /src
 ENV CGO_ENABLED=1
+RUN go env -w GOCACHE=/go-cache
 COPY . .
-RUN go build -o=farcastervote -ldflags="-s -w"
+RUN --mount=type=cache,target=/go-cache go mod download
+RUN --mount=type=cache,target=/go-cache go build -o=farcastervote -ldflags="-s -w"
 
 FROM debian:bookworm-slim as base
 

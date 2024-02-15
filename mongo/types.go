@@ -29,10 +29,10 @@ type User struct {
 // Election represents an election and its details owned by a user.
 type Election struct {
 	ElectionID   types.HexBytes `json:"electionId" bson:"_id"`
-	UserID       uint64         `json:"userId" bson:"userid"`
-	CastedVotes  uint64         `json:"castedVotes" bson:"votes"`
-	LastVoteTime time.Time      `json:"lastVoteTime" bson:"lastvotetime"`
-	CreatedTime  time.Time      `json:"createdTime" bson:"createdtime"`
+	UserID       uint64         `json:"userId" bson:"userId"`
+	CastedVotes  uint64         `json:"castedVotes" bson:"castedVotes"`
+	LastVoteTime time.Time      `json:"lastVoteTime" bson:"lastVoteTime"`
+	CreatedTime  time.Time      `json:"createdTime" bson:"createdTime"`
 }
 
 // UserCollection is a dataset containing several users (used for dump and import).
@@ -43,4 +43,19 @@ type UserCollection struct {
 // ElectionCollection is a dataset containing several elections (used for dump and import).
 type ElectionCollection struct {
 	Elections []Election `json:"elections" bson:"elections"`
+}
+
+// UserRanking is a user ranking entry.
+type UserRanking struct {
+	FID      uint64 `json:"fid" bson:"fid"`
+	Username string `json:"username" bson:"username"`
+	Count    uint64 `json:"count" bson:"count"`
+}
+
+// ElectionRanking is an election ranking entry.
+type ElectionRanking struct {
+	ElectionID        types.HexBytes `json:"electionId" bson:"_id"`
+	VoteCount         uint64         `json:"voteCount" bson:"voteCount"`
+	CreatedByFID      uint64         `json:"createdByFID" bson:"createdByFID"`
+	CreatedByUsername string         `json:"createdByUsername" bson:"createdByUsername"`
 }
