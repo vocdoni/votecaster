@@ -64,7 +64,7 @@ export const Credits = (props: FlexProps) => {
         </Text>
         <Text>
           This is where Farcaster.vote comes to play, <strong>combining Farcaster</strong>'s social network and identity
-          system
+          system{` `}
           <strong>with the Vocdoni Protocol for tamper-proof and censorship-resistant digital voting</strong>,
           positioning Farcaster as the go-to platform for digital communities!
         </Text>
