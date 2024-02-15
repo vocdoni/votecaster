@@ -217,7 +217,6 @@ func (ms *MongoStorage) getUserData(userID uint64) (*User, error) {
 	result := ms.users.FindOne(ctx, bson.M{"_id": userID})
 	var user User
 	if err := result.Decode(&user); err != nil {
-		log.Warn(err)
 		return nil, ErrUserUnknown
 	}
 	return &user, nil
