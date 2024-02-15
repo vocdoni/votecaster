@@ -17,14 +17,13 @@ export const App = () => {
       py={{ base: 5, xl: 10 }}
       px={{ base: 0, sm: 5, xl: 10 }}
     >
-      <Flex maxW={{ base: '100%', lg: '1200px' }} flexDir={{ base: 'column', md: 'row' }}>
-        <Credits px={{ base: 5, md: 10 }} mb={5} order={{ base: 1, md: 0 }} />
+      <Flex maxW={{ base: '100%', lg: '1200px' }} flexDir={{ base: 'column' }}>
         {isAuthenticated ? (
-          <Form mb={5} order={{ base: 0, md: 1 }} />
+          <Form mb={5} />
         ) : (
           <Box
             minW={{ base: 0, lg: 400 }}
-            mb={5}
+            my={20}
             display='flex'
             justifyContent='center'
             alignItems='center'
@@ -34,6 +33,7 @@ export const App = () => {
             to create a poll
           </Box>
         )}
+        <Credits px={{ base: 5, md: 10 }} mb={5} />
       </Flex>
     </Flex>
   )
