@@ -1,6 +1,7 @@
 import {
   Alert,
   AlertIcon,
+  Box,
   Button,
   Card,
   CardBody,
@@ -18,11 +19,11 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
-import { useProfile } from '@farcaster/auth-kit'
 import axios from 'axios'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Done } from './Done'
+import { useLogin } from './useLogin'
 import logo from '/logo.svg'
 
 interface FormValues {
@@ -42,7 +43,7 @@ const Form: React.FC = (props: FlexProps) => {
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>()
-  const { profile } = useProfile()
+  const { profile, logout } = useLogin()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -154,6 +155,12 @@ const Form: React.FC = (props: FlexProps) => {
                 <Button type='submit' colorScheme='purple' isLoading={loading}>
                   Create
                 </Button>
+                <Box fontSize='xs' align='right'>
+                  or{' '}
+                  <Button variant='text' size='xs' p={0} onClick={logout} height='auto'>
+                    logout
+                  </Button>
+                </Box>
               </>
             )}
           </VStack>

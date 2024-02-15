@@ -1,12 +1,14 @@
 import { Box, Flex } from '@chakra-ui/react'
-import { SignInButton, useProfile } from '@farcaster/auth-kit'
+import { SignInButton } from '@farcaster/auth-kit'
 import { Credits } from './Credits'
 import Form from './Form'
 
 import '@farcaster/auth-kit/styles.css'
+import { useLogin } from './useLogin'
 
 export const App = () => {
-  const { isAuthenticated } = useProfile()
+  const { isAuthenticated } = useLogin()
+
   return (
     <Flex
       minH='100vh'
