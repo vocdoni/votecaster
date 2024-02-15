@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
-	"math/big"
 	"net/http"
 	"net/url"
 	"os"
@@ -23,7 +21,6 @@ import (
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
-	"go.vocdoni.io/dvote/types"
 	"go.vocdoni.io/dvote/util"
 )
 
@@ -278,27 +275,25 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return fmt.Errorf("election results not ready")
 	}
 
-	castedVotes := new(types.BigInt)
+	castedVotes := uint64(0)
 	for i := 0; i < len(election.Results[0]); i++ {
-		castedVotes.Add(castedVotes, election.Results[0][i])
+		castedVotes += (election.Results[0][i].MathBigInt().Uint64())
 	}
 
 	text := strings.Builder{}
 
 	// Check for division by zero error
-	if castedVotes.MathBigInt().Cmp(big.NewInt(0)) == 0 {
+	if castedVotes == 0 {
 		text.WriteString("No votes casted yet")
 	} else {
-		text.WriteString(fmt.Sprintf("Total votes casted: %s\n\n", castedVotes.String()))
+		text.WriteString(fmt.Sprintf("Total votes casted: %d\n\n", castedVotes))
 		for _, r := range election.Metadata.Questions[0].Choices {
-			votesForOption := election.Results[0][r.Value]
-			percentage := new(big.Float).Quo(new(big.Float).SetInt(votesForOption.MathBigInt()), new(big.Float).SetInt(castedVotes.MathBigInt()))
-			percentageFloat, _ := percentage.Float64()             // Convert to float64 for rounding
-			roundedPercentage := math.Round(percentageFloat * 100) // Round to nearest whole number and multiply by 100 for percentage
-
-			_, err := text.WriteString(fmt.Sprintf("> %s: %.0f%%\n",
+			votesForOption := election.Results[0][r.Value].MathBigInt().Uint64()
+			percentage := votesForOption * 100 / castedVotes
+			_, err := text.WriteString(fmt.Sprintf("> %s: %d [%d]\n\n",
 				r.Title["default"],
-				roundedPercentage, // Use rounded percentage here
+				votesForOption,
+				percentage,
 			))
 			if err != nil {
 				return fmt.Errorf("failed to write results: %w", err)
