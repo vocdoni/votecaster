@@ -8,15 +8,15 @@ export const useLogin = () => {
   useEffect(() => {
     if (!isAuthenticated) return
 
-    sessionStorage.setItem('profile', JSON.stringify(profile))
+    localStorage.setItem('profile', JSON.stringify(profile))
   }, [isAuthenticated, profile])
 
   return {
-    profile: Object.values(profile).length ? profile : JSON.parse(sessionStorage.getItem('profile') || '{}'),
-    isAuthenticated: isAuthenticated || sessionStorage.getItem('profile') !== null,
+    profile: Object.values(profile).length ? profile : JSON.parse(localStorage.getItem('profile') || '{}'),
+    isAuthenticated: isAuthenticated || localStorage.getItem('profile') !== null,
     logout: () => {
       signOut()
-      sessionStorage.clear()
+      localStorage.clear()
     },
   }
 }
