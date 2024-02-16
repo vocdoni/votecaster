@@ -355,7 +355,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 			return
 		}
 		// add the election to the LRU cache and the database
-		v.electionLRU.Add(electionID, election)
+		v.electionLRU.Add(electionID.String(), election)
 		if err := v.db.AddElection(electionID, req.Profile.FID); err != nil {
 			log.Errorw(err, "failed to add election to database")
 		}
@@ -564,7 +564,7 @@ func (v *vocdoniHandler) rankingOfElections(msg *apirest.APIdata, ctx *httproute
 }
 
 func (v *vocdoniHandler) election(electionID types.HexBytes) (*api.Election, error) {
-	electionCached, ok := v.electionLRU.Get(electionID)
+	electionCached, ok := v.electionLRU.Get(electionID.String())
 	if ok {
 		return electionCached.(*api.Election), nil
 	}
@@ -572,6 +572,7 @@ func (v *vocdoniHandler) election(electionID types.HexBytes) (*api.Election, err
 	if err != nil {
 		return nil, ErrElectionUnknown
 	}
-	v.electionLRU.Add(electionID, election)
+	evicted := v.electionLRU.Add(electionID.String(), election)
+	log.Debugw("added election to cache", "electionID", electionID, "evicted", evicted)
 	return election, nil
 }

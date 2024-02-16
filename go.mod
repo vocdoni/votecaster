@@ -8,7 +8,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	go.mongodb.org/mongo-driver v1.12.1
-	go.vocdoni.io/dvote v1.10.2-0.20240215160909-43e01c5c9d38
+	go.vocdoni.io/dvote v1.10.2-0.20240216163710-0b7923337d8a
 	go.vocdoni.io/proto v1.15.6-0.20240209115732-27836380ccae
 	golang.org/x/image v0.15.0
 	google.golang.org/protobuf v1.32.0

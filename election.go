@@ -63,7 +63,7 @@ func newElectionDescription(description *ElectionDescription, census *CensusInfo
 
 // createElection creates a new election with the given description and census. Waits until the election is created or returns an error.
 func createElection(cli *apiclient.HTTPclient, description *ElectionDescription, census *CensusInfo) (types.HexBytes, error) {
-	electionID, err := cli.NewElection(newElectionDescription(description, census))
+	electionID, err := cli.NewElection(newElectionDescription(description, census), false)
 	if err != nil {
 		return nil, err
 	}

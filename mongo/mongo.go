@@ -409,7 +409,7 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
-	limit := int64(32)
+	limit := int64(12)
 	opts := options.FindOptions{Limit: &limit}
 	opts.SetSort(bson.M{"castedVotes": -1})
 	opts.SetProjection(bson.M{"_id": true, "castedVotes": true, "userId": true})
@@ -428,7 +428,9 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 		if err != nil {
 			log.Warn(err)
 		}
-
+		if election.CastedVotes == 0 {
+			continue
+		}
 		eID, err := hex.DecodeString(election.ElectionID)
 		if err != nil {
 			log.Warn(err)
