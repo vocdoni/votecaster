@@ -287,12 +287,12 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		text.WriteString("No votes casted yet")
 	} else {
 		text.WriteString(fmt.Sprintf("Total votes casted: %d\n\n", castedVotes))
-		for _, r := range election.Metadata.Questions[0].Choices {
+		for i, r := range election.Metadata.Questions[0].Choices {
 			votesForOption := election.Results[0][r.Value].MathBigInt().Uint64()
 			percentage := votesForOption * 100 / castedVotes
-			_, err := text.WriteString(fmt.Sprintf("> %s: %d [%d]\n\n",
+			_, err := text.WriteString(fmt.Sprintf("%d. %s: %d%%\n",
+				i,
 				r.Title["default"],
-				votesForOption,
 				percentage,
 			))
 			if err != nil {

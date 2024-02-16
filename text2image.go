@@ -52,7 +52,7 @@ var backgrounds = map[string]*background{
 	BackgroundResults:      {nil, "#F2EFE5", Inter, 50, 100, 100, 40},
 	BackgroundNotElegible:  {nil, "#ff3333", Inter, 40, 10, 30, 20},
 	BackgroundError:        {nil, "#ff3333", Inter, 30, 10, 200, 80},
-	BackgroundInfo:         {nil, "#F2EFE5", Inter, 50, 20, 50, 60},
+	BackgroundInfo:         {nil, "#F2EFE5", Inter, 30, 20, 50, 60},
 }
 
 func loadImages() error {
