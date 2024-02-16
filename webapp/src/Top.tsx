@@ -12,7 +12,9 @@ export const TopTenPolls = (props: BoxProps) => {
       try {
         const response = await axios.get(`${appUrl}/rankings/pollsByVotes`)
         const { polls } = response.data
-        setPolls(polls)
+        if (polls && polls.length) {
+          setPolls(polls)
+        }
       } catch (e) {
         console.error('error fetching polls:', e)
       }
