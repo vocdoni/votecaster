@@ -25,7 +25,7 @@ import {
 import { SignInButton } from '@farcaster/auth-kit'
 import axios from 'axios'
 import React, { useState } from 'react'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { Done } from './Done'
 import { useLogin } from './useLogin'
@@ -40,16 +40,17 @@ interface FormValues {
 const appUrl = import.meta.env.APP_URL
 
 const Form: React.FC = (props: FlexProps) => {
+  const methods = useForm<FormValues>({
+    defaultValues: {
+      choices: [{ choice: '' }, { choice: '' }],
+    },
+  })
   const {
     register,
     handleSubmit,
     formState: { errors },
     control,
-  } = useForm<FormValues>({
-    defaultValues: {
-      choices: [{ choice: '' }, { choice: '' }],
-    },
-  })
+  } = methods
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'choices',
@@ -101,97 +102,99 @@ const Form: React.FC = (props: FlexProps) => {
           </Heading>
         </CardHeader>
         <CardBody>
-          <VStack as='form' onSubmit={handleSubmit(onSubmit)} spacing={4} align='left'>
-            {pid ? (
-              <Done pid={pid} />
-            ) : (
-              <>
-                <FormControl isRequired isDisabled={loading} isInvalid={!!errors.question}>
-                  <FormLabel htmlFor='question'>Question</FormLabel>
-                  <Input
-                    id='question'
-                    placeholder='Enter your question'
-                    {...register('question', {
-                      required,
-                      maxLength: { value: 250, message: 'Max length is 250 characters' },
-                    })}
-                  />
-                  <FormErrorMessage>{errors.question?.message?.toString()}</FormErrorMessage>
-                </FormControl>
-                {fields.map((field, index) => (
-                  <FormControl
-                    key={field.id}
-                    isRequired={index < 2}
-                    isDisabled={loading}
-                    isInvalid={!!errors.choices?.[index]}
-                  >
-                    <FormLabel>Choice {index + 1}</FormLabel>
-                    <InputGroup>
-                      <Input
-                        placeholder={`Enter choice ${index + 1}`}
-                        {...register(`choices.${index}.choice`, { required, maxLength })}
-                      />
-                      {fields.length > 2 && (
-                        <InputRightElement>
-                          <IconButton
-                            size='sm'
-                            aria-label='Remove choice'
-                            icon={<BiTrash />}
-                            onClick={() => remove(index)}
-                          />
-                        </InputRightElement>
-                      )}
-                    </InputGroup>
-                    <FormErrorMessage>{errors.choices?.[index]?.choice?.message?.toString()}</FormErrorMessage>
+          <FormProvider {...methods}>
+            <VStack as='form' onSubmit={handleSubmit(onSubmit)} spacing={4} align='left'>
+              {pid ? (
+                <Done pid={pid} setPid={setPid} />
+              ) : (
+                <>
+                  <FormControl isRequired isDisabled={loading} isInvalid={!!errors.question}>
+                    <FormLabel htmlFor='question'>Question</FormLabel>
+                    <Input
+                      id='question'
+                      placeholder='Enter your question'
+                      {...register('question', {
+                        required,
+                        maxLength: { value: 250, message: 'Max length is 250 characters' },
+                      })}
+                    />
+                    <FormErrorMessage>{errors.question?.message?.toString()}</FormErrorMessage>
                   </FormControl>
-                ))}
-                {fields.length < 4 && (
-                  <Button alignSelf='end' onClick={() => append({ choice: '' })}>
-                    Add Choice
-                  </Button>
-                )}
-
-                <FormControl isDisabled={loading} isInvalid={!!errors.duration}>
-                  <FormLabel htmlFor='duration'>Duration (Optional)</FormLabel>
-                  <Input
-                    id='duration'
-                    placeholder='Enter duration (in hours)'
-                    {...register('duration')}
-                    type='number'
-                    min={1}
-                    max={360} // 15 days
-                  />
-                  <FormErrorMessage>{errors.duration?.message?.toString()}</FormErrorMessage>
-                  <FormHelperText>24h by default</FormHelperText>
-                </FormControl>
-                {error && (
-                  <Alert status='error'>
-                    <AlertIcon />
-                    {error}
-                  </Alert>
-                )}
-
-                {isAuthenticated ? (
-                  <>
-                    <Button type='submit' colorScheme='purple' isLoading={loading}>
-                      Create
+                  {fields.map((field, index) => (
+                    <FormControl
+                      key={field.id}
+                      isRequired={index < 2}
+                      isDisabled={loading}
+                      isInvalid={!!errors.choices?.[index]}
+                    >
+                      <FormLabel>Choice {index + 1}</FormLabel>
+                      <InputGroup>
+                        <Input
+                          placeholder={`Enter choice ${index + 1}`}
+                          {...register(`choices.${index}.choice`, { required, maxLength })}
+                        />
+                        {fields.length > 2 && (
+                          <InputRightElement>
+                            <IconButton
+                              size='sm'
+                              aria-label='Remove choice'
+                              icon={<BiTrash />}
+                              onClick={() => remove(index)}
+                            />
+                          </InputRightElement>
+                        )}
+                      </InputGroup>
+                      <FormErrorMessage>{errors.choices?.[index]?.choice?.message?.toString()}</FormErrorMessage>
+                    </FormControl>
+                  ))}
+                  {fields.length < 4 && (
+                    <Button alignSelf='end' onClick={() => append({ choice: '' })}>
+                      Add Choice
                     </Button>
-                    <Box fontSize='xs' align='right'>
-                      or{' '}
-                      <Button variant='text' size='xs' p={0} onClick={logout} height='auto'>
-                        logout
+                  )}
+
+                  <FormControl isDisabled={loading} isInvalid={!!errors.duration}>
+                    <FormLabel htmlFor='duration'>Duration (Optional)</FormLabel>
+                    <Input
+                      id='duration'
+                      placeholder='Enter duration (in hours)'
+                      {...register('duration')}
+                      type='number'
+                      min={1}
+                      max={360} // 15 days
+                    />
+                    <FormErrorMessage>{errors.duration?.message?.toString()}</FormErrorMessage>
+                    <FormHelperText>24h by default</FormHelperText>
+                  </FormControl>
+                  {error && (
+                    <Alert status='error'>
+                      <AlertIcon />
+                      {error}
+                    </Alert>
+                  )}
+
+                  {isAuthenticated ? (
+                    <>
+                      <Button type='submit' colorScheme='purple' isLoading={loading}>
+                        Create
                       </Button>
+                      <Box fontSize='xs' align='right'>
+                        or{' '}
+                        <Button variant='text' size='xs' p={0} onClick={logout} height='auto'>
+                          logout
+                        </Button>
+                      </Box>
+                    </>
+                  ) : (
+                    <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>
+                      <SignInButton />
+                      to create a poll
                     </Box>
-                  </>
-                ) : (
-                  <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>
-                    <SignInButton />
-                    to create a poll
-                  </Box>
-                )}
-              </>
-            )}
-          </VStack>
+                  )}
+                </>
+              )}
+            </VStack>
+          </FormProvider>
         </CardBody>
       </Card>
       <Text mt={3} fontSize='.8em' textAlign='center'>
