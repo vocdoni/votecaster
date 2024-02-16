@@ -250,6 +250,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/create/check/{electionID}", http.MethodGet, "public", handler.checkElection); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/testimage", http.MethodGet, "public", handler.testImage); err != nil {
 		log.Fatal(err)
 	}

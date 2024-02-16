@@ -56,4 +56,5 @@ type ElectionRanking struct {
 	VoteCount         uint64 `json:"voteCount" bson:"voteCount"`
 	CreatedByFID      uint64 `json:"createdByFID" bson:"createdByFID"`
 	CreatedByUsername string `json:"createdByUsername" bson:"createdByUsername"`
+	Title             string `json:"title" bson:"title"`
 }

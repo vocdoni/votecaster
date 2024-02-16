@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 )
@@ -24,11 +26,20 @@ type MongoStorage struct {
 	users     *mongo.Collection
 	elections *mongo.Collection
 	keysLock  sync.RWMutex
+	election  funcGetElection
 }
 
 type Options struct {
 	MongoURL string
 	Database string
+}
+
+// funcGetElection is a function that returns an election by its ID.
+type funcGetElection = func(electionID types.HexBytes) (*api.Election, error)
+
+// AddElectionCallback adds a callback function to get the election details by its ID.
+func (ms *MongoStorage) AddElectionCallback(f funcGetElection) {
+	ms.election = f
 }
 
 func New(url, database string) (*MongoStorage, error) {
@@ -417,18 +428,39 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 		if err != nil {
 			log.Warn(err)
 		}
-		ranking := append(ranking, ElectionRanking{
-			ElectionID:   election.ElectionID,
-			VoteCount:    election.CastedVotes,
-			CreatedByFID: election.UserID,
-		})
 
+		eID, err := hex.DecodeString(election.ElectionID)
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+
+		title := ""
+		electionInfo, err := ms.election(eID)
+		if err != nil {
+			log.Warn(err)
+		} else {
+			if electionInfo != nil && electionInfo.Metadata != nil {
+				title = electionInfo.Metadata.Title["default"]
+			}
+		}
+
+		username := ""
 		user, err := ms.getUserData(election.UserID)
 		if err != nil {
 			log.Warn(err)
 		} else {
-			ranking[len(ranking)-1].CreatedByUsername = user.Username
+			username = user.Username
 		}
+
+		ranking = append(ranking, ElectionRanking{
+			ElectionID:        election.ElectionID,
+			VoteCount:         election.CastedVotes,
+			CreatedByFID:      election.UserID,
+			Title:             title,
+			CreatedByUsername: username,
+		})
+
 	}
 	return ranking, nil
 }

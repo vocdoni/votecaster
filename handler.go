@@ -15,20 +15,27 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/vocdoni/farcaster-poc/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
+	"go.vocdoni.io/dvote/types"
 	"go.vocdoni.io/dvote/util"
 )
 
+var (
+	ErrElectionUnknown = fmt.Errorf("electionID unknown")
+)
+
 type vocdoniHandler struct {
-	cli       *apiclient.HTTPclient
-	census    *CensusInfo
-	webappdir string
-	db        *mongo.MongoStorage
+	cli         *apiclient.HTTPclient
+	census      *CensusInfo
+	webappdir   string
+	db          *mongo.MongoStorage
+	electionLRU *lru.Cache
 }
 
 func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, webappdir string, db *mongo.MongoStorage) (*vocdoniHandler, error) {
@@ -59,13 +66,24 @@ func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, w
 		return nil, fmt.Errorf("failed to load images: %w", err)
 	}
 
-	// Create the account if it doesn't exist and return the handler
-	return &vocdoniHandler{
+	vh := &vocdoniHandler{
 		cli:       cli,
 		census:    census,
 		webappdir: webappdir,
 		db:        db,
-	}, ensureAccountExist(cli)
+		electionLRU: func() *lru.Cache {
+			lru, err := lru.New(100)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return lru
+		}(),
+	}
+
+	// Add the election callback to the mongo database to fetch the election information
+	db.AddElectionCallback(vh.election)
+
+	return vh, ensureAccountExist(cli)
 }
 
 func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -73,7 +91,7 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
-	election, err := v.cli.Election(electionID)
+	election, err := v.election(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to get election: %w", err)
 	}
@@ -100,7 +118,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	log.Infow("received show election request", "electionID", ctx.URLParam("electionID"))
 
 	// create a PNG image with the election description
-	election, err := v.cli.Election(electionID)
+	election, err := v.election(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
@@ -139,7 +157,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
 
-	election, err := v.cli.Election(electionIDbytes)
+	election, err := v.election(electionIDbytes)
 	if err != nil {
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
@@ -172,7 +190,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
 
-	election, err := v.cli.Election(electionIDbytes)
+	election, err := v.election(electionIDbytes)
 	if err != nil {
 		log.Warnw("failed to fetch election", "error", err)
 		png, err := textToImage(textToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, backgrounds[BackgroundGeneric])
@@ -331,6 +349,13 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	}
 
 	go func() {
+		election, err := waitForElection(v.cli, electionID)
+		if err != nil {
+			log.Errorw(err, "failed to create election")
+			return
+		}
+		// add the election to the LRU cache and the database
+		v.electionLRU.Add(electionID, election)
 		if err := v.db.AddElection(electionID, req.Profile.FID); err != nil {
 			log.Errorw(err, "failed to add election to database")
 		}
@@ -340,7 +365,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 				log.Errorw(err, "failed to get user from database")
 				return
 			}
-			if err := v.db.AddUser(req.Profile.FID, req.Profile.DisplayName, req.Profile.Verifications, 1); err != nil {
+			if err := v.db.AddUser(req.Profile.FID, req.Profile.Username, req.Profile.Verifications, 1); err != nil {
 				log.Errorw(err, "failed to add user to database")
 			}
 			return
@@ -357,12 +382,24 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)
 }
 
+func (v *vocdoniHandler) checkElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	_, ok := v.electionLRU.Get(electionID)
+	if !ok {
+		return ctx.Send(nil, http.StatusNoContent)
+	}
+	return ctx.Send(nil, http.StatusOK)
+}
+
 func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
-	election, err := v.cli.Election(electionID)
+	election, err := v.election(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to get election: %w", err)
 	}
@@ -524,4 +561,17 @@ func (v *vocdoniHandler) rankingOfElections(msg *apirest.APIdata, ctx *httproute
 	}
 	ctx.Writer.Header().Set("Content-Type", "application/json")
 	return ctx.Send(jresponse, http.StatusOK)
+}
+
+func (v *vocdoniHandler) election(electionID types.HexBytes) (*api.Election, error) {
+	electionCached, ok := v.electionLRU.Get(electionID)
+	if ok {
+		return electionCached.(*api.Election), nil
+	}
+	election, err := v.cli.Election(electionID)
+	if err != nil {
+		return nil, ErrElectionUnknown
+	}
+	v.electionLRU.Add(electionID, election)
+	return election, nil
 }

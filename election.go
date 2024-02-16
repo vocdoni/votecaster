@@ -67,11 +67,17 @@ func createElection(cli *apiclient.HTTPclient, description *ElectionDescription,
 	if err != nil {
 		return nil, err
 	}
+	return electionID, nil
+}
+
+// waitForElection waits until the election is created or returns an error.
+func waitForElection(cli *apiclient.HTTPclient, electionID types.HexBytes) (*api.Election, error) {
 	// Wait until the election is created
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*40)
 	defer cancel()
 	election := &api.Election{}
 	startTime := time.Now()
+	var err error
 	for {
 		election, err = cli.Election(electionID)
 		if err != nil {
@@ -93,7 +99,7 @@ func createElection(cli *apiclient.HTTPclient, description *ElectionDescription,
 		}
 	}
 	log.Infow("created new election", "id", election.ElectionID.String())
-	return electionID, nil
+	return election, nil
 }
 
 // ensureAccountExist checks if the account exists and creates it if it doesn't.
