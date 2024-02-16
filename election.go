@@ -18,18 +18,18 @@ func newElectionDescription(description *ElectionDescription, census *CensusInfo
 	for i, choice := range description.Options {
 		choices = append(choices, api.ChoiceMetadata{
 			Title: map[string]string{"default": choice},
-			Value: uint32(i + 1),
+			Value: uint32(i),
 		})
 	}
 
 	size := census.Size
-	if size > maxElectionSize {
-		size = maxElectionSize
+	if size > uint64(maxElectionSize) {
+		size = uint64(maxElectionSize)
 	}
 
 	return &api.ElectionDescription{
 		Title:       map[string]string{"default": description.Question},
-		Description: map[string]string{"default": ""},
+		Description: map[string]string{"default": "this is a farcaster frame poll"},
 		EndDate:     time.Now().Add(description.Duration),
 
 		Questions: []api.Question{

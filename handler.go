@@ -86,8 +86,7 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return err
 	}
-	response := strings.ReplaceAll(frameMain, "{server}", serverURL)
-	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
+	response := strings.ReplaceAll(frame(frameMain), "{processID}", ctx.URLParam("electionID"))
 	response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
@@ -129,7 +128,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 func generateElectionImage(title string) ([]byte, error) {
 	text := strings.Builder{}
 	text.WriteString(title)
-	return textToImage(TextToImageContents{title: text.String()}, backgrounds[BackgroundGeneric])
+	return textToImage(textToImageContents{title: text.String()}, backgrounds[BackgroundGeneric])
 }
 
 func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -145,15 +144,15 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
 
-	text := strings.Builder{}
-	text.WriteString(" Vocdoni is the blockchain for voting\n")
-	text.WriteString("--------------------------------------\n\n")
-	text.WriteString(fmt.Sprintf("> Started %s ago\n", time.Since(election.StartDate).Round(time.Minute).String()))
-	text.WriteString(fmt.Sprintf("> Remaining time %s\n", time.Until(election.EndDate).Round(time.Minute).String()))
-	text.WriteString(fmt.Sprintf("> Poll id %x...\n", election.ElectionID[0:16]))
-	text.WriteString(fmt.Sprintf("> Census hash %x...\n", election.Census.CensusRoot[0:16]))
-	text.WriteString(fmt.Sprintf("> Executed on network %s\n", v.cli.ChainID()))
-	png, err := textToImage(TextToImageContents{title: text.String()}, backgrounds[BackgroundInfo])
+	title := "Vocdoni is the blockchain for voting"
+	text := []string{}
+	text = append(text, fmt.Sprintf("\nStarted %s ago", time.Since(election.StartDate).Round(time.Minute).String()))
+	text = append(text, fmt.Sprintf("Remaining time %s", time.Until(election.EndDate).Round(time.Minute).String()))
+	text = append(text, fmt.Sprintf("Poll id %x...", election.ElectionID[:20]))
+	text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
+	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:20]))
+	text = append(text, fmt.Sprintf("Max allowed votes %d", election.Census.MaxCensusSize))
+	png, err := textToImage(textToImageContents{title: title, body: text}, backgrounds[BackgroundInfo])
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
@@ -161,10 +160,8 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	// send the response
 	response := strings.ReplaceAll(frame(frameInfo), "{image}", base64.StdEncoding.EncodeToString(png))
 	response = strings.ReplaceAll(response, "{processID}", electionID)
-	response = strings.ReplaceAll(response, "{onvote}", onvoteURL)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
-
 }
 
 func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -178,7 +175,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	election, err := v.cli.Election(electionIDbytes)
 	if err != nil {
 		log.Warnw("failed to fetch election", "error", err)
-		png, err := textToImage(TextToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, backgrounds[BackgroundGeneric])
+		png, err := textToImage(textToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, backgrounds[BackgroundGeneric])
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -199,7 +196,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	// handle the vote result
 	if errors.Is(err, ErrNotInCensus) {
 		log.Infow("participant not in the census", "voterID", fmt.Sprintf("%x", voterID))
-		png, err := textToImage(TextToImageContents{title: ""}, backgrounds[BackgroundNotElegible])
+		png, err := textToImage(textToImageContents{title: ""}, backgrounds[BackgroundNotElegible])
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -211,21 +208,20 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	if errors.Is(err, ErrAlreadyVoted) {
 		log.Infow("participant already voted", "voterID", fmt.Sprintf("%x", voterID))
-		png, err := textToImage(TextToImageContents{title: ""}, backgrounds[BackgroundAlreadyVoted])
+		png, err := textToImage(textToImageContents{title: ""}, backgrounds[BackgroundAlreadyVoted])
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
 		response := strings.ReplaceAll(frame(frameAlreadyVoted), "{image}", base64.StdEncoding.EncodeToString(png))
 		response = strings.ReplaceAll(response, "{nullifier}", fmt.Sprintf("%x", nullifier))
 		response = strings.ReplaceAll(response, "{processID}", electionID)
-		response = strings.ReplaceAll(response, "{explorer}", explorerURL)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
 
 	if err != nil {
 		log.Warnw("failed to vote", "error", err)
-		png, err := textToImage(TextToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, backgrounds[BackgroundGeneric])
+		png, err := textToImage(textToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, backgrounds[BackgroundGeneric])
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -248,8 +244,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	response := strings.ReplaceAll(frame(frameAfterVote), "{nullifier}", fmt.Sprintf("%x", nullifier))
 	response = strings.ReplaceAll(response, "{processID}", electionID)
-	response = strings.ReplaceAll(response, "{explorer}", explorerURL)
-	png, err := textToImage(TextToImageContents{title: ""}, backgrounds[BackgroundAfterVote])
+	png, err := textToImage(textToImageContents{title: ""}, backgrounds[BackgroundAfterVote])
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
@@ -280,28 +275,31 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		castedVotes += (election.Results[0][i].MathBigInt().Uint64())
 	}
 
-	text := strings.Builder{}
-
+	var text []string
+	var logResults []uint64
+	title := fmt.Sprintf("> %s", election.Metadata.Questions[0].Title["default"])
 	// Check for division by zero error
 	if castedVotes == 0 {
-		text.WriteString("No votes casted yet")
+		text = []string{"No votes casted yet..."}
 	} else {
-		text.WriteString(fmt.Sprintf("Total votes casted: %d\n\n", castedVotes))
+		text = []string{fmt.Sprintf("Total votes casted: %d\n", castedVotes)}
 		for i, r := range election.Metadata.Questions[0].Choices {
 			votesForOption := election.Results[0][r.Value].MathBigInt().Uint64()
 			percentage := votesForOption * 100 / castedVotes
-			_, err := text.WriteString(fmt.Sprintf("%d. %s: %d%%\n",
-				i,
+			text = append(text, (fmt.Sprintf("%d. %s",
+				i+1,
 				r.Title["default"],
-				percentage,
-			))
-			if err != nil {
-				return fmt.Errorf("failed to write results: %w", err)
-			}
+			)))
+			text = append(text, generateProgressBar(int(percentage)))
+			logResults = append(logResults, votesForOption)
 		}
 	}
+	if election.FinalResults {
+		text = append(text, "> FINALIZED!")
+	}
+	log.Debugw("election results", "castedVotes", castedVotes, "results", logResults)
 
-	png, err := textToImage(TextToImageContents{title: text.String()}, backgrounds[BackgroundResults])
+	png, err := textToImage(textToImageContents{title: title, body: text}, backgrounds[BackgroundResults])
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
@@ -385,13 +383,13 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	return err
 }
 
-func electionImageContents(election *api.Election) TextToImageContents {
+func electionImageContents(election *api.Election) textToImageContents {
 	title := fmt.Sprintf("> %s\n", election.Metadata.Questions[0].Title["default"])
 	var questions []string
 	for k, option := range election.Metadata.Questions[0].Choices {
 		questions = append(questions, fmt.Sprintf("%d. %s", k+1, option.Title["default"]))
 	}
-	return TextToImageContents{title: title, questions: questions}
+	return textToImageContents{title: title, body: questions}
 }
 
 func (v *vocdoniHandler) testImage(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {

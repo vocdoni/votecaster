@@ -33,6 +33,8 @@ const (
 	BackgroundResults      = "results.png"
 	BackgroundNotElegible  = "notelegible.png"
 	BackgroundError        = "error.png"
+
+	maxBarLength = 16
 )
 
 type background struct {
@@ -48,11 +50,11 @@ type background struct {
 var backgrounds = map[string]*background{
 	BackgroundAfterVote:    {nil, "#33ff33", Inter, 50, 10, 30, 20},
 	BackgroundAlreadyVoted: {nil, "#ff3333", Inter, 50, 10, 30, 20},
-	BackgroundGeneric:      {nil, "#F2EFE5", Inter, 50, 100, 100, 40},
-	BackgroundResults:      {nil, "#F2EFE5", Inter, 50, 100, 100, 40},
+	BackgroundGeneric:      {nil, "#F2EFE5", Inter, 46, 60, 80, 60},
+	BackgroundResults:      {nil, "#F2EFE5", Inter, 46, 60, 80, 60},
 	BackgroundNotElegible:  {nil, "#ff3333", Inter, 40, 10, 30, 20},
-	BackgroundError:        {nil, "#ff3333", Inter, 30, 10, 200, 80},
-	BackgroundInfo:         {nil, "#F2EFE5", Inter, 30, 20, 50, 60},
+	BackgroundError:        {nil, "#ff3333", Inter, 20, 10, 200, 100},
+	BackgroundInfo:         {nil, "#F2EFE5", Inter, 46, 20, 50, 80},
 }
 
 func loadImages() error {
@@ -84,12 +86,12 @@ func loadFont(fn string) (*truetype.Font, error) {
 	return f, nil
 }
 
-type TextToImageContents struct {
-	title     string
-	questions []string
+type textToImageContents struct {
+	title string   // Title of the image
+	body  []string // Each string is a line of text
 }
 
-func textToImage(contents TextToImageContents, img *background) ([]byte, error) {
+func textToImage(contents textToImageContents, img *background) ([]byte, error) {
 	// Set foreground color
 	fgColor := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff} // Default font color
 	if len(img.fgColorHex) == 7 {
@@ -130,7 +132,7 @@ func textToImage(contents TextToImageContents, img *background) ([]byte, error) 
 		return nil, err
 	}
 	// draw questions
-	for _, q := range contents.questions {
+	for _, q := range contents.body {
 		text = prepareImageText(img, q)
 		pt, err = drawTextOnImage(c, img, text, img.fontSize, pt)
 		if err != nil {
@@ -196,4 +198,15 @@ func prepareImageText(img *background, t string) []string {
 	}
 
 	return text
+}
+
+// generateProgressBar generates a progress bar string for the given percentage.
+// The progress bar uses '⣿' to represent filled portions.
+func generateProgressBar(percentage int) string {
+	filledLength := (percentage * maxBarLength) / 100
+	// Generate the filled portion of the progress bar
+	filledBar := strings.Repeat("⣿", filledLength)
+	// Generate the empty portion of the progress bar
+	emptyBar := strings.Repeat(" ", maxBarLength-filledLength)
+	return fmt.Sprintf("  %d%% %s%s", percentage, filledBar, emptyBar)
 }

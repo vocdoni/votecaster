@@ -97,6 +97,15 @@ func main() {
 	domain := strings.Split(serverURL, "/")[2]
 	log.Infow("server URL", "URL", serverURL, "domain", domain)
 
+	// Set the maximum election size based on the API endpoint (try to guess the environment)
+	if strings.Contains(apiEndpoint, "stg") {
+		maxElectionSize = stageMaxElectionSize
+	} else {
+		if strings.Contains(apiEndpoint, "dev") {
+			maxElectionSize = devMaxElectionSize
+		}
+	}
+
 	// Create or load the census
 	censusInfo := &CensusInfo{}
 	if censusFromFile != "" {

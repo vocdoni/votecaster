@@ -3,7 +3,10 @@ package main
 import "strings"
 
 func frame(template string) string {
-	return strings.ReplaceAll(template, "{server}", serverURL)
+	template = strings.ReplaceAll(template, "{server}", serverURL)
+	template = strings.ReplaceAll(template, "{explorer}", explorerURL)
+	template = strings.ReplaceAll(template, "{onvote}", onvoteURL)
+	return template
 }
 
 var frameMain = `
@@ -100,8 +103,14 @@ var frameResults = `
     <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
+
+    <meta property="fc:frame:button:2" content="Check at onvote.app" />
+    <meta property="fc:frame:button:2:action" content="link" />
+    <meta property="fc:frame:button:2:target" content="{onvote}/processes/{processID}" />
+    
     <meta http-equiv="refresh" content="0; url={server}" />
   </head>
   <body>
@@ -123,13 +132,17 @@ var frameInfo = `
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
 
-    <meta property="fc:frame:button:2" content="See at onvote.app" />
+    <meta property="fc:frame:button:2" content="Onvote" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{onvote}/processes/{processID}" />
 
-    <meta property="fc:frame:button:3" content="About us" />
+    <meta property="fc:frame:button:3" content="Explorer" />
     <meta property="fc:frame:button:3:action" content="link" />
-    <meta property="fc:frame:button:3:target" content="https://warpcast.com/vocdoni" />
+    <meta property="fc:frame:button:3:target" content="{explorer}/processes/show/#/{processID}" />
+
+    <meta property="fc:frame:button:4" content="About us" />
+    <meta property="fc:frame:button:4:action" content="link" />
+    <meta property="fc:frame:button:4:target" content="https://warpcast.com/vocdoni" />
 
     <meta http-equiv="refresh" content="0; url={server}" />
   </head>

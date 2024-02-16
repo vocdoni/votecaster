@@ -22,9 +22,13 @@ var testPubKeys = []string{
 }
 
 const (
-	// maxElectionSize is the maximum number of participants in an election
-	maxElectionSize = 5000
+	devMaxElectionSize     = 5000
+	stageMaxElectionSize   = 100000
+	defaultMaxElectionSize = 200000
 )
+
+// maxElectionSize is the maximum number of participants in an election
+var maxElectionSize = defaultMaxElectionSize
 
 type CensusInfo struct {
 	Root types.HexBytes `json:"root"`
