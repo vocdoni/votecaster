@@ -193,7 +193,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/rankings/pollsByVotes", http.MethodPost, "public", handler.rankingOfElections); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/rankings/pollsByVotes", http.MethodGet, "public", handler.rankingOfElections); err != nil {
 		log.Fatal(err)
 	}
 
