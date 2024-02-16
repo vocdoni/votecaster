@@ -34,7 +34,7 @@ const (
 	BackgroundNotElegible  = "notelegible.png"
 	BackgroundError        = "error.png"
 
-	maxBarLength = 16
+	maxBarLength = 12
 )
 
 type background struct {

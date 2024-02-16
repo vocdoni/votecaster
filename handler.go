@@ -133,7 +133,18 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	r := election.Metadata.Questions[0].Choices
 	for i := 0; i < 4; i++ {
 		if len(r) > i {
-			response = strings.ReplaceAll(response, fmt.Sprintf("{option%d}", i), r[i].Title["default"])
+			opt := ""
+			switch i {
+			case 0:
+				opt = "1️⃣"
+			case 1:
+				opt = "2️⃣"
+			case 2:
+				opt = "3️⃣"
+			case 3:
+				opt = "4️⃣"
+			}
+			response = strings.ReplaceAll(response, fmt.Sprintf("{option%d}", i), opt)
 			continue
 		}
 		response = strings.ReplaceAll(response, fmt.Sprintf("{option%d}", i), "")
