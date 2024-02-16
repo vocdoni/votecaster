@@ -12,14 +12,18 @@ func frame(template string) string {
 var commonHeaders = `
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="apple-touch-icon" sizes="72x72" href="/app/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/app/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/app/favicon-16x16.png">
-    <link rel="manifest" href="/app/site.webmanifest">
-    <link rel="mask-icon" href="/app/safari-pinned-tab.svg" color="#5bbad5">
-    <meta name="msapplication-TileColor" content="#da532c">
-    <meta name="theme-color" content="#ffffff">
-    <meta name="og:image" content="https://black-glamorous-rabbit-362.mypinata.cloud/ipfs/QmVyhAuvdLQgWZ7xog2WtXP88B7TswChCqZdKxVUR5rDUq" />
+    <link rel="apple-touch-icon" sizes="72x72" href="/app/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/app/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/app/favicon-16x16.png" />
+    <link rel="manifest" href="/app/site.webmanifest" />
+    <link rel="mask-icon" href="/app/safari-pinned-tab.svg" color="#5bbad5" />
+    <meta name="msapplication-TileColor" content="#da532c" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="farcaster.vote — Farcaster Polls by Vocdoni">
+    <meta property="og:url" content="https://farcaster.vote" />
+    <meta property="og:image" content="/app/opengraph.png" />
+    <meta property="og:description" content="Secure and verifiable polls for Farcaster" />
     <title>farcaster.vote — Farcaster Polls by Vocdoni</title>
 `
 
