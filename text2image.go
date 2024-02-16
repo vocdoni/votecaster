@@ -50,8 +50,8 @@ type background struct {
 var backgrounds = map[string]*background{
 	BackgroundAfterVote:    {nil, "#33ff33", Inter, 50, 10, 30, 20},
 	BackgroundAlreadyVoted: {nil, "#ff3333", Inter, 50, 10, 30, 20},
-	BackgroundGeneric:      {nil, "#F2EFE5", Inter, 46, 60, 80, 60},
-	BackgroundResults:      {nil, "#F2EFE5", Inter, 46, 60, 80, 60},
+	BackgroundGeneric:      {nil, "#F2EFE5", Inter, 46, 60, 80, 50},
+	BackgroundResults:      {nil, "#F2EFE5", Inter, 46, 60, 80, 50},
 	BackgroundNotElegible:  {nil, "#ff3333", Inter, 40, 10, 30, 20},
 	BackgroundError:        {nil, "#ff3333", Inter, 20, 10, 200, 100},
 	BackgroundInfo:         {nil, "#F2EFE5", Inter, 46, 20, 50, 80},
