@@ -115,6 +115,9 @@ func main() {
 	} else {
 		log.Fatal("censusFromFile is required")
 	}
+	if censusInfo.Url == "" || len(censusInfo.Root) == 0 || censusInfo.Size == 0 {
+		log.Fatal("censusFromFile must contain a valid URL and root hash")
+	}
 
 	// Create the MongoDB connection
 	db, err := mongo.New(mongoURL, mongoDB)

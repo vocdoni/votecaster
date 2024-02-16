@@ -37,6 +37,7 @@ type CensusInfo struct {
 }
 
 func (c *CensusInfo) FromFile(file string) error {
+	log.Debugw("loading census from file", "file", file)
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return err
