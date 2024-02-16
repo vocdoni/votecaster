@@ -60,6 +60,19 @@ const Form: React.FC = (props: FlexProps) => {
   const [pid, setPid] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const checkElection = async (pid: string) => {
+    try {
+      const checkRes = await axios.get(`${appUrl}/create/check/${pid}`)
+      if (checkRes.status === 200) {
+        setPid(pid)
+        return true
+      }
+    } catch (error) {
+      console.error('error checking election status:', error)
+      return false
+    }
+  }
+
   const onSubmit = async (data: FormValues) => {
     setError(null)
     try {
@@ -72,13 +85,18 @@ const Form: React.FC = (props: FlexProps) => {
       }
 
       const res = await axios.post(`${appUrl}/create`, election)
-      setPid(res.data.replace('\n', ''))
+      const intervalId = window.setInterval(async () => {
+        const success = await checkElection(res.data.replace('\n', ''))
+        if (success) {
+          clearInterval(intervalId)
+          setLoading(false)
+        }
+      }, 1000)
     } catch (e) {
       console.error('there was an error creating the election:', e)
       if ('message' in e) {
         setError(e.message)
       }
-    } finally {
       setLoading(false)
     }
   }
