@@ -29,7 +29,7 @@ import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { Done } from './Done'
 import { useLogin } from './useLogin'
-import logo from '/logo.svg'
+import logo from '/poweredby.svg'
 
 interface FormValues {
   question: string
@@ -96,9 +96,12 @@ const Form: React.FC = (props: FlexProps) => {
     <Flex flexDir='column' alignItems='center' {...props}>
       <Card maxW={{ base: '100%', md: 400, lg: 600 }}>
         <CardHeader align='center'>
-          <Image src={logo} alt='farcaster.vote logo' mb={4} />
-          <Heading as='h1' size='lg' textAlign='center'>
-            Create a new farcaster poll
+          <Heading as='h1' size='2xl'>
+            farcaster.vote
+          </Heading>
+          <Image src={logo} alt='powered by vocdoni' mb={4} width='50%' />
+          <Heading as='h2' size='lg' textAlign='center'>
+            Create a framed poll
           </Heading>
         </CardHeader>
         <CardBody>
@@ -148,7 +151,7 @@ const Form: React.FC = (props: FlexProps) => {
                     </FormControl>
                   ))}
                   {fields.length < 4 && (
-                    <Button alignSelf='end' onClick={() => append({ choice: '' })}>
+                    <Button alignSelf='end' onClick={() => append({ choice: '' })} isDisabled={loading}>
                       Add Choice
                     </Button>
                   )}
