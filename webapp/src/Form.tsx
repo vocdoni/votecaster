@@ -19,6 +19,7 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
+import { SignInButton } from '@farcaster/auth-kit'
 import axios from 'axios'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -43,7 +44,7 @@ const Form: React.FC = (props: FlexProps) => {
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>()
-  const { profile, logout } = useLogin()
+  const { isAuthenticated, profile, logout } = useLogin()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -152,15 +153,25 @@ const Form: React.FC = (props: FlexProps) => {
                     {error}
                   </Alert>
                 )}
-                <Button type='submit' colorScheme='purple' isLoading={loading}>
-                  Create
-                </Button>
-                <Box fontSize='xs' align='right'>
-                  or{' '}
-                  <Button variant='text' size='xs' p={0} onClick={logout} height='auto'>
-                    logout
-                  </Button>
-                </Box>
+
+                {isAuthenticated ? (
+                  <>
+                    <Button type='submit' colorScheme='purple' isLoading={loading}>
+                      Create
+                    </Button>
+                    <Box fontSize='xs' align='right'>
+                      or{' '}
+                      <Button variant='text' size='xs' p={0} onClick={logout} height='auto'>
+                        logout
+                      </Button>
+                    </Box>
+                  </>
+                ) : (
+                  <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>
+                    <SignInButton />
+                    to create a poll
+                  </Box>
+                )}
               </>
             )}
           </VStack>
