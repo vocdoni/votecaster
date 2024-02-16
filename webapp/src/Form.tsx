@@ -13,8 +13,11 @@ import {
   FormHelperText,
   FormLabel,
   Heading,
+  IconButton,
   Image,
   Input,
+  InputGroup,
+  InputRightElement,
   Link,
   Text,
   VStack,
@@ -22,17 +25,15 @@ import {
 import { SignInButton } from '@farcaster/auth-kit'
 import axios from 'axios'
 import React, { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useFieldArray, useForm } from 'react-hook-form'
+import { BiTrash } from 'react-icons/bi'
 import { Done } from './Done'
 import { useLogin } from './useLogin'
 import logo from '/logo.svg'
 
 interface FormValues {
   question: string
-  choice1: string
-  choice2: string
-  choice3?: string
-  choice4?: string
+  choices: { choice: string }[]
   duration?: number
 }
 
@@ -43,7 +44,16 @@ const Form: React.FC = (props: FlexProps) => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>()
+    control,
+  } = useForm<FormValues>({
+    defaultValues: {
+      choices: [{ choice: '' }, { choice: '' }],
+    },
+  })
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'choices',
+  })
   const { isAuthenticated, profile, logout } = useLogin()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
@@ -54,16 +64,10 @@ const Form: React.FC = (props: FlexProps) => {
     try {
       setLoading(true)
       const election = {
+        profile,
         question: data.question,
         duration: Number(data.duration),
-        options: [],
-        profile,
-      }
-
-      for (let i = 1; i < 5; i++) {
-        if (data[`choice${i}`]) {
-          election.options.push(data[`choice${i}`])
-        }
+        options: data.choices.map((c) => c.choice),
       }
 
       const res = await axios.post(`${appUrl}/create`, election)
@@ -83,8 +87,8 @@ const Form: React.FC = (props: FlexProps) => {
     message: 'This field is required',
   }
   const maxLength = {
-    value: 30,
-    message: 'Max length is 30 characters',
+    value: 50,
+    message: 'Max length is 50 characters',
   }
 
   return (
@@ -114,26 +118,39 @@ const Form: React.FC = (props: FlexProps) => {
                   />
                   <FormErrorMessage>{errors.question?.message?.toString()}</FormErrorMessage>
                 </FormControl>
-                <FormControl isRequired isDisabled={loading} isInvalid={!!errors.choice1}>
-                  <FormLabel htmlFor='choice1'>Choice 1</FormLabel>
-                  <Input id='choice1' placeholder='Enter choice 1' {...register('choice1', { required, maxLength })} />
-                  <FormErrorMessage>{errors.choice1?.message?.toString()}</FormErrorMessage>
-                </FormControl>
-                <FormControl isRequired isDisabled={loading} isInvalid={!!errors.choice2}>
-                  <FormLabel htmlFor='choice2'>Choice 2</FormLabel>
-                  <Input id='choice2' placeholder='Enter choice 2' {...register('choice2', { required, maxLength })} />
-                  <FormErrorMessage>{errors.choice2?.message?.toString()}</FormErrorMessage>
-                </FormControl>
-                <FormControl isDisabled={loading} isInvalid={!!errors.choice3}>
-                  <FormLabel htmlFor='choice3'>Choice 3 (Optional)</FormLabel>
-                  <Input id='choice3' placeholder='Enter choice 3 (Optional)' {...register('choice3', { maxLength })} />
-                  <FormErrorMessage>{errors.choice3?.message?.toString()}</FormErrorMessage>
-                </FormControl>
-                <FormControl isDisabled={loading} isInvalid={!!errors.choice4}>
-                  <FormLabel htmlFor='choice4'>Choice 4 (Optional)</FormLabel>
-                  <Input id='choice4' placeholder='Enter choice 4 (Optional)' {...register('choice4', { maxLength })} />
-                  <FormErrorMessage>{errors.choice4?.message?.toString()}</FormErrorMessage>
-                </FormControl>
+                {fields.map((field, index) => (
+                  <FormControl
+                    key={field.id}
+                    isRequired={index < 2}
+                    isDisabled={loading}
+                    isInvalid={!!errors.choices?.[index]}
+                  >
+                    <FormLabel>Choice {index + 1}</FormLabel>
+                    <InputGroup>
+                      <Input
+                        placeholder={`Enter choice ${index + 1}`}
+                        {...register(`choices.${index}.choice`, { required, maxLength })}
+                      />
+                      {fields.length > 2 && (
+                        <InputRightElement>
+                          <IconButton
+                            size='sm'
+                            aria-label='Remove choice'
+                            icon={<BiTrash />}
+                            onClick={() => remove(index)}
+                          />
+                        </InputRightElement>
+                      )}
+                    </InputGroup>
+                    <FormErrorMessage>{errors.choices?.[index]?.choice?.message?.toString()}</FormErrorMessage>
+                  </FormControl>
+                ))}
+                {fields.length < 4 && (
+                  <Button alignSelf='end' onClick={() => append({ choice: '' })}>
+                    Add Choice
+                  </Button>
+                )}
+
                 <FormControl isDisabled={loading} isInvalid={!!errors.duration}>
                   <FormLabel htmlFor='duration'>Duration (Optional)</FormLabel>
                   <Input
