@@ -41,7 +41,7 @@ var frameMain = `
     <meta name="fc:frame:button:1:action" content="post" />
     <meta name="fc:frame:button:1:target" content="{server}/poll/results/{processID}" />
 
-    <meta name="fc:frame:button:2" content="Vote" />
+    <meta name="fc:frame:button:2" content="🗳️ Vote" />
     <meta name="fc:frame:button:2:action" content="post" />
     <meta name="fc:frame:button:2:target" content="{server}/poll/{processID}" />
 
@@ -168,7 +168,7 @@ var frameAlreadyVoted = `
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
-    <meta property="fc:frame:button:2" content="Verify on explorer" />
+    <meta property="fc:frame:button:2" content="🔍 Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
     <meta http-equiv="refresh" content="0; url={server}" />
