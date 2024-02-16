@@ -371,7 +371,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 			return
 		}
 		u.Addresses = req.Profile.Verifications
-		u.Username = req.Profile.DisplayName
+		u.Username = req.Profile.Username
 		u.ElectionCount++
 		if err := v.db.UpdateUser(u); err != nil {
 			log.Errorw(err, "failed to update user in database")
