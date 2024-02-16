@@ -32,7 +32,7 @@ var maxElectionSize = defaultMaxElectionSize
 
 type CensusInfo struct {
 	Root types.HexBytes `json:"root"`
-	Url  string         `json:"url"`
+	Url  string         `json:"uri"`
 	Size uint64         `json:"size"`
 }
 
