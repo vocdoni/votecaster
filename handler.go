@@ -387,7 +387,10 @@ func (v *vocdoniHandler) checkElection(msg *apirest.APIdata, ctx *httprouter.HTT
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
-	_, ok := v.electionLRU.Get(electionID)
+	if electionID == nil {
+		return ctx.Send(nil, http.StatusNoContent)
+	}
+	_, ok := v.electionLRU.Get(fmt.Sprintf("%x", electionID))
 	if !ok {
 		return ctx.Send(nil, http.StatusNoContent)
 	}
