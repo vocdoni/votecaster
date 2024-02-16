@@ -165,7 +165,9 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	title := "Vocdoni is the blockchain for voting"
 	text := []string{}
 	text = append(text, fmt.Sprintf("\nStarted %s ago", time.Since(election.StartDate).Round(time.Minute).String()))
-	text = append(text, fmt.Sprintf("Remaining time %s", time.Until(election.EndDate).Round(time.Minute).String()))
+	if !election.FinalResults {
+		text = append(text, fmt.Sprintf("Remaining time %s", time.Until(election.EndDate).Round(time.Minute).String()))
+	}
 	text = append(text, fmt.Sprintf("Poll id %x...", election.ElectionID[:20]))
 	text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
 	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:20]))
@@ -193,7 +195,18 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	election, err := v.election(electionIDbytes)
 	if err != nil {
 		log.Warnw("failed to fetch election", "error", err)
-		png, err := textToImage(textToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, backgrounds[BackgroundGeneric])
+		png, err := textToImage(textToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, backgrounds[BackgroundError])
+		if err != nil {
+			return fmt.Errorf("failed to create image: %w", err)
+		}
+		response := strings.ReplaceAll(frame(frameError), "{image}", base64.StdEncoding.EncodeToString(png))
+		response = strings.ReplaceAll(response, "{processID}", electionID)
+		ctx.SetResponseContentType("text/html; charset=utf-8")
+		return ctx.Send([]byte(response), http.StatusOK)
+	}
+
+	if election.FinalResults {
+		png, err := textToImage(textToImageContents{title: "The poll is finalized..."}, backgrounds[BackgroundError])
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -313,7 +326,7 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		}
 	}
 	if election.FinalResults {
-		text = append(text, "> FINALIZED!")
+		text[0] = fmt.Sprintf("%s | FINALIZED", text)
 	}
 	log.Debugw("election results", "castedVotes", castedVotes, "results", logResults)
 
