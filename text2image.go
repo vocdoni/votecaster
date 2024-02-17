@@ -11,6 +11,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/fogleman/gg"
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
@@ -89,6 +90,84 @@ func loadFont(fn string) (*truetype.Font, error) {
 type textToImageContents struct {
 	title string   // Title of the image
 	body  []string // Each string is a line of text
+}
+
+func ntextToImage(contents textToImageContents, img *background) ([]byte, error) {
+	// image size
+	// const w = 1685
+	// const h = 882
+	w := img.img.Bounds().Dx()
+	h := img.img.Bounds().Dy()
+	// text padding
+	const p = 100
+	// line spacing
+	const ls = 1.5
+
+	// create image
+	dc := gg.NewContext(w, h)
+	dc.SetRGB(0, 0, 0)
+	dc.Clear()
+	dc.DrawImage(img.img, 0, 0)
+
+	// load font
+	lfont, err := loadFont(img.fontName)
+	if err != nil {
+		return nil, err
+	}
+
+	// set white for texts
+	dc.SetRGB(1, 1, 1)
+
+	// title
+	tsize := calculateFontSize(len(contents.title), 110, 40, 250)
+	tfont := truetype.NewFace(lfont, &truetype.Options{Size: tsize})
+	dc.SetFontFace(tfont)
+	dc.DrawStringWrapped(contents.title, p, p, 0, 0, float64(w-(p*2)), ls, gg.AlignLeft)
+
+	// calculate title height
+	_, lh := dc.MeasureMultilineString(contents.title, ls)
+	tl := dc.WordWrap(contents.title, float64(w-200))
+	height := lh*float64(len(tl)) + p*ls
+
+	// body
+	bsize := calculateFontSize(len(contents.body), 60, 40, 300)
+	bfont := truetype.NewFace(lfont, &truetype.Options{Size: bsize})
+	dc.SetFontFace(bfont)
+	dc.DrawStringWrapped(strings.Join(contents.body, "\n"), 100, 100+height, 0, 0, float64(w-200), ls, gg.AlignLeft)
+
+	// return as []byte
+	buf := new(bytes.Buffer)
+	err = png.Encode(buf, dc.Image())
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func errorImage(err string) ([]byte, error) {
+	contents := textToImageContents{
+		title: "Error",
+		body:  []string{err},
+	}
+	return ntextToImage(contents, backgrounds[BackgroundError])
+}
+
+func calculateFontSize(stringLength int, maxFontSize, minFontSize, maxStringLength int) float64 {
+	// Calculate the scale factor based on the range of font sizes and string lengths
+	scaleFactor := float64(maxFontSize-minFontSize) / float64(maxStringLength-1)
+
+	// Calculate the font size using a linear relationship
+	fontSize := float64(maxFontSize) - scaleFactor*float64(stringLength-1)
+
+	// Ensure the font size is within the specified bounds
+	if fontSize < float64(minFontSize) {
+		fontSize = float64(minFontSize)
+	} else if fontSize > float64(maxFontSize) {
+		fontSize = float64(maxFontSize)
+	}
+
+	return fontSize
 }
 
 func textToImage(contents textToImageContents, img *background) ([]byte, error) {
