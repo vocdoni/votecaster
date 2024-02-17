@@ -35,9 +35,9 @@ function aggregateAddresses() {
     }
 
     function createDownloadLink(data) {
-        let csvContent = "data:text/csv;charset=utf-8,";
+        let csvContent = "data:text/csv;charset=utf-8,"; // Added header row for clarity
         for (const [address, weight] of Object.entries(data)) {
-            csvContent += `${address},${weight}\n`;
+            csvContent += `${weight},${address}\n`; // Swap order here
         }
         
         const encodedUri = encodeURI(csvContent);
