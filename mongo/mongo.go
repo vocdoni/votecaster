@@ -191,6 +191,37 @@ func (ms *MongoStorage) User(userFID uint64) (*User, error) {
 	return user, nil
 }
 
+// UsersWithPendingProfile returns the list of users that have not set their username yet.
+// This call is limited to 32 users.
+func (ms *MongoStorage) UsersWithPendingProfile() ([]uint64, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	limit := int64(32)
+	opts := options.FindOptions{Limit: &limit}
+	opts.SetProjection(bson.M{"_id": true})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cur, err := ms.users.Find(ctx, bson.M{"username": ""}, &opts)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel2()
+	var users []uint64
+	for cur.Next(ctx) {
+		user := User{}
+		err := cur.Decode(&user)
+		if err != nil {
+			log.Warn(err)
+		}
+		users = append(users, user.UserID)
+	}
+
+	return users, nil
+}
+
 func (ms *MongoStorage) AddElection(electionID types.HexBytes, userFID uint64) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()

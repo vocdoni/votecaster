@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/vocdoni/farcaster-poc/discover"
 	"github.com/vocdoni/farcaster-poc/mongo"
 	urlapi "go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/httprouter"
@@ -124,6 +126,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Start the discovery user profile background process
+	discoverCtx, discoverCancel := context.WithCancel(context.Background())
+	go discover.NewFarcasterDiscover(db).Run(discoverCtx)
+	defer discoverCancel()
 
 	// Create the Vocdoni handler
 	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db)
