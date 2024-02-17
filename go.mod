@@ -3,8 +3,11 @@ module github.com/vocdoni/farcaster-poc
 go 1.21.6
 
 require (
+	github.com/fogleman/gg v1.3.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/uuid v1.5.0
+	github.com/hashicorp/golang-lru v1.0.2
+	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	go.mongodb.org/mongo-driver v1.12.1
@@ -108,7 +111,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect

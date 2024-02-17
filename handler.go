@@ -171,9 +171,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 }
 
 func generateElectionImage(title string) ([]byte, error) {
-	text := strings.Builder{}
-	text.WriteString(title)
-	return textToImage(textToImageContents{title: text.String()}, backgrounds[BackgroundGeneric])
+	return textToImage(textToImageContents{title: title}, backgrounds[BackgroundGeneric])
 }
 
 func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -386,12 +384,12 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 			text = []string{fmt.Sprintf("Total votes casted: %d\n", castedVotes)}
 			for i, r := range election.Metadata.Questions[0].Choices {
 				votesForOption := election.Results[0][r.Value].MathBigInt().Uint64()
-				percentage := votesForOption * 100 / castedVotes
+				percentage := float64(votesForOption) * 100 / float64(castedVotes)
 				text = append(text, (fmt.Sprintf("%d. %s",
 					i+1,
 					r.Title["default"],
 				)))
-				text = append(text, generateProgressBar(int(percentage)))
+				text = append(text, generateProgressBar(percentage))
 				logResults = append(logResults, votesForOption)
 			}
 		}
@@ -505,27 +503,41 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	}
 	election, err := v.election(electionID)
 	if err != nil {
-		return fmt.Errorf("failed to get election: %w", err)
+		return errorImageResponse(ctx, fmt.Errorf("failed to get election: %w", err))
 	}
 
 	if len(election.Metadata.Questions) == 0 {
-		return fmt.Errorf("election has no questions")
+		return errorImageResponse(ctx, fmt.Errorf("election has no questions"))
 	}
 
 	png, err := textToImage(electionImageContents(election), backgrounds[BackgroundGeneric])
 	if err != nil {
-		return err
+		return errorImageResponse(ctx, err)
 	}
 
 	// set png headers and return response as is
+	return imageResponse(ctx, png)
+}
+
+func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
 	ctx.Writer.Header().Set("Content-Type", "image/png")
 	ctx.Writer.Header().Set("Content-Length", fmt.Sprintf("%d", len(png)))
-	_, err = ctx.Writer.Write(png)
+	_, err := ctx.Writer.Write(png)
+
 	return err
 }
 
+func errorImageResponse(ctx *httprouter.HTTPContext, err error) error {
+	png, err := errorImage(err.Error())
+	if err != nil {
+		return err
+	}
+
+	return imageResponse(ctx, png)
+}
+
 func electionImageContents(election *api.Election) textToImageContents {
-	title := fmt.Sprintf("> %s\n", election.Metadata.Questions[0].Title["default"])
+	title := election.Metadata.Questions[0].Title["default"]
 	var questions []string
 	for k, option := range election.Metadata.Questions[0].Choices {
 		questions = append(questions, fmt.Sprintf("%d. %s", k+1, option.Title["default"]))
