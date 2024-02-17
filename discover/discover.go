@@ -14,7 +14,7 @@ import (
 
 const (
 	FarcasterV2API = "https://client.warpcast.com/v2"
-	Throttle       = 5 * time.Second
+	Throttle       = 15 * time.Second
 )
 
 // UserProfile represents the user profile from the Farcaster API v2.
@@ -60,8 +60,9 @@ type UserProfile struct {
 
 // FarcasterDiscover is a service to discover user profiles from the Farcaster API v2.
 type FarcasterDiscover struct {
-	db  *mongo.MongoStorage
-	cli *http.Client
+	db      *mongo.MongoStorage
+	cli     *http.Client
+	invalid map[uint64]bool
 }
 
 // NewFarcasterDiscover returns a new FarcasterDiscover instance.
@@ -69,8 +70,9 @@ type FarcasterDiscover struct {
 // And update the pending user profiles in the database.
 func NewFarcasterDiscover(db *mongo.MongoStorage) *FarcasterDiscover {
 	return &FarcasterDiscover{
-		db:  db,
-		cli: &http.Client{Timeout: 10 * time.Second},
+		db:      db,
+		cli:     &http.Client{Timeout: 10 * time.Second},
+		invalid: make(map[uint64]bool),
 	}
 }
 
@@ -119,6 +121,10 @@ func (d *FarcasterDiscover) Run(ctx context.Context) {
 					log.Warnw("failed to get user", "fid", fid, "error", err)
 					continue
 				}
+				if d.invalid[fid] {
+					// already invalid
+					continue
+				}
 				if user.Username != "" {
 					// already updated
 					log.Warnw("user profile already updated", "fid", user, "username", user.Username)
@@ -130,7 +136,9 @@ func (d *FarcasterDiscover) Run(ctx context.Context) {
 					continue
 				}
 				if profile.Result.User.Fid != user.UserID || profile.Result.User.Username == "" {
-					log.Warnw("user profile seems invalid, skipping", "fid", user.UserID)
+					log.Warnw("user profile seems invalid, skipping", "fid", user.UserID, "username", profile.Result.User.Username)
+					log.Infow("invalid user profiles", "count", len(d.invalid))
+					d.invalid[user.UserID] = true
 					continue
 				}
 				if err := d.db.UpdateUser(&mongo.User{
