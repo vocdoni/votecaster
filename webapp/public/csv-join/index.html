@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Aggregator by Vocdoni</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <h1>CSV Aggregator by Vocdoni</h1>
+	<p>Go to <a href="https://holders.at" target="_blank">holders.at</a> and download the CSV lists you want to aggregate.
+	Then attach them on this application and download the final CSV to use as census.</p>
+        <input type="file" id="fileInput" multiple accept=".csv" />
+        <button id="aggregateButton">Aggregate Addresses</button>
+        <button id="downloadButton" style="display:none;">Download CSV</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+
