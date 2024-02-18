@@ -16,8 +16,8 @@ export const App = () => {
     >
       <Flex maxW={{ base: '100%', lg: '1200px' }} flexDir={{ base: 'column' }} gap={8}>
         <Form />
-        <TopTenPolls mx={{ base: 5, md: 10 }} />
         <Credits px={{ base: 5, md: 10 }} />
+        <TopTenPolls mx={{ base: 5, md: 10 }} />
       </Flex>
     </Flex>
   )
