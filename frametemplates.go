@@ -9,7 +9,10 @@ func frame(template string) string {
 	return template
 }
 
-var commonHeaders = `
+var header = `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="apple-touch-icon" sizes="72x72" href="/app/apple-touch-icon.png" />
@@ -25,13 +28,28 @@ var commonHeaders = `
     <meta property="og:image" content="/app/opengraph.png" />
     <meta property="og:description" content="Secure and verifiable polls for Farcaster" />
     <title>farcaster.vote — Farcaster Polls by Vocdoni</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..800&display=swap" rel="stylesheet">
+    <style>
+    * {
+      font-family: "Inter", sans-serif;
+    }
+    </style>
 `
 
-var frameMain = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>` +
-	commonHeaders + `
+var body = `
+  </head>
+  <body>
+    <div style="margin: 0 auto; max-width: 100%; width: 600px;">
+      <p><img src="data:image/png;base64,{image}" alt="{title} poll image" style="max-width: 100%" /> </p>
+      <h1>{title}</h1>
+      <p>Create your own secure and decentralized polls with <a href="{server}">farcaster.vote</a>.</p>
+    </div>
+  </body>
+</html>`
+
+var frameMain = header + `
     <meta name="fc:frame" content="vNext" />
     <meta name="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
@@ -52,20 +70,9 @@ var frameMain = `
     <meta name="fc:frame:button:4" content="Create new" />
     <meta name="fc:frame:button:4:action" content="link" />
     <meta name="fc:frame:button:4:target" content="{server}" />
+` + body
 
-    <meta http-equiv="refresh" content="0; url={server}" />
-  </head>
-  <body>
-    <h1>Hello Farcaster! This is <a href="{server}">Vocdoni</a>.</h1>
-  </body>
-</html>
-`
-
-var frameVote = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>` +
-	commonHeaders + `
+var frameVote = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
@@ -74,19 +81,9 @@ var frameVote = `
     <meta property="fc:frame:button:2" content="{option1}" />
     <meta property="fc:frame:button:3" content="{option2}" />
     <meta property="fc:frame:button:4" content="{option3}" />
-    <meta http-equiv="refresh" content="0; url={server}" />
-  </head>
-  <body>
-    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
-  </body>
-</html>
-`
+` + body
 
-var frameAfterVote = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>` +
-	commonHeaders + `
+var frameAfterVote = header + `
     <meta property="fc:frame" content="vNext" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
@@ -95,19 +92,9 @@ var frameAfterVote = `
     <meta property="fc:frame:button:2" content="Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
-    <meta http-equiv="refresh" content="0; url={server}" />
-  </head>
-  <body>
-    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
-  </body>
-</html>
-`
+` + body
 
-var frameResults = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>` +
-	commonHeaders + `
+var frameResults = header + `
     <meta property="fc:frame" content="vNext" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
@@ -118,20 +105,9 @@ var frameResults = `
     <meta property="fc:frame:button:2" content="Check at onvote.app" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{onvote}/processes/{processID}" />
+` + body
 
-    <meta http-equiv="refresh" content="0; url={server}" />
-  </head>
-  <body>
-    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
-  </body>
-</html>
-`
-
-var frameInfo = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>` +
-	commonHeaders + `
+var frameInfo = header + `
     <meta property="fc:frame" content="vNext" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
@@ -149,20 +125,9 @@ var frameInfo = `
     <meta property="fc:frame:button:4" content="About us" />
     <meta property="fc:frame:button:4:action" content="link" />
     <meta property="fc:frame:button:4:target" content="https://warpcast.com/vocdoni" />
+` + body
 
-    <meta http-equiv="refresh" content="0; url={server}" />
-  </head>
-  <body>
-    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
-  </body>
-</html>
-`
-
-var frameAlreadyVoted = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>` +
-	commonHeaders + `
+var frameAlreadyVoted = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
@@ -171,54 +136,25 @@ var frameAlreadyVoted = `
     <meta property="fc:frame:button:2" content="🔍 Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
-    <meta http-equiv="refresh" content="0; url={server}" />
-  </head>
-  <body>
-    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
-  </body>
-</html>
-`
+` + body
 
-var frameNotElegible = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>` +
-	commonHeaders + `
+var frameNotElegible = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
-    <meta http-equiv="refresh" content="0; url={server}" />
-  </head>
-  <body>
-    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
-  </body>
-</html>
-`
+` + body
 
-var frameError = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>` +
-	commonHeaders + `
+var frameError = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
-    <meta http-equiv="refresh" content="0; url={server}" />
-  </head>
-  <body>
-    <h1>Hello Farcaster! this is <a href="{server}">Vocdoni</a></h1>
-  </body>
-</html>
-`
-var testImageHTML = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>` +
-	commonHeaders + `
+` + body
+
+var testImageHTML = header + `
   </head>
   <body>
       <img src="data:image/png;base64,{image}" alt="Image" />
