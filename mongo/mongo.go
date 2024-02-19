@@ -85,6 +85,7 @@ func New(url, database string) (*MongoStorage, error) {
 
 	ms.users = client.Database(database).Collection("users")
 	ms.elections = client.Database(database).Collection("elections")
+	ms.results = client.Database(database).Collection("results")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
 	// else, just createIndexes

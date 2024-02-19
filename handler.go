@@ -332,7 +332,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 // The caller should return immediately after this function returns true.
 func (v *vocdoniHandler) checkIfElectionFinishedAndHandle(electionID types.HexBytes, ctx *httprouter.HTTPContext) bool {
 	pngResults := v.db.FinalResultsPNG(electionID)
-	if pngResults == nil {
+	if len(pngResults) == 0 {
 		return false
 	}
 	response := strings.ReplaceAll(frame(frameFinalResults), "{image}", base64.StdEncoding.EncodeToString(pngResults))
@@ -347,6 +347,9 @@ func (v *vocdoniHandler) checkIfElectionFinishedAndHandle(electionID types.HexBy
 
 func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	electionID := ctx.URLParam("electionID")
+	if len(electionID) == 0 {
+		return fmt.Errorf("invalid electionID")
+	}
 	log.Infow("received results request", "electionID", electionID)
 	electionIDbytes, err := hex.DecodeString(electionID)
 	if err != nil {
