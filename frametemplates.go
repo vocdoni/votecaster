@@ -107,6 +107,12 @@ var frameResults = header + `
     <meta property="fc:frame:button:2:target" content="{onvote}/processes/{processID}" />
 ` + body
 
+var frameFinalResults = header + `
+    <meta property="fc:frame" content="vNext" />
+    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+` + body
+
 var frameInfo = header + `
     <meta property="fc:frame" content="vNext" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />

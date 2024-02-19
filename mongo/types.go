@@ -33,6 +33,18 @@ type Election struct {
 	CreatedTime  time.Time `json:"createdTime" bson:"createdTime"`
 }
 
+// Results represents the final results of an election.
+type Results struct {
+	ElectionID string `json:"electionId" bson:"_id"`
+	FinalPNG   []byte `json:"finalPNG" bson:"finalPNG"`
+}
+
+// VotersOfElection represents the list of voters of an election.
+type VotersOfElection struct {
+	ElectionID string   `json:"electionId" bson:"_id"`
+	Voters     []uint64 `json:"voters" bson:"voters"`
+}
+
 // UserCollection is a dataset containing several users (used for dump and import).
 type UserCollection struct {
 	Users []User `json:"users" bson:"users"`

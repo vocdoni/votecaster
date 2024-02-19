@@ -91,6 +91,11 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
+	// check if the election is finished and if so, send the final results
+	if v.checkIfElectionFinishedAndHandle(electionID, ctx) {
+		return nil
+	}
+
 	election, err := v.election(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to get election: %w", err)
@@ -116,6 +121,15 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
+	electionIDbytes, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	// check if the election is finished and if so, send the final results
+	if v.checkIfElectionFinishedAndHandle(electionIDbytes, ctx) {
+		return nil
+	}
+
 	log.Infow("received show election request", "electionID", ctx.URLParam("electionID"))
 
 	// create a PNG image with the election description
@@ -169,6 +183,10 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
+	// check if the election is finished and if so, send the final results
+	if v.checkIfElectionFinishedAndHandle(electionIDbytes, ctx) {
+		return nil
+	}
 
 	election, err := v.election(electionIDbytes)
 	if err != nil {
@@ -204,6 +222,10 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	electionIDbytes, err := hex.DecodeString(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	// check if the election is finished and if so, send the final results
+	if v.checkIfElectionFinishedAndHandle(electionIDbytes, ctx) {
+		return nil
 	}
 
 	election, err := v.election(electionIDbytes)
@@ -307,12 +329,34 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
+// checkIfElectionFinishedAndHandle checks if the election is finished and if so, sends the final results.
+// Returns true if the election is finished and the response was sent, false otherwise.
+// The caller should return immediately after this function returns true.
+func (v *vocdoniHandler) checkIfElectionFinishedAndHandle(electionID types.HexBytes, ctx *httprouter.HTTPContext) bool {
+	pngResults := v.db.FinalResultsPNG(electionID)
+	if pngResults == nil {
+		return false
+	}
+	response := strings.ReplaceAll(frame(frameFinalResults), "{image}", base64.StdEncoding.EncodeToString(pngResults))
+	response = strings.ReplaceAll(response, "{processID}", electionID.String())
+	ctx.SetResponseContentType("text/html; charset=utf-8")
+	if err := ctx.Send([]byte(response), http.StatusOK); err != nil {
+		log.Warnw("failed to send response", "error", err)
+		return true
+	}
+	return true
+}
+
 func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	electionID := ctx.URLParam("electionID")
 	log.Infow("received results request", "electionID", electionID)
 	electionIDbytes, err := hex.DecodeString(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	// check if the election is finished and if so, send the final results as a static PNG
+	if v.checkIfElectionFinishedAndHandle(electionIDbytes, ctx) {
+		return nil
 	}
 
 	// get the election from the vochain and create a PNG image with the results
@@ -323,38 +367,61 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if election.Results == nil || len(election.Results) == 0 {
 		return fmt.Errorf("election results not ready")
 	}
+	// Update LRU cached election
+	evicted := v.electionLRU.Add(electionID, election)
+	log.Debugw("updated election cache", "electionID", electionID, "evicted", evicted)
 
-	castedVotes := uint64(0)
-	for i := 0; i < len(election.Results[0]); i++ {
-		castedVotes += (election.Results[0][i].MathBigInt().Uint64())
+	buildResultsPNG := func(election *api.Election) ([]byte, error) {
+		castedVotes := uint64(0)
+		for i := 0; i < len(election.Results[0]); i++ {
+			castedVotes += (election.Results[0][i].MathBigInt().Uint64())
+		}
+		var text []string
+		var logResults []uint64
+		title := fmt.Sprintf("> %s", election.Metadata.Questions[0].Title["default"])
+		// Check for division by zero error
+		if castedVotes == 0 {
+			text = []string{"No votes casted yet..."}
+		} else {
+			text = []string{fmt.Sprintf("Total votes casted: %d\n", castedVotes)}
+			for i, r := range election.Metadata.Questions[0].Choices {
+				votesForOption := election.Results[0][r.Value].MathBigInt().Uint64()
+				percentage := votesForOption * 100 / castedVotes
+				text = append(text, (fmt.Sprintf("%d. %s",
+					i+1,
+					r.Title["default"],
+				)))
+				text = append(text, generateProgressBar(int(percentage)))
+				logResults = append(logResults, votesForOption)
+			}
+		}
+		log.Debugw("election results", "castedVotes", castedVotes, "results", logResults)
+
+		png, err := textToImage(textToImageContents{title: title, body: text}, backgrounds[BackgroundResults])
+		if err != nil {
+			return nil, fmt.Errorf("failed to create image: %w", err)
+		}
+		return png, nil
 	}
 
-	var text []string
-	var logResults []uint64
-	title := fmt.Sprintf("> %s", election.Metadata.Questions[0].Title["default"])
-	// Check for division by zero error
-	if castedVotes == 0 {
-		text = []string{"No votes casted yet..."}
-	} else {
-		text = []string{fmt.Sprintf("Total votes casted: %d\n", castedVotes)}
-		for i, r := range election.Metadata.Questions[0].Choices {
-			votesForOption := election.Results[0][r.Value].MathBigInt().Uint64()
-			percentage := votesForOption * 100 / castedVotes
-			text = append(text, (fmt.Sprintf("%d. %s",
-				i+1,
-				r.Title["default"],
-			)))
-			text = append(text, generateProgressBar(int(percentage)))
-			logResults = append(logResults, votesForOption)
+	// if final results, create the static PNG image with the results
+	if election.FinalResults {
+		png, err := buildResultsPNG(election)
+		if err != nil {
+			return fmt.Errorf("failed to create image: %w", err)
+		}
+		if err := v.db.AddFinalResults(electionIDbytes, png); err != nil {
+			return fmt.Errorf("failed to add final results to database: %w", err)
+		}
+		if v.checkIfElectionFinishedAndHandle(electionIDbytes, ctx) {
+			return nil
 		}
 	}
-	log.Debugw("election results", "castedVotes", castedVotes, "results", logResults)
-
-	png, err := textToImage(textToImageContents{title: title, body: text}, backgrounds[BackgroundResults])
+	// if not final results, create the dynamic PNG image with the results
+	png, err := buildResultsPNG(election)
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
-
 	response := strings.ReplaceAll(frame(frameResults), "{image}", base64.StdEncoding.EncodeToString(png))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)

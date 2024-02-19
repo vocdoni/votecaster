@@ -23,6 +23,7 @@ import (
 type MongoStorage struct {
 	users     *mongo.Collection
 	elections *mongo.Collection
+	results   *mongo.Collection
 	keysLock  sync.RWMutex
 	election  funcGetElection
 }
