@@ -348,9 +348,6 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 			logResults = append(logResults, votesForOption)
 		}
 	}
-	if election.FinalResults {
-		text[0] = fmt.Sprintf("%s | FINALIZED", text)
-	}
 	log.Debugw("election results", "castedVotes", castedVotes, "results", logResults)
 
 	png, err := textToImage(textToImageContents{title: title, body: text}, backgrounds[BackgroundResults])
