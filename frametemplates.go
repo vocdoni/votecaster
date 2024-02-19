@@ -22,11 +22,11 @@ var header = `
     <link rel="mask-icon" href="/app/safari-pinned-tab.svg" color="#5bbad5" />
     <meta name="msapplication-TileColor" content="#da532c" />
     <meta name="theme-color" content="#ffffff" />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="farcaster.vote — Farcaster Polls by Vocdoni">
-    <meta property="og:url" content="https://farcaster.vote" />
-    <meta property="og:image" content="/app/opengraph.png" />
-    <meta property="og:description" content="Secure and verifiable polls for Farcaster" />
+    <meta name="og:type" content="website" />
+    <meta name="og:title" content="farcaster.vote — Farcaster Polls by Vocdoni">
+    <meta name="og:url" content="https://farcaster.vote" />
+    <meta name="og:image" content="/app/opengraph.png" />
+    <meta name="og:description" content="Secure and verifiable polls for Farcaster" />
     <title>farcaster.vote — Farcaster Polls by Vocdoni</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
