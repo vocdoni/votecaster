@@ -14,16 +14,6 @@ func (ms *MongoStorage) AddFinalResults(electionID types.HexBytes, finalPNG []by
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
-	// Check if the election results already exist, if so, just return
-	// Since we don't adquire the lock until the call of this function,
-	// it's possible that the election results are already stored.
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	result := ms.results.FindOne(ctx, bson.M{"_id": electionID.String()})
-	if result != nil {
-		return nil
-	}
-
 	results := &Results{
 		ElectionID: electionID.String(),
 		FinalPNG:   finalPNG,
@@ -32,6 +22,7 @@ func (ms *MongoStorage) AddFinalResults(electionID types.HexBytes, finalPNG []by
 	ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel2()
 	_, err := ms.results.InsertOne(ctx2, results)
+	log.Debugw("stored PNG results", "electionID", electionID.String())
 	return err
 }
 
@@ -49,8 +40,54 @@ func (ms *MongoStorage) FinalResultsPNG(electionID types.HexBytes) []byte {
 	}
 	var results Results
 	if err := result.Decode(&results); err != nil {
-		log.Warn(err)
 		return nil
 	}
 	return results.FinalPNG
+}
+
+// ElectionsWithoutResults returns a list of election IDs that do not have a corresponding entry in the results collection.
+func (ms *MongoStorage) ElectionsWithoutResults(ctx context.Context) ([]string, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+
+	// Define the aggregation pipeline
+	pipeline := []bson.M{
+		{
+			"$lookup": bson.M{
+				"from":         "results",
+				"localField":   "_id",
+				"foreignField": "_id",
+				"as":           "result",
+			},
+		},
+		{
+			"$match": bson.M{"result": bson.M{"$size": 0}}, // Filter elections without results
+		},
+		{
+			"$project": bson.M{"_id": 1}, // Only return the election IDs
+		},
+	}
+
+	cursor, err := ms.elections.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var elections []struct {
+		ID string `bson:"_id"`
+	}
+	if err := cursor.All(ctx, &elections); err != nil {
+		return nil, err
+	}
+
+	var electionIDs []string
+	for _, e := range elections {
+		electionIDs = append(electionIDs, e.ID)
+	}
+
+	return electionIDs, nil
 }

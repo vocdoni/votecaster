@@ -218,7 +218,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 	defer cancel()
 
 	// Upsert Users

@@ -136,12 +136,12 @@ func main() {
 	}
 
 	// Start the discovery user profile background process
-	discoverCtx, discoverCancel := context.WithCancel(context.Background())
-	go discover.NewFarcasterDiscover(db).Run(discoverCtx)
-	defer discoverCancel()
+	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
+	go discover.NewFarcasterDiscover(db).Run(mainCtx)
+	defer mainCtxCancel()
 
 	// Create the Vocdoni handler
-	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db)
+	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx)
 	if err != nil {
 		log.Fatal(err)
 	}
