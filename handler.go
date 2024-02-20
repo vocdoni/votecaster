@@ -201,7 +201,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
 	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:20]))
 	text = append(text, fmt.Sprintf("Max allowed votes %d", election.Census.MaxCensusSize))
-	png, err := textToImage(textToImageContents{title: title, body: text}, backgrounds[BackgroundInfo])
+	png, err := textToImage(textToImageContents{title: title, results: text}, backgrounds[BackgroundInfo])
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
