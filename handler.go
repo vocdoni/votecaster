@@ -204,16 +204,18 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
 
-	title := "Vocdoni is the blockchain for voting"
+	title := "Vocdoni secured poll"
 	text := []string{}
-	text = append(text, fmt.Sprintf("\nStarted %s ago", time.Since(election.StartDate).Round(time.Minute).String()))
+	text = append(text, fmt.Sprintf("\nStarted at %s", election.StartDate.Format("2006-01-02 15:04:05")))
 	if !election.FinalResults {
 		text = append(text, fmt.Sprintf("Remaining time %s", time.Until(election.EndDate).Round(time.Minute).String()))
+	} else {
+		text = append(text, fmt.Sprintf("The poll finalized at %s", election.EndDate.Format("2006-01-02 15:04:05")))
 	}
-	text = append(text, fmt.Sprintf("Poll id %x...", election.ElectionID[:20]))
+	text = append(text, fmt.Sprintf("Poll id %x...", election.ElectionID[:16]))
 	text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
-	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:20]))
-	text = append(text, fmt.Sprintf("Max allowed votes %d", election.Census.MaxCensusSize))
+	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:16]))
+
 	png, err := textToImage(textToImageContents{title: title, results: text}, backgrounds[BackgroundInfo])
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
@@ -542,7 +544,6 @@ func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
 	ctx.Writer.Header().Set("Content-Type", "image/png")
 	ctx.Writer.Header().Set("Content-Length", fmt.Sprintf("%d", len(png)))
 	_, err := ctx.Writer.Write(png)
-
 	return err
 }
 
