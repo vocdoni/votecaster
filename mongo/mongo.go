@@ -135,21 +135,6 @@ func (ms *MongoStorage) Reset() error {
 	return nil
 }
 
-func (ms *MongoStorage) Import(data []byte) error {
-	ms.keysLock.Lock()
-	defer ms.keysLock.Unlock()
-	var collection UserCollection
-	if err := json.Unmarshal(data, &collection); err != nil {
-		return err
-	}
-	for _, u := range collection.Users {
-		if err := ms.updateUser(&u); err != nil {
-			log.Warnf("cannot upsert %d", u.UserID)
-		}
-	}
-	return nil
-}
-
 func (ms *MongoStorage) String() string {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
@@ -194,13 +179,84 @@ func (ms *MongoStorage) String() string {
 		elections.Elections = append(elections.Elections, election)
 	}
 
-	data, err := json.MarshalIndent(struct {
-		UserCollection
-		ElectionCollection
-	}{users, elections},
-		"", " ")
+	ctx5, cancel5 := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel5()
+	cur, err = ms.results.Find(ctx5, bson.D{{}})
+	if err != nil {
+		log.Warn(err)
+		return "{}"
+	}
+
+	ctx6, cancel6 := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel6()
+	var results ResultsCollection
+	for cur.Next(ctx6) {
+		var result Results
+		err := cur.Decode(&result)
+		if err != nil {
+			log.Warn(err)
+		}
+		results.Results = append(results.Results, result)
+	}
+
+	data, err := json.Marshal(&Collection{users, elections, results})
 	if err != nil {
 		log.Warn(err)
 	}
 	return string(data)
+}
+
+// Import imports a JSON dataset produced by String() into the database.
+func (ms *MongoStorage) Import(jsonData []byte) error {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	log.Infof("importing database")
+	var collection Collection
+	err := json.Unmarshal(jsonData, &collection)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Upsert Users
+	log.Infow("importing users", "count", len(collection.Users))
+	for _, user := range collection.Users {
+		filter := bson.M{"_id": user.UserID}
+		update := bson.M{"$set": user}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.users.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting user", "err", err, "user", user.UserID)
+		}
+	}
+
+	// Upsert Elections
+	log.Infow("importing elections", "count", len(collection.Elections))
+	for _, election := range collection.Elections {
+		filter := bson.M{"_id": election.ElectionID}
+		update := bson.M{"$set": election}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.elections.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting election", "err", err, "election", election.ElectionID)
+		}
+	}
+
+	// Upsert Results
+	log.Infow("importing results", "count", len(collection.Results))
+	for _, result := range collection.Results {
+		filter := bson.M{"_id": result.ElectionID}
+		update := bson.M{"$set": result}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.results.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting result", "err", err, "election", result.ElectionID)
+		}
+	}
+
+	log.Infof("imported database!")
+	return nil
 }

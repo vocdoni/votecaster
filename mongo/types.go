@@ -45,6 +45,13 @@ type VotersOfElection struct {
 	Voters     []uint64 `json:"voters" bson:"voters"`
 }
 
+// Collection is a dataset containing several users, elections and results (used for dump and import).
+type Collection struct {
+	UserCollection
+	ElectionCollection
+	ResultsCollection
+}
+
 // UserCollection is a dataset containing several users (used for dump and import).
 type UserCollection struct {
 	Users []User `json:"users" bson:"users"`
@@ -53,6 +60,11 @@ type UserCollection struct {
 // ElectionCollection is a dataset containing several elections (used for dump and import).
 type ElectionCollection struct {
 	Elections []Election `json:"elections" bson:"elections"`
+}
+
+// ResultsCollection is a dataset containing several election results (used for dump and import).
+type ResultsCollection struct {
+	Results []Results `json:"results" bson:"results"`
 }
 
 // UserRanking is a user ranking entry.

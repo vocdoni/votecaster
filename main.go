@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/vocdoni/farcaster-poc/discover"
@@ -44,6 +45,7 @@ func main() {
 	flag.String("onvoteURL", onvoteURL, "The full URL of the onvote.app application (http or https)")
 	flag.String("mongoURL", "", "The URL of the MongoDB server")
 	flag.String("mongoDB", "voteframe", "The name of the MongoDB database")
+	flag.String("adminToken", "", "The admin token to use for the API (if not set, it will be generated)")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -71,6 +73,12 @@ func main() {
 	onvoteURL = viper.GetString("onvoteURL")
 	mongoURL := viper.GetString("mongoURL")
 	mongoDB := viper.GetString("mongoDB")
+	adminToken := viper.GetString("adminToken")
+
+	if adminToken == "" {
+		adminToken = uuid.New().String()
+		fmt.Printf("generated admin token: %s\n", adminToken)
+	}
 
 	log.Init(logLevel, "stdout", nil)
 
@@ -159,11 +167,14 @@ func main() {
 	router.AddRawHTTPHandler("/favicon.ico", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, path.Join(webAppDir, "favicon.ico"))
 	})
+
 	// Create the API handler
 	uAPI, err := urlapi.NewAPI(router, "/", dataDir, "")
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Set the admin token
+	uAPI.Endpoint.SetAdminToken(adminToken)
 
 	// The root endpoint redirects to /app
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodGet, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -188,7 +199,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/dumpdb", http.MethodGet, "public", handler.dumpDB); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/dumpdb", http.MethodGet, "admin", handler.dumpDB); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/importdb", http.MethodPost, "admin", handler.importDB); err != nil {
 		log.Fatal(err)
 	}
 

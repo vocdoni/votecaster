@@ -632,9 +632,17 @@ func (v *vocdoniHandler) staticHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// dumpDB is a handler to dump the database contents (testing purposes).
+// dumpDB is a handler to dump the database contents.
 func (v *vocdoniHandler) dumpDB(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	return ctx.Send([]byte(v.db.String()), http.StatusOK)
+}
+
+// importDB is a handler to import the database contents produced by dumpDB.
+func (v *vocdoniHandler) importDB(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	if err := v.db.Import(msg.Data); err != nil {
+		return fmt.Errorf("failed to import database: %w", err)
+	}
+	return ctx.Send(nil, http.StatusOK)
 }
 
 func (v *vocdoniHandler) rankingByElectionsCreated(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
