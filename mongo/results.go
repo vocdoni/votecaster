@@ -11,9 +11,6 @@ import (
 
 // AddFinalResults adds the final results of an election in PNG format.
 func (ms *MongoStorage) AddFinalResults(electionID types.HexBytes, finalPNG []byte) error {
-	ms.keysLock.Lock()
-	defer ms.keysLock.Unlock()
-
 	results := &Results{
 		ElectionID: electionID.String(),
 		FinalPNG:   finalPNG,
@@ -29,9 +26,6 @@ func (ms *MongoStorage) AddFinalResults(electionID types.HexBytes, finalPNG []by
 // FinalResultsPNG returns the final results of an election in PNG format.
 // It returns nil if the results image is not found.
 func (ms *MongoStorage) FinalResultsPNG(electionID types.HexBytes) []byte {
-	ms.keysLock.RLock()
-	defer ms.keysLock.RUnlock()
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	result := ms.results.FindOne(ctx, bson.M{"_id": electionID.String()})
@@ -47,9 +41,6 @@ func (ms *MongoStorage) FinalResultsPNG(electionID types.HexBytes) []byte {
 
 // ElectionsWithoutResults returns a list of election IDs that do not have a corresponding entry in the results collection.
 func (ms *MongoStorage) ElectionsWithoutResults(ctx context.Context) ([]string, error) {
-	ms.keysLock.RLock()
-	defer ms.keysLock.RUnlock()
-
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 

@@ -85,7 +85,7 @@ func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, w
 			return lru
 		}(),
 		imagesLRU: func() *lru.Cache {
-			lru, err := lru.New(2048)
+			lru, err := lru.New(1024)
 			if err != nil {
 				log.Fatal(err)
 			}
