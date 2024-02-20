@@ -229,7 +229,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	election, err := v.election(electionIDbytes)
 	if err != nil {
 		log.Warnw("failed to fetch election", "error", err)
-		png, err := textToImage(textToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, backgrounds[BackgroundError])
+		png, err := errorImage(err)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -241,7 +241,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	if election.FinalResults {
-		png, err := textToImage(textToImageContents{title: "The poll is finalized..."}, backgrounds[BackgroundError])
+		png, err := errorImage(errors.New("The poll has finalized"))
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -348,12 +348,12 @@ func (v *vocdoniHandler) checkIfElectionFinishedAndHandle(electionID types.HexBy
 func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	electionID := ctx.URLParam("electionID")
 	if len(electionID) == 0 {
-		return fmt.Errorf("invalid electionID")
+		return errorImageResponse(ctx, fmt.Errorf("invalid electionID"))
 	}
 	log.Infow("received results request", "electionID", electionID)
 	electionIDbytes, err := hex.DecodeString(electionID)
 	if err != nil {
-		return fmt.Errorf("failed to decode electionID: %w", err)
+		return errorImageResponse(ctx, fmt.Errorf("failed to decode electionID: %w", err))
 	}
 	// check if the election is finished and if so, send the final results as a static PNG
 	if v.checkIfElectionFinishedAndHandle(electionIDbytes, ctx) {
@@ -363,10 +363,10 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	// get the election from the vochain and create a PNG image with the results
 	election, err := v.cli.Election(electionIDbytes)
 	if err != nil {
-		return fmt.Errorf("failed to fetch election: %w", err)
+		return errorImageResponse(ctx, fmt.Errorf("failed to fetch election: %w", err))
 	}
 	if election.Results == nil || len(election.Results) == 0 {
-		return fmt.Errorf("election results not ready")
+		return errorImageResponse(ctx, fmt.Errorf("election results not ready"))
 	}
 	// Update LRU cached election
 	evicted := v.electionLRU.Add(electionID, election)
@@ -531,7 +531,7 @@ func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
 }
 
 func errorImageResponse(ctx *httprouter.HTTPContext, err error) error {
-	png, err := errorImage(err.Error())
+	png, err := errorImage(err)
 	if err != nil {
 		return err
 	}

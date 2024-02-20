@@ -88,6 +88,7 @@ type textToImageContents struct {
 	title   string   // Title of the image
 	body    []string // Each string is a line of text
 	results []string // Same than body, but uses different styles
+	err     error
 }
 
 func textToImage(contents textToImageContents, img *background) ([]byte, error) {
@@ -150,6 +151,14 @@ func textToImage(contents textToImageContents, img *background) ([]byte, error) 
 		dc.DrawStringWrapped(strings.Join(contents.results, "\n"), p, (p/2)+height, 0, 0, float64(w-(p*2)), ls, gg.AlignLeft)
 	}
 
+	// errors
+	if contents.err != nil {
+		esize := calculateFontSize(len(contents.body), 20, 3, 250)
+		efont := truetype.NewFace(lfont, &truetype.Options{Size: esize})
+		dc.SetFontFace(efont)
+		dc.DrawStringWrapped(contents.err.Error(), 15, 245, 0, 0, float64(w-(p*2)), ls, gg.AlignLeft)
+	}
+
 	// return as []byte
 	buf := new(bytes.Buffer)
 	err = png.Encode(buf, dc.Image())
@@ -160,10 +169,9 @@ func textToImage(contents textToImageContents, img *background) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
-func errorImage(err string) ([]byte, error) {
+func errorImage(err error) ([]byte, error) {
 	contents := textToImageContents{
-		title: "Error",
-		body:  []string{err},
+		err: err,
 	}
 	return textToImage(contents, backgrounds[BackgroundError])
 }
