@@ -174,6 +174,9 @@ func main() {
 		http.ServeFile(w, r, path.Join(webAppDir, "favicon.ico"))
 	})
 
+	// Add the Prometheus endpoint
+	router.ExposePrometheusEndpoint("/metrics")
+
 	// Create the API handler
 	uAPI, err := urlapi.NewAPI(router, "/", dataDir, "")
 	if err != nil {
