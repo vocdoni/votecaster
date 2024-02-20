@@ -541,6 +541,11 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 }
 
 func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
+	defer ctx.Request.Body.Close()
+	if ctx.Request.Context().Err() != nil {
+		// The connection was closed, so don't try to write to it.
+		return fmt.Errorf("connection is closed")
+	}
 	ctx.Writer.Header().Set("Content-Type", "image/png")
 	ctx.Writer.Header().Set("Content-Length", fmt.Sprintf("%d", len(png)))
 	_, err := ctx.Writer.Write(png)
