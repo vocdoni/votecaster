@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -47,6 +48,7 @@ func main() {
 	flag.String("mongoDB", "voteframe", "The name of the MongoDB database")
 	flag.String("adminToken", "", "The admin token to use for the API (if not set, it will be generated)")
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
+	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -76,6 +78,7 @@ func main() {
 	mongoDB := viper.GetString("mongoDB")
 	adminToken := viper.GetString("adminToken")
 	pollSize := viper.GetInt("pollSize")
+	pprofPort := viper.GetInt("pprofPort")
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
@@ -99,7 +102,19 @@ func main() {
 		"onvoteURL", onvoteURL,
 		"mongoURL", mongoURL,
 		"mongoDB", mongoDB,
+		"pollSize", pollSize,
+		"pprofPort", pprofPort,
 	)
+
+	// Start the pprof http endpoints
+	if pprofPort > 0 {
+		ln, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", pprofPort))
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Warnf("started pprof http endpoints at http://%s/debug/pprof", ln.Addr())
+		log.Error(http.Serve(ln, nil))
+	}
 
 	// check the server URL is http or https and extract the domain
 	if !strings.HasPrefix(server, "http://") && !strings.HasPrefix(server, "https://") {
