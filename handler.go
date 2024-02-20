@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -25,6 +24,11 @@ import (
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 	"go.vocdoni.io/dvote/util"
+	"lukechampine.com/blake3"
+)
+
+const (
+	imageHandlerPath = "/images"
 )
 
 var (
@@ -37,6 +41,7 @@ type vocdoniHandler struct {
 	webappdir   string
 	db          *mongo.MongoStorage
 	electionLRU *lru.Cache
+	imagesLRU   *lru.Cache
 }
 
 func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, webappdir string, db *mongo.MongoStorage, ctx context.Context) (*vocdoniHandler, error) {
@@ -79,6 +84,13 @@ func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, w
 			}
 			return lru
 		}(),
+		imagesLRU: func() *lru.Cache {
+			lru, err := lru.New(2048)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return lru
+		}(),
 	}
 
 	// Add the election callback to the mongo database to fetch the election information
@@ -112,7 +124,7 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	}
 	response := strings.ReplaceAll(frame(frameMain), "{processID}", ctx.URLParam("electionID"))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
-	response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
+	response = strings.ReplaceAll(response, "{image}", v.addImageToCache(png))
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
@@ -143,7 +155,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 		return fmt.Errorf("failed to generate image: %v", err)
 	}
 	// send the response
-	response := strings.ReplaceAll(frame(frameVote), "{image}", base64.StdEncoding.EncodeToString(png))
+	response := strings.ReplaceAll(frame(frameVote), "{image}", v.addImageToCache(png))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
 
@@ -208,7 +220,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	// send the response
-	response := strings.ReplaceAll(frame(frameInfo), "{image}", base64.StdEncoding.EncodeToString(png))
+	response := strings.ReplaceAll(frame(frameInfo), "{image}", v.addImageToCache(png))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
@@ -234,7 +246,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frame(frameError), "{image}", base64.StdEncoding.EncodeToString(png))
+		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png))
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
@@ -246,7 +258,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frame(frameError), "{image}", base64.StdEncoding.EncodeToString(png))
+		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png))
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
@@ -268,7 +280,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frame(frameNotElegible), "{image}", base64.StdEncoding.EncodeToString(png))
+		response := strings.ReplaceAll(frame(frameNotElegible), "{image}", v.addImageToCache(png))
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 
@@ -282,7 +294,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frame(frameAlreadyVoted), "{image}", base64.StdEncoding.EncodeToString(png))
+		response := strings.ReplaceAll(frame(frameAlreadyVoted), "{image}", v.addImageToCache(png))
 		response = strings.ReplaceAll(response, "{nullifier}", fmt.Sprintf("%x", nullifier))
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
@@ -297,7 +309,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frame(frameError), "{image}", base64.StdEncoding.EncodeToString(png))
+		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png))
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 
@@ -323,7 +335,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
-	response = strings.ReplaceAll(response, "{image}", base64.StdEncoding.EncodeToString(png))
+	response = strings.ReplaceAll(response, "{image}", v.addImageToCache(png))
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
@@ -336,7 +348,7 @@ func (v *vocdoniHandler) checkIfElectionFinishedAndHandle(electionID types.HexBy
 	if pngResults == nil {
 		return false
 	}
-	response := strings.ReplaceAll(frame(frameFinalResults), "{image}", base64.StdEncoding.EncodeToString(pngResults))
+	response := strings.ReplaceAll(frame(frameFinalResults), "{image}", v.addImageToCache(pngResults))
 	response = strings.ReplaceAll(response, "{processID}", electionID.String())
 	response = strings.ReplaceAll(response, "{title}", "Final results")
 
@@ -394,7 +406,7 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
-	response := strings.ReplaceAll(frame(frameResults), "{image}", base64.StdEncoding.EncodeToString(png))
+	response := strings.ReplaceAll(frame(frameResults), "{image}", v.addImageToCache(png))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
@@ -558,7 +570,7 @@ func (v *vocdoniHandler) testImage(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		if err != nil {
 			return err
 		}
-		response := strings.ReplaceAll(frame(testImageHTML), "{image}", base64.StdEncoding.EncodeToString(png))
+		response := strings.ReplaceAll(frame(testImageHTML), "{image}", v.addImageToCache(png))
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
@@ -570,7 +582,7 @@ func (v *vocdoniHandler) testImage(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
-	jresponse, err := json.Marshal(map[string]string{"image": base64.StdEncoding.EncodeToString(png)})
+	jresponse, err := json.Marshal(map[string]string{"image": v.addImageToCache(png)})
 	if err != nil {
 		return fmt.Errorf("failed to marshal response: %w", err)
 	}
@@ -754,4 +766,33 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 		}
 
 	}
+}
+
+func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	id := ctx.URLParam("id")
+	data := v.imageFromCache(id)
+	if data == nil {
+		return ctx.Send(nil, http.StatusNotFound)
+	}
+	return imageResponse(ctx, data)
+}
+
+// addImageToCache adds an image to the LRU cache.
+// Returns the full URL (absolute) of the image.
+func (v *vocdoniHandler) addImageToCache(data []byte) string {
+	id := blake3.Sum256(data)
+	idstr := hex.EncodeToString(id[:])
+	evicted := v.imagesLRU.Add(idstr, data)
+	log.Debugw("added image to cache", "id", idstr, "evicted", evicted)
+	return fmt.Sprintf("%s%s/%s.png", serverURL, imageHandlerPath, idstr)
+}
+
+// imageFromCache gets an image from the LRU cache.
+// Returns nil if the image is not in the cache.
+func (v *vocdoniHandler) imageFromCache(id string) []byte {
+	data, ok := v.imagesLRU.Get(id)
+	if !ok {
+		return nil
+	}
+	return data.([]byte)
 }

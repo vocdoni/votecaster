@@ -46,6 +46,7 @@ func main() {
 	flag.String("mongoURL", "", "The URL of the MongoDB server")
 	flag.String("mongoDB", "voteframe", "The name of the MongoDB database")
 	flag.String("adminToken", "", "The admin token to use for the API (if not set, it will be generated)")
+	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -74,6 +75,7 @@ func main() {
 	mongoURL := viper.GetString("mongoURL")
 	mongoDB := viper.GetString("mongoDB")
 	adminToken := viper.GetString("adminToken")
+	pollSize := viper.GetInt("pollSize")
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
@@ -108,11 +110,15 @@ func main() {
 	log.Infow("server URL", "URL", serverURL, "domain", domain)
 
 	// Set the maximum election size based on the API endpoint (try to guess the environment)
-	if strings.Contains(apiEndpoint, "stg") {
-		maxElectionSize = stageMaxElectionSize
+	if pollSize > 0 {
+		maxElectionSize = pollSize
 	} else {
-		if strings.Contains(apiEndpoint, "dev") {
-			maxElectionSize = devMaxElectionSize
+		if strings.Contains(apiEndpoint, "stg") {
+			maxElectionSize = stageMaxElectionSize
+		} else {
+			if strings.Contains(apiEndpoint, "dev") {
+				maxElectionSize = devMaxElectionSize
+			}
 		}
 	}
 
@@ -293,6 +299,10 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/preview/{electionID}", http.MethodGet, "public", handler.preview); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod(fmt.Sprintf("%s/{id}.png", imageHandlerPath), http.MethodGet, "public", handler.imagesHandler); err != nil {
 		log.Fatal(err)
 	}
 

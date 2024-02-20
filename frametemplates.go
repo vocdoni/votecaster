@@ -42,7 +42,7 @@ var body = `
   </head>
   <body>
     <div style="margin: 0 auto; max-width: 100%; width: 600px;">
-      <p><img src="data:image/png;base64,{image}" alt="{title} poll image" style="max-width: 100%" /> </p>
+      <p><img src="{image}" alt="{title} poll image" style="max-width: 100%" /> </p>
       <h1>{title}</h1>
       <p>Create your own secure and decentralized polls with <a href="{server}">farcaster.vote</a>.</p>
     </div>
@@ -51,7 +51,7 @@ var body = `
 
 var frameMain = header + `
     <meta name="fc:frame" content="vNext" />
-    <meta name="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta name="fc:frame:image" content="{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta name="fc:frame:post_url" content="{server}/router/{processID}" />
 
@@ -74,7 +74,7 @@ var frameMain = header + `
 
 var frameVote = header + `
     <meta property="fc:frame" content="vNext" />
-    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta property="fc:frame:image" content="{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/vote/{processID}" />
     <meta property="fc:frame:button:1" content="{option0}" />
@@ -86,7 +86,7 @@ var frameVote = header + `
 var frameAfterVote = header + `
     <meta property="fc:frame" content="vNext" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta property="fc:frame:image" content="{image}" />
     <meta property="fc:frame:post_url" content="{server}/poll/results/{processID}" />
     <meta property="fc:frame:button:1" content="Results" />
     <meta property="fc:frame:button:2" content="Verify on explorer" />
@@ -97,7 +97,7 @@ var frameAfterVote = header + `
 var frameResults = header + `
     <meta property="fc:frame" content="vNext" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta property="fc:frame:image" content="{image}" />
 
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
@@ -110,13 +110,13 @@ var frameResults = header + `
 var frameFinalResults = header + `
     <meta property="fc:frame" content="vNext" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta property="fc:frame:image" content="{image}" />
 ` + body
 
 var frameInfo = header + `
     <meta property="fc:frame" content="vNext" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta property="fc:frame:image" content="{image}" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
 
@@ -135,7 +135,7 @@ var frameInfo = header + `
 
 var frameAlreadyVoted = header + `
     <meta property="fc:frame" content="vNext" />
-    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta property="fc:frame:image" content="{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
@@ -146,7 +146,7 @@ var frameAlreadyVoted = header + `
 
 var frameNotElegible = header + `
     <meta property="fc:frame" content="vNext" />
-    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta property="fc:frame:image" content="{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
@@ -154,7 +154,7 @@ var frameNotElegible = header + `
 
 var frameError = header + `
     <meta property="fc:frame" content="vNext" />
-    <meta property="fc:frame:image" content="data:image/png;base64,{image}" />
+    <meta property="fc:frame:image" content="{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
@@ -163,7 +163,7 @@ var frameError = header + `
 var testImageHTML = header + `
   </head>
   <body>
-      <img src="data:image/png;base64,{image}" alt="Image" />
+      <img src="{image}" alt="Image" />
   </body>
 </html>
 `
