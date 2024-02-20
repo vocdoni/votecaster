@@ -735,6 +735,7 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 			}
 			log.Debugw("found elections without results", "count", len(electionIDs))
 			for _, electionID := range electionIDs {
+				time.Sleep(5 * time.Second)
 				electionIDbytes, err := hex.DecodeString(electionID)
 				if err != nil {
 					log.Errorw(err, "failed to decode electionID")
@@ -746,10 +747,6 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 					continue
 				}
 				if election.FinalResults {
-					// if the static PNG is already created, skip
-					if v.db.FinalResultsPNG(electionIDbytes) != nil {
-						continue
-					}
 					png, err := buildResultsPNG(election)
 					if err != nil {
 						log.Errorw(err, "failed to generate results image")
@@ -760,7 +757,6 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 						continue
 					}
 					log.Infow("finalized election", "electionID", electionID)
-					time.Sleep(2 * time.Second)
 				}
 			}
 		}
