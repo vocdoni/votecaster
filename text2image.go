@@ -176,8 +176,8 @@ func textToImage(contents textToImageContents, img *theme) ([]byte, error) {
 		writeSection(dc, img.title, contents.title, x, y, float64(w)-x*2, ls)
 		// calculate title height
 		_, lh := dc.MeasureMultilineString(contents.title, ls)
-		tl := dc.WordWrap(contents.title, float64(w-200))
-		height = lh*float64(len(tl)) + ls*lh
+		tl := dc.WordWrap(contents.title, float64(w)-(p*2))
+		height = lh*float64(len(tl))*ls + y
 	}
 
 	// body
