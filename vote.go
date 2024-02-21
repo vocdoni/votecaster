@@ -2,12 +2,17 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"go.vocdoni.io/proto/build/go/models"
 
 	"go.vocdoni.io/dvote/apiclient"
+	"go.vocdoni.io/dvote/httprouter"
+	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 	"go.vocdoni.io/dvote/util"
@@ -22,6 +27,119 @@ var (
 	ErrAlreadyVoted   = fmt.Errorf("already voted")
 	ErrFrameSignature = fmt.Errorf("frame signature verification failed")
 )
+
+func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// get the electionID from the URL and the frame signature packet from the body of the request
+	electionID := ctx.URLParam("electionID")
+	electionIDbytes, err := hex.DecodeString(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	// check if the election is finished and if so, send the final results
+	if v.checkIfElectionFinishedAndHandle(electionIDbytes, ctx) {
+		return nil
+	}
+
+	election, err := v.election(electionIDbytes)
+	if err != nil {
+		log.Warnw("failed to fetch election", "error", err)
+		png, err := errorImage(err)
+		if err != nil {
+			return fmt.Errorf("failed to create image: %w", err)
+		}
+		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png))
+		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+		response = strings.ReplaceAll(response, "{processID}", electionID)
+		ctx.SetResponseContentType("text/html; charset=utf-8")
+		return ctx.Send([]byte(response), http.StatusOK)
+	}
+
+	if election.FinalResults {
+		png, err := errorImage(errors.New("The poll has finalized"))
+		if err != nil {
+			return fmt.Errorf("failed to create image: %w", err)
+		}
+		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png))
+		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+		response = strings.ReplaceAll(response, "{processID}", electionID)
+		ctx.SetResponseContentType("text/html; charset=utf-8")
+		return ctx.Send([]byte(response), http.StatusOK)
+	}
+
+	packet := &FrameSignaturePacket{}
+	if err := json.Unmarshal(msg.Data, packet); err != nil {
+		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
+	}
+
+	// cast the vote
+	nullifier, voterID, fid, err := vote(packet, electionIDbytes, election.Census.CensusRoot, v.cli)
+
+	// handle the vote result
+	if errors.Is(err, ErrNotInCensus) {
+		log.Infow("participant not in the census", "voterID", fmt.Sprintf("%x", voterID))
+		png, err := textToImage(textToImageContents{title: ""}, backgrounds[BackgroundNotElegible])
+		if err != nil {
+			return fmt.Errorf("failed to create image: %w", err)
+		}
+		response := strings.ReplaceAll(frame(frameNotElegible), "{image}", v.addImageToCache(png))
+		response = strings.ReplaceAll(response, "{processID}", electionID)
+		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+
+		ctx.SetResponseContentType("text/html; charset=utf-8")
+		return ctx.Send([]byte(response), http.StatusOK)
+	}
+
+	if errors.Is(err, ErrAlreadyVoted) {
+		log.Infow("participant already voted", "voterID", fmt.Sprintf("%x", voterID))
+		png, err := textToImage(textToImageContents{title: ""}, backgrounds[BackgroundAlreadyVoted])
+		if err != nil {
+			return fmt.Errorf("failed to create image: %w", err)
+		}
+		response := strings.ReplaceAll(frame(frameAlreadyVoted), "{image}", v.addImageToCache(png))
+		response = strings.ReplaceAll(response, "{nullifier}", fmt.Sprintf("%x", nullifier))
+		response = strings.ReplaceAll(response, "{processID}", electionID)
+		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+
+		ctx.SetResponseContentType("text/html; charset=utf-8")
+		return ctx.Send([]byte(response), http.StatusOK)
+	}
+
+	if err != nil {
+		log.Warnw("failed to vote", "error", err)
+		png, err := textToImage(textToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, backgrounds[BackgroundGeneric])
+		if err != nil {
+			return fmt.Errorf("failed to create image: %w", err)
+		}
+		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png))
+		response = strings.ReplaceAll(response, "{processID}", electionID)
+		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+
+		ctx.SetResponseContentType("text/html; charset=utf-8")
+		return ctx.Send([]byte(response), http.StatusOK)
+	}
+
+	go func() {
+		if !v.db.UserExists(fid) {
+			if err := v.db.AddUser(fid, "", []string{}, 0); err != nil {
+				log.Errorw(err, "failed to add user to database")
+			}
+		}
+		if err := v.db.IncreaseVoteCount(fid, electionIDbytes); err != nil {
+			log.Errorw(err, "failed to increase vote count")
+		}
+	}()
+
+	response := strings.ReplaceAll(frame(frameAfterVote), "{nullifier}", fmt.Sprintf("%x", nullifier))
+	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+	response = strings.ReplaceAll(response, "{processID}", electionID)
+	png, err := textToImage(textToImageContents{title: ""}, backgrounds[BackgroundAfterVote])
+	if err != nil {
+		return fmt.Errorf("failed to create image: %w", err)
+	}
+	response = strings.ReplaceAll(response, "{image}", v.addImageToCache(png))
+	ctx.SetResponseContentType("text/html; charset=utf-8")
+	return ctx.Send([]byte(response), http.StatusOK)
+}
 
 // vote creates a vote transaction, including the frame signature packet and sends it to the vochain.
 // It returns the nullifier of the vote (which is the unique identifier of the vote), the voterID and an error.

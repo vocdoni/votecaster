@@ -2,15 +2,163 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
+	"github.com/vocdoni/farcaster-poc/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
+	"go.vocdoni.io/dvote/httprouter"
+	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 )
+
+func (v *vocdoniHandler) election(electionID types.HexBytes) (*api.Election, error) {
+	electionCached, ok := v.electionLRU.Get(electionID.String())
+	if ok {
+		return electionCached, nil
+	}
+	election, err := v.cli.Election(electionID)
+	if err != nil {
+		return nil, ErrElectionUnknown
+	}
+	evicted := v.electionLRU.Add(electionID.String(), election)
+	log.Debugw("added election to cache", "electionID", electionID, "evicted", evicted)
+	return election, nil
+}
+
+func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	var req *ElectionCreateRequest
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		return fmt.Errorf("failed to unmarshal election request: %w", err)
+	}
+
+	if req.Duration == 0 {
+		req.Duration = time.Hour * 24
+	} else {
+		req.Duration *= time.Hour
+		if req.Duration > maxElectionDuration {
+			return fmt.Errorf("election duration too long")
+		}
+	}
+
+	electionID, err := createElection(v.cli, &req.ElectionDescription, v.census)
+	if err != nil {
+		return fmt.Errorf("failed to create election: %v", err)
+	}
+
+	go func() {
+		election, err := waitForElection(v.cli, electionID)
+		if err != nil {
+			log.Errorw(err, "failed to create election")
+			return
+		}
+		// add the election to the LRU cache and the database
+		v.electionLRU.Add(electionID.String(), election)
+		if err := v.db.AddElection(electionID, req.Profile.FID); err != nil {
+			log.Errorw(err, "failed to add election to database")
+		}
+		u, err := v.db.User(req.Profile.FID)
+		if err != nil {
+			if !errors.Is(err, mongo.ErrUserUnknown) {
+				log.Errorw(err, "failed to get user from database")
+				return
+			}
+			if err := v.db.AddUser(req.Profile.FID, req.Profile.Username, req.Profile.Verifications, 1); err != nil {
+				log.Errorw(err, "failed to add user to database")
+			}
+			return
+		}
+		u.Addresses = req.Profile.Verifications
+		u.Username = req.Profile.Username
+		u.ElectionCount++
+		if err := v.db.UpdateUser(u); err != nil {
+			log.Errorw(err, "failed to update user in database")
+		}
+	}()
+
+	ctx.Writer.Header().Set("Content-Type", "application/json")
+	return ctx.Send([]byte(electionID.String()), http.StatusOK)
+}
+
+func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	electionIDbytes, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	// check if the election is finished and if so, send the final results
+	if v.checkIfElectionFinishedAndHandle(electionIDbytes, ctx) {
+		return nil
+	}
+
+	log.Infow("received show election request", "electionID", ctx.URLParam("electionID"))
+
+	// create a PNG image with the election description
+	election, err := v.election(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch election: %w", err)
+	}
+	png, err := textToImage(electionImageContents(election), backgrounds[BackgroundGeneric])
+	if err != nil {
+		return fmt.Errorf("failed to generate image: %v", err)
+	}
+	// send the response
+	response := strings.ReplaceAll(frame(frameVote), "{image}", v.addImageToCache(png))
+	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
+
+	r := election.Metadata.Questions[0].Choices
+	for i := 0; i < 4; i++ {
+		if len(r) > i {
+			opt := ""
+			switch i {
+			case 0:
+				opt = "1️⃣"
+			case 1:
+				opt = "2️⃣"
+			case 2:
+				opt = "3️⃣"
+			case 3:
+				opt = "4️⃣"
+			}
+			response = strings.ReplaceAll(response, fmt.Sprintf("{option%d}", i), opt)
+			continue
+		}
+		response = strings.ReplaceAll(response, fmt.Sprintf("{option%d}", i), "")
+	}
+
+	ctx.SetResponseContentType("text/html; charset=utf-8")
+	return ctx.Send([]byte(response), http.StatusOK)
+}
+
+func generateElectionImage(title string) ([]byte, error) {
+	return textToImage(textToImageContents{title: title}, backgrounds[BackgroundGeneric])
+}
+
+func (v *vocdoniHandler) checkElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	if electionID == nil {
+		return ctx.Send(nil, http.StatusNoContent)
+	}
+	_, ok := v.electionLRU.Get(fmt.Sprintf("%x", electionID))
+	if !ok {
+		return ctx.Send(nil, http.StatusNoContent)
+	}
+	return ctx.Send(nil, http.StatusOK)
+}
 
 func newElectionDescription(description *ElectionDescription, census *CensusInfo) *api.ElectionDescription {
 	choices := []api.ChoiceMetadata{}

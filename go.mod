@@ -1,15 +1,15 @@
 module github.com/vocdoni/farcaster-poc
 
-go 1.21.6
+go 1.22
 
 require (
 	github.com/fogleman/gg v1.3.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/uuid v1.5.0
-	github.com/hashicorp/golang-lru v1.0.2
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
-	go.mongodb.org/mongo-driver v1.12.1
+	go.mongodb.org/mongo-driver v1.14.0
 	go.vocdoni.io/dvote v1.10.2-0.20240216163710-0b7923337d8a
 	go.vocdoni.io/proto v1.15.6-0.20240209115732-27836380ccae
 	google.golang.org/protobuf v1.32.0
@@ -82,7 +82,7 @@ require (
 	github.com/getsentry/sentry-go v0.18.0 // indirect
 	github.com/glendc/go-external-ip v0.1.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
-	github.com/go-chi/chi/v5 v5.0.11 // indirect
+	github.com/go-chi/chi/v5 v5.0.12 // indirect
 	github.com/go-chi/cors v1.2.1 // indirect
 	github.com/go-kit/kit v0.13.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
@@ -109,7 +109,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
