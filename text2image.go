@@ -74,11 +74,13 @@ var frames = map[string]*theme{
 		padding: 100,
 		title: &section{
 			font:     Inter,
-			fontSize: &fontSize{min: 40, max: 80, maxStringLength: 250},
+			fontSize: &fontSize{min: 40, max: 70, maxStringLength: 250},
+			y:        50,
 		},
 		body: &section{
 			font:     Inter,
-			fontSize: &fontSize{min: 40, max: 50, maxStringLength: 400},
+			fontSize: &fontSize{min: 40, max: 50, maxStringLength: 500},
+			y:        10,
 		},
 	},
 	BackgroundNotElegible: {},
