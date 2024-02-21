@@ -15,17 +15,23 @@ import (
 )
 
 func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	log.Debugw("received images request", "method", ctx.Request.Method, "url", ctx.Request.URL)
 	id := ctx.URLParam("id")
 	data := v.imageFromCache(id)
+	log.Debugw("fetched image from cache", "id", id, "datasize", len(data))
 	if data == nil {
+		log.Debugw("image not found in cache", "id", id)
 		return ctx.Send(nil, http.StatusNotFound)
 	}
+	log.Debugw("image found, calling imageResponse", "id", id, "datasize", len(data))
 	return imageResponse(ctx, data)
 }
 
 // addImageToCache adds an image to the LRU cache.
 // Returns the full URL (absolute) of the image.
 func (v *vocdoniHandler) addImageToCache(data []byte) string {
+	log.Debugw("adding image to cache", "data", len(data))
+
 	id := blake3.Sum256(data)
 	idstr := hex.EncodeToString(id[:])
 	// check if the image is already in the cache and return it
@@ -40,10 +46,13 @@ func (v *vocdoniHandler) addImageToCache(data []byte) string {
 // imageFromCache gets an image from the LRU cache.
 // Returns nil if the image is not in the cache.
 func (v *vocdoniHandler) imageFromCache(id string) []byte {
+	log.Debugw("getting image from cache", "id", id)
 	data, ok := v.imagesLRU.Get(id)
 	if !ok {
+		log.Debugw("image not found in cache", "id", id)
 		return nil
 	}
+	log.Debugw("image found in cache", "id", id)
 	return data
 }
 
@@ -71,6 +80,7 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 }
 
 func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
+	log.Debugw("sending image response", "size", len(png))
 	defer ctx.Request.Body.Close()
 	if ctx.Request.Context().Err() != nil {
 		// The connection was closed, so don't try to write to it.
@@ -78,7 +88,9 @@ func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
 	}
 	ctx.Writer.Header().Set("Content-Type", "image/png")
 	ctx.Writer.Header().Set("Content-Length", fmt.Sprintf("%d", len(png)))
+	log.Debugw("writing image response", "size", len(png))
 	_, err := ctx.Writer.Write(png)
+	log.Debugw("wrote image response", "size", len(png), "error", err)
 	return err
 }
 
@@ -87,7 +99,6 @@ func errorImageResponse(ctx *httprouter.HTTPContext, err error) error {
 	if err != nil {
 		return err
 	}
-
 	return imageResponse(ctx, png)
 }
 

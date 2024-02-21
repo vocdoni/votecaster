@@ -10,6 +10,7 @@ services:
         - APP_URL=${VOCDONI_SERVER}
     ports:
       - ${VOCDONI_LISTENPORT}:${VOCDONI_LISTENPORT}
+      - ${VOCDONI_PPROFPORT}:${VOCDONI_PPROFPORT}
     sysctls:
       net.core.somaxconn: 8128
     volumes:
