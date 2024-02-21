@@ -112,8 +112,10 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Warnf("started pprof http endpoints at http://%s/debug/pprof", ln.Addr())
-		log.Error(http.Serve(ln, nil))
+		go func() {
+			log.Warnf("started pprof http endpoints at http://%s/debug/pprof", ln.Addr())
+			log.Error(http.Serve(ln, nil))
+		}()
 	}
 
 	// check the server URL is http or https and extract the domain
