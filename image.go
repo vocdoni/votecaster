@@ -28,12 +28,7 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 func (v *vocdoniHandler) addImageToCache(data []byte) string {
 	id := blake3.Sum256(data)
 	idstr := hex.EncodeToString(id[:])
-	// check if the image is already in the cache and return it
-	if v.imageFromCache(idstr) != nil {
-		return fmt.Sprintf("%s%s/%s.png", serverURL, imageHandlerPath, idstr)
-	}
-	evicted := v.imagesLRU.Add(idstr, data)
-	log.Debugw("added image to cache", "id", idstr, "evicted", evicted)
+	v.imagesLRU.Add(idstr, data)
 	return fmt.Sprintf("%s%s/%s.png", serverURL, imageHandlerPath, idstr)
 }
 
