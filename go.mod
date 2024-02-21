@@ -7,6 +7,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/uuid v1.5.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	go.mongodb.org/mongo-driver v1.14.0

@@ -12,6 +12,7 @@ import (
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
+	"github.com/nfnt/resize"
 )
 
 const (
@@ -228,8 +229,55 @@ func writeSection(dc *gg.Context, section *section, contents string, x, y, w, ls
 	size := calculateFontSize(len(contents), section.fontSize.max, section.fontSize.min, section.fontSize.maxStringLength)
 	face := truetype.NewFace(font, &truetype.Options{Size: size})
 	dc.SetFontFace(face)
-	dc.DrawStringWrapped(contents, x, y, 0, 0, w, ls, gg.AlignLeft)
+	var offsetX float64 = 0
+	for _, r := range contents {
+		// line break
+		if r == 0x000A {
+			offsetX = 0
+			continue
+		}
 
+		if isEmoji(r) {
+			// Handle emoji
+			emojiPath := fmt.Sprintf("images/emoji/%x.png", r) // Construct file path using Unicode code point
+			emojiImgFile, err := os.Open(emojiPath)
+			if err != nil {
+				fmt.Println("Failed to load emoji image:", err)
+				continue // Skip this emoji if it fails to load
+			}
+			defer emojiImgFile.Close()
+			emojiImg, _, err := image.Decode(emojiImgFile)
+			if err != nil {
+				fmt.Println("Failed to decode emoji image:", err)
+				continue
+			}
+
+			// Resize emoji image to match font size (optional)
+			resizedEmojiImg := resize.Resize(uint(size), 0, emojiImg, resize.Lanczos3)
+
+			// Draw emoji image at the current position
+			dc.DrawImage(resizedEmojiImg, int(x+offsetX), int(y-90))
+
+			// Adjust offsetX based on the emoji size
+			offsetX += float64(resizedEmojiImg.Bounds().Dx())
+		} else {
+			// Handle regular character
+			charStr := string(r)
+			charWidth, _ := dc.MeasureString(charStr)
+			dc.DrawStringAnchored(charStr, x+offsetX, y, 0, 0)
+			offsetX += charWidth
+		}
+	}
+	// dc.DrawStringWrapped(contents, x, y, 0, 0, w, ls, gg.AlignLeft)
+
+}
+
+func isEmoji(r rune) bool {
+	if r == 0x1F5F3 || r == 0x1F9C2 || r == 0x1F36F {
+		return true
+	}
+	// This is a simplified check. Consider using a library or a comprehensive list of emojis.
+	return r > 0x1F600 && r < 0x1F64F // Example range for emoticons
 }
 
 func errorImage(err error) ([]byte, error) {

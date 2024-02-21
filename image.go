@@ -43,20 +43,23 @@ func (v *vocdoniHandler) imageFromCache(id string) []byte {
 }
 
 func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
-	if err != nil {
-		return fmt.Errorf("failed to decode electionID: %w", err)
-	}
-	election, err := v.election(electionID)
-	if err != nil {
-		return errorImageResponse(ctx, fmt.Errorf("failed to get election: %w", err))
-	}
+	// electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	// if err != nil {
+	// 	return fmt.Errorf("failed to decode electionID: %w", err)
+	// }
+	// election, err := v.election(electionID)
+	// if err != nil {
+	// 	return errorImageResponse(ctx, fmt.Errorf("failed to get election: %w", err))
+	// }
 
-	if len(election.Metadata.Questions) == 0 {
-		return errorImageResponse(ctx, fmt.Errorf("election has no questions"))
-	}
+	// if len(election.Metadata.Questions) == 0 {
+	// 	return errorImageResponse(ctx, fmt.Errorf("election has no questions"))
+	// }
 
-	png, err := textToImage(electionImageContents(election), frames[BackgroundGeneric])
+	// contents := electionImageContents(election)
+	contents := textToImageContents{title: "How do emojis 🗳️ actually work? What happens with multiple lines here?", body: []string{"1. With sugar", "2. With salt 🧂", "3. With pepper ", "4. With honey 🍯"}}
+
+	png, err := textToImage(contents, frames[BackgroundGeneric])
 	if err != nil {
 		return errorImageResponse(ctx, err)
 	}
