@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	"image/color"
 	"image/png"
 	"os"
 	"path"
@@ -35,28 +34,76 @@ const (
 	maxBarLength = 12
 )
 
-type background struct {
-	img             image.Image
-	fgColorHex      string
-	fontName        string
-	fontSize        float64
-	xOffset         int
-	yOffset         int
-	maxTextLineSize int
+type fontSize struct {
+	min             int
+	max             int
+	maxStringLength int
 }
 
-var backgrounds = map[string]*background{
-	BackgroundAfterVote:    {nil, "#33ff33", Inter, 50, 10, 30, 20},
-	BackgroundAlreadyVoted: {nil, "#ff3333", Inter, 50, 10, 30, 20},
-	BackgroundGeneric:      {nil, "#F2EFE5", Inter, 46, 60, 80, 50},
-	BackgroundResults:      {nil, "#F2EFE5", Inter, 46, 60, 80, 50},
-	BackgroundNotElegible:  {nil, "#ff3333", Inter, 40, 10, 30, 20},
-	BackgroundError:        {nil, "#ff3333", Inter, 20, 10, 200, 100},
-	BackgroundInfo:         {nil, "#F2EFE5", Inter, 46, 20, 50, 80},
+type section struct {
+	fg       string
+	font     string
+	fontSize *fontSize
+	x        float64
+	y        float64
+}
+
+type theme struct {
+	bg      image.Image
+	bgColor string
+	padding float64
+	title   *section
+	body    *section
+}
+
+var frames = map[string]*theme{
+	BackgroundAfterVote:    {},
+	BackgroundAlreadyVoted: {},
+	BackgroundGeneric: {
+		padding: 100,
+		title: &section{
+			font:     Inter,
+			fontSize: &fontSize{min: 40, max: 100, maxStringLength: 250},
+		},
+		body: &section{
+			font:     Inter,
+			fontSize: &fontSize{min: 40, max: 60, maxStringLength: 220},
+		},
+	},
+	BackgroundResults: {
+		padding: 100,
+		title: &section{
+			font:     Inter,
+			fontSize: &fontSize{min: 40, max: 80, maxStringLength: 250},
+		},
+		body: &section{
+			font:     Inter,
+			fontSize: &fontSize{min: 40, max: 50, maxStringLength: 400},
+		},
+	},
+	BackgroundNotElegible: {},
+	BackgroundError: {
+		title: &section{
+			fg:       "#ff3333",
+			fontSize: &fontSize{min: 20, max: 30, maxStringLength: 200},
+			x:        20,
+			y:        200,
+		},
+	},
+	BackgroundInfo: {
+		title: &section{
+			fg:       "#F2EFE5",
+			fontSize: &fontSize{min: 40, max: 60, maxStringLength: 250},
+		},
+		body: &section{
+			fg:       "#F2EFE5",
+			fontSize: &fontSize{min: 40, max: 60, maxStringLength: 400},
+		},
+	},
 }
 
 func loadImages() error {
-	for name, bg := range backgrounds {
+	for name, bg := range frames {
 		imgFile, err := os.Open(path.Join(BackgroundsDir, name))
 		if err != nil {
 			return fmt.Errorf("failed to load image %s: %w", name, err)
@@ -66,7 +113,7 @@ func loadImages() error {
 		if err != nil {
 			return fmt.Errorf("failed to decode image %s: %w", name, err)
 		}
-		bg.img = img
+		bg.bg = img
 	}
 	return nil
 }
@@ -85,83 +132,62 @@ func loadFont(fn string) (*truetype.Font, error) {
 }
 
 type textToImageContents struct {
-	title   string   // Title of the image
-	body    []string // Each string is a line of text
-	results []string // Same than body, but uses different styles
-	err     error
+	title string   // Title of the image
+	body  []string // Each string is a line of text
 }
 
-func textToImage(contents textToImageContents, img *background) ([]byte, error) {
+func textToImage(contents textToImageContents, img *theme) ([]byte, error) {
 	// image size
-	// const w = 1685
-	// const h = 882
-	w := img.img.Bounds().Dx()
-	h := img.img.Bounds().Dy()
+	w := 1685
+	h := 882
+	if img.bg != nil {
+		w = img.bg.Bounds().Dx()
+		h = img.bg.Bounds().Dy()
+	}
 	// text padding
-	const p = 100
+	p := float64(100)
+	if img.padding > 0 {
+		p = img.padding
+	}
 	// line spacing
 	const ls = 1.5
 
 	// create image
 	dc := gg.NewContext(w, h)
-	dc.SetRGB(0, 0, 0)
+	if img.bgColor != "" {
+		dc.SetHexColor(img.bgColor)
+	} else {
+		dc.SetRGB(0, 0, 0)
+	}
 	dc.Clear()
-	dc.DrawImage(img.img, 0, 0)
-
-	// load font
-	lfont, err := loadFont(img.fontName)
-	if err != nil {
-		return nil, err
-	}
-
-	// text colors
-	fgColor := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff} // White by default
-	if len(img.fgColorHex) == 7 {
-		_, err := fmt.Sscanf(img.fgColorHex, "#%02x%02x%02x", &fgColor.R, &fgColor.G, &fgColor.B)
-		if err != nil {
-			return nil, err
-		}
-	}
-	dc.SetColor(fgColor)
+	dc.DrawImage(img.bg, 0, 0)
 
 	// title
-	tsize := calculateFontSize(len(contents.title), 100, 40, 250)
-	tfont := truetype.NewFace(lfont, &truetype.Options{Size: tsize})
-	dc.SetFontFace(tfont)
-	dc.DrawStringWrapped(contents.title, p, p, 0, 0, float64(w-(p*2)), ls, gg.AlignLeft)
-
-	// calculate title height
-	_, lh := dc.MeasureMultilineString(contents.title, ls)
-	tl := dc.WordWrap(contents.title, float64(w-200))
-	height := lh*float64(len(tl)) + p*ls
+	height := float64(0)
+	if len(contents.title) > 0 {
+		x := img.title.x
+		y := img.title.y
+		if x == 0 {
+			x = p
+		}
+		if y == 0 {
+			y = p
+		}
+		writeSection(dc, img.title, contents.title, x, y, float64(w)-x*2, ls)
+		// calculate title height
+		_, lh := dc.MeasureMultilineString(contents.title, ls)
+		tl := dc.WordWrap(contents.title, float64(w-200))
+		height = lh*float64(len(tl)) + p*ls
+	}
 
 	// body
 	if len(contents.body) > 0 {
-		bsize := calculateFontSize(len(contents.body), 60, 40, 300)
-		bfont := truetype.NewFace(lfont, &truetype.Options{Size: bsize})
-		dc.SetFontFace(bfont)
-		dc.DrawStringWrapped(strings.Join(contents.body, "\n"), p, p+height, 0, 0, float64(w-(p*2)), ls, gg.AlignLeft)
-	}
-
-	// results
-	if len(contents.results) > 0 {
-		rsize := calculateFontSize(len(contents.body), 50, 20, 400)
-		rfont := truetype.NewFace(lfont, &truetype.Options{Size: rsize})
-		dc.SetFontFace(rfont)
-		dc.DrawStringWrapped(strings.Join(contents.results, "\n"), p, (p/2)+height, 0, 0, float64(w-(p*2)), ls, gg.AlignLeft)
-	}
-
-	// errors
-	if contents.err != nil {
-		esize := calculateFontSize(len(contents.body), 20, 3, 250)
-		efont := truetype.NewFace(lfont, &truetype.Options{Size: esize})
-		dc.SetFontFace(efont)
-		dc.DrawStringWrapped(contents.err.Error(), 15, 245, 0, 0, float64(w-(p*2)), ls, gg.AlignLeft)
+		writeSection(dc, img.body, strings.Join(contents.body, "\n"), p, height+(ls*30), float64(w)-p*2, ls)
 	}
 
 	// return as []byte
 	buf := new(bytes.Buffer)
-	err = png.Encode(buf, dc.Image())
+	err := png.Encode(buf, dc.Image())
 	if err != nil {
 		return nil, err
 	}
@@ -169,11 +195,38 @@ func textToImage(contents textToImageContents, img *background) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
+func writeSection(dc *gg.Context, section *section, contents string, x, y, w, ls float64) {
+	// load font
+	f := section.font
+	if f == "" {
+		f = Inter
+	}
+	font, err := loadFont(f)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// text colors
+	fgColor := "#ffffff" // White by default
+	if len(section.fg) == 7 {
+		fgColor = section.fg
+	}
+	dc.SetHexColor(fgColor)
+
+	// write text
+	size := calculateFontSize(len(contents), section.fontSize.max, section.fontSize.min, section.fontSize.maxStringLength)
+	face := truetype.NewFace(font, &truetype.Options{Size: size})
+	dc.SetFontFace(face)
+	dc.DrawStringWrapped(contents, x, y, 0, 0, w, ls, gg.AlignLeft)
+
+}
+
 func errorImage(err error) ([]byte, error) {
 	contents := textToImageContents{
-		err: err,
+		title: err.Error(),
 	}
-	return textToImage(contents, backgrounds[BackgroundError])
+	return textToImage(contents, frames[BackgroundError])
 }
 
 func calculateFontSize(stringLength int, maxFontSize, minFontSize, maxStringLength int) float64 {

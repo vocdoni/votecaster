@@ -93,7 +93,7 @@ func buildResultsPNG(election *api.Election) ([]byte, error) {
 	}
 	var text []string
 	var logResults []uint64
-	title := fmt.Sprintf("> %s", election.Metadata.Questions[0].Title["default"])
+	title := election.Metadata.Questions[0].Title["default"]
 	// Check for division by zero error
 	if castedVotes == 0 {
 		text = []string{"No votes casted yet..."}
@@ -112,7 +112,7 @@ func buildResultsPNG(election *api.Election) ([]byte, error) {
 	}
 	log.Debugw("election results", "castedVotes", castedVotes, "results", logResults)
 
-	png, err := textToImage(textToImageContents{title: title, body: text}, backgrounds[BackgroundResults])
+	png, err := textToImage(textToImageContents{title: title, body: text}, frames[BackgroundResults])
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image: %w", err)
 	}

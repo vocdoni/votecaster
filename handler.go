@@ -112,7 +112,7 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return fmt.Errorf("election has no questions")
 	}
 
-	png, err := textToImage(electionImageContents(election), backgrounds[BackgroundGeneric])
+	png, err := textToImage(electionImageContents(election), frames[BackgroundGeneric])
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
 	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:16]))
 
-	png, err := textToImage(textToImageContents{title: title, results: text}, backgrounds[BackgroundInfo])
+	png, err := textToImage(textToImageContents{title: title, body: text}, frames[BackgroundInfo])
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}

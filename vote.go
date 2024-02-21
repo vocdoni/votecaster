@@ -77,7 +77,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	// handle the vote result
 	if errors.Is(err, ErrNotInCensus) {
 		log.Infow("participant not in the census", "voterID", fmt.Sprintf("%x", voterID))
-		png, err := textToImage(textToImageContents{title: ""}, backgrounds[BackgroundNotElegible])
+		png, err := textToImage(textToImageContents{title: ""}, frames[BackgroundNotElegible])
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -91,7 +91,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	if errors.Is(err, ErrAlreadyVoted) {
 		log.Infow("participant already voted", "voterID", fmt.Sprintf("%x", voterID))
-		png, err := textToImage(textToImageContents{title: ""}, backgrounds[BackgroundAlreadyVoted])
+		png, err := textToImage(textToImageContents{title: ""}, frames[BackgroundAlreadyVoted])
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -106,7 +106,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	if err != nil {
 		log.Warnw("failed to vote", "error", err)
-		png, err := textToImage(textToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, backgrounds[BackgroundGeneric])
+		png, err := textToImage(textToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, frames[BackgroundGeneric])
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -132,7 +132,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	response := strings.ReplaceAll(frame(frameAfterVote), "{nullifier}", fmt.Sprintf("%x", nullifier))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
-	png, err := textToImage(textToImageContents{title: ""}, backgrounds[BackgroundAfterVote])
+	png, err := textToImage(textToImageContents{title: ""}, frames[BackgroundAfterVote])
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}

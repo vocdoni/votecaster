@@ -56,7 +56,7 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return errorImageResponse(ctx, fmt.Errorf("election has no questions"))
 	}
 
-	png, err := textToImage(electionImageContents(election), backgrounds[BackgroundGeneric])
+	png, err := textToImage(electionImageContents(election), frames[BackgroundGeneric])
 	if err != nil {
 		return errorImageResponse(ctx, err)
 	}

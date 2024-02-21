@@ -108,7 +108,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	if err != nil {
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
-	png, err := textToImage(electionImageContents(election), backgrounds[BackgroundGeneric])
+	png, err := textToImage(electionImageContents(election), frames[BackgroundGeneric])
 	if err != nil {
 		return fmt.Errorf("failed to generate image: %v", err)
 	}
@@ -142,7 +142,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 }
 
 func generateElectionImage(title string) ([]byte, error) {
-	return textToImage(textToImageContents{title: title}, backgrounds[BackgroundGeneric])
+	return textToImage(textToImageContents{title: title}, frames[BackgroundGeneric])
 }
 
 func (v *vocdoniHandler) checkElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
