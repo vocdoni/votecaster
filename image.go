@@ -86,12 +86,8 @@ func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
 		// The connection was closed, so don't try to write to it.
 		return fmt.Errorf("connection is closed")
 	}
-	ctx.Writer.Header().Set("Content-Type", "image/png")
-	ctx.Writer.Header().Set("Content-Length", fmt.Sprintf("%d", len(png)))
-	log.Debugw("writing image response", "size", len(png))
-	_, err := ctx.Writer.Write(png)
-	log.Debugw("wrote image response", "size", len(png), "error", err)
-	return err
+	ctx.SetResponseContentType("image/png")
+	return ctx.Send(png, 200)
 }
 
 func errorImageResponse(ctx *httprouter.HTTPContext, err error) error {
