@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	imageHandlerPath = "/pngs"
+	imageHandlerPath = "/images"
 )
 
 var (
