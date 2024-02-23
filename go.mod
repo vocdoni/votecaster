@@ -9,6 +9,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
+	github.com/zeebo/blake3 v0.2.3
 	go.mongodb.org/mongo-driver v1.14.0
 	go.vocdoni.io/dvote v1.10.2-0.20240216163710-0b7923337d8a
 	go.vocdoni.io/proto v1.15.6-0.20240209115732-27836380ccae
