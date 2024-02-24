@@ -39,6 +39,21 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		return fmt.Errorf("failed to unmarshal election request: %w", err)
 	}
 
+	// build the census or use the one hardcoded for all farcaster users
+	var census *CensusInfo
+	if req.EthereumCensusCSV != nil {
+		participants, err := v.farcasterCensusFromEthereumCSV(req.EthereumCensusCSV)
+		if err != nil {
+			return fmt.Errorf("failed to build census from ethereum csv: %w", err)
+		}
+		census, err = CreateCensus(v.cli, participants)
+		if err != nil {
+			return fmt.Errorf("failed to create census: %w", err)
+		}
+	} else {
+		census = v.census
+	}
+
 	if req.Duration == 0 {
 		req.Duration = time.Hour * 24
 	} else {
@@ -48,7 +63,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		}
 	}
 
-	electionID, err := createElection(v.cli, &req.ElectionDescription, v.census)
+	electionID, err := createElection(v.cli, &req.ElectionDescription, census)
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}

@@ -4,7 +4,9 @@ import "context"
 
 type API interface {
 	// Init initializes the API with the given arguments
-	Init(...any) error
+	Init(apiEndpoint string, apiKeys []string) error
+	// SetFarcasterUser sets the farcaster user with the given fid and signer
+	SetFarcasterUser(fid uint64, signer string) error
 	// Stop stops the API
 	Stop() error
 	// LastMentions retrieves the last mentions from the given timestamp, it

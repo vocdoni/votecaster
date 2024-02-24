@@ -45,31 +45,30 @@ type Hub struct {
 	auth     map[string]string
 }
 
-func (h *Hub) Init(args ...any) error {
-	// parse arguments:
-	// - botFID uint64
-	// - privateKey []byte
-	// - endpoint string
-	// - auth map[string]string (optional)
-	if len(args) < 3 {
-		return fmt.Errorf("invalid number of arguments")
+// Init initializes the API Hub with the given arguments.
+// apiKeys must be a slice of strings with an even number of elements, where
+// each pair of elements is a header and a key.
+func (h *Hub) Init(apiEndpoint string, apiKeys []string) error {
+	h.endpoint = apiEndpoint
+	// take the apikeys by group of two and set them as header/key
+	if len(apiKeys)%2 != 0 {
+		return fmt.Errorf("invalid number of api keys")
 	}
-	var ok bool
-	if h.fid, ok = args[0].(uint64); !ok || h.fid == 0 {
-		return fmt.Errorf("invalid type for botFID")
+	h.auth = map[string]string{}
+	for i := 0; i < len(apiKeys); i += 2 {
+		h.auth[apiKeys[i]] = apiKeys[i+1]
 	}
-	h.privKey, ok = args[1].([]byte)
-	if !ok || len(h.privKey) == 0 {
-		return fmt.Errorf("invalid type for privateKey")
+	return nil
+}
+
+// SetFarcasterUser sets the farcaster user with the given fid and signer privateKey in hex.
+func (h *Hub) SetFarcasterUser(fid uint64, signer string) error {
+	var err error
+	h.privKey, err = hex.DecodeString(signer)
+	if err != nil {
+		return fmt.Errorf("error decoding signer: %w", err)
 	}
-	if h.endpoint, ok = args[2].(string); !ok || h.endpoint == "" {
-		return fmt.Errorf("invalid type for endpoint")
-	}
-	if len(args) > 3 {
-		if auth, ok := args[3].(map[string]string); ok && len(auth) > 0 {
-			h.auth = auth
-		}
-	}
+	h.fid = fid
 	return nil
 }
 
@@ -78,6 +77,9 @@ func (h *Hub) Stop() error {
 }
 
 func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcasterapi.APIMessage, uint64, error) {
+	if h.fid == 0 {
+		return nil, 0, fmt.Errorf("no farcaster user set")
+	}
 	if timestamp > farcasterEpoch {
 		timestamp -= farcasterEpoch
 	}
@@ -139,6 +141,9 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 }
 
 func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, content string) error {
+	if h.fid == 0 {
+		return fmt.Errorf("no farcaster user set")
+	}
 	// create the cast as a reply to the message with the parentFID provided
 	// and the desired text
 	bTargetHash, err := hex.DecodeString(strings.TrimPrefix(targetHash, "0x"))

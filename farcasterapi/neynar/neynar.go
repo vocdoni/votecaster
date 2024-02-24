@@ -36,29 +36,22 @@ type NeynarAPI struct {
 	endpoint   string
 }
 
-func (n *NeynarAPI) Init(args ...any) error {
-	// parse args:
-	// - fid uint64
-	// - signerUUID string
-	// - apiKey string
-	// - apiEndpoint string
-	if len(args) < 4 {
-		return fmt.Errorf("invalid number of arguments")
+// Init initializes the API with the given arguments. apiKeys must have
+// a single element, which is the api key for the Neynar API.
+func (n *NeynarAPI) Init(apiEndpoint string, apiKeys []string) error {
+	if len(apiKeys) == 0 {
+		return fmt.Errorf("no api keys provided")
 	}
-	var ok bool
-	if n.fid, ok = args[0].(uint64); !ok || n.fid == 0 {
-		return fmt.Errorf("invalid type for fid")
-	}
-	if n.signerUUID, ok = args[1].(string); !ok || n.signerUUID == "" {
-		return fmt.Errorf("invalid type for signerUUID")
-	}
-	if n.apiKey, ok = args[2].(string); !ok || n.apiKey == "" {
-		return fmt.Errorf("invalid type for apiKey")
-	}
-	if n.endpoint, ok = args[3].(string); !ok || n.endpoint == "" {
-		return fmt.Errorf("invalid type for endpoint")
-	}
-	// get bot username
+	n.endpoint = apiEndpoint
+	n.apiKey = apiKeys[0]
+	return nil
+}
+
+// SetFarcasterUser method sets the farcaster user with the given fid and signer.
+// The signer is the UUID of the user that signs the messages.
+func (n *NeynarAPI) SetFarcasterUser(fid uint64, signer string) error {
+	n.fid = fid
+	n.signerUUID = signer
 	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), getBotUsernameTimeout)
 	defer cancel()
@@ -75,6 +68,9 @@ func (n *NeynarAPI) Stop() error {
 }
 
 func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farcasterapi.APIMessage, uint64, error) {
+	if n.fid == 0 {
+		return nil, 0, fmt.Errorf("farcaster user not set")
+	}
 	baseURL := fmt.Sprintf("%s/%s", n.endpoint, neynarGetCastsEndpoint)
 
 	internalCtx, cancel := context.WithTimeout(ctx, getCastByMentionTimeout)
@@ -151,6 +147,9 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 }
 
 func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content string) error {
+	if n.fid == 0 {
+		return fmt.Errorf("farcaster user not set")
+	}
 	// create request body
 	castReq := &CastPostRequest{
 		Signer: n.signerUUID,

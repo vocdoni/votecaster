@@ -20,7 +20,8 @@ type FarcasterProfile struct {
 // ElectionCreateRequest is the request received by the farcaster auth, when creating an election.
 type ElectionCreateRequest struct {
 	ElectionDescription
-	Profile *FarcasterProfile `json:"profile,omitempty"`
+	Profile           *FarcasterProfile `json:"profile,omitempty"`
+	EthereumCensusCSV []byte            `json:"ethereumCensusCSV,omitempty"`
 }
 
 // ElectionDescription defines the parameters for a new election.
