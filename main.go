@@ -17,6 +17,7 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/vocdoni/farcaster-poc/discover"
+	"github.com/vocdoni/farcaster-poc/farcasterapi/neynar"
 	"github.com/vocdoni/farcaster-poc/mongo"
 	urlapi "go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/httprouter"
@@ -50,6 +51,9 @@ func main() {
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
 
+	//flag.String("neynarSignerUUID", "", "neynar signer UUID")
+	flag.String("neynarAPIKey", "", "neynar API key")
+
 	// Parse the command line flags
 	flag.Parse()
 
@@ -79,6 +83,9 @@ func main() {
 	adminToken := viper.GetString("adminToken")
 	pollSize := viper.GetInt("pollSize")
 	pprofPort := viper.GetInt("pprofPort")
+
+	//neynarSignerUUID := viper.GetString("neynarSignerUUID")
+	neynarAPIKey := viper.GetString("neynarAPIKey")
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
@@ -158,13 +165,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Create the Neynar API client
+	neynarcli := neynar.NewNeynarAPI(neynarAPIKey)
+
 	// Start the discovery user profile background process
 	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
 	go discover.NewFarcasterDiscover(db).Run(mainCtx)
 	defer mainCtxCancel()
 
 	// Create the Vocdoni handler
-	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx)
+	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -303,6 +313,14 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/create", http.MethodPost, "public", handler.createElection); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/csv", http.MethodPost, "public", handler.censusCSV); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/check/{censusID}", http.MethodGet, "public", handler.censusQueueInfo); err != nil {
 		log.Fatal(err)
 	}
 

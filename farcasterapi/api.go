@@ -3,8 +3,6 @@ package farcasterapi
 import "context"
 
 type API interface {
-	// Init initializes the API with the given arguments
-	Init(apiEndpoint string, apiKeys []string) error
 	// SetFarcasterUser sets the farcaster user with the given fid and signer
 	SetFarcasterUser(fid uint64, signer string) error
 	// Stop stops the API
@@ -36,4 +34,5 @@ type Userdata struct {
 	Username               string
 	CustodyAddress         string
 	VerificationsAddresses []string
+	Signers                []string
 }

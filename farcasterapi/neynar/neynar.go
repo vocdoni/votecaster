@@ -10,19 +10,27 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/vocdoni/farcaster-poc/farcasterapi"
+	"go.vocdoni.io/dvote/log"
 )
 
 const (
+	neynarHubEndpoint = "https://hub-api.neynar.com"
+	neynarAPIEndpoint = "https://api.neynar.com"
+
 	// endpoints
-	neynarGetUsernameEndpoint = "v1/farcaster/user?fid=%d"
-	neynarGetCastsEndpoint    = "v1/farcaster/mentions-and-replies?fid=%d&limit=150&cursor=%s"
-	neynarReplyEndpoint       = "v2/farcaster/cast"
-	neynarUserByEthAddresses  = "v2/farcaster/user/bulk-by-address?addresses=%s"
+	neynarGetUsernameEndpoint = neynarAPIEndpoint + "/v1/farcaster/user?fid=%d"
+	neynarGetCastsEndpoint    = neynarAPIEndpoint + "/v1/farcaster/mentions-and-replies?fid=%d&limit=150&cursor=%s"
+	neynarReplyEndpoint       = neynarAPIEndpoint + "/v2/farcaster/cast"
+	neynarUserByEthAddresses  = neynarAPIEndpoint + "/v2/farcaster/user/bulk-by-address?addresses=%s"
+	neynarVerificationsByFID  = neynarHubEndpoint + "/v1/verificationsByFid?fid=%d"
+
 	// timeouts
 	getBotUsernameTimeout   = 10 * time.Second
 	getCastByMentionTimeout = 60 * time.Second
 	postCastTimeout         = 10 * time.Second
+
 	// other
 	neynarMentionType = "cast-mention"
 	timeLayout        = "2006-01-02T15:04:05.000Z"
@@ -33,18 +41,12 @@ type NeynarAPI struct {
 	username   string
 	signerUUID string
 	apiKey     string
-	endpoint   string
 }
 
-// Init initializes the API with the given arguments. apiKeys must have
-// a single element, which is the api key for the Neynar API.
-func (n *NeynarAPI) Init(apiEndpoint string, apiKeys []string) error {
-	if len(apiKeys) == 0 {
-		return fmt.Errorf("no api keys provided")
+func NewNeynarAPI(apiKey string) *NeynarAPI {
+	return &NeynarAPI{
+		apiKey: apiKey,
 	}
-	n.endpoint = apiEndpoint
-	n.apiKey = apiKeys[0]
-	return nil
 }
 
 // SetFarcasterUser method sets the farcaster user with the given fid and signer.
@@ -71,7 +73,6 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 	if n.fid == 0 {
 		return nil, 0, fmt.Errorf("farcaster user not set")
 	}
-	baseURL := fmt.Sprintf("%s/%s", n.endpoint, neynarGetCastsEndpoint)
 
 	internalCtx, cancel := context.WithTimeout(ctx, getCastByMentionTimeout)
 	defer cancel()
@@ -81,7 +82,7 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 	cursor := ""
 	for {
 		// create request with the given cursor and set the api key header
-		url := fmt.Sprintf(baseURL, n.fid, cursor)
+		url := fmt.Sprintf(neynarGetCastsEndpoint, n.fid, cursor)
 		req, err := http.NewRequestWithContext(internalCtx, http.MethodGet, url, nil)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error creating request: %w", err)
@@ -160,11 +161,10 @@ func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content s
 	if err != nil {
 		return fmt.Errorf("error marshalling request body: %w", err)
 	}
-	url := fmt.Sprintf("%s/%s", n.endpoint, neynarReplyEndpoint)
 	internalCtx, cancel := context.WithTimeout(ctx, postCastTimeout)
 	defer cancel()
 	// create request with the bot fid and set the api key header
-	req, err := http.NewRequestWithContext(internalCtx, http.MethodPost, url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(internalCtx, http.MethodPost, neynarReplyEndpoint, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("error creating request: %w", err)
 	}
@@ -182,53 +182,77 @@ func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content s
 }
 
 // UserData method returns the username, the custody address and the
-// verification addresses of the user with the given fid. If something goes
-// wrong, it returns an error.
+// verification addresses of the user with the given fid.
 func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.Userdata, error) {
 	internalCtx, cancel := context.WithTimeout(ctx, getBotUsernameTimeout)
 	defer cancel()
 
 	// create request with the bot fid
-	baseURL := fmt.Sprintf("%s/%s", n.endpoint, neynarGetUsernameEndpoint)
-	url := fmt.Sprintf(baseURL, fid)
-	req, err := http.NewRequestWithContext(internalCtx, http.MethodGet, url, nil)
+	url := fmt.Sprintf(neynarGetUsernameEndpoint, fid)
+	body, err := n.newRequest(internalCtx, url, http.MethodGet, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
-	req.Header.Set("api_key", n.apiKey)
-	// send request and check response status
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error downloading json: %w", err)
-	}
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error downloading json: %s", res.Status)
-	}
-	// read response body
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
-	}
-	defer res.Body.Close()
 	// decode username
 	usernameResponse := &UserdataResponse{}
 	if err := json.Unmarshal(body, usernameResponse); err != nil {
 		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 	}
+
+	// get signers
+	signers, err := n.signersFromFid(fid)
+	if err != nil {
+		return nil, fmt.Errorf("error getting signers: %w", err)
+	}
+
 	return &farcasterapi.Userdata{
 		FID:                    fid,
 		Username:               usernameResponse.Result.User.Username,
 		CustodyAddress:         usernameResponse.Result.User.CustodyAddress,
 		VerificationsAddresses: usernameResponse.Result.User.VerificationsAddresses,
+		Signers:                signers,
 	}, nil
+}
+
+func (n *NeynarAPI) signersFromFid(fid uint64) ([]string, error) {
+	internalCtx, cancel := context.WithTimeout(context.Background(), getBotUsernameTimeout)
+	defer cancel()
+
+	// get verifications to fetch the signer
+	body, err := n.newRequest(internalCtx, fmt.Sprintf(neynarVerificationsByFID, fid), http.MethodGet, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+
+	// decode verifications json
+	verificationsData := &HubAPIResponse{}
+	if err := json.Unmarshal(body, verificationsData); err != nil {
+		return nil, fmt.Errorf("error unmarshalling verifications: %w", err)
+	}
+	// filter verifications addresses
+	signersMap := make(map[string]struct{})
+	for _, msg := range verificationsData.Messages {
+		// if no data or verification data is found, skip. If the message data
+		// type is not the one we are looking for, skip
+		if msg.Data == nil || msg.Data.Type != HUB_MESSAGE_TYPE_VERIFICATION || msg.Data.VerificationAddEthAddressBody == nil || msg.Signer == "" {
+			log.Warnw("invalid verification message", "msg", msg)
+			continue
+		}
+		signersMap[msg.Signer] = struct{}{}
+	}
+	signers := []string{}
+	for signer := range signersMap {
+		signers = append(signers, signer)
+	}
+	return signers, nil
 }
 
 func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, address string) (*farcasterapi.Userdata, error) {
 	internalCtx, cancel := context.WithTimeout(ctx, getBotUsernameTimeout)
 	defer cancel()
+	ethAddress := common.HexToAddress(address)
 
-	baseURL := fmt.Sprintf("%s/%s", n.endpoint, neynarUserByEthAddresses)
-	url := fmt.Sprintf(baseURL, address)
+	url := fmt.Sprintf(neynarUserByEthAddresses, ethAddress.Hex())
 	req, err := http.NewRequestWithContext(internalCtx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
@@ -249,28 +273,66 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, address s
 	}
 	defer res.Body.Close()
 	// decode username
-	results := map[string][]*UserdataV2{}
+	results := make(map[string][]UserdataV2)
 	if err := json.Unmarshal(body, &results); err != nil {
 		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 	}
-	dataItems, ok := results[address]
-	if !ok || len(dataItems) == 0 {
+	// take the first element of the results map which is the address, however
+	// the address is not guaranteed to respect ethereum hex format.
+	dataItems := []UserdataV2{}
+	for _, v := range results {
+		dataItems = v
+		break
+	}
+	if len(dataItems) == 0 {
 		return nil, fmt.Errorf("no data found for the given address")
 	}
 	var data *UserdataV2
 	for _, item := range dataItems {
 		if item.Username != "" {
-			data = item
+			data = &item
 			break
 		}
 	}
 	if data == nil {
 		return nil, fmt.Errorf("no valid data found for the given address")
 	}
+
+	// get signers
+	signers, err := n.signersFromFid(data.Fid)
+	if err != nil {
+		return nil, fmt.Errorf("error getting signers: %w", err)
+	}
+
 	return &farcasterapi.Userdata{
-		FID:                    data.FID,
+		FID:                    data.Fid,
 		Username:               data.Username,
 		CustodyAddress:         data.CustodyAddress,
-		VerificationsAddresses: data.VerificationsAddresses,
+		VerificationsAddresses: data.VerifiedAddresses.EthAddresses,
+		Signers:                signers,
 	}, nil
+}
+
+func (n *NeynarAPI) newRequest(ctx context.Context, url, method string, body []byte) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+	req.Header.Set("api_key", n.apiKey)
+
+	// send request and check response status
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading json: %w", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error downloading json: %s", res.Status)
+	}
+	// read response body
+	respBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+	return respBody, nil
 }

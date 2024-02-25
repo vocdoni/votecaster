@@ -291,23 +291,32 @@ func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.User
 	}
 	// filter verifications addresses
 	verifications := []string{}
+	signersMap := make(map[string]struct{})
 	for _, msg := range verificationsData.Messages {
 		// if no data or verification data is found, skip. If the message data
 		// type is not the one we are looking for, skip
-		if msg.Data == nil || msg.Data.Type != MESSAGE_TYPE_VERIFICATION || msg.Data.Verification == nil {
+		if msg.Data == nil || msg.Data.Type != MESSAGE_TYPE_VERIFICATION || msg.Data.Verification == nil || msg.Data.Signer == "" {
+			log.Warnw("invalid verification message", "msg", msg)
 			continue
 		}
 		verifications = append(verifications, msg.Data.Verification.Address)
+		signersMap[msg.Data.Signer] = struct{}{}
+	}
+	signers := []string{}
+	for signer := range signersMap {
+		signers = append(signers, signer)
 	}
 	return &farcasterapi.Userdata{
 		FID:                    fid,
 		Username:               currentUserdata.Username,
 		CustodyAddress:         currentUserdata.CustodyAddress,
 		VerificationsAddresses: verifications,
+		Signers:                signers,
 	}, nil
 }
 
 func (h *Hub) UserDataByVerificationAddress(ctx context.Context, address string) (*farcasterapi.Userdata, error) {
+
 	return nil, fmt.Errorf("not implemented")
 }
 

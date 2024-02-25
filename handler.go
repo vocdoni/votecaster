@@ -8,10 +8,12 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/vocdoni/farcaster-poc/farcasterapi"
 	"github.com/vocdoni/farcaster-poc/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
@@ -36,9 +38,20 @@ type vocdoniHandler struct {
 	db          *mongo.MongoStorage
 	electionLRU *lru.Cache[string, *api.Election]
 	imagesLRU   *lru.Cache[string, []byte]
+	fcapi       farcasterapi.API
+
+	censusCreationMap sync.Map
 }
 
-func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, webappdir string, db *mongo.MongoStorage, ctx context.Context) (*vocdoniHandler, error) {
+func NewVocdoniHandler(
+	apiEndpoint,
+	accountPrivKey string,
+	census *CensusInfo,
+	webappdir string,
+	db *mongo.MongoStorage,
+	ctx context.Context,
+	fcapi farcasterapi.API,
+) (*vocdoniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
 		accountPrivKey = util.RandomHex(32)
@@ -71,6 +84,7 @@ func NewVocdoniHandler(apiEndpoint, accountPrivKey string, census *CensusInfo, w
 		census:    census,
 		webappdir: webappdir,
 		db:        db,
+		fcapi:     fcapi,
 		electionLRU: func() *lru.Cache[string, *api.Election] {
 			lru, err := lru.New[string, *api.Election](100)
 			if err != nil {

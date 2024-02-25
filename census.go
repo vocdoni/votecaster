@@ -1,16 +1,23 @@
 package main
 
 import (
-	"bytes"
+	"context"
+	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
+	"go.vocdoni.io/dvote/httprouter"
+	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 	"go.vocdoni.io/dvote/vochain/state"
@@ -31,9 +38,10 @@ var (
 )
 
 type CensusInfo struct {
-	Root types.HexBytes `json:"root"`
-	Url  string         `json:"uri"`
-	Size uint64         `json:"size"`
+	Root  types.HexBytes `json:"root"`
+	Url   string         `json:"uri"`
+	Size  uint64         `json:"size"`
+	Error string         `json:"-"`
 }
 
 func (c *CensusInfo) FromFile(file string) error {
@@ -90,11 +98,65 @@ func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipan
 	}, nil
 }
 
+// censusCSV creates a new census from a CSV file containing Ethereum addresses and weights.
+// It builds the census async and returns the census ID.
+func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
+	if err != nil {
+		return err
+	}
+	v.censusCreationMap.Store(censusID.String(), &CensusInfo{})
+
+	go func() {
+		fmt.Println(string(msg.Data))
+		participants, err := v.farcasterCensusFromEthereumCSV(msg.Data)
+		if err != nil {
+			log.Warnw("failed to build census from ethereum csv", "err", err.Error())
+			v.censusCreationMap.Store(censusID.String(), &CensusInfo{Error: err.Error()})
+			return
+		}
+		ci, err := CreateCensus(v.cli, participants)
+		if err != nil {
+			log.Errorw(err, "failed to create census")
+			v.censusCreationMap.Store(censusID.String(), &CensusInfo{Error: err.Error()})
+			return
+		}
+		v.censusCreationMap.Store(censusID.String(), ci)
+	}()
+	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
+	if err != nil {
+		return err
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
+// censusQueueInfo returns the status of the census creation process.
+// Returns 204 if the census is not yet ready or not found.
+func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	censusID := ctx.URLParam("censusID")
+	censusInfo, ok := v.censusCreationMap.Load(censusID)
+	if !ok {
+		return ctx.Send(nil, http.StatusNotFound)
+	}
+	if censusInfo.(*CensusInfo).Error != "" {
+		return ctx.Send([]byte(censusInfo.(*CensusInfo).Error), http.StatusInternalServerError)
+	}
+	if censusInfo.(*CensusInfo).Root == nil {
+		return ctx.Send(nil, http.StatusNoContent)
+	}
+	data, err := json.Marshal(censusInfo)
+	if err != nil {
+		return err
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
 func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte) ([]*FarcasterParticipant, error) {
 	records, err := ParseCSV(csv)
 	if err != nil {
 		return nil, err
 	}
+	log.Debugw("parsed csv", "records", len(records))
 	participants := make([]*FarcasterParticipant, 0, len(records))
 	for i, record := range records {
 		if len(record) != 2 {
@@ -119,27 +181,45 @@ func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte) ([]*Farcaste
 			log.Warnw("invalid record", "c1", record[0], "c2", record[1])
 			continue
 		}
-		// Discover the farcaster pubkeys from address
-		participants = append(participants, &FarcasterParticipant{
-			// ...
-			PubKey: address.Bytes(),
-			Weight: weight,
-		})
+		// Fetch the user data from the farcaster API
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		userData, err := v.fcapi.UserDataByVerificationAddress(ctx, address.String())
+		if err != nil {
+			log.Warnw("error fetching user data", "address", address.String(), "err", err)
+			continue
+		}
+		// Add all the signers to the participants list
+		for _, signer := range userData.Signers {
+			signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
+			if err != nil {
+				log.Warnw("error decoding signer", "signer", signer, "err", err)
+				continue
+			}
+			participants = append(participants, &FarcasterParticipant{
+				PubKey: signerBytes,
+				Weight: weight,
+			})
+		}
 	}
+	log.Infow("farcaster census from ethereum csv", "signers", len(participants))
 	return participants, nil
 }
 
-func ParseCSV(csv []byte) ([][]string, error) {
-	records := [][]string{}
-	lines := bytes.Split(csv, []byte("\n"))
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
+func ParseCSV(csvData []byte) ([][]string, error) {
+	// Convert the byte slice to a reader
+	r := csv.NewReader(strings.NewReader(string(csvData)))
+	r.Comment = '#'
+	r.TrimLeadingSpace = true // trim leading space of each field
+	r.FieldsPerRecord = 2     // expect 2 fields per record
+	var records [][]string
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
 		}
-		record := strings.Split(string(line), ",")
-		// remove spaces and tabs
-		for i, field := range record {
-			record[i] = strings.TrimSpace(field)
+		if err != nil {
+			return nil, err
 		}
 		records = append(records, record)
 	}

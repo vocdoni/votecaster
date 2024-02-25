@@ -40,6 +40,7 @@ type Verification struct {
 type VerificationData struct {
 	Type         string        `json:"type"`
 	Verification *Verification `json:"verificationAddEthAddressBody"`
+	Signer       string        `json:"signer"`
 }
 
 type VerificationMessage struct {
