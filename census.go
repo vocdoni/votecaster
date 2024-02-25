@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -14,6 +15,8 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/vocdoni/farcaster-poc/farcasterapi"
+	"github.com/vocdoni/farcaster-poc/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/httprouter"
@@ -38,10 +41,11 @@ var (
 )
 
 type CensusInfo struct {
-	Root  types.HexBytes `json:"root"`
-	Url   string         `json:"uri"`
-	Size  uint64         `json:"size"`
-	Error string         `json:"-"`
+	Root      types.HexBytes `json:"root"`
+	Url       string         `json:"uri"`
+	Size      uint64         `json:"size"`
+	Error     string         `json:"-"`
+	Usernames []string       `json:"usernames,omitempty"`
 }
 
 func (c *CensusInfo) FromFile(file string) error {
@@ -55,8 +59,9 @@ func (c *CensusInfo) FromFile(file string) error {
 
 // FarcasterParticipant is a participant in the Farcaster network to be included in the census.
 type FarcasterParticipant struct {
-	PubKey []byte   `json:"pubkey"`
-	Weight *big.Int `json:"weight"`
+	PubKey   []byte   `json:"pubkey"`
+	Weight   *big.Int `json:"weight"`
+	Username string   `json:"username"`
 }
 
 // createTestCensus creates a test census with the hardcoded public keys for testing purposes.
@@ -121,6 +126,9 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			v.censusCreationMap.Store(censusID.String(), &CensusInfo{Error: err.Error()})
 			return
 		}
+		for _, p := range participants {
+			ci.Usernames = append(ci.Usernames, p.Username)
+		}
 		v.censusCreationMap.Store(censusID.String(), ci)
 	}()
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
@@ -181,24 +189,61 @@ func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte) ([]*Farcaste
 			log.Warnw("invalid record", "c1", record[0], "c2", record[1])
 			continue
 		}
-		// Fetch the user data from the farcaster API
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		userData, err := v.fcapi.UserDataByVerificationAddress(ctx, address.String())
+
+		var signers []string
+		var username string
+		// Try to fetch the user from the database
+		user, err := v.db.UserByAddress(address.String())
 		if err != nil {
-			log.Warnw("error fetching user data", "address", address.String(), "err", err)
-			continue
+			if !errors.Is(err, mongo.ErrUserUnknown) {
+				log.Errorw(err, "failed to get user from database")
+			}
+			// Fetch the user data from the farcaster API
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			userData, err := v.fcapi.UserDataByVerificationAddress(ctx, address.String())
+			if err != nil {
+				if !errors.Is(err, farcasterapi.ErrNoDataFound) {
+					log.Warnw("error fetching user data", "address", address.String(), "err", err)
+				}
+				continue
+			}
+			// Add or update the user on the database
+			dbUser, err := v.db.User(userData.FID)
+			if err != nil {
+				if !errors.Is(err, mongo.ErrUserUnknown) {
+					log.Errorw(err, "failed to get user from database")
+				}
+				if err := v.db.AddUser(userData.FID, userData.Username, userData.VerificationsAddresses, userData.Signers, 0); err != nil {
+					log.Errorw(err, "failed to add user to database")
+				}
+			} else {
+				dbUser.Addresses = userData.VerificationsAddresses
+				dbUser.Username = userData.Username
+				dbUser.Signers = userData.Signers
+				if err := v.db.UpdateUser(dbUser); err != nil {
+					log.Errorw(err, "failed to update user in database")
+				}
+			}
+			signers = userData.Signers
+			username = userData.Username
+		} else {
+			// Use the user data from the database
+			log.Debugw("user found in database", "user", user)
+			signers = user.Signers
+			username = user.Username
 		}
 		// Add all the signers to the participants list
-		for _, signer := range userData.Signers {
+		for _, signer := range signers {
 			signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
 			if err != nil {
 				log.Warnw("error decoding signer", "signer", signer, "err", err)
 				continue
 			}
 			participants = append(participants, &FarcasterParticipant{
-				PubKey: signerBytes,
-				Weight: weight,
+				PubKey:   signerBytes,
+				Weight:   weight,
+				Username: username,
 			})
 		}
 	}

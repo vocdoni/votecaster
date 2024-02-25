@@ -242,7 +242,7 @@ func (n *NeynarAPI) signersFromFid(fid uint64) ([]string, error) {
 	}
 	signers := []string{}
 	for signer := range signersMap {
-		signers = append(signers, signer)
+		signers = append(signers, strings.ToLower(signer))
 	}
 	return signers, nil
 }
@@ -285,7 +285,7 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, address s
 		break
 	}
 	if len(dataItems) == 0 {
-		return nil, fmt.Errorf("no data found for the given address")
+		return nil, farcasterapi.ErrNoDataFound
 	}
 	var data *UserdataV2
 	for _, item := range dataItems {
@@ -303,12 +303,16 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, address s
 	if err != nil {
 		return nil, fmt.Errorf("error getting signers: %w", err)
 	}
-
+	// normalize addresses to the ethereum hex standard format
+	var normalizedAddresses []string
+	for _, addr := range data.VerifiedAddresses.EthAddresses {
+		normalizedAddresses = append(normalizedAddresses, common.HexToAddress(addr).Hex())
+	}
 	return &farcasterapi.Userdata{
 		FID:                    data.Fid,
 		Username:               data.Username,
-		CustodyAddress:         data.CustodyAddress,
-		VerificationsAddresses: data.VerifiedAddresses.EthAddresses,
+		CustodyAddress:         common.HexToAddress(data.CustodyAddress).Hex(),
+		VerificationsAddresses: normalizedAddresses,
 		Signers:                signers,
 	}, nil
 }

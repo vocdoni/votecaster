@@ -24,6 +24,7 @@ type MongoStorage struct {
 	users     *mongo.Collection
 	elections *mongo.Collection
 	results   *mongo.Collection
+	voters    *mongo.Collection
 	keysLock  sync.RWMutex
 	election  funcGetElection
 }
@@ -86,6 +87,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.users = client.Database(database).Collection("users")
 	ms.elections = client.Database(database).Collection("elections")
 	ms.results = client.Database(database).Collection("results")
+	ms.voters = client.Database(database).Collection("voters")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
 	// else, just createIndexes
@@ -116,6 +118,25 @@ func (ms *MongoStorage) createIndexes() error {
 	if err != nil {
 		return err
 	}
+
+	// Index model for the 'Addresses' field
+	addressesIndexModel := mongo.IndexModel{
+		Keys:    bson.M{"addresses": 1}, // 1 for ascending order
+		Options: options.Index().SetUnique(false),
+	}
+
+	// Index model for the 'Signers' field
+	signersIndexModel := mongo.IndexModel{
+		Keys:    bson.M{"signers": 1}, // 1 for ascending order
+		Options: options.Index().SetUnique(false),
+	}
+
+	// Create both indexes
+	_, err = ms.users.Indexes().CreateMany(ctx, []mongo.IndexModel{addressesIndexModel, signersIndexModel})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

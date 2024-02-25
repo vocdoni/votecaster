@@ -39,19 +39,10 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		return fmt.Errorf("failed to unmarshal election request: %w", err)
 	}
 
-	// build the census or use the one hardcoded for all farcaster users
-	var census *CensusInfo
-	if req.EthereumCensusCSV != nil {
-		participants, err := v.farcasterCensusFromEthereumCSV(req.EthereumCensusCSV)
-		if err != nil {
-			return fmt.Errorf("failed to build census from ethereum csv: %w", err)
-		}
-		census, err = CreateCensus(v.cli, participants)
-		if err != nil {
-			return fmt.Errorf("failed to create census: %w", err)
-		}
-	} else {
-		census = v.census
+	// use the request census or use the one hardcoded for all farcaster users
+	census := req.Census
+	if census == nil {
+		census = v.defaultCensus
 	}
 
 	if req.Duration == 0 {
@@ -85,7 +76,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 				log.Errorw(err, "failed to get user from database")
 				return
 			}
-			if err := v.db.AddUser(req.Profile.FID, req.Profile.Username, req.Profile.Verifications, 1); err != nil {
+			if err := v.db.AddUser(req.Profile.FID, req.Profile.Username, req.Profile.Verifications, []string{}, 1); err != nil {
 				log.Errorw(err, "failed to add user to database")
 			}
 			return
@@ -156,10 +147,6 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-func generateElectionImage(title string) ([]byte, error) {
-	return textToImage(textToImageContents{title: title}, frames[BackgroundGeneric])
-}
-
 func (v *vocdoniHandler) checkElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
 	if err != nil {
@@ -173,6 +160,27 @@ func (v *vocdoniHandler) checkElection(msg *apirest.APIdata, ctx *httprouter.HTT
 		return ctx.Send(nil, http.StatusNoContent)
 	}
 	return ctx.Send(nil, http.StatusOK)
+}
+
+// votersForElection returns the list of voters for the given election.
+func (v *vocdoniHandler) votersForElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	usernames, err := v.db.VotersOfElection(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to get voters of election: %w", err)
+	}
+	data, err := json.Marshal(map[string][]string{"voters": usernames})
+	if err != nil {
+		return fmt.Errorf("failed to marshal voters: %w", err)
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
+func generateElectionImage(title string) ([]byte, error) {
+	return textToImage(textToImageContents{title: title}, frames[BackgroundGeneric])
 }
 
 func newElectionDescription(description *ElectionDescription, census *CensusInfo) *api.ElectionDescription {

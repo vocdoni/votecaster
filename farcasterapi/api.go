@@ -1,6 +1,13 @@
 package farcasterapi
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
+
+var (
+	ErrNoDataFound = fmt.Errorf("no data found")
+)
 
 type API interface {
 	// SetFarcasterUser sets the farcaster user with the given fid and signer

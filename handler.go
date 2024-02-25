@@ -32,13 +32,13 @@ var (
 )
 
 type vocdoniHandler struct {
-	cli         *apiclient.HTTPclient
-	census      *CensusInfo
-	webappdir   string
-	db          *mongo.MongoStorage
-	electionLRU *lru.Cache[string, *api.Election]
-	imagesLRU   *lru.Cache[string, []byte]
-	fcapi       farcasterapi.API
+	cli           *apiclient.HTTPclient
+	defaultCensus *CensusInfo
+	webappdir     string
+	db            *mongo.MongoStorage
+	electionLRU   *lru.Cache[string, *api.Election]
+	imagesLRU     *lru.Cache[string, []byte]
+	fcapi         farcasterapi.API
 
 	censusCreationMap sync.Map
 }
@@ -80,11 +80,11 @@ func NewVocdoniHandler(
 	}
 
 	vh := &vocdoniHandler{
-		cli:       cli,
-		census:    census,
-		webappdir: webappdir,
-		db:        db,
-		fcapi:     fcapi,
+		cli:           cli,
+		defaultCensus: census,
+		webappdir:     webappdir,
+		db:            db,
+		fcapi:         fcapi,
 		electionLRU: func() *lru.Cache[string, *api.Election] {
 			lru, err := lru.New[string, *api.Election](100)
 			if err != nil {
@@ -216,7 +216,9 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 				log.Errorw(err, "failed to get elections without results")
 				continue
 			}
-			log.Debugw("found elections without results", "count", len(electionIDs))
+			if len(electionIDs) > 0 {
+				log.Debugw("found elections without results", "count", len(electionIDs))
+			}
 			for _, electionID := range electionIDs {
 				time.Sleep(5 * time.Second)
 				electionIDbytes, err := hex.DecodeString(electionID)

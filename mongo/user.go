@@ -38,7 +38,7 @@ func (ms *MongoStorage) Users() (*Users, error) {
 }
 
 // AddUser adds a new user to the database. If the user already exists, it returns an error.
-func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []string, elections uint64) error {
+func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []string, signers []string, elections uint64) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
@@ -46,6 +46,7 @@ func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []st
 		UserID:        userFID,
 		Username:      usernanme,
 		Addresses:     addresses,
+		Signers:       signers,
 		ElectionCount: elections,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -123,6 +124,36 @@ func (ms *MongoStorage) UsersWithPendingProfile() ([]uint64, error) {
 	}
 
 	return users, nil
+}
+
+// UserByAddress returns the user that has the given address. If the user is not found, it returns an error.
+func (ms *MongoStorage) UserByAddress(address string) (*User, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	// Example query to find a user by an address
+	var userByAddress User
+	if err := ms.users.FindOne(context.TODO(), bson.M{
+		"addresses": bson.M{"$in": []string{address}},
+	}).Decode(&userByAddress); err != nil {
+		return nil, ErrUserUnknown
+	}
+	return &userByAddress, nil
+}
+
+// UserBySigner returns the user that has the given signer. If the user is not found, it returns an error.
+func (ms *MongoStorage) UserBySigner(signer string) (*User, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	// Example query to find a user by a signer
+	var userBySigner User
+	if err := ms.users.FindOne(context.TODO(), bson.M{
+		"signers": bson.M{"$in": []string{signer}},
+	}).Decode(&userBySigner); err != nil {
+		return nil, ErrUserUnknown
+	}
+	return &userBySigner, nil
 }
 
 func (ms *MongoStorage) getUserData(userID uint64) (*User, error) {

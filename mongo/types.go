@@ -22,6 +22,7 @@ type User struct {
 	CastedVotes   uint64   `json:"castedVotes" bson:"castedVotes"`
 	Username      string   `json:"username" bson:"username"`
 	Addresses     []string `json:"addresses" bson:"addresses"`
+	Signers       []string `json:"signers" bson:"signers"`
 }
 
 // Election represents an election and its details owned by a user.
