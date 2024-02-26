@@ -142,11 +142,12 @@ func (d *FarcasterDiscover) Run(ctx context.Context) {
 					continue
 				}
 				if err := d.db.UpdateUser(&mongo.User{
-					UserID:        user.UserID,
-					Username:      profile.Result.User.Username,
-					CastedVotes:   user.CastedVotes,
-					ElectionCount: user.ElectionCount,
-					Addresses:     user.Addresses,
+					UserID:         user.UserID,
+					Username:       profile.Result.User.Username,
+					CastedVotes:    user.CastedVotes,
+					ElectionCount:  user.ElectionCount,
+					Addresses:      user.Addresses,
+					CustodyAddress: profile.Result.Extras.CustodyAddress,
 				}); err != nil {
 					log.Warnw("failed to update user profile", "error", err)
 				}

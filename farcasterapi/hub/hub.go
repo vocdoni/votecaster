@@ -315,7 +315,7 @@ func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.User
 	}, nil
 }
 
-func (h *Hub) UserDataByVerificationAddress(ctx context.Context, address string) (*farcasterapi.Userdata, error) {
+func (h *Hub) UserDataByVerificationAddress(ctx context.Context, address []string) ([]*farcasterapi.Userdata, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
