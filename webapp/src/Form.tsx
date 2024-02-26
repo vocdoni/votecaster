@@ -111,15 +111,21 @@ const Form: React.FC = (props: FlexProps) => {
 
       if (data.csv) {
         // create the census
-        const csv = await axios.post(`${appUrl}/census/csv`, data.csv[0])
-        const census = await checkCensus(csv.data.censusId)
-        if (census === false) {
-          setError('There was an error creating the census')
+        try {
+          const csv = await axios.post(`${appUrl}/census/csv`, data.csv[0])
+          const census = await checkCensus(csv.data.censusId)
+          if (census === false) {
+            throw new Error('backend error')
+          }
+          election.census = census
+        } catch (e) {
+          console.error('there was an error creating the census:', e)
+          if ('message' in e) {
+            setError(e.message)
+          }
           setLoading(false)
           return
         }
-        console.log('census properly created:', census)
-        election.census = census
       }
 
       const res = await axios.post(`${appUrl}/create`, election)
