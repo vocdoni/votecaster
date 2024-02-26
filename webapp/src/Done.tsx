@@ -1,15 +1,32 @@
-import { Box, Button, Code, IconButton, Image, Text, useClipboard } from '@chakra-ui/react'
-import { Dispatch, SetStateAction } from 'react'
+import { Box, Button, Code, Icon, IconButton, Image, Link, Text, useClipboard } from '@chakra-ui/react'
+import { Dispatch, SetStateAction, useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
-import { FaArchway, FaCheck, FaRegCopy } from 'react-icons/fa6'
+import { FaArchway, FaCheck, FaDownload, FaRegCopy } from 'react-icons/fa6'
+import { CsvGenerator } from './generator'
 
 const appUrl = import.meta.env.APP_URL
 const pollUrl = (pid: string) => `${appUrl}/${pid}`
 const cast = (uri: string) => window.open(`https://warpcast.com/~/compose?embeds[]=${encodeURIComponent(pollUrl(uri))}`)
 
-export const Done = ({ pid, setPid }: { pid: string; setPid: Dispatch<SetStateAction<string | null>> }) => {
+type DoneProps = {
+  pid: string
+  setPid: Dispatch<SetStateAction<string | null>>
+  usernames: string[]
+  setUsernames: Dispatch<SetStateAction<string[]>>
+}
+
+export const Done = ({ pid, setPid, usernames, setUsernames }: DoneProps) => {
   const { hasCopied, onCopy } = useClipboard(pollUrl(pid))
   const { reset } = useFormContext()
+
+  const usersfile = useMemo(() => {
+    if (!usernames.length) return { url: '', filename: '' }
+
+    return new CsvGenerator(
+      ['Username'],
+      usernames.map((username) => [username])
+    )
+  }, [usernames])
 
   return (
     <>
@@ -42,11 +59,22 @@ export const Done = ({ pid, setPid }: { pid: string; setPid: Dispatch<SetStateAc
           onClick={() => {
             reset()
             setPid(null)
+            setUsernames([])
           }}
         >
           create a new one
         </Button>
       </Box>
+      {usernames.length > 0 && (
+        <Box>
+          <Text>
+            You created a custom census for a total of {usernames.length} farcaster users.{` `}
+            <Link download={'census-usernames.csv'} href={usersfile.url}>
+              Download usernames list <Icon as={FaDownload} />
+            </Link>
+          </Text>
+        </Box>
+      )}
     </>
   )
 }

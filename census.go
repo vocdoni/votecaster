@@ -276,6 +276,9 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 		log.Debugw("fetching users from farcaster", "from", i, "to", to)
 		usersData, err := fcapi.UserDataByVerificationAddress(ctx, pendingAddresses[i:to])
 		if err != nil {
+			if errors.Is(err, farcasterapi.ErrNoDataFound) {
+				break
+			}
 			return nil, err
 		}
 		for _, userData := range usersData {

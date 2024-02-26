@@ -248,7 +248,7 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 		for _, item := range dataItems {
 			if item.Username != "" {
 				if len(item.VerifiedAddresses.EthAddresses) == 0 {
-					log.Warnw("no verified addresses found for address", "address", address)
+					log.Warnw("no verified addresses found", "user", item.Username)
 					continue
 				}
 				// Normalize addresses to the Ethereum hex standard format
@@ -263,7 +263,7 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 					return nil, fmt.Errorf("error getting signers for address %s: %w", address, err)
 				}
 				if len(signers) == 0 {
-					log.Warnw("no signers found for address", "address", address)
+					log.Warnw("no signers found", "user", item.Username, "address", address)
 					continue
 				}
 				userData := &farcasterapi.Userdata{
