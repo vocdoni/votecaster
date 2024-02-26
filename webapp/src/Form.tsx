@@ -67,6 +67,7 @@ const Form: React.FC = (props: FlexProps) => {
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [usernames, setUsernames] = useState<string[]>([])
 
   const checkElection = async (pid: string) => {
     try {
@@ -118,6 +119,7 @@ const Form: React.FC = (props: FlexProps) => {
             throw new Error('backend error')
           }
           election.census = census
+          setUsernames(census.usernames)
         } catch (e) {
           console.error('there was an error creating the census:', e)
           if ('message' in e) {
@@ -172,7 +174,7 @@ const Form: React.FC = (props: FlexProps) => {
           <FormProvider {...methods}>
             <VStack as='form' onSubmit={handleSubmit(onSubmit)} spacing={4} align='left'>
               {pid ? (
-                <Done pid={pid} setPid={setPid} />
+                <Done pid={pid} setPid={setPid} usernames={usernames} setUsernames={setUsernames} />
               ) : (
                 <>
                   <FormControl isRequired isDisabled={loading} isInvalid={!!errors.question}>
@@ -235,7 +237,7 @@ const Form: React.FC = (props: FlexProps) => {
                         id='csv'
                         placeholder='Select CSV'
                         type='file'
-                        accept='text/csv,.csv'
+                        accept='text/csv,application/csv,.csv'
                         {...register('csv', {
                           required: {
                             value: true,
