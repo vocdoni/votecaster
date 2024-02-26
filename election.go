@@ -179,6 +179,46 @@ func (v *vocdoniHandler) votersForElection(msg *apirest.APIdata, ctx *httprouter
 	return ctx.Send(data, http.StatusOK)
 }
 
+func (v *vocdoniHandler) createAndWaitForElection(description *ElectionDescription, census *CensusInfo, profile *FarcasterProfile) (types.HexBytes, error) {
+	// if no census is provided, use the default one
+	if census == nil {
+		census = v.defaultCensus
+	}
+
+	electionID, err := createElection(v.cli, description, census)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create election: %v", err)
+	}
+
+	election, err := waitForElection(v.cli, electionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create election: %w", err)
+	}
+	// add the election to the LRU cache and the database
+	v.electionLRU.Add(electionID.String(), election)
+	if err := v.db.AddElection(electionID, profile.FID); err != nil {
+		return nil, fmt.Errorf("failed to add election to database: %w", err)
+	}
+	u, err := v.db.User(profile.FID)
+	if err != nil {
+		if !errors.Is(err, mongo.ErrUserUnknown) {
+			return nil, fmt.Errorf("failed to get user from database: %w", err)
+		}
+		if err := v.db.AddUser(profile.FID, profile.Username, profile.Verifications, []string{}, 1); err != nil {
+			log.Errorw(err, "failed to add user to database")
+			return nil, fmt.Errorf("failed to add user to database: %w", err)
+		}
+		return electionID, nil
+	}
+	u.Addresses = profile.Verifications
+	u.Username = profile.Username
+	u.ElectionCount++
+	if err := v.db.UpdateUser(u); err != nil {
+		return nil, fmt.Errorf("failed to update user in database: %w", err)
+	}
+	return electionID, nil
+}
+
 func generateElectionImage(title string) ([]byte, error) {
 	return textToImage(textToImageContents{title: title}, frames[BackgroundGeneric])
 }

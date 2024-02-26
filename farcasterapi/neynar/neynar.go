@@ -3,11 +3,15 @@ package neynar
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -38,8 +42,10 @@ const (
 	baseDelay             = 1 * time.Second // Initial delay, increases exponentially
 
 	// other
-	neynarMentionType = "cast-mention"
-	timeLayout        = "2006-01-02T15:04:05.000Z"
+	neynarMentionType     = "cast-mention"
+	neynarCastCreatedType = "cast.created"
+	neynarCastType        = "cast"
+	timeLayout            = "2006-01-02T15:04:05.000Z"
 )
 
 type NeynarAPI struct {
@@ -48,13 +54,15 @@ type NeynarAPI struct {
 	signerUUID   string
 	apiKey       string
 	reqSemaphore chan struct{} // Semaphore to limit concurrent requests
-
+	newCasts     map[uint64]*farcasterapi.APIMessage
+	newCastsMtx  sync.Mutex
 }
 
 func NewNeynarAPI(apiKey string) *NeynarAPI {
 	return &NeynarAPI{
 		apiKey:       apiKey,
 		reqSemaphore: make(chan struct{}, maxConcurrentRequests),
+		newCasts:     make(map[uint64]*farcasterapi.APIMessage),
 	}
 }
 
@@ -82,59 +90,19 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 	if n.fid == 0 {
 		return nil, 0, fmt.Errorf("farcaster user not set")
 	}
-
+	// get new mentions from the queue and calculate the last timestamp
 	messages := []*farcasterapi.APIMessage{}
 	lastTimestamp := timestamp
-	cursor := ""
-	for {
-		// create request with the given cursor and set the api key header
-		url := fmt.Sprintf(neynarGetCastsEndpoint, n.fid, cursor)
-		body, err := n.request(url, http.MethodGet, nil)
-		if err != nil {
-			return nil, 0, err
+	n.newCastsMtx.Lock()
+	for ts, msg := range n.newCasts {
+		if ts > timestamp {
+			messages = append(messages, msg)
+			lastTimestamp = ts
 		}
-		// decode mentions
-		notificationsResponse := &NotificationsResponse{}
-		if err := json.Unmarshal(body, notificationsResponse); err != nil {
-			return nil, 0, fmt.Errorf("error unmarshalling response body: %w", err)
-		}
-		// parse mentions
-		for _, notification := range notificationsResponse.Result.Notifications {
-			// skip non-mentions
-			if notification.Type != neynarMentionType {
-				continue
-			}
-			// parse timestamp
-			parsedTimestamp, err := time.Parse(timeLayout, notification.Timestamp)
-			if err != nil {
-				return nil, 0, fmt.Errorf("error parsing timestamp: %w", err)
-			}
-			// skip old mentions
-			notificationTimestamp := uint64(parsedTimestamp.Unix())
-			if notificationTimestamp <= timestamp {
-				continue
-			}
-			// parse the text to remove the bot username and add mention to the
-			// list
-			mention := fmt.Sprintf("@%s", n.username)
-			text := strings.TrimSpace(strings.TrimPrefix(notification.Text, mention))
-			messages = append(messages, &farcasterapi.APIMessage{
-				IsMention: true,
-				Author:    notification.Author.FID,
-				Content:   text,
-				Hash:      notification.Hash,
-			})
-			// update last timestamp
-			if notificationTimestamp > lastTimestamp {
-				lastTimestamp = notificationTimestamp
-			}
-		}
-		// stop if there are no new mentions
-		if notificationsResponse.Result.NextCursor.Cursor == "" {
-			break
-		}
-		cursor = notificationsResponse.Result.NextCursor.Cursor
 	}
+	// clear the new mentions queue
+	n.newCasts = make(map[uint64]*farcasterapi.APIMessage)
+	n.newCastsMtx.Unlock()
 	return messages, lastTimestamp, nil
 }
 
@@ -271,6 +239,44 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, address s
 	}, nil
 }
 
+func (n *NeynarAPI) WebhookHandler(body []byte) error {
+	// decode the request body
+	castWebhookReq := &CastWebhookRequest{}
+	if err := json.Unmarshal(body, castWebhookReq); err != nil {
+		return fmt.Errorf("error unmarshalling request body: %s", err.Error())
+	}
+	// check if the req type is a not created cast or data type is not cast and
+	// skip if so
+	if castWebhookReq.Type != neynarCastCreatedType || castWebhookReq.Data.Object != neynarCastType {
+		return nil
+	}
+	// parse timestamp
+	parsedTimestamp, err := time.Parse(timeLayout, castWebhookReq.Data.Timestamp)
+	if err != nil {
+		return fmt.Errorf("error parsing timestamp: %s", err.Error())
+	}
+	notificationTimestamp := uint64(parsedTimestamp.Unix())
+	// check if the cast is a mention and skip if not
+	mention := fmt.Sprintf("@%s", n.username)
+	if !strings.HasPrefix(castWebhookReq.Data.Text, mention) {
+		return nil
+	}
+	// parse the text to remove the bot username and add mention to the
+	// list
+	text := strings.TrimSpace(strings.TrimPrefix(castWebhookReq.Data.Text, mention))
+	message := &farcasterapi.APIMessage{
+		IsMention: true,
+		Author:    castWebhookReq.Data.Author.Fid,
+		Content:   text,
+		Hash:      castWebhookReq.Data.Hash,
+	}
+	// add the new mention to the list
+	n.newCastsMtx.Lock()
+	n.newCasts[notificationTimestamp] = message
+	n.newCastsMtx.Unlock()
+	return nil
+}
+
 func (n *NeynarAPI) request(url, method string, body []byte) ([]byte, error) {
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -280,6 +286,7 @@ func (n *NeynarAPI) request(url, method string, body []byte) ([]byte, error) {
 			return nil, fmt.Errorf("error creating request: %w", err)
 		}
 		req.Header.Set("api_key", n.apiKey)
+		req.Header.Set("Content-Type", "application/json")
 
 		// We need to avoid too much concurrent requests and penalization from the API
 		n.reqSemaphore <- struct{}{}
@@ -304,4 +311,18 @@ func (n *NeynarAPI) request(url, method string, body []byte) ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("error downloading json: exceeded retry limit")
+}
+
+// VerifyRequest method verifies the request signature and returns the body of
+// the request, a boolean indicating if the signature is valid and an error if
+// something goes wrong.
+func VerifyRequest(secret, neynarSig string, body []byte) ([]byte, bool, error) {
+	// Create HMAC with SHA512 and update it with the body
+	hmac := hmac.New(sha512.New, []byte(secret))
+	hmac.Write(body)
+	// Calculate the HMAC signature and encode it in hexadecimal
+	signature := hex.EncodeToString(hmac.Sum(nil))
+	log.Debugw("neynar request", "body", string(body), "neynarSig", neynarSig, "signature", signature)
+	// verify the signature
+	return body, signature == neynarSig, nil
 }

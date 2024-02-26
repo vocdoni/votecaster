@@ -48,23 +48,23 @@ type Hub struct {
 // Init initializes the API Hub with the given arguments.
 // apiKeys must be a slice of strings with an even number of elements, where
 // each pair of elements is a header and a key.
-func (h *Hub) Init(apiEndpoint string, apiKeys []string) error {
-	h.endpoint = apiEndpoint
+func NewHubAPI(apiEndpoint string, apiKeys []string) (*Hub, error) {
+	h := &Hub{endpoint: apiEndpoint}
 	// take the apikeys by group of two and set them as header/key
 	if len(apiKeys)%2 != 0 {
-		return fmt.Errorf("invalid number of api keys")
+		return nil, fmt.Errorf("invalid number of api keys")
 	}
 	h.auth = map[string]string{}
 	for i := 0; i < len(apiKeys); i += 2 {
 		h.auth[apiKeys[i]] = apiKeys[i+1]
 	}
-	return nil
+	return h, nil
 }
 
 // SetFarcasterUser sets the farcaster user with the given fid and signer privateKey in hex.
-func (h *Hub) SetFarcasterUser(fid uint64, signer string) error {
+func (h *Hub) SetFarcasterUser(fid uint64, signerPrivKey string) error {
 	var err error
-	h.privKey, err = hex.DecodeString(signer)
+	h.privKey, err = hex.DecodeString(strings.TrimPrefix(signerPrivKey, "0x"))
 	if err != nil {
 		return fmt.Errorf("error decoding signer: %w", err)
 	}
@@ -316,8 +316,11 @@ func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.User
 }
 
 func (h *Hub) UserDataByVerificationAddress(ctx context.Context, address string) (*farcasterapi.Userdata, error) {
-
 	return nil, fmt.Errorf("not implemented")
+}
+
+func (h *Hub) WebhookHandler(_ []byte) error {
+	return fmt.Errorf("not implemented")
 }
 
 func (h *Hub) newRequest(ctx context.Context, method string, uri string, body io.Reader) (*http.Request, error) {

@@ -16,9 +16,11 @@ import (
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/vocdoni/farcaster-poc/bot"
 	"github.com/vocdoni/farcaster-poc/discover"
 	"github.com/vocdoni/farcaster-poc/farcasterapi/neynar"
 	"github.com/vocdoni/farcaster-poc/mongo"
+	"github.com/vocdoni/farcaster-poc/poll"
 	urlapi "go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
@@ -51,8 +53,11 @@ func main() {
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
 
-	//flag.String("neynarSignerUUID", "", "neynar signer UUID")
+	// bot flags
+	flag.Uint64("botFid", 0, "FID to be used for the bot")
 	flag.String("neynarAPIKey", "", "neynar API key")
+	flag.String("neynarSignerUUID", "", "neynar signer UUID")
+	flag.String("neynarWebhookSecret", "cUIJfBD1Jn9oQC3hy_jRL9Dox", "neynar Webhook shared secret")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -83,9 +88,11 @@ func main() {
 	adminToken := viper.GetString("adminToken")
 	pollSize := viper.GetInt("pollSize")
 	pprofPort := viper.GetInt("pprofPort")
-
-	//neynarSignerUUID := viper.GetString("neynarSignerUUID")
+	// bot vars
+	botFid := viper.GetUint64("botFid")
 	neynarAPIKey := viper.GetString("neynarAPIKey")
+	neynarSignerUUID := viper.GetString("neynarSignerUUID")
+	neynarWebhookSecret := viper.GetString("neynarWebhookSecret")
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
@@ -111,6 +118,10 @@ func main() {
 		"mongoDB", mongoDB,
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
+		"botFid", botFid,
+		"neynarAPIKey", neynarAPIKey,
+		"neynarSignerUUID", neynarSignerUUID,
+		"neynarWebhookSecret", neynarWebhookSecret,
 	)
 
 	// Start the pprof http endpoints
@@ -346,6 +357,103 @@ func main() {
 
 	if err := uAPI.Endpoint.RegisterMethod(fmt.Sprintf("%s/{id}.png", imageHandlerPath), http.MethodGet, "public", handler.imagesHandler); err != nil {
 		log.Fatal(err)
+	}
+	// if a bot FID is provided, start the bot background process
+	if botFid > 0 {
+		if err := neynarcli.SetFarcasterUser(botFid, neynarSignerUUID); err != nil {
+			log.Fatal(err)
+		}
+		// start the bot background process
+		voteBot, err := bot.New(bot.BotConfig{
+			API:      neynarcli,
+			CoolDown: 10 * time.Second,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		voteBot.Start(mainCtx)
+		defer voteBot.Stop()
+		// handle new messages in background
+		go func() {
+			for {
+				select {
+				case <-mainCtx.Done():
+					return
+				case msg := <-voteBot.Messages:
+					// when a new cast is received, check if it is a mention and if
+					// it is not, continue to the next cast
+					if !msg.IsMention {
+						continue
+					}
+					// try to parse the message as a poll, if it fails continue to
+					// the next cast
+					pollConf := poll.DefaultConfig
+					pollConf.DefaultDuration = maxElectionDuration
+					poll, err := poll.ParseString(msg.Content, pollConf)
+					if err != nil {
+						log.Errorf("error parsing poll: %s", err)
+						continue
+					}
+					// get the user data such as username, custody address and
+					// verification addresses to create the election frame
+					userdata, err := neynarcli.UserDataByFID(mainCtx, msg.Author)
+					if err != nil {
+						log.Errorf("error getting user data: %s", err)
+						continue
+					}
+					log.Infow("new poll received, creating election...",
+						"poll", poll,
+						"userdata", userdata)
+					description := &ElectionDescription{
+						Question:  poll.Question,
+						Options:   poll.Options,
+						Duration:  poll.Duration,
+						Overwrite: false,
+					}
+					profile := &FarcasterProfile{
+						FID:           userdata.FID,
+						Username:      userdata.Username,
+						Custody:       userdata.CustodyAddress,
+						Verifications: userdata.VerificationsAddresses,
+					}
+					electionID, err := handler.createAndWaitForElection(description, censusInfo, profile)
+					if err != nil {
+						log.Errorf("error creating election: %s", err)
+						continue
+					}
+
+					msgTemplate := `🗳️ Your verifiable poll frame has been created using farcaster.vote & @vocdoni
+
+Now copy & paste the URL of the frame into a Cast to share your poll with others!
+					
+👉 %s`
+					frameUrl := fmt.Sprintf("%s/%s", serverURL, electionID.String())
+					if err := neynarcli.Reply(mainCtx, msg.Author, msg.Hash, fmt.Sprintf(msgTemplate, frameUrl)); err != nil {
+						log.Errorf("error replying to cast: %s", err)
+						continue
+					}
+				}
+			}
+		}()
+
+		// register neynar webhook handler
+		if err := uAPI.Endpoint.RegisterMethod("/webhook/neynar", http.MethodPost, "public", func(msg *apirest.APIdata, h *httprouter.HTTPContext) error {
+			neynarSig := h.Request.Header.Get("X-Neynar-Signature")
+			body, verified, err := neynar.VerifyRequest(neynarWebhookSecret, neynarSig, msg.Data)
+			if err != nil {
+				log.Errorf("error verifying request: %s", err)
+				return h.Send([]byte("error verifying request"), http.StatusBadRequest)
+			}
+			if !verified {
+				return h.Send([]byte("request not verified"), http.StatusUnauthorized)
+			}
+			if err := neynarcli.WebhookHandler(body); err != nil {
+				return fmt.Errorf("error handling webhook: %s", err)
+			}
+			return h.Send([]byte("ok"), http.StatusOK)
+		}); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// close if interrupt received
