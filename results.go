@@ -87,21 +87,21 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 }
 
 func buildResultsPNG(election *api.Election) ([]byte, error) {
-	castedVotes := uint64(0)
+	castedWeight := uint64(0)
 	for i := 0; i < len(election.Results[0]); i++ {
-		castedVotes += (election.Results[0][i].MathBigInt().Uint64())
+		castedWeight += (election.Results[0][i].MathBigInt().Uint64())
 	}
 	var text []string
 	var logResults []uint64
 	title := election.Metadata.Questions[0].Title["default"]
 	// Check for division by zero error
-	if castedVotes == 0 {
+	if castedWeight == 0 {
 		text = []string{"No votes casted yet..."}
 	} else {
-		text = []string{fmt.Sprintf("Total votes casted: %d\n", castedVotes)}
+		text = []string{fmt.Sprintf("Votes casted: %d | Weight: %d\n", election.VoteCount, castedWeight)}
 		for i, r := range election.Metadata.Questions[0].Choices {
 			votesForOption := election.Results[0][r.Value].MathBigInt().Uint64()
-			percentage := float64(votesForOption) * 100 / float64(castedVotes)
+			percentage := float64(votesForOption) * 100 / float64(castedWeight)
 			text = append(text, (fmt.Sprintf("%d. %s",
 				i+1,
 				r.Title["default"],
@@ -110,7 +110,7 @@ func buildResultsPNG(election *api.Election) ([]byte, error) {
 			logResults = append(logResults, votesForOption)
 		}
 	}
-	log.Debugw("election results", "castedVotes", castedVotes, "results", logResults)
+	log.Debugw("election results", "castedVotes", castedWeight, "castedVotes", election.VoteCount, "results", logResults)
 
 	png, err := textToImage(textToImageContents{title: title, body: text}, frames[BackgroundResults])
 	if err != nil {
