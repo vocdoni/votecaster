@@ -165,6 +165,11 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	text = append(text, fmt.Sprintf("Poll id %x...", election.ElectionID[:16]))
 	text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
 	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:16]))
+	if election.Census.MaxCensusSize >= uint64(maxElectionSize) {
+		text = append(text, fmt.Sprintf("Allowed voters %d", election.Census.MaxCensusSize))
+	} else {
+		text = append(text, fmt.Sprintf("Census size %d", election.Census.MaxCensusSize))
+	}
 
 	png, err := textToImage(textToImageContents{title: title, body: text}, frames[BackgroundInfo])
 	if err != nil {
