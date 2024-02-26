@@ -329,16 +329,14 @@ func (n *NeynarAPI) request(url, method string, body []byte) ([]byte, error) {
 	return nil, fmt.Errorf("error downloading json: exceeded retry limit")
 }
 
-// VerifyRequest method verifies the request signature and returns the body of
-// the request, a boolean indicating if the signature is valid and an error if
-// something goes wrong.
-func VerifyRequest(secret, neynarSig string, body []byte) ([]byte, bool, error) {
+// VerifyRequest method verifies the request signature and returns a boolean
+// indicating if the signature is valid and an error if something goes wrong.
+func VerifyRequest(secret, signature string, body []byte) (bool, error) {
 	// Create HMAC with SHA512 and update it with the body
 	hmac := hmac.New(sha512.New, []byte(secret))
 	hmac.Write(body)
 	// Calculate the HMAC signature and encode it in hexadecimal
-	signature := hex.EncodeToString(hmac.Sum(nil))
-	log.Debugw("neynar request", "body", string(body), "neynarSig", neynarSig, "signature", signature)
+	bodySig := hex.EncodeToString(hmac.Sum(nil))
 	// verify the signature
-	return body, signature == neynarSig, nil
+	return signature == bodySig, nil
 }

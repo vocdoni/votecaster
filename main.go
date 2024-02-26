@@ -439,7 +439,7 @@ Now copy & paste the URL of the frame into a Cast to share your poll with others
 		// register neynar webhook handler
 		if err := uAPI.Endpoint.RegisterMethod("/webhook/neynar", http.MethodPost, "public", func(msg *apirest.APIdata, h *httprouter.HTTPContext) error {
 			neynarSig := h.Request.Header.Get("X-Neynar-Signature")
-			body, verified, err := neynar.VerifyRequest(neynarWebhookSecret, neynarSig, msg.Data)
+			verified, err := neynar.VerifyRequest(neynarWebhookSecret, neynarSig, msg.Data)
 			if err != nil {
 				log.Errorf("error verifying request: %s", err)
 				return h.Send([]byte("error verifying request"), http.StatusBadRequest)
@@ -447,7 +447,7 @@ Now copy & paste the URL of the frame into a Cast to share your poll with others
 			if !verified {
 				return h.Send([]byte("request not verified"), http.StatusUnauthorized)
 			}
-			if err := neynarcli.WebhookHandler(body); err != nil {
+			if err := neynarcli.WebhookHandler(msg.Data); err != nil {
 				return fmt.Errorf("error handling webhook: %s", err)
 			}
 			return h.Send([]byte("ok"), http.StatusOK)

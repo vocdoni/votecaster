@@ -67,7 +67,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		}
 		// add the election to the LRU cache and the database
 		v.electionLRU.Add(electionID.String(), election)
-		if err := v.db.AddElection(electionID, req.Profile.FID); err != nil {
+		if err := v.db.AddElection(electionID, req.Profile.FID, mongo.ElectionSourceWebApp); err != nil {
 			log.Errorw(err, "failed to add election to database")
 		}
 		u, err := v.db.User(req.Profile.FID)
@@ -196,7 +196,7 @@ func (v *vocdoniHandler) createAndWaitForElection(description *ElectionDescripti
 	}
 	// add the election to the LRU cache and the database
 	v.electionLRU.Add(electionID.String(), election)
-	if err := v.db.AddElection(electionID, profile.FID); err != nil {
+	if err := v.db.AddElection(electionID, profile.FID, mongo.ElectionSourceBot); err != nil {
 		return nil, fmt.Errorf("failed to add election to database: %w", err)
 	}
 	u, err := v.db.User(profile.FID)
@@ -204,7 +204,7 @@ func (v *vocdoniHandler) createAndWaitForElection(description *ElectionDescripti
 		if !errors.Is(err, mongo.ErrUserUnknown) {
 			return nil, fmt.Errorf("failed to get user from database: %w", err)
 		}
-		if err := v.db.AddUser(profile.FID, profile.Username, profile.Verifications, []string{}, 1); err != nil {
+		if err := v.db.AddUser(profile.FID, profile.Username, profile.Verifications, []string{}, profile.Custody, 1); err != nil {
 			log.Errorw(err, "failed to add user to database")
 			return nil, fmt.Errorf("failed to add user to database: %w", err)
 		}
