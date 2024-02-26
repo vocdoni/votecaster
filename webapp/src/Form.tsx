@@ -19,6 +19,9 @@ import {
   InputGroup,
   InputRightElement,
   Link,
+  Radio,
+  RadioGroup,
+  Stack,
   Text,
   VStack,
 } from '@chakra-ui/react'
@@ -35,6 +38,8 @@ interface FormValues {
   question: string
   choices: { choice: string }[]
   duration?: number
+  csv: File | undefined
+  censusType: string
 }
 
 const appUrl = import.meta.env.APP_URL
@@ -43,6 +48,7 @@ const Form: React.FC = (props: FlexProps) => {
   const methods = useForm<FormValues>({
     defaultValues: {
       choices: [{ choice: '' }, { choice: '' }],
+      censusType: 'farcaster',
     },
   })
   const {
@@ -50,6 +56,8 @@ const Form: React.FC = (props: FlexProps) => {
     handleSubmit,
     formState: { errors },
     control,
+    setValue,
+    watch,
   } = methods
   const { fields, append, remove } = useFieldArray({
     control,
@@ -73,15 +81,45 @@ const Form: React.FC = (props: FlexProps) => {
     }
   }
 
+  const checkCensus = async (pid: string) => {
+    try {
+      const checkRes = await axios.get(`${appUrl}/census/check/${pid}`)
+      if (checkRes.status === 200) {
+        return checkRes.data
+      }
+      // wait 3 seconds between requests
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      // continue retrying until we get a 200 status
+      return await checkCensus(pid)
+    } catch (error) {
+      console.error('error checking census status:', error)
+      return false
+    }
+  }
+
   const onSubmit = async (data: FormValues) => {
     setError(null)
     try {
       setLoading(true)
+
       const election = {
         profile,
         question: data.question,
         duration: Number(data.duration),
         options: data.choices.map((c) => c.choice),
+      }
+
+      if (data.csv) {
+        // create the census
+        const csv = await axios.post(`${appUrl}/census/csv`, data.csv[0])
+        const census = await checkCensus(csv.data.censusId)
+        if (census === false) {
+          setError('There was an error creating the census')
+          setLoading(false)
+          return
+        }
+        console.log('census properly created:', census)
+        election.census = census
       }
 
       const res = await axios.post(`${appUrl}/create`, election)
@@ -109,6 +147,8 @@ const Form: React.FC = (props: FlexProps) => {
     value: 50,
     message: 'Max length is 50 characters',
   }
+
+  const censusType = watch('censusType')
 
   return (
     <Flex flexDir='column' alignItems='center' {...props}>
@@ -173,7 +213,37 @@ const Form: React.FC = (props: FlexProps) => {
                       Add Choice
                     </Button>
                   )}
-
+                  <FormControl isDisabled={loading}>
+                    <FormLabel>Census/voters</FormLabel>
+                    <RadioGroup onChange={(val: string) => setValue('censusType', val)} value={censusType}>
+                      <Stack direction='row'>
+                        <Radio value='farcaster'>All farcaster users</Radio>
+                        <Radio value='custom'>Custom via CSV</Radio>
+                      </Stack>
+                    </RadioGroup>
+                  </FormControl>
+                  {censusType === 'custom' && (
+                    <FormControl isDisabled={loading} isRequired>
+                      <FormLabel htmlFor='csv'>CSV</FormLabel>
+                      <Input
+                        id='csv'
+                        placeholder='Select CSV'
+                        type='file'
+                        accept='text/csv,.csv'
+                        {...register('csv', {
+                          required: {
+                            value: true,
+                            message: 'This field is required',
+                          },
+                        })}
+                      />
+                      {errors.csv ? (
+                        <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
+                      ) : (
+                        <FormHelperText>Requires hex addresses linked to farcaster accounts</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
                   <FormControl isDisabled={loading} isInvalid={!!errors.duration}>
                     <FormLabel htmlFor='duration'>Duration (Optional)</FormLabel>
                     <Input
