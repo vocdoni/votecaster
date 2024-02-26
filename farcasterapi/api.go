@@ -26,7 +26,7 @@ type API interface {
 	UserDataByFID(ctx context.Context, fid uint64) (*Userdata, error)
 	// UserDataByVerificationAddress retrieves the Userdata of the user with the
 	// given verification address, if something goes wrong, it returns an error
-	UserDataByVerificationAddress(ctx context.Context, address string) (*Userdata, error)
+	UserDataByVerificationAddress(ctx context.Context, address []string) ([]*Userdata, error)
 }
 
 type APIMessage struct {

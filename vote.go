@@ -120,7 +120,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	go func() {
 		if !v.db.UserExists(fid) {
-			if err := v.db.AddUser(fid, "", []string{}, []string{}, 0); err != nil {
+			if err := v.db.AddUser(fid, "", []string{}, []string{}, "", 0); err != nil {
 				log.Errorw(err, "failed to add user to database")
 			}
 		}

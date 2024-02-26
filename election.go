@@ -76,7 +76,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 				log.Errorw(err, "failed to get user from database")
 				return
 			}
-			if err := v.db.AddUser(req.Profile.FID, req.Profile.Username, req.Profile.Verifications, []string{}, 1); err != nil {
+			if err := v.db.AddUser(req.Profile.FID, req.Profile.Username, req.Profile.Verifications, []string{}, req.Profile.Custody, 1); err != nil {
 				log.Errorw(err, "failed to add user to database")
 			}
 			return

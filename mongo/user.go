@@ -38,7 +38,7 @@ func (ms *MongoStorage) Users() (*Users, error) {
 }
 
 // AddUser adds a new user to the database. If the user already exists, it returns an error.
-func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []string, signers []string, elections uint64) error {
+func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []string, signers []string, custodyAddr string, elections uint64) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 

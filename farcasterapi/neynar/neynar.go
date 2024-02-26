@@ -27,6 +27,8 @@ const (
 	neynarUserByEthAddresses  = neynarAPIEndpoint + "/v2/farcaster/user/bulk-by-address?addresses=%s"
 	neynarVerificationsByFID  = neynarHubEndpoint + "/v1/verificationsByFid?fid=%d"
 
+	MaxAddressesPerRequest = 300
+
 	// timeouts
 	getBotUsernameTimeout   = 10 * time.Second
 	getCastByMentionTimeout = 60 * time.Second
@@ -217,58 +219,72 @@ func (n *NeynarAPI) signersFromFid(fid uint64) ([]string, error) {
 	return signers, nil
 }
 
-func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, address string) (*farcasterapi.Userdata, error) {
-	// get the user data by the ethereum address
-	ethAddress := common.HexToAddress(address)
-	url := fmt.Sprintf(neynarUserByEthAddresses, ethAddress.Hex())
+func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses []string) ([]*farcasterapi.Userdata, error) {
+	if len(addresses) > MaxAddressesPerRequest {
+		return nil, fmt.Errorf("address slice exceeds the maximum limit of 350 addresses")
+	}
+
+	// Concatenate addresses separated by commas
+	addressesStr := strings.Join(addresses, ",")
+
+	// Construct the URL with multiple addresses
+	url := fmt.Sprintf(neynarUserByEthAddresses, addressesStr)
+
+	// Make the request
 	body, err := n.request(url, http.MethodGet, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// decode username
-	results := make(map[string][]UserdataV2)
+	// Decode the response
+	var results map[string][]UserdataV2
 	if err := json.Unmarshal(body, &results); err != nil {
 		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 	}
-	// take the first element of the results map which is the address, however
-	// the address is not guaranteed to respect ethereum hex format.
-	dataItems := []UserdataV2{}
-	for _, v := range results {
-		dataItems = v
-		break
-	}
-	if len(dataItems) == 0 {
-		return nil, farcasterapi.ErrNoDataFound
-	}
-	var data *UserdataV2
-	for _, item := range dataItems {
-		if item.Username != "" {
-			data = &item
-			break
+
+	// Process results into []*farcasterapi.Userdata
+	userDataSlice := make([]*farcasterapi.Userdata, 0)
+	for address, dataItems := range results {
+		for _, item := range dataItems {
+			if item.Username != "" {
+				if len(item.VerifiedAddresses.EthAddresses) == 0 {
+					log.Warnw("no verified addresses found for address", "address", address)
+					continue
+				}
+				// Normalize addresses to the Ethereum hex standard format
+				var normalizedAddresses []string
+				for _, addr := range item.VerifiedAddresses.EthAddresses {
+					normalizedAddresses = append(normalizedAddresses, common.HexToAddress(addr).Hex())
+				}
+
+				// Get signers
+				signers, err := n.signersFromFid(item.Fid)
+				if err != nil {
+					return nil, fmt.Errorf("error getting signers for address %s: %w", address, err)
+				}
+				if len(signers) == 0 {
+					log.Warnw("no signers found for address", "address", address)
+					continue
+				}
+				userData := &farcasterapi.Userdata{
+					FID:                    item.Fid,
+					Username:               item.Username,
+					CustodyAddress:         common.HexToAddress(item.CustodyAddress).Hex(),
+					VerificationsAddresses: normalizedAddresses,
+					Signers:                signers,
+				}
+
+				userDataSlice = append(userDataSlice, userData)
+				break // we only need the first valid user data per address
+			}
 		}
 	}
-	if data == nil {
-		return nil, fmt.Errorf("no valid data found for the given address")
+
+	if len(userDataSlice) == 0 {
+		return nil, farcasterapi.ErrNoDataFound
 	}
 
-	// get signers
-	signers, err := n.signersFromFid(data.Fid)
-	if err != nil {
-		return nil, fmt.Errorf("error getting signers: %w", err)
-	}
-	// normalize addresses to the ethereum hex standard format
-	var normalizedAddresses []string
-	for _, addr := range data.VerifiedAddresses.EthAddresses {
-		normalizedAddresses = append(normalizedAddresses, common.HexToAddress(addr).Hex())
-	}
-	return &farcasterapi.Userdata{
-		FID:                    data.Fid,
-		Username:               data.Username,
-		CustodyAddress:         common.HexToAddress(data.CustodyAddress).Hex(),
-		VerificationsAddresses: normalizedAddresses,
-		Signers:                signers,
-	}, nil
+	return userDataSlice, nil
 }
 
 func (n *NeynarAPI) request(url, method string, body []byte) ([]byte, error) {
