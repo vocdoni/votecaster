@@ -249,7 +249,7 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, address s
 		}
 	}
 	if data == nil {
-		return nil, fmt.Errorf("no valid data found for the given address")
+		return nil, fmt.Errorf("no valid data found for the given address %s", address)
 	}
 
 	// get signers
