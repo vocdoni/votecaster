@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/vocdoni/farcaster-poc/farcasterapi"
 	"go.vocdoni.io/dvote/log"
+	"go.vocdoni.io/dvote/util"
 )
 
 const (
@@ -31,21 +32,29 @@ const (
 	getCastByMentionTimeout = 60 * time.Second
 	postCastTimeout         = 10 * time.Second
 
+	// Requests backoff parameters
+	maxConcurrentRequests = 2
+	maxRetries            = 12              // Maximum number of retries
+	baseDelay             = 1 * time.Second // Initial delay, increases exponentially
+
 	// other
 	neynarMentionType = "cast-mention"
 	timeLayout        = "2006-01-02T15:04:05.000Z"
 )
 
 type NeynarAPI struct {
-	fid        uint64
-	username   string
-	signerUUID string
-	apiKey     string
+	fid          uint64
+	username     string
+	signerUUID   string
+	apiKey       string
+	reqSemaphore chan struct{} // Semaphore to limit concurrent requests
+
 }
 
 func NewNeynarAPI(apiKey string) *NeynarAPI {
 	return &NeynarAPI{
-		apiKey: apiKey,
+		apiKey:       apiKey,
+		reqSemaphore: make(chan struct{}, maxConcurrentRequests),
 	}
 }
 
@@ -74,34 +83,16 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 		return nil, 0, fmt.Errorf("farcaster user not set")
 	}
 
-	internalCtx, cancel := context.WithTimeout(ctx, getCastByMentionTimeout)
-	defer cancel()
-
 	messages := []*farcasterapi.APIMessage{}
 	lastTimestamp := timestamp
 	cursor := ""
 	for {
 		// create request with the given cursor and set the api key header
 		url := fmt.Sprintf(neynarGetCastsEndpoint, n.fid, cursor)
-		req, err := http.NewRequestWithContext(internalCtx, http.MethodGet, url, nil)
+		body, err := n.request(url, http.MethodGet, nil)
 		if err != nil {
-			return nil, 0, fmt.Errorf("error creating request: %w", err)
+			return nil, 0, err
 		}
-		req.Header.Set("api_key", n.apiKey)
-		// send request and check response status
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, 0, fmt.Errorf("error downloading json: %w", err)
-		}
-		if res.StatusCode != http.StatusOK {
-			return nil, 0, fmt.Errorf("error downloading json: %s", res.Status)
-		}
-		// read response body
-		body, err := io.ReadAll(res.Body)
-		if err != nil {
-			return nil, 0, fmt.Errorf("error reading response body: %w", err)
-		}
-		defer res.Body.Close()
 		// decode mentions
 		notificationsResponse := &NotificationsResponse{}
 		if err := json.Unmarshal(body, notificationsResponse); err != nil {
@@ -161,35 +152,17 @@ func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content s
 	if err != nil {
 		return fmt.Errorf("error marshalling request body: %w", err)
 	}
-	internalCtx, cancel := context.WithTimeout(ctx, postCastTimeout)
-	defer cancel()
 	// create request with the bot fid and set the api key header
-	req, err := http.NewRequestWithContext(internalCtx, http.MethodPost, neynarReplyEndpoint, bytes.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("error creating request: %w", err)
-	}
-	req.Header.Set("api_key", n.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-	// send request and check response status
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("error sending cast: %w", err)
-	}
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("error sending cast: %s", res.Status)
-	}
-	return nil
+	_, err = n.request(neynarReplyEndpoint, http.MethodPost, body)
+	return err
 }
 
 // UserData method returns the username, the custody address and the
 // verification addresses of the user with the given fid.
 func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.Userdata, error) {
-	internalCtx, cancel := context.WithTimeout(ctx, getBotUsernameTimeout)
-	defer cancel()
-
 	// create request with the bot fid
 	url := fmt.Sprintf(neynarGetUsernameEndpoint, fid)
-	body, err := n.newRequest(internalCtx, url, http.MethodGet, nil)
+	body, err := n.request(url, http.MethodGet, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -215,11 +188,8 @@ func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterap
 }
 
 func (n *NeynarAPI) signersFromFid(fid uint64) ([]string, error) {
-	internalCtx, cancel := context.WithTimeout(context.Background(), getBotUsernameTimeout)
-	defer cancel()
-
 	// get verifications to fetch the signer
-	body, err := n.newRequest(internalCtx, fmt.Sprintf(neynarVerificationsByFID, fid), http.MethodGet, nil)
+	body, err := n.request(fmt.Sprintf(neynarVerificationsByFID, fid), http.MethodGet, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -248,30 +218,14 @@ func (n *NeynarAPI) signersFromFid(fid uint64) ([]string, error) {
 }
 
 func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, address string) (*farcasterapi.Userdata, error) {
-	internalCtx, cancel := context.WithTimeout(ctx, getBotUsernameTimeout)
-	defer cancel()
+	// get the user data by the ethereum address
 	ethAddress := common.HexToAddress(address)
-
 	url := fmt.Sprintf(neynarUserByEthAddresses, ethAddress.Hex())
-	req, err := http.NewRequestWithContext(internalCtx, http.MethodGet, url, nil)
+	body, err := n.request(url, http.MethodGet, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
+		return nil, err
 	}
-	req.Header.Set("api_key", n.apiKey)
-	// send request and check response status
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error downloading json: %w", err)
-	}
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error downloading json: %s", res.Status)
-	}
-	// read response body
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
-	}
-	defer res.Body.Close()
+
 	// decode username
 	results := make(map[string][]UserdataV2)
 	if err := json.Unmarshal(body, &results); err != nil {
@@ -317,26 +271,37 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, address s
 	}, nil
 }
 
-func (n *NeynarAPI) newRequest(ctx context.Context, url, method string, body []byte) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
-	req.Header.Set("api_key", n.apiKey)
+func (n *NeynarAPI) request(url, method string, body []byte) ([]byte, error) {
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
+		if err != nil {
+			return nil, fmt.Errorf("error creating request: %w", err)
+		}
+		req.Header.Set("api_key", n.apiKey)
 
-	// send request and check response status
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error downloading json: %w", err)
+		// We need to avoid too much concurrent requests and penalization from the API
+		n.reqSemaphore <- struct{}{}
+		res, err := http.DefaultClient.Do(req)
+		<-n.reqSemaphore
+		if err != nil {
+			return nil, fmt.Errorf("error downloading json: %w", err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode == http.StatusTooManyRequests {
+			time.Sleep(time.Duration(attempt+1)*baseDelay + time.Duration(util.RandomInt(0, 2000))*time.Millisecond)
+		} else if res.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("error downloading json: %s", res.Status)
+		} else {
+			respBody, err := io.ReadAll(res.Body)
+			if err != nil {
+				return nil, fmt.Errorf("error reading response body: %w", err)
+			}
+			return respBody, nil // Success
+		}
+		log.Debugw("retrying request", "attempt", attempt+1, "url", url, "method", method)
 	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error downloading json: %s", res.Status)
-	}
-	// read response body
-	respBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
-	}
-	return respBody, nil
+
+	return nil, fmt.Errorf("error downloading json: exceeded retry limit")
 }

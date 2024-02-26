@@ -107,32 +107,23 @@ func New(url, database string) (*MongoStorage, error) {
 }
 
 func (ms *MongoStorage) createIndexes() error {
-	ctx, cancel3 := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel3()
-	index := mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "username", Value: "text"},
-		},
-	}
-	_, err := ms.users.Indexes().CreateOne(ctx, index)
-	if err != nil {
-		return err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
 
-	// Index model for the 'Addresses' field
+	// Index model for the 'addresses' field
 	addressesIndexModel := mongo.IndexModel{
-		Keys:    bson.M{"addresses": 1}, // 1 for ascending order
-		Options: options.Index().SetUnique(false),
+		Keys:    bson.D{{Key: "addresses", Value: 1}}, // 1 for ascending order
+		Options: nil,
 	}
 
-	// Index model for the 'Signers' field
+	// Index model for the 'signers' field
 	signersIndexModel := mongo.IndexModel{
-		Keys:    bson.M{"signers": 1}, // 1 for ascending order
-		Options: options.Index().SetUnique(false),
+		Keys:    bson.D{{Key: "signers", Value: 1}}, // 1 for ascending order
+		Options: nil,
 	}
 
 	// Create both indexes
-	_, err = ms.users.Indexes().CreateMany(ctx, []mongo.IndexModel{addressesIndexModel, signersIndexModel})
+	_, err := ms.users.Indexes().CreateMany(ctx, []mongo.IndexModel{addressesIndexModel, signersIndexModel})
 	if err != nil {
 		return err
 	}
