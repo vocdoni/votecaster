@@ -66,7 +66,7 @@ func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []st
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := ms.users.InsertOne(ctx, user)
-	log.Infow("added new user", "userID", userFID, "username", usernanme)
+	log.Infow("added new user", "userID", userFID, "username", usernanme, "signers", len(signers), "addresses", len(addresses))
 	return err
 }
 

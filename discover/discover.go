@@ -259,7 +259,6 @@ func (d *FarcasterDiscover) runPendingProfiles(ctx context.Context) {
 				time.Sleep(Throttle * 6)
 				continue
 			}
-			log.Infow("discovering pending user profile", "count", len(users))
 			for _, fid := range users {
 				time.Sleep(Throttle)
 				if err := d.updateUser(fid); err != nil {
