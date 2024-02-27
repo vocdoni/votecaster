@@ -50,6 +50,7 @@ func main() {
 	flag.String("adminToken", "", "The admin token to use for the API (if not set, it will be generated)")
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
+	flag.String("web3", "https://mainnet.optimism.io", "Web3 RPC Optimism endpoint")
 
 	//flag.String("neynarSignerUUID", "", "neynar signer UUID")
 	flag.String("neynarAPIKey", "", "neynar API key")
@@ -83,6 +84,7 @@ func main() {
 	adminToken := viper.GetString("adminToken")
 	pollSize := viper.GetInt("pollSize")
 	pprofPort := viper.GetInt("pprofPort")
+	web3endpoint := viper.GetString("web3")
 
 	//neynarSignerUUID := viper.GetString("neynarSignerUUID")
 	neynarAPIKey := viper.GetString("neynarAPIKey")
@@ -111,6 +113,7 @@ func main() {
 		"mongoDB", mongoDB,
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
+		"web3endpoint", web3endpoint,
 	)
 
 	// Start the pprof http endpoints
@@ -165,12 +168,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Create the Neynar API client
-	neynarcli := neynar.NewNeynarAPI(neynarAPIKey)
+	// Create the Farcaster API client
+	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3endpoint)
 
 	// Start the discovery user profile background process
 	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
-	discover.NewFarcasterDiscover(db).Run(mainCtx)
+	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx)
 	defer mainCtxCancel()
 
 	// Create the Vocdoni handler

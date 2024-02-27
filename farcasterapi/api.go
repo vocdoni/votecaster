@@ -27,6 +27,8 @@ type API interface {
 	// UserDataByVerificationAddress retrieves the Userdata of the user with the
 	// given verification address, if something goes wrong, it returns an error
 	UserDataByVerificationAddress(ctx context.Context, address []string) ([]*Userdata, error)
+	// SignersFromFID retrieves the signers (appkeys) of the user with the given fid
+	SignersFromFID(fid uint64) ([]string, error)
 }
 
 type APIMessage struct {

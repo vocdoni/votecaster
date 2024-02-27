@@ -89,6 +89,8 @@ func (ms *MongoStorage) UpdateUser(udata *User) error {
 		"username", udata.Username,
 		"electionCount", udata.ElectionCount,
 		"castedVotes", udata.CastedVotes,
+		"addresses", udata.Addresses,
+		"signers", udata.Signers,
 	)
 	return ms.updateUser(udata)
 }

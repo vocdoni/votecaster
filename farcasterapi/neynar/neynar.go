@@ -3,15 +3,18 @@ package neynar
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/vocdoni/vote-frame/farcasterapi"
+	"github.com/vocdoni/vote-frame/farcasterapi/web3"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/util"
 )
@@ -50,14 +53,27 @@ type NeynarAPI struct {
 	signerUUID   string
 	apiKey       string
 	reqSemaphore chan struct{} // Semaphore to limit concurrent requests
-
+	web3provider *web3.FarcasterProvider
 }
 
-func NewNeynarAPI(apiKey string) *NeynarAPI {
+func NewNeynarAPI(apiKey, web3endpoint string) (*NeynarAPI, error) {
+	web3provider, err := web3.NewFarcasterProvider(web3endpoint)
+	if err != nil {
+		return nil, err
+	}
+	// Run a quick test to check if the web3 endpoint is working
+	signers, err := web3provider.GetAppKeysByFid(big.NewInt(3))
+	if err != nil {
+		return nil, err
+	}
+	if len(signers) == 0 {
+		return nil, fmt.Errorf("no signers found on web3 endpoint")
+	}
 	return &NeynarAPI{
 		apiKey:       apiKey,
 		reqSemaphore: make(chan struct{}, maxConcurrentRequests),
-	}
+		web3provider: web3provider,
+	}, nil
 }
 
 // SetFarcasterUser method sets the farcaster user with the given fid and signer.
@@ -175,7 +191,7 @@ func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterap
 	}
 
 	// get signers
-	signers, err := n.signersFromFid(fid)
+	signers, err := n.SignersFromFID(fid)
 	if err != nil {
 		return nil, fmt.Errorf("error getting signers: %w", err)
 	}
@@ -189,36 +205,20 @@ func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterap
 	}, nil
 }
 
-func (n *NeynarAPI) signersFromFid(fid uint64) ([]string, error) {
-	// get verifications to fetch the signer
-	body, err := n.request(fmt.Sprintf(neynarVerificationsByFID, fid), http.MethodGet, nil)
+// SignersFromFid method returns the signers (appkeys) of the user with the given fid.
+func (n *NeynarAPI) SignersFromFID(fid uint64) ([]string, error) {
+	signersBytes, err := n.web3provider.GetAppKeysByFid(big.NewInt(int64(fid)))
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
-
-	// decode verifications json
-	verificationsData := &HubAPIResponse{}
-	if err := json.Unmarshal(body, verificationsData); err != nil {
-		return nil, fmt.Errorf("error unmarshalling verifications: %w", err)
-	}
-	// filter verifications addresses
-	signersMap := make(map[string]struct{})
-	for _, msg := range verificationsData.Messages {
-		// if no data or verification data is found, skip. If the message data
-		// type is not the one we are looking for, skip
-		if msg.Data == nil || msg.Data.Type != HUB_MESSAGE_TYPE_VERIFICATION || msg.Data.VerificationAddEthAddressBody == nil || msg.Signer == "" {
-			log.Warnw("invalid verification message", "msg", msg)
-			continue
-		}
-		signersMap[msg.Signer] = struct{}{}
+		return nil, fmt.Errorf("error getting signers: %w", err)
 	}
 	signers := []string{}
-	for signer := range signersMap {
-		signers = append(signers, strings.ToLower(signer))
+	for _, signer := range signersBytes {
+		signers = append(signers, hex.EncodeToString(signer))
 	}
 	return signers, nil
 }
 
+// UserDataByVerificationAddress method returns the userdata of the user with the given Ethereum address.
 func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses []string) ([]*farcasterapi.Userdata, error) {
 	if len(addresses) > MaxAddressesPerRequest {
 		return nil, fmt.Errorf("address slice exceeds the maximum limit of 350 addresses")
@@ -258,7 +258,7 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 				}
 
 				// Get signers
-				signers, err := n.signersFromFid(item.Fid)
+				signers, err := n.SignersFromFID(item.Fid)
 				if err != nil {
 					return nil, fmt.Errorf("error getting signers for address %s: %w", address, err)
 				}

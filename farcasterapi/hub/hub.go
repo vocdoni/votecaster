@@ -319,6 +319,10 @@ func (h *Hub) UserDataByVerificationAddress(ctx context.Context, address []strin
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (h *Hub) SignersFromFID(fid uint64) ([]string, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 func (h *Hub) newRequest(ctx context.Context, method string, uri string, body io.Reader) (*http.Request, error) {
 	endpoint := fmt.Sprintf("%s/%s", h.endpoint, uri)
 	req, err := http.NewRequestWithContext(ctx, method, endpoint, body)

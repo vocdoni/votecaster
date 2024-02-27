@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/log"
 )
@@ -81,18 +82,20 @@ type VerificationResponse struct {
 
 // FarcasterDiscover is a service to discover user profiles from the Farcaster API v2.
 type FarcasterDiscover struct {
-	db      *mongo.MongoStorage
-	cli     *http.Client
-	invalid sync.Map
+	db           *mongo.MongoStorage
+	cli          *http.Client
+	invalid      sync.Map
+	farcasterAPI farcasterapi.API
 }
 
 // NewFarcasterDiscover returns a new FarcasterDiscover instance.
 // The instance is used to discover user profiles from the Farcaster API v2.
 // And update the pending user profiles in the database.
-func NewFarcasterDiscover(db *mongo.MongoStorage) *FarcasterDiscover {
+func NewFarcasterDiscover(db *mongo.MongoStorage, farcasterAPI farcasterapi.API) *FarcasterDiscover {
 	return &FarcasterDiscover{
-		db:  db,
-		cli: &http.Client{Timeout: 10 * time.Second},
+		db:           db,
+		cli:          &http.Client{Timeout: 10 * time.Second},
+		farcasterAPI: farcasterAPI,
 	}
 }
 
@@ -151,6 +154,11 @@ func (d *FarcasterDiscover) updateUser(fid uint64) error {
 		electionCount = user.ElectionCount
 	}
 
+	signers, err := d.farcasterAPI.SignersFromFID(fid)
+	if err != nil {
+		return fmt.Errorf("failed to get user signers: %w", err)
+	}
+
 	if err := d.db.UpdateUser(&mongo.User{
 		UserID:         profile.Result.User.Fid,
 		Username:       profile.Result.User.Username,
@@ -158,6 +166,7 @@ func (d *FarcasterDiscover) updateUser(fid uint64) error {
 		ElectionCount:  electionCount,
 		Addresses:      addresses,
 		CustodyAddress: profile.Result.Extras.CustodyAddress,
+		Signers:        signers,
 	}); err != nil {
 		log.Warnw("failed to update user profile", "error", err)
 	}

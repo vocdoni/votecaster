@@ -148,10 +148,11 @@ func (ms *MongoStorage) Reset() error {
 }
 
 func (ms *MongoStorage) String() string {
+	const contextTimeout = 20 * time.Second
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 	cur, err := ms.users.Find(ctx, bson.D{{}})
 	if err != nil {
@@ -159,7 +160,7 @@ func (ms *MongoStorage) String() string {
 		return "{}"
 	}
 
-	ctx2, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx2, cancel2 := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel2()
 	var users UserCollection
 	for cur.Next(ctx2) {
@@ -171,7 +172,7 @@ func (ms *MongoStorage) String() string {
 		users.Users = append(users.Users, user)
 	}
 
-	ctx3, cancel3 := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx3, cancel3 := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel3()
 	cur, err = ms.elections.Find(ctx3, bson.D{{}})
 	if err != nil {
@@ -179,7 +180,7 @@ func (ms *MongoStorage) String() string {
 		return "{}"
 	}
 
-	ctx4, cancel4 := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx4, cancel4 := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel4()
 	var elections ElectionCollection
 	for cur.Next(ctx4) {
@@ -191,7 +192,7 @@ func (ms *MongoStorage) String() string {
 		elections.Elections = append(elections.Elections, election)
 	}
 
-	ctx5, cancel5 := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx5, cancel5 := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel5()
 	cur, err = ms.results.Find(ctx5, bson.D{{}})
 	if err != nil {
@@ -199,7 +200,7 @@ func (ms *MongoStorage) String() string {
 		return "{}"
 	}
 
-	ctx6, cancel6 := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx6, cancel6 := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel6()
 	var results ResultsCollection
 	for cur.Next(ctx6) {
@@ -211,7 +212,24 @@ func (ms *MongoStorage) String() string {
 		results.Results = append(results.Results, result)
 	}
 
-	data, err := json.Marshal(&Collection{users, elections, results})
+	ctx7, cancel7 := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel7()
+	var votersOfElection VotersOfElectionCollection
+	cur, err = ms.voters.Find(ctx7, bson.D{{}})
+	if err != nil {
+		log.Warn(err)
+		return "{}"
+	}
+	for cur.Next(ctx7) {
+		var voter VotersOfElection
+		err := cur.Decode(&voter)
+		if err != nil {
+			log.Warn(err)
+		}
+		votersOfElection.VotersOfElection = append(votersOfElection.VotersOfElection, voter)
+	}
+
+	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -266,6 +284,18 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		_, err := ms.results.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
 			log.Warnw("Error upserting result", "err", err, "election", result.ElectionID)
+		}
+	}
+
+	// Upsert VotersOfElection
+	log.Infow("importing votersOfElection", "count", len(collection.VotersOfElection))
+	for _, voter := range collection.VotersOfElection {
+		filter := bson.M{"_id": voter.ElectionID}
+		update := bson.M{"$set": voter}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.voters.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting votersOfElection", "err", err, "election", voter.ElectionID)
 		}
 	}
 
