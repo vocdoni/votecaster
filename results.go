@@ -96,9 +96,9 @@ func buildResultsPNG(election *api.Election) ([]byte, error) {
 	title := election.Metadata.Questions[0].Title["default"]
 	// Check for division by zero error
 	if castedWeight == 0 {
-		text = []string{"No votes casted yet..."}
+		text = []string{"Nothing yet here..."}
 	} else {
-		text = []string{fmt.Sprintf("Votes casted: %d | Weight: %d\n", election.VoteCount, castedWeight)}
+		text = []string{fmt.Sprintf("Votes: %d | Weight: %d\n", election.VoteCount, castedWeight)}
 		for i, r := range election.Metadata.Questions[0].Choices {
 			votesForOption := election.Results[0][r.Value].MathBigInt().Uint64()
 			percentage := float64(votesForOption) * 100 / float64(castedWeight)
