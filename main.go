@@ -170,7 +170,7 @@ func main() {
 
 	// Start the discovery user profile background process
 	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
-	go discover.NewFarcasterDiscover(db).Run(mainCtx)
+	discover.NewFarcasterDiscover(db).Run(mainCtx)
 	defer mainCtxCancel()
 
 	// Create the Vocdoni handler

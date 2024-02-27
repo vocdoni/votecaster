@@ -10,31 +10,45 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
-func (ms *MongoStorage) Users() (*Users, error) {
+// UserIDs returns a list of user IDs starting from the given ID and limited to the specified amount.
+func (ms *MongoStorage) UserIDs(startId uint64, maxResults int) ([]uint64, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
-	opts := options.FindOptions{}
-	opts.SetProjection(bson.M{"_id": true})
+
+	// Setting options for sorting by _id in ascending order, limiting the results, and projecting only the _id field
+	opts := options.Find().SetSort(bson.M{"_id": 1}).SetLimit(int64(maxResults)).SetProjection(bson.M{"_id": 1})
+
+	// Creating a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	cur, err := ms.users.Find(ctx, bson.M{}, &opts)
+
+	// Adjusting the filter to find users with _id greater than or equal to startId
+	filter := bson.M{"_id": bson.M{"$gte": startId}}
+
+	// Executing the find operation with the specified filter and options
+	cur, err := ms.users.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}
+	defer cur.Close(ctx)
 
-	ctx, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel2()
-	var users Users
+	var ids []uint64
 	for cur.Next(ctx) {
-		user := User{}
-		err := cur.Decode(&user)
-		if err != nil {
-			log.Warn(err)
+		var user struct {
+			ID uint64 `bson:"_id"`
 		}
-		users.Users = append(users.Users, user.UserID)
+		if err := cur.Decode(&user); err != nil {
+			log.Warn(err)
+			continue
+		}
+		ids = append(ids, user.ID)
 	}
 
-	return &users, nil
+	if err := cur.Err(); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
 }
 
 // AddUser adds a new user to the database. If the user already exists, it returns an error.
