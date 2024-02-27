@@ -250,7 +250,18 @@ const Form: React.FC = (props: FlexProps) => {
                       {errors.csv ? (
                         <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
                       ) : (
-                        <FormHelperText>Requires hex addresses linked to farcaster accounts</FormHelperText>
+                        <FormHelperText>
+                          The CSV census must contain Ethereum addresses and balances, split by coma. <br />
+                          You might go to{' '}
+                          <Link target='_blank' href='https://holders.at'>
+                            holders.at
+                          </Link>{' '}
+                          or{' '}
+                          <Link target='_blank' href='https://airstack.xyz'>
+                            airstack.xyz
+                          </Link>{' '}
+                          to build your own.
+                        </FormHelperText>
                       )}
                     </FormControl>
                   )}
