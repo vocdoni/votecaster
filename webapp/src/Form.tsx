@@ -251,7 +251,8 @@ const Form: React.FC = (props: FlexProps) => {
                         <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
                       ) : (
                         <FormHelperText>
-                          The CSV census must contain Ethereum addresses and balances, split by coma. <br />
+                          The CSV census must contain Ethereum addresses from any network and balances, split by coma.{' '}
+                          <br />
                           You might go to{' '}
                           <Link target='_blank' href='https://holders.at'>
                             holders.at
