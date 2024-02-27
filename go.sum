@@ -1528,6 +1528,8 @@ github.com/valyala/histogram v1.2.0/go.mod h1:Hb4kBwb4UxsaNbbbh+RRz8ZR6pdodR57tz
 github.com/valyala/tcplisten v0.0.0-20161114210144-ceec8f93295a/go.mod h1:v3UYOV9WzVtRmSR+PDvWpU/qWl4Wa5LApYYX4ZtKbio=
 github.com/viant/assertly v0.4.8/go.mod h1:aGifi++jvCrUaklKEKT0BU95igDNaqkvz+49uaYMPRU=
 github.com/viant/toolbox v0.24.0/go.mod h1:OxMCG57V0PXuIP2HNQrtJf2CjqdmbrOx5EkMILuUhzM=
+github.com/vocdoni/census3 v0.1.3 h1:vm0K691m8JrHqIbV+yLFD/nZcO7Zrv6AEDr0NhYv+MA=
+github.com/vocdoni/census3 v0.1.3/go.mod h1:41xuIVhxFTYZ3Sduv4RzN0Hpv4CedogiKDRldgfJ4Cg=
 github.com/vocdoni/storage-proofs-eth-go v0.1.6 h1:mF6VNGudgCjjgjxs5Z2GGMM2tS79+xFBWcr7BnPuhAY=
 github.com/vocdoni/storage-proofs-eth-go v0.1.6/go.mod h1:aoD9pKg8kDFQ5I6b3obGPTwjC+DsaW2h4wt2UQEjQrg=
 github.com/wangjia184/sortedset v0.0.0-20160527075905-f5d03557ba30/go.mod h1:YkocrP2K2tcw938x9gCOmT5G5eCD6jsTz0SZuyAqwIE=
