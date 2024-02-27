@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vocdoni/farcaster-poc/farcasterapi"
-	"github.com/vocdoni/farcaster-poc/farcasterapi/hub/protobufs"
+	"github.com/vocdoni/vote-frame/farcasterapi"
+	"github.com/vocdoni/vote-frame/farcasterapi/hub/protobufs"
 	"github.com/zeebo/blake3"
 	"go.vocdoni.io/dvote/log"
 	"google.golang.org/protobuf/proto"
@@ -321,6 +321,10 @@ func (h *Hub) UserDataByVerificationAddress(ctx context.Context, address []strin
 
 func (h *Hub) WebhookHandler(_ []byte) error {
 	return fmt.Errorf("not implemented")
+}
+
+func (h *Hub) SignersFromFID(fid uint64) ([]string, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (h *Hub) newRequest(ctx context.Context, method string, uri string, body io.Reader) (*http.Request, error) {

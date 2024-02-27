@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/vocdoni/farcaster-poc/farcasterapi"
-	"github.com/vocdoni/farcaster-poc/farcasterapi/neynar"
-	"github.com/vocdoni/farcaster-poc/mongo"
+	"github.com/vocdoni/vote-frame/farcasterapi"
+	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/httprouter"
@@ -130,9 +130,16 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			v.censusCreationMap.Store(censusID.String(), &CensusInfo{Error: err.Error()})
 			return
 		}
+		// since each participant can have multiple signers, we need to get the unique usernames
+		uniqueParticipantsMap := make(map[string]struct{})
 		for _, p := range participants {
-			ci.Usernames = append(ci.Usernames, p.Username)
+			uniqueParticipantsMap[p.Username] = struct{}{}
 		}
+		uniqueParticipants := []string{}
+		for k := range uniqueParticipantsMap {
+			uniqueParticipants = append(uniqueParticipants, k)
+		}
+		ci.Usernames = uniqueParticipants
 		v.censusCreationMap.Store(censusID.String(), ci)
 	}()
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})

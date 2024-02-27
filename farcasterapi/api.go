@@ -30,6 +30,8 @@ type API interface {
 	UserDataByVerificationAddress(ctx context.Context, address []string) ([]*Userdata, error)
 	// WebhookHandler handles the incoming webhooks from the farcaster API
 	WebhookHandler(body []byte) error
+	// SignersFromFID retrieves the signers (appkeys) of the user with the given fid
+	SignersFromFID(fid uint64) ([]string, error)
 }
 
 type APIMessage struct {

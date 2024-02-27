@@ -5,7 +5,7 @@ import (
 	_ "embed"
 	"time"
 
-	"github.com/vocdoni/farcaster-poc/farcasterapi"
+	"github.com/vocdoni/vote-frame/farcasterapi"
 	"go.vocdoni.io/dvote/log"
 )
 

@@ -16,11 +16,11 @@ import (
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"github.com/vocdoni/farcaster-poc/bot"
-	"github.com/vocdoni/farcaster-poc/discover"
-	"github.com/vocdoni/farcaster-poc/farcasterapi/neynar"
-	"github.com/vocdoni/farcaster-poc/mongo"
-	"github.com/vocdoni/farcaster-poc/poll"
+	"github.com/vocdoni/vote-frame/bot"
+	"github.com/vocdoni/vote-frame/discover"
+	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
+	"github.com/vocdoni/vote-frame/mongo"
+	"github.com/vocdoni/vote-frame/poll"
 	urlapi "go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
@@ -52,6 +52,7 @@ func main() {
 	flag.String("adminToken", "", "The admin token to use for the API (if not set, it will be generated)")
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
+	flag.String("web3", "https://mainnet.optimism.io", "Web3 RPC Optimism endpoint")
 
 	// bot flags
 	flag.Uint64("botFid", 0, "FID to be used for the bot")
@@ -88,6 +89,7 @@ func main() {
 	adminToken := viper.GetString("adminToken")
 	pollSize := viper.GetInt("pollSize")
 	pprofPort := viper.GetInt("pprofPort")
+	web3endpoint := viper.GetString("web3")
 	// bot vars
 	botFid := viper.GetUint64("botFid")
 	neynarAPIKey := viper.GetString("neynarAPIKey")
@@ -122,6 +124,7 @@ func main() {
 		"neynarAPIKey", neynarAPIKey,
 		"neynarSignerUUID", neynarSignerUUID,
 		"neynarWebhookSecret", neynarWebhookSecret,
+		"web3endpoint", web3endpoint,
 	)
 
 	// Start the pprof http endpoints
@@ -176,12 +179,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Create the Neynar API client
-	neynarcli := neynar.NewNeynarAPI(neynarAPIKey)
+	// Create the Farcaster API client
+	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3endpoint)
 
 	// Start the discovery user profile background process
 	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
-	go discover.NewFarcasterDiscover(db).Run(mainCtx)
+	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx)
 	defer mainCtxCancel()
 
 	// Create the Vocdoni handler
