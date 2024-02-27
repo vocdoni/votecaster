@@ -119,6 +119,7 @@ const Form: React.FC = (props: FlexProps) => {
             throw new Error('backend error')
           }
           election.census = census
+          election.size = census.usernames.length
           setUsernames(census.usernames)
         } catch (e) {
           console.error('there was an error creating the census:', e)
