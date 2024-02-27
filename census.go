@@ -219,12 +219,32 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 
 	// Fetch the users from the database concurrently
 	var wg sync.WaitGroup
-	participantsCh := make(chan *FarcasterParticipant, len(addressMap)) // Channel to collect participants
-	pendingAddressesCh := make(chan string, len(addressMap))            // Channel to collect pending addresses
-	concurrencyLimit := make(chan struct{}, 10)                         // Concurrency limiter, N is the max number of goroutines
+	participantsCh := make(chan *FarcasterParticipant) // Channel to collect participants
+	pendingAddressesCh := make(chan string)            // Channel to collect pending addresses
+	concurrencyLimit := make(chan struct{}, 10)        // Concurrency limiter, N is the max number of goroutines
+	participants := []*FarcasterParticipant{}
+	pendingAddresses := []string{}
 
+	// Start goroutines to consume data from channels
+	go func() {
+		for participant := range participantsCh {
+			participants = append(participants, participant)
+		}
+		// Handle the collected participants
+		log.Debugw("collected valid database participants", "count", len(participants))
+	}()
+
+	go func() {
+		for addr := range pendingAddressesCh {
+			pendingAddresses = append(pendingAddresses, addr)
+		}
+		// Handle the collected pending addresses
+		log.Debugw("collected pending participants", "count", len(pendingAddresses))
+	}()
+
+	// Processing addresses
 	for address := range addressMap {
-		concurrencyLimit <- struct{}{} // Acquire semaphore
+		concurrencyLimit <- struct{}{}
 		wg.Add(1)
 		go func(addr string) {
 			defer wg.Done()
@@ -233,10 +253,10 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 			user, err := db.UserByAddress(addr)
 			if err != nil {
 				if !errors.Is(err, mongo.ErrUserUnknown) {
-					log.Warnw("error fetching user from database", "address", addr, "err", err)
-					return
+					log.Warnw("error fetching user from database", "address", addr, "error", err)
+				} else {
+					pendingAddressesCh <- addr
 				}
-				pendingAddressesCh <- addr
 				return
 			}
 			if len(user.Signers) == 0 {
@@ -262,22 +282,6 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 	close(participantsCh)
 	close(pendingAddressesCh)
 	close(concurrencyLimit)
-
-	// Collect data from channels
-	participants := []*FarcasterParticipant{}
-	pendingAddresses := []string{}
-	for participant := range participantsCh {
-		participants = append(participants, participant)
-	}
-	for addr := range pendingAddressesCh {
-		pendingAddresses = append(pendingAddresses, addr)
-	}
-
-	if len(addressMap) > 0 {
-		log.Infow("users found on database", "count", len(participants), "ratio", fmt.Sprintf("%.2f%%", 100*float64(len(participants))/float64(len(addressMap))))
-	} else {
-		log.Infow("no users found on database", "total", len(addressMap))
-	}
 
 	// Fetch the remaining users from the farcaster API
 	count := 0
