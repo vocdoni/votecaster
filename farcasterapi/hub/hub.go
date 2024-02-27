@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vocdoni/farcaster-poc/farcasterapi"
-	"github.com/vocdoni/farcaster-poc/farcasterapi/hub/protobufs"
+	"github.com/vocdoni/vote-frame/farcasterapi"
+	"github.com/vocdoni/vote-frame/farcasterapi/hub/protobufs"
 	"github.com/zeebo/blake3"
 	"go.vocdoni.io/dvote/log"
 	"google.golang.org/protobuf/proto"

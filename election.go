@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vocdoni/farcaster-poc/mongo"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/httprouter"

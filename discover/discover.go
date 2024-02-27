@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/vocdoni/farcaster-poc/mongo"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/log"
 )
 

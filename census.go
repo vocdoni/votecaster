@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/vocdoni/farcaster-poc/farcasterapi"
-	"github.com/vocdoni/farcaster-poc/farcasterapi/neynar"
-	"github.com/vocdoni/farcaster-poc/mongo"
+	"github.com/vocdoni/vote-frame/farcasterapi"
+	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/httprouter"
