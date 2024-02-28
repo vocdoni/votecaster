@@ -36,7 +36,10 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 				if err != nil {
 					log.Errorf("error handling poll message: %s", err)
 				}
-				log.Infow("new poll received, creating election...", "poll", poll, "userdata", user)
+				log.Infow("new poll received, creating election...",
+					"poll", poll,
+					"userdata", user,
+					"msg-hash", msg.Hash)
 				description := &ElectionDescription{
 					Question:  poll.Question,
 					Options:   poll.Options,
@@ -54,10 +57,18 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 					log.Errorf("error creating election: %s", err)
 					continue
 				}
-				log.Infow("election created", "electionID", electionID)
-				if err := voteBot.ReplyWithPollURL(ctx, msg, fmt.Sprintf("%s/%s", serverURL, electionID)); err != nil {
+				log.Infow("election created",
+					"electionID", electionID,
+					"poll", poll)
+				frameUrl := fmt.Sprintf("%s/%s", serverURL, electionID)
+				if err := voteBot.ReplyWithPollURL(ctx, msg, frameUrl); err != nil {
 					log.Errorf("error replying to poll: %s", err)
+					continue
 				}
+				log.Infow("poll reply sent",
+					"frame-url", frameUrl,
+					"author", msg.Author,
+					"msg-hash", msg.Hash)
 			}
 		}
 	}()
@@ -75,9 +86,11 @@ func neynarWebhook(neynarcli *neynar.NeynarAPI, webhookSecret string) func(*apir
 			return h.Send([]byte("error verifying request"), http.StatusBadRequest)
 		}
 		if !verified {
+			log.Error("request not verified")
 			return h.Send([]byte("request not verified"), http.StatusUnauthorized)
 		}
 		if err := neynarcli.WebhookHandler(msg.Data); err != nil {
+			log.Errorf("error handling webhook: %s", err)
 			return fmt.Errorf("error handling webhook: %s", err)
 		}
 		return h.Send([]byte("ok"), http.StatusOK)
