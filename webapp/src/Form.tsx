@@ -83,19 +83,14 @@ const Form: React.FC = (props: FlexProps) => {
   }
 
   const checkCensus = async (pid: string) => {
-    try {
-      const checkRes = await axios.get(`${appUrl}/census/check/${pid}`)
-      if (checkRes.status === 200) {
-        return checkRes.data
-      }
-      // wait 3 seconds between requests
-      await new Promise((resolve) => setTimeout(resolve, 3000))
-      // continue retrying until we get a 200 status
-      return await checkCensus(pid)
-    } catch (error) {
-      console.error('error checking census status:', error)
-      return false
+    const checkRes = await axios.get(`${appUrl}/census/check/${pid}`)
+    if (checkRes.status === 200) {
+      return checkRes.data
     }
+    // wait 3 seconds between requests
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+    // continue retrying until we get a 200 status
+    return await checkCensus(pid)
   }
 
   const onSubmit = async (data: FormValues) => {
@@ -120,17 +115,18 @@ const Form: React.FC = (props: FlexProps) => {
           )
           const csv = await axios.post(`${appUrl}/census/csv`, contents)
           const census = await checkCensus(csv.data.censusId)
-          if (census === false) {
-            throw new Error('backend error')
-          }
           setUsernames(census.usernames)
           census.size = census.usernames.length
           delete census.usernames
           election.census = census
         } catch (e) {
           console.error('there was an error creating the census:', e)
-          if ('message' in e) {
-            setError(e.message)
+          if ('response' in e && 'data' in e.response) {
+            setError(e.response.data)
+          } else {
+            if ('message' in e) {
+              setError(e.message)
+            }
           }
           setLoading(false)
           return
