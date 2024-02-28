@@ -228,7 +228,7 @@ const Form: React.FC = (props: FlexProps) => {
                     <RadioGroup onChange={(val: string) => setValue('censusType', val)} value={censusType}>
                       <Stack direction='row'>
                         <Radio value='farcaster'>All farcaster users</Radio>
-                        <Radio value='custom'>Custom via CSV</Radio>
+                        <Radio value='custom'>Token gated via CSV</Radio>
                       </Stack>
                     </RadioGroup>
                   </FormControl>
@@ -237,7 +237,7 @@ const Form: React.FC = (props: FlexProps) => {
                       <FormLabel htmlFor='csv'>CSV</FormLabel>
                       <Input
                         id='csv'
-                        placeholder='Select CSV'
+                        placeholder='Upload CSV'
                         type='file'
                         accept='text/csv,application/csv,.csv'
                         {...register('csv', {
@@ -251,8 +251,7 @@ const Form: React.FC = (props: FlexProps) => {
                         <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
                       ) : (
                         <FormHelperText>
-                          The CSV census must contain Ethereum addresses from any network and balances, split by coma.{' '}
-                          <br />
+                          The CSV file must include Ethereum addresses and their balances from any network.{' '}
                           You might go to{' '}
                           <Link target='_blank' href='https://holders.at'>
                             holders.at
@@ -262,6 +261,8 @@ const Form: React.FC = (props: FlexProps) => {
                             airstack.xyz
                           </Link>{' '}
                           to build your own.
+                          <br />
+                          If an address appears multiple times, its balances will be aggregated.
                         </FormHelperText>
                       )}
                     </FormControl>
