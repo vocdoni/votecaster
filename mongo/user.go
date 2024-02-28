@@ -66,7 +66,7 @@ func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []st
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := ms.users.InsertOne(ctx, user)
-	log.Infow("added new user", "userID", userFID, "username", usernanme)
+	log.Infow("added new user", "userID", userFID, "username", usernanme, "signers", len(signers), "addresses", len(addresses))
 	return err
 }
 
@@ -147,9 +147,10 @@ func (ms *MongoStorage) UserByAddress(address string) (*User, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
-	// Example query to find a user by an address
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	var userByAddress User
-	if err := ms.users.FindOne(context.TODO(), bson.M{
+	if err := ms.users.FindOne(ctx, bson.M{
 		"addresses": bson.M{"$in": []string{address}},
 	}).Decode(&userByAddress); err != nil {
 		return nil, ErrUserUnknown
@@ -163,8 +164,10 @@ func (ms *MongoStorage) UserBySigner(signer string) (*User, error) {
 	defer ms.keysLock.RUnlock()
 
 	// Example query to find a user by a signer
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	var userBySigner User
-	if err := ms.users.FindOne(context.TODO(), bson.M{
+	if err := ms.users.FindOne(ctx, bson.M{
 		"signers": bson.M{"$in": []string{signer}},
 	}).Decode(&userBySigner); err != nil {
 		return nil, ErrUserUnknown

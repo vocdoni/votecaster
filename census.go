@@ -69,7 +69,7 @@ type FarcasterParticipant struct {
 	Username string   `json:"username"`
 }
 
-// createTestCensus creates a test census with the hardcoded public keys for testing purposes.
+// CreateCensus creates a new census from a list of participants.
 func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipant) (*CensusInfo, error) {
 	censusList := api.CensusParticipants{}
 	for _, p := range participants {
@@ -118,6 +118,8 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 	v.censusCreationMap.Store(censusID.String(), &CensusInfo{})
 
 	go func() {
+		startTime := time.Now()
+		log.Debugw("building census from csv", "censusID", censusID)
 		participants, err := v.farcasterCensusFromEthereumCSV(msg.Data)
 		if err != nil {
 			log.Warnw("failed to build census from ethereum csv", "err", err.Error())
@@ -140,6 +142,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			uniqueParticipants = append(uniqueParticipants, k)
 		}
 		ci.Usernames = uniqueParticipants
+		log.Infow("census created from CSV", "censusID", censusID.String(), "size", len(ci.Usernames), "duration", time.Since(startTime))
 		v.censusCreationMap.Store(censusID.String(), ci)
 	}()
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
@@ -216,20 +219,44 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 
 	// Fetch the users from the database concurrently
 	var wg sync.WaitGroup
-	participantsCh := make(chan *FarcasterParticipant, len(addressMap)) // Channel to collect participants
-	pendingAddressesCh := make(chan string, len(addressMap))            // Channel to collect pending addresses
+	participantsCh := make(chan *FarcasterParticipant) // Channel to collect participants
+	pendingAddressesCh := make(chan string)            // Channel to collect pending addresses
+	concurrencyLimit := make(chan struct{}, 10)        // Concurrency limiter, N is the max number of goroutines
+	participants := []*FarcasterParticipant{}
+	pendingAddresses := []string{}
 
+	// Start goroutines to consume data from channels
+	go func() {
+		for participant := range participantsCh {
+			participants = append(participants, participant)
+		}
+		// Handle the collected participants
+		log.Debugw("collected valid database participants", "count", len(participants))
+	}()
+
+	go func() {
+		for addr := range pendingAddressesCh {
+			pendingAddresses = append(pendingAddresses, addr)
+		}
+		// Handle the collected pending addresses
+		log.Debugw("collected pending participants", "count", len(pendingAddresses))
+	}()
+
+	// Processing addresses
 	for address := range addressMap {
+		concurrencyLimit <- struct{}{}
 		wg.Add(1)
 		go func(addr string) {
 			defer wg.Done()
+			defer func() { <-concurrencyLimit }() // Release semaphore
+
 			user, err := db.UserByAddress(addr)
 			if err != nil {
 				if !errors.Is(err, mongo.ErrUserUnknown) {
-					log.Warnw("error fetching user from database", "address", addr, "err", err)
-					return
+					log.Warnw("error fetching user from database", "address", addr, "error", err)
+				} else {
+					pendingAddressesCh <- addr
 				}
-				pendingAddressesCh <- addr
 				return
 			}
 			if len(user.Signers) == 0 {
@@ -254,20 +281,7 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 	wg.Wait()
 	close(participantsCh)
 	close(pendingAddressesCh)
-
-	// Collect data from channels
-	participants := []*FarcasterParticipant{}
-	pendingAddresses := []string{}
-	for participant := range participantsCh {
-		participants = append(participants, participant)
-	}
-	for addr := range pendingAddressesCh {
-		pendingAddresses = append(pendingAddresses, addr)
-	}
-
-	if len(addressMap) > 0 {
-		log.Infow("users found on database", "count", len(participants), "ratio", fmt.Sprintf("%.2f%%", 100*float64(len(participants))/float64(len(addressMap))))
-	}
+	close(concurrencyLimit)
 
 	// Fetch the remaining users from the farcaster API
 	count := 0
