@@ -235,7 +235,7 @@ const Form: React.FC = (props: FlexProps) => {
                   </FormControl>
                   {censusType === 'custom' && (
                     <FormControl isDisabled={loading} isRequired>
-                      <FormLabel htmlFor='csv'>CSV</FormLabel>
+                      <FormLabel htmlFor='csv'>CSV files</FormLabel>
                       <Input
                         id='csv'
                         placeholder='Upload CSV'
@@ -253,7 +253,7 @@ const Form: React.FC = (props: FlexProps) => {
                         <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
                       ) : (
                         <FormHelperText>
-                          The CSV file must include Ethereum addresses and their balances from any network. You might go
+                          The CSV files must include Ethereum addresses and their balances from any network. You might go
                           to{' '}
                           <Link target='_blank' href='https://holders.at'>
                             holders.at
