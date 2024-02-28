@@ -113,7 +113,12 @@ const Form: React.FC = (props: FlexProps) => {
       if (data.csv) {
         // create the census
         try {
-          const csv = await axios.post(`${appUrl}/census/csv`, data.csv[0])
+          const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
+          const contents = new Blob(
+            Array.from(data.csv).flatMap((file) => [file, lineBreak]),
+            { type: 'text/csv' }
+          )
+          const csv = await axios.post(`${appUrl}/census/csv`, contents)
           const census = await checkCensus(csv.data.censusId)
           if (census === false) {
             throw new Error('backend error')
@@ -239,6 +244,7 @@ const Form: React.FC = (props: FlexProps) => {
                         id='csv'
                         placeholder='Upload CSV'
                         type='file'
+                        multiple
                         accept='text/csv,application/csv,.csv'
                         {...register('csv', {
                           required: {
