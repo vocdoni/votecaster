@@ -162,7 +162,7 @@ const Form: React.FC = (props: FlexProps) => {
 
   return (
     <Flex flexDir='column' alignItems='center' {...props}>
-      <Card maxW={{ base: '100%', md: 400, lg: 600 }}>
+      <Card maxW={{ base: '100%', md: 400, lg: 500 }}>
         <CardHeader align='center'>
           <Heading as='h1' size='2xl'>
             farcaster.vote
@@ -251,8 +251,8 @@ const Form: React.FC = (props: FlexProps) => {
                         <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
                       ) : (
                         <FormHelperText>
-                          The CSV file must include Ethereum addresses and their balances from any network.{' '}
-                          You might go to{' '}
+                          The CSV file must include Ethereum addresses and their balances from any network. You might go
+                          to{' '}
                           <Link target='_blank' href='https://holders.at'>
                             holders.at
                           </Link>{' '}
@@ -260,9 +260,7 @@ const Form: React.FC = (props: FlexProps) => {
                           <Link target='_blank' href='https://airstack.xyz'>
                             airstack.xyz
                           </Link>{' '}
-                          to build your own.
-                          <br />
-                          If an address appears multiple times, its balances will be aggregated.
+                          to build your own. If an address appears multiple times, its balances will be aggregated.
                         </FormHelperText>
                       )}
                     </FormControl>

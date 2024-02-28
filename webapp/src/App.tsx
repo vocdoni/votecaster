@@ -15,9 +15,9 @@ export const App = () => {
       px={{ base: 0, sm: 5, xl: 10 }}
     >
       <Flex maxW={{ base: '100%', lg: '1200px' }} flexDir={{ base: 'column' }} gap={8}>
-        <Form />
-        <Credits px={{ base: 5, md: 10 }} />
-        <TopTenPolls mx={{ base: 5, md: 10 }} />
+        <Form justifyContent='center' />
+        <Credits px={{ base: 5, md: 10 }} justifyContent='center' />
+        <TopTenPolls mx={{ base: 0, md: 10 }} />
       </Flex>
     </Flex>
   )
