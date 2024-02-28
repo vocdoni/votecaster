@@ -3,10 +3,17 @@ package bot
 import "fmt"
 
 var (
-	ErrAPINotSet          = fmt.Errorf("api not set")
-	ErrBotFIDNotSet       = fmt.Errorf("bot fid not set")
-	ErrPrivateKeyNotSet   = fmt.Errorf("private key not set")
-	ErrDecodingPrivateKey = fmt.Errorf("error decoding provided private key")
-	ErrEndpointNotSet     = fmt.Errorf("endpoint not set")
-	ErrNoNewCasts         = fmt.Errorf("no new casts")
+	// ErrAPINotSet is returned when the API is not set in the bot configuration.
+	ErrAPINotSet = fmt.Errorf("api not set")
+	// ErrNoNewCasts is returned when there are no new casts.
+	ErrNoNewCasts = fmt.Errorf("no new casts")
+	// ErrParsingPoll is returned when there is an error parsing the poll during
+	// the poll message handler.
+	ErrParsingPoll = fmt.Errorf("error parsing poll")
+	// ErrGettingUserData is returned when there is an error getting user data
+	// during the poll message handler.
+	ErrGettingUserData = fmt.Errorf("error getting user data")
+	// ErrReplyingToCast is returned when there is an error replying to a cast
+	// during the reply with poll URL function.
+	ErrReplyingToCast = fmt.Errorf("error replying to cast")
 )
