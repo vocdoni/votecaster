@@ -32,7 +32,7 @@ const (
 	devMaxElectionSize     = 5000
 	stageMaxElectionSize   = 100000
 	defaultMaxElectionSize = 200000
-	maxNumOfCsvRecords     = 2000
+	maxNumOfCsvRecords     = 10000
 )
 
 var (
