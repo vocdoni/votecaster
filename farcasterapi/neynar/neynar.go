@@ -63,18 +63,21 @@ type NeynarAPI struct {
 	web3provider *web3.FarcasterProvider
 }
 
-func NewNeynarAPI(apiKey, web3endpoint string) (*NeynarAPI, error) {
-	web3provider, err := web3.NewFarcasterProvider(web3endpoint)
-	if err != nil {
-		return nil, err
-	}
-	// Run a quick test to check if the web3 endpoint is working
-	signers, err := web3provider.GetAppKeysByFid(big.NewInt(3))
-	if err != nil {
-		return nil, err
-	}
-	if len(signers) == 0 {
-		return nil, fmt.Errorf("no signers found on web3 endpoint")
+func NewNeynarAPI(apiKey string, web3endpoints []string) (*NeynarAPI, error) {
+	web3provider := web3.NewFarcasterProvider()
+	for _, web3endpoint := range web3endpoints {
+		if err := web3provider.AddEndpoint(web3endpoint); err != nil {
+			return nil, err
+		}
+		// Run a quick test to check if the web3 endpoint is working
+		signers, err := web3provider.GetAppKeysByFid(big.NewInt(3))
+		if err != nil {
+			return nil, err
+		}
+		if len(signers) == 0 {
+			log.Warnw("web3 endpoint not working", "endpoint", web3endpoint)
+			web3provider.DelEndpoint(web3endpoint)
+		}
 	}
 	return &NeynarAPI{
 		apiKey:       apiKey,

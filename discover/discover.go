@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -19,11 +20,11 @@ import (
 const (
 	farcasterV2APIuser          = "https://client.warpcast.com/v2/user?fid=%d"
 	farcasterV2APIverifications = "https://client.warpcast.com/v2/verifications?fid=%d&limit=100"
-	// https://api.warpcast.com/v2/recent-users?filter=off&limit=100
-	Throttle                = 15 * time.Second
-	updatedUsersByIteration = 10
-	protocolEthereum        = "ethereum"
-	userAgent               = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+	farcasterV2APIrecentUsers   = "https://api.warpcast.com/v2/recent-users?filter=off&limit=%d"
+	Throttle                    = 5 * time.Second
+	updatedUsersByIteration     = 10
+	protocolEthereum            = "ethereum"
+	userAgent                   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
 )
 
 // UserProfile represents the user profile from the Farcaster API v2.
@@ -135,7 +136,6 @@ func (d *FarcasterDiscover) updateUser(fid uint64) error {
 		return fmt.Errorf("failed to get user profile: %w", err)
 	}
 	if profile.Result.User.Fid != fid || profile.Result.User.Username == "" || profile.Result.Extras.CustodyAddress == "" {
-		log.Warnw("user profile seems invalid, skipping", "fid", fid, "username", profile.Result.User.Username)
 		d.invalid.Store(fid, true)
 		return nil
 	}
@@ -203,16 +203,50 @@ func (d *FarcasterDiscover) Addresses(fid uint64) ([]string, error) {
 	return addresses, nil
 }
 
+// lastRegisteredFID returns the last registered FID from the Farcaster API v2.
+func (d *FarcasterDiscover) lastRegisteredFID() (uint64, error) {
+	var recentUsers struct {
+		Result struct {
+			Users []struct {
+				Fid uint64 `json:"fid"`
+			} `json:"users"`
+		} `json:"result"`
+	}
+	// Create a new HTTP request
+	req, err := http.NewRequest("GET", fmt.Sprintf(farcasterV2APIrecentUsers, 1), nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create request: %w", err)
+	}
+	// Set a custom user-agent
+	req.Header.Set("User-Agent", userAgent)
+	resp, err := d.cli.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get recent users: %w", err)
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read recent users: %w", err)
+	}
+	if err := json.Unmarshal(data, &recentUsers); err != nil {
+		return 0, fmt.Errorf("failed to unmarshal recent users: %w", err)
+	}
+	if len(recentUsers.Result.Users) == 0 {
+		return 0, errors.New("no recent users")
+	}
+	return recentUsers.Result.Users[0].Fid, nil
+}
+
 // Run starts the discovery process to update user profiles that are pending in the database.
 // This is a non blocking function that runs in the background.
 func (d *FarcasterDiscover) Run(ctx context.Context) {
-	log.Infow("starting user profile discovery", "throttle", Throttle)
 	go d.runPendingProfiles(ctx)
-	go d.runGeneralProfileUpdate(ctx)
+	go d.runExistingProfilesUpdate(ctx)
+	go d.runDiscoverProfilesFromRandomStart(ctx, 10)
 }
 
 // runGeneralProfileUpdate starts the discovery process to update user profiles in the database.
-func (d *FarcasterDiscover) runGeneralProfileUpdate(ctx context.Context) {
+func (d *FarcasterDiscover) runExistingProfilesUpdate(ctx context.Context) {
 	startID := uint64(0)
 	for {
 		select {
@@ -267,4 +301,65 @@ func (d *FarcasterDiscover) runPendingProfiles(ctx context.Context) {
 			}
 		}
 	}
+}
+
+// runDiscoverProfilesFromRandomStart initializes the update process from a random FID.
+// It allows for running up to N parallel workers to update profiles consecutively.
+func (d *FarcasterDiscover) runDiscoverProfilesFromRandomStart(ctx context.Context, workerCount int) {
+	lastFID, err := d.lastRegisteredFID()
+	if err != nil {
+		log.Errorw(err, "failed to get last registered FID, fallback to 370000")
+		lastFID = 370000
+	}
+	startFID := uint64(rand.NewSource(time.Now().UnixNano()).Int63())%lastFID + 1
+	fidChan := make(chan uint64, workerCount*2) // Buffer to hold twice the number of workers to keep them busy
+	log.Infow("starting user profile discovery", "startFID", startFID, "lastFID", lastFID)
+
+	var wg sync.WaitGroup
+	wg.Add(workerCount)
+	var updateCounter int64
+	timer := time.NewTimer(30 * time.Second)
+
+	// Start N worker goroutines
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case fid := <-fidChan:
+					_ = d.updateUser(fid)
+					time.Sleep(time.Second)
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	// Generate FIDs to update, starting from the random FID and wrapping around if necessary
+	go func() {
+		startTime := time.Now()
+		partialTime := time.Now()
+		for fid := startFID; ; fid++ {
+			if fid > lastFID { // Reset FID to 1 after reaching lastFID
+				fid = 1
+			}
+
+			select {
+			case fidChan <- fid:
+				updateCounter++
+			case <-timer.C:
+				totalCount := float64(updateCounter) / time.Since(startTime).Seconds()
+				partialCount := float64(updateCounter) / time.Since(partialTime).Seconds()
+				log.Monitor("discovery indexer (users/second)", map[string]any{"partial": partialCount, "total": totalCount, "fid": fid})
+				partialTime = time.Now()
+				timer.Reset(30 * time.Second)
+			case <-ctx.Done():
+				close(fidChan)
+				return
+			}
+		}
+	}()
+
+	wg.Wait() // Wait for all workers to finish
 }

@@ -52,7 +52,9 @@ func main() {
 	flag.String("adminToken", "", "The admin token to use for the API (if not set, it will be generated)")
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
-	flag.String("web3", "https://mainnet.optimism.io", "Web3 RPC Optimism endpoint")
+	flag.String("web3",
+		"https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
+		"Web3 RPC Optimism endpoint")
 
 	// bot flags
 	// DISCLAMER: Currently the bot needs a HUB with write permissions to work.
@@ -95,7 +97,8 @@ func main() {
 	adminToken := viper.GetString("adminToken")
 	pollSize := viper.GetInt("pollSize")
 	pprofPort := viper.GetInt("pprofPort")
-	web3endpoint := viper.GetString("web3")
+	web3endpointStr := viper.GetString("web3")
+	web3endpoint := strings.Split(web3endpointStr, ",")
 	// bot vars
 	botFid := viper.GetUint64("botFid")
 	botPrivKey := viper.GetString("botPrivKey")
