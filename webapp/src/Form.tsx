@@ -1,5 +1,6 @@
 import {
   Alert,
+  AlertDescription,
   AlertIcon,
   Box,
   Button,
@@ -19,10 +20,12 @@ import {
   InputGroup,
   InputRightElement,
   Link,
+  ListItem,
   Radio,
   RadioGroup,
   Stack,
   Text,
+  UnorderedList,
   VStack,
 } from '@chakra-ui/react'
 import { SignInButton } from '@farcaster/auth-kit'
@@ -253,16 +256,27 @@ const Form: React.FC = (props: FlexProps) => {
                         <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
                       ) : (
                         <FormHelperText>
-                          The CSV files must include Ethereum addresses and their balances from any network. You might go
-                          to{' '}
-                          <Link target='_blank' href='https://holders.at'>
-                            holders.at
-                          </Link>{' '}
-                          or for POAPs to{' '}
-                          <Link target='_blank' href='https://collectors.poap.xyz'>
-                            collectors.poap.xyz
-                          </Link>{' '}
-                          to build your own. If an address appears multiple times, its balances will be aggregated.
+                          <Alert status='info'>
+                            <AlertDescription>
+                              The CSV files <strong>must include Ethereum addresses and their balances</strong> from any
+                              network. You can build your own at:
+                              <UnorderedList>
+                                <ListItem>
+                                  <Link target='_blank' href='https://holders.at' variant='primary'>
+                                    holders.at
+                                  </Link>{' '}
+                                  for NFTs
+                                </ListItem>
+                                <ListItem>
+                                  <Link target='_blank' href='https://collectors.poap.xyz' variant='primary'>
+                                    collectors.poap.xyz
+                                  </Link>{' '}
+                                  for POAPs
+                                </ListItem>
+                              </UnorderedList>
+                              <strong>If an address appears multiple times, its balances will be aggregated.</strong>
+                            </AlertDescription>
+                          </Alert>
                         </FormHelperText>
                       )}
                     </FormControl>

@@ -13,6 +13,11 @@ export const theme = extendTheme({
           textDecoration: 'none',
         },
       },
+      variants: {
+        primary: {
+          color: 'purple.500',
+        },
+      },
     }),
   },
 })
