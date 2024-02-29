@@ -3,9 +3,6 @@ package poll
 import "fmt"
 
 var (
-	// ErrUnrecognisedCommand is returned when the command is not recognised in
-	// the poll message.
-	ErrUnrecognisedCommand = fmt.Errorf("unrecognised command")
 	// ErrQuestionNotSet is returned when the poll command is recognised but the
 	// question content is not set.
 	ErrQuestionNotSet = fmt.Errorf("question content not set")

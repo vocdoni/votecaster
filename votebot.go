@@ -35,6 +35,7 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 				user, poll, err := voteBot.PollMessageHandler(ctx, msg, maxElectionDuration)
 				if err != nil {
 					log.Errorf("error handling poll message: %s", err)
+					continue
 				}
 				log.Infow("new poll received, creating election...",
 					"poll", poll,

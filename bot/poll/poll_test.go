@@ -8,26 +8,22 @@ import (
 )
 
 const (
-	correctMessage = `!poll
-What is your favourite colour?
+	correctMessage = `What is your favourite colour?
 - Red
 - Blue
 - Green
 - Yellow
 24h
 `
-	noDurationMessage = `!poll
-What is your favourite colour?
+	noDurationMessage = `What is your favourite colour?
 - Red
 - Blue
 `
-	notEnoughOptionsMessage = `!poll
-What is your favourite colour?
+	notEnoughOptionsMessage = `What is your favourite colour?
 - Red
 24h
 `
-	tooManyOptionsMessage = `!poll
-What is your favourite colour?
+	tooManyOptionsMessage = `What is your favourite colour?
 - Red
 - Blue
 - Green
@@ -35,33 +31,28 @@ What is your favourite colour?
 - Orange
 24h
 `
-	invalidDurationMessage = `!poll
-What is your favourite colour?
+	invalidDurationMessage = `What is your favourite colour?
 - Red
 - Blue
 24
 )
 `
-	nonDefaultDurationMessage = `!poll
-What is your favourite colour?
+	nonDefaultDurationMessage = `What is your favourite colour?
 - Red
 - Blue
 - Green
 - Yellow
 1h
 `
-	unrecognisedCommandMessage = `!lalala
-What is your favourite colour?
-- Red
-- Blue
-- Green
-- Yellow
-1h
-`
-	inlineQuestionMessage = `!poll What is your favourite colour?
+	multilineQuestionMessage = `Multi
+line
+question
 - Red
 - Blue
 `
+	randomMessage = `The current transactions spec is a great fallback for all kinds of transactions, but in a couple months most transactions in frames won't happen with it imo.
+
+Just as frames allowed embeds by implementing a limited, safe scope, there's an opportunity to do the same with transactions, starting with small payments`
 )
 
 var (
@@ -80,8 +71,10 @@ var (
 		Options:  []string{"Red", "Blue", "Green", "Yellow"},
 		Duration: time.Hour,
 	}
-	expectedInlineQuestionPoll = &Poll{
-		Question: "What is your favourite colour?",
+	expectedMultilineQuestionPoll = &Poll{
+		Question: `Multi
+line
+question`,
 		Options:  []string{"Red", "Blue"},
 		Duration: DefaultConfig.DefaultDuration,
 	}
@@ -108,11 +101,11 @@ func TestParseString(t *testing.T) {
 	c.Assert(nonDefaultDurationPoll.Options, qt.ContentEquals, expectedNonDefaultDurationPoll.Options)
 	c.Assert(nonDefaultDurationPoll.Duration, qt.Equals, expectedNonDefaultDurationPoll.Duration)
 
-	inlineQuestionPoll, err := ParseString(inlineQuestionMessage, DefaultConfig)
+	multilineQuestionPoll, err := ParseString(multilineQuestionMessage, DefaultConfig)
 	c.Assert(err, qt.IsNil)
-	c.Assert(inlineQuestionPoll.Question, qt.Equals, expectedInlineQuestionPoll.Question)
-	c.Assert(inlineQuestionPoll.Options, qt.ContentEquals, expectedInlineQuestionPoll.Options)
-	c.Assert(inlineQuestionPoll.Duration, qt.Equals, expectedInlineQuestionPoll.Duration)
+	c.Assert(multilineQuestionPoll.Question, qt.Equals, expectedMultilineQuestionPoll.Question)
+	c.Assert(multilineQuestionPoll.Options, qt.ContentEquals, expectedMultilineQuestionPoll.Options)
+	c.Assert(multilineQuestionPoll.Duration, qt.Equals, expectedMultilineQuestionPoll.Duration)
 
 	_, err = ParseString(notEnoughOptionsMessage, DefaultConfig)
 	c.Assert(err, qt.ErrorIs, ErrMinOptionsNotReached)
@@ -123,6 +116,6 @@ func TestParseString(t *testing.T) {
 	_, err = ParseString(invalidDurationMessage, DefaultConfig)
 	c.Assert(err, qt.ErrorIs, ErrParsingDuration)
 
-	_, err = ParseString(unrecognisedCommandMessage, DefaultConfig)
-	c.Assert(err, qt.ErrorIs, ErrUnrecognisedCommand)
+	_, err = ParseString(randomMessage, DefaultConfig)
+	c.Assert(err, qt.ErrorIs, ErrMinOptionsNotReached)
 }

@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	optionPrefix    = "-"
-	lineBreakSuffix = "\n"
-	pollCommand     = "!poll"
+	optionPrefix = "-"
+	linebreak    = "\n"
+	space        = " "
 )
 
 // DefaultConfig var contains the default configuration for a poll with a
@@ -66,8 +66,6 @@ type Poll struct {
 // The duration is optional and by default is 24 hours. If the message does not
 // follow the format, an error is returned.
 func ParseString(message string, config *PollConfig) (*Poll, error) {
-	// create a flag to check if the command has been recognised
-	recognisedCommand := false
 	// create vars to store the question, options and duration
 	var question string
 	var options []string
@@ -91,17 +89,6 @@ func ParseString(message string, config *PollConfig) (*Poll, error) {
 		if line == "" {
 			continue
 		}
-		// if the line contains the command, set the flag and continue
-		if strings.HasPrefix(line, pollCommand) {
-			recognisedCommand = true
-			question = strings.TrimSpace(strings.TrimPrefix(line, pollCommand))
-			continue
-		}
-		// if the line is not a command, and the command has not been
-		// recognised, return an error
-		if !recognisedCommand {
-			return nil, ErrUnrecognisedCommand
-		}
 		// line is a <question> if:
 		//  - it not starts with a dash
 		//  - any question has been set
@@ -119,7 +106,7 @@ func ParseString(message string, config *PollConfig) (*Poll, error) {
 		if !startWithDash {
 			// if the line is a question append it to the question and continue
 			if numOfQuestions == 0 {
-				question += fmt.Sprintf("%s%s", line, lineBreakSuffix)
+				question += fmt.Sprintf("%s%s", line, linebreak)
 				continue
 			}
 			// if the line is a duration, try to parse it, if it fails, return
@@ -151,7 +138,7 @@ func ParseString(message string, config *PollConfig) (*Poll, error) {
 	}
 	// return the results
 	return &Poll{
-		Question: strings.TrimSuffix(question, lineBreakSuffix),
+		Question: strings.ReplaceAll(question, linebreak, space),
 		Options:  options,
 		Duration: duration,
 	}, nil
