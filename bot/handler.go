@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/vocdoni/vote-frame/bot/poll"
 	"github.com/vocdoni/vote-frame/farcasterapi"
-	"github.com/vocdoni/vote-frame/poll"
 )
 
 var (

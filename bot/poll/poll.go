@@ -1,3 +1,16 @@
+// poll package contains the logic to parse a poll message from a string and
+// create a poll struct with the question, options and duration. The package
+// also contains the default configuration for a poll.
+// The parser follows the format:
+// !poll <question>
+// - <option 1>
+// - <option 2>
+// - <option 3*>
+// - <option 4*>
+// <duration*>
+// The duration is optional and if not set, it takes the default duration. The
+// minimum and maximum number of options are also configurable. The question
+// can be set in multiple lines, but the options must be set in a single line.
 package poll
 
 import (
@@ -14,14 +27,19 @@ const (
 	pollCommand     = "!poll"
 )
 
-var DefaultConfig = PollConfig{
+// DefaultConfig var contains the default configuration for a poll with a
+// minimum of 2 options, a maximum of 4 options, a minimum duration of 1 hour,
+// a maximum duration of 15 days and a default duration of 24 hours.
+var DefaultConfig = &PollConfig{
 	MinOptions:      2,
 	MaxOptions:      4,
 	MinDuration:     time.Hour,
-	MaxDuration:     time.Hour * 8760, // 1 year
+	MaxDuration:     24 * time.Hour * 15, // 15 days
 	DefaultDuration: time.Hour * 24,
 }
 
+// PollConfig struct contains the configuration for a poll with a minimum and
+// maximum number of options and a default and maximum duration.
 type PollConfig struct {
 	MinOptions      int
 	MaxOptions      int
@@ -39,8 +57,7 @@ type Poll struct {
 
 // ParseString parses a string message and returns a Poll struct with the
 // question, options and duration. The message should follow the format:
-// !poll
-// <question>
+// !poll <question>
 // - <option 1>
 // - <option 2>
 // - <option 3*>
@@ -48,7 +65,7 @@ type Poll struct {
 // <duration*>
 // The duration is optional and by default is 24 hours. If the message does not
 // follow the format, an error is returned.
-func ParseString(message string, config PollConfig) (*Poll, error) {
+func ParseString(message string, config *PollConfig) (*Poll, error) {
 	// create a flag to check if the command has been recognised
 	recognisedCommand := false
 	// create vars to store the question, options and duration
@@ -56,8 +73,7 @@ func ParseString(message string, config PollConfig) (*Poll, error) {
 	var options []string
 	var duration time.Duration = config.DefaultDuration
 	// poll message follows the format:
-	// !poll
-	// <question>
+	// !poll <question>
 	// - <option 1>
 	// - <option 2>
 	// - <option 3*>

@@ -17,6 +17,7 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/vocdoni/vote-frame/discover"
+	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/hub"
 	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
 	"github.com/vocdoni/vote-frame/mongo"
@@ -54,10 +55,16 @@ func main() {
 	flag.String("web3", "https://mainnet.optimism.io", "Web3 RPC Optimism endpoint")
 
 	// bot flags
+	// DISCLAMER: Currently the bot needs a HUB with write permissions to work.
+	// It also needs a FID to impersonate to it and its private key to sign the
+	// casts. Alternatively, it can be used with a Neynar API, but due the last
+	// issues with the Neynar API, it is not recommended.
 	flag.Uint64("botFid", 0, "FID to be used for the bot")
 	flag.String("botPrivKey", "", "The bot private key to use for signing the vote (hex)")
-	flag.String("hubEndpoint", "", "The hub endpoint to use")
+	flag.String("botHubEndpoint", "", "The hub endpoint to use")
 	flag.String("neynarAPIKey", "", "neynar API key")
+	flag.String("neynarSignerUUID", "", "neynar signer UUID")
+	flag.String("neynarWebhookSecret", "", "neynar Webhook shared secret")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -92,8 +99,10 @@ func main() {
 	// bot vars
 	botFid := viper.GetUint64("botFid")
 	botPrivKey := viper.GetString("botPrivKey")
-	hubEndpoint := viper.GetString("hubEndpoint")
+	botHubEndpoint := viper.GetString("botHubEndpoint")
 	neynarAPIKey := viper.GetString("neynarAPIKey")
+	neynarSignerUUID := viper.GetString("neynarSignerUUID")
+	neynarWebhookSecret := viper.GetString("neynarWebhookSecret")
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
@@ -121,8 +130,10 @@ func main() {
 		"pprofPort", pprofPort,
 		"botFid", botFid,
 		"botPrivKey", botPrivKey,
-		"hubEndpoint", hubEndpoint,
+		"botHubEndpoint", botHubEndpoint,
 		"neynarAPIKey", neynarAPIKey,
+		"neynarSignerUUID", neynarSignerUUID,
+		"neynarWebhookSecret", neynarWebhookSecret,
 		"web3endpoint", web3endpoint,
 	)
 
@@ -365,18 +376,37 @@ func main() {
 	}
 	// if a bot FID is provided, start the bot background process
 	if botFid > 0 {
-		hubApi, err := hub.NewHubAPI(hubEndpoint, nil)
-		if err != nil {
-			log.Fatal(err)
+		var botAPI farcasterapi.API
+		if botPrivKey != "" && botHubEndpoint != "" {
+			// Hub based bot
+			botAPI, err = hub.NewHubAPI(botHubEndpoint, nil)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if err := botAPI.SetFarcasterUser(botFid, botPrivKey); err != nil {
+				log.Fatal(err)
+			}
+			log.Info("trying to init Hub based bot")
+		} else if neynarAPIKey != "" && neynarSignerUUID != "" && neynarWebhookSecret != "" {
+			// Neynar based bot
+			if err := neynarcli.SetFarcasterUser(botFid, neynarSignerUUID); err != nil {
+				log.Fatal(err)
+			}
+			botAPI = neynarcli
+			// register neynar webhook handler
+			if err := uAPI.Endpoint.RegisterMethod("/webhook/neynar", http.MethodPost, "public", neynarWebhook(neynarcli, neynarWebhookSecret)); err != nil {
+				log.Fatal(err)
+			}
+			log.Info("trying to init Neynar based bot")
+		} else {
+			log.Fatalf("botFid is set but botPrivKey and botHubEndpoint or neynarAPIKey, neynarSignerUUID and neynarWebhookSecret are not")
 		}
-		if err := hubApi.SetFarcasterUser(botFid, botPrivKey); err != nil {
-			log.Fatal(err)
-		}
-		voteBot, err := initBot(mainCtx, handler, hubApi, censusInfo)
+		voteBot, err := initBot(mainCtx, handler, botAPI, censusInfo)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer voteBot.Stop()
+		log.Info("bot started")
 	}
 
 	// close if interrupt received

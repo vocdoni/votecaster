@@ -36,7 +36,6 @@ type Bot struct {
 // New function creates a new bot with the given configuration, it returns an
 // error if the API is not set in the configuration.
 func New(config BotConfig) (*Bot, error) {
-	log.Infow("initializing bot", "config", config)
 	if config.API == nil {
 		return nil, ErrAPINotSet
 	}
