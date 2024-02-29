@@ -5,8 +5,6 @@ import "fmt"
 var (
 	// ErrAPINotSet is returned when the API is not set in the bot configuration.
 	ErrAPINotSet = fmt.Errorf("api not set")
-	// ErrNoNewCasts is returned when there are no new casts.
-	ErrNoNewCasts = fmt.Errorf("no new casts")
 	// ErrParsingPoll is returned when there is an error parsing the poll during
 	// the poll message handler.
 	ErrParsingPoll = fmt.Errorf("error parsing poll")

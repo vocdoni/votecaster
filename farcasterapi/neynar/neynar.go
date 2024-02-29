@@ -23,15 +23,15 @@ import (
 )
 
 const (
-	neynarHubEndpoint = "https://hub-api.neynar.com"
-	neynarAPIEndpoint = "https://api.neynar.com"
+	NeynarHubEndpoint = "https://hub-api.neynar.com/v1"
+	NeynarAPIEndpoint = "https://api.neynar.com"
 
 	// endpoints
-	neynarGetUsernameEndpoint = neynarAPIEndpoint + "/v1/farcaster/user?fid=%d"
-	neynarGetCastsEndpoint    = neynarAPIEndpoint + "/v1/farcaster/mentions-and-replies?fid=%d&limit=150&cursor=%s"
-	neynarReplyEndpoint       = neynarAPIEndpoint + "/v2/farcaster/cast"
-	neynarUserByEthAddresses  = neynarAPIEndpoint + "/v2/farcaster/user/bulk-by-address?addresses=%s"
-	neynarVerificationsByFID  = neynarHubEndpoint + "/v1/verificationsByFid?fid=%d"
+	neynarGetUsernameEndpoint = NeynarAPIEndpoint + "/v1/farcaster/user?fid=%d"
+	neynarGetCastsEndpoint    = NeynarAPIEndpoint + "/v1/farcaster/mentions-and-replies?fid=%d&limit=150&cursor=%s"
+	neynarReplyEndpoint       = NeynarAPIEndpoint + "/v2/farcaster/cast"
+	neynarUserByEthAddresses  = NeynarAPIEndpoint + "/v2/farcaster/user/bulk-by-address?addresses=%s"
+	neynarVerificationsByFID  = NeynarHubEndpoint + "/verificationsByFid?fid=%d"
 
 	MaxAddressesPerRequest = 300
 

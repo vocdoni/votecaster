@@ -60,7 +60,7 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 				log.Infow("election created",
 					"electionID", electionID,
 					"poll", poll)
-				frameUrl := fmt.Sprintf("%s/%s", serverURL, electionID)
+				frameUrl := fmt.Sprintf("%s/%s", serverURL, electionID.String())
 				if err := voteBot.ReplyWithPollURL(ctx, msg, frameUrl); err != nil {
 					log.Errorf("error replying to poll: %s", err)
 					continue

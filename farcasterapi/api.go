@@ -6,7 +6,10 @@ import (
 )
 
 var (
+	// ErrNoDataFound is returned when there is no data found.
 	ErrNoDataFound = fmt.Errorf("no data found")
+	// ErrNoNewCasts is returned when there are no new casts.
+	ErrNoNewCasts = fmt.Errorf("no new casts")
 )
 
 type API interface {

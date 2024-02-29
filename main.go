@@ -17,6 +17,7 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/vocdoni/vote-frame/discover"
+	"github.com/vocdoni/vote-frame/farcasterapi/hub"
 	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
 	"github.com/vocdoni/vote-frame/mongo"
 	urlapi "go.vocdoni.io/dvote/api"
@@ -54,9 +55,9 @@ func main() {
 
 	// bot flags
 	flag.Uint64("botFid", 0, "FID to be used for the bot")
+	flag.String("botPrivKey", "", "The bot private key to use for signing the vote (hex)")
+	flag.String("hubEndpoint", "", "The hub endpoint to use")
 	flag.String("neynarAPIKey", "", "neynar API key")
-	flag.String("neynarSignerUUID", "", "neynar signer UUID")
-	flag.String("neynarWebhookSecret", "", "neynar Webhook shared secret")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -90,9 +91,9 @@ func main() {
 	web3endpoint := viper.GetString("web3")
 	// bot vars
 	botFid := viper.GetUint64("botFid")
+	botPrivKey := viper.GetString("botPrivKey")
+	hubEndpoint := viper.GetString("hubEndpoint")
 	neynarAPIKey := viper.GetString("neynarAPIKey")
-	neynarSignerUUID := viper.GetString("neynarSignerUUID")
-	neynarWebhookSecret := viper.GetString("neynarWebhookSecret")
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
@@ -119,9 +120,9 @@ func main() {
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
 		"botFid", botFid,
+		"botPrivKey", botPrivKey,
+		"hubEndpoint", hubEndpoint,
 		"neynarAPIKey", neynarAPIKey,
-		"neynarSignerUUID", neynarSignerUUID,
-		"neynarWebhookSecret", neynarWebhookSecret,
 		"web3endpoint", web3endpoint,
 	)
 
@@ -364,18 +365,18 @@ func main() {
 	}
 	// if a bot FID is provided, start the bot background process
 	if botFid > 0 {
-		if err := neynarcli.SetFarcasterUser(botFid, neynarSignerUUID); err != nil {
+		hubApi, err := hub.NewHubAPI(hubEndpoint, nil)
+		if err != nil {
 			log.Fatal(err)
 		}
-		voteBot, err := initBot(mainCtx, handler, neynarcli, censusInfo)
+		if err := hubApi.SetFarcasterUser(botFid, botPrivKey); err != nil {
+			log.Fatal(err)
+		}
+		voteBot, err := initBot(mainCtx, handler, hubApi, censusInfo)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer voteBot.Stop()
-		// register neynar webhook handler
-		if err := uAPI.Endpoint.RegisterMethod("/webhook/neynar", http.MethodPost, "public", neynarWebhook(neynarcli, neynarWebhookSecret)); err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	// close if interrupt received

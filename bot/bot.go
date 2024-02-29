@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	_ "embed"
+	"errors"
 	"time"
 
 	"github.com/vocdoni/vote-frame/farcasterapi"
@@ -65,7 +66,7 @@ func (b *Bot) Start(ctx context.Context) {
 				log.Debugw("checking for new casts", "last-cast", b.lastCast)
 				// retrieve new messages from the last cast
 				messages, lastCast, err := b.api.LastMentions(b.ctx, b.lastCast)
-				if err != nil && err != ErrNoNewCasts {
+				if err != nil && !errors.Is(err, farcasterapi.ErrNoNewCasts) {
 					log.Errorf("error retrieving new casts: %s", err)
 					continue
 				}
