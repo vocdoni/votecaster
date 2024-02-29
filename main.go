@@ -129,11 +129,8 @@ func main() {
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
 		"botFid", botFid,
-		"botPrivKey", botPrivKey,
 		"botHubEndpoint", botHubEndpoint,
-		"neynarAPIKey", neynarAPIKey,
 		"neynarSignerUUID", neynarSignerUUID,
-		"neynarWebhookSecret", neynarWebhookSecret,
 		"web3endpoint", web3endpoint,
 	)
 
