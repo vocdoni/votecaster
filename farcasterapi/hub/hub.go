@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/vocdoni/vote-frame/farcasterapi"
-	"github.com/vocdoni/vote-frame/farcasterapi/hub/protobufs"
+	hubproto "github.com/vocdoni/vote-frame/farcasterapi/hub/proto"
 	"github.com/zeebo/blake3"
 	"go.vocdoni.io/dvote/log"
 	"google.golang.org/protobuf/proto"
@@ -159,12 +159,12 @@ func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, co
 	if err != nil {
 		return fmt.Errorf("error decoding target hash: %s", err)
 	}
-	castAdd := &protobufs.CastAddBody{
+	castAdd := &hubproto.CastAddBody{
 		Text: content,
 		// Mentions:          []uint64{targetFid},
 		// MentionsPositions: []uint32{0},
-		Parent: &protobufs.CastAddBody_ParentCastId{
-			ParentCastId: &protobufs.CastId{
+		Parent: &hubproto.CastAddBody_ParentCastId{
+			ParentCastId: &hubproto.CastId{
 				Fid:  targetFid,
 				Hash: bTargetHash,
 			},
@@ -172,12 +172,12 @@ func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, co
 	}
 	// compose the message data with the message type, the bot FID, the current
 	// timestamp, the network, and the cast add body
-	msgData := &protobufs.MessageData{
-		Type:      protobufs.MessageType_MESSAGE_TYPE_CAST_ADD,
+	msgData := &hubproto.MessageData{
+		Type:      hubproto.MessageType_MESSAGE_TYPE_CAST_ADD,
 		Fid:       h.fid,
 		Timestamp: uint32(uint64(time.Now().Unix()) - farcasterEpoch),
-		Network:   protobufs.FarcasterNetwork_FARCASTER_NETWORK_MAINNET,
-		Body:      &protobufs.MessageData_CastAddBody{CastAddBody: castAdd},
+		Network:   hubproto.FarcasterNetwork_FARCASTER_NETWORK_MAINNET,
+		Body:      &hubproto.MessageData_CastAddBody{CastAddBody: castAdd},
 	}
 	// marshal the message data
 	msgDataBytes, err := proto.Marshal(msgData)
@@ -190,10 +190,10 @@ func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, co
 	hash := hasher.Sum(nil)[:20]
 	// create the message with the hash scheme, the hash and the signature
 	// scheme
-	msg := &protobufs.Message{
-		HashScheme:      protobufs.HashScheme_HASH_SCHEME_BLAKE3,
+	msg := &hubproto.Message{
+		HashScheme:      hubproto.HashScheme_HASH_SCHEME_BLAKE3,
 		Hash:            hash,
-		SignatureScheme: protobufs.SignatureScheme_SIGNATURE_SCHEME_ED25519,
+		SignatureScheme: hubproto.SignatureScheme_SIGNATURE_SCHEME_ED25519,
 		Data:            msgData,
 		DataBytes:       msgDataBytes,
 	}
