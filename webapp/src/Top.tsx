@@ -45,6 +45,7 @@ export const TopTenPolls = (props: BoxProps) => {
               isExternal
               color='teal.300'
               fontWeight='medium'
+              maxW='80%'
             >
               {poll.title} — by {poll.createdByUsername}
             </Link>

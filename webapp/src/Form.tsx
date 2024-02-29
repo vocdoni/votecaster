@@ -83,19 +83,14 @@ const Form: React.FC = (props: FlexProps) => {
   }
 
   const checkCensus = async (pid: string) => {
-    try {
-      const checkRes = await axios.get(`${appUrl}/census/check/${pid}`)
-      if (checkRes.status === 200) {
-        return checkRes.data
-      }
-      // wait 3 seconds between requests
-      await new Promise((resolve) => setTimeout(resolve, 3000))
-      // continue retrying until we get a 200 status
-      return await checkCensus(pid)
-    } catch (error) {
-      console.error('error checking census status:', error)
-      return false
+    const checkRes = await axios.get(`${appUrl}/census/check/${pid}`)
+    if (checkRes.status === 200) {
+      return checkRes.data
     }
+    // wait 3 seconds between requests
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+    // continue retrying until we get a 200 status
+    return await checkCensus(pid)
   }
 
   const onSubmit = async (data: FormValues) => {
@@ -113,19 +108,25 @@ const Form: React.FC = (props: FlexProps) => {
       if (data.csv) {
         // create the census
         try {
-          const csv = await axios.post(`${appUrl}/census/csv`, data.csv[0])
+          const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
+          const contents = new Blob(
+            Array.from(data.csv).flatMap((file) => [file, lineBreak]),
+            { type: 'text/csv' }
+          )
+          const csv = await axios.post(`${appUrl}/census/csv`, contents)
           const census = await checkCensus(csv.data.censusId)
-          if (census === false) {
-            throw new Error('backend error')
-          }
           setUsernames(census.usernames)
           census.size = census.usernames.length
           delete census.usernames
           election.census = census
         } catch (e) {
           console.error('there was an error creating the census:', e)
-          if ('message' in e) {
-            setError(e.message)
+          if ('response' in e && 'data' in e.response) {
+            setError(e.response.data)
+          } else {
+            if ('message' in e) {
+              setError(e.message)
+            }
           }
           setLoading(false)
           return
@@ -162,7 +163,7 @@ const Form: React.FC = (props: FlexProps) => {
 
   return (
     <Flex flexDir='column' alignItems='center' {...props}>
-      <Card maxW={{ base: '100%', md: 400, lg: 600 }}>
+      <Card maxW={{ base: '100%', md: 400, lg: 500 }}>
         <CardHeader align='center'>
           <Heading as='h1' size='2xl'>
             farcaster.vote
@@ -228,17 +229,18 @@ const Form: React.FC = (props: FlexProps) => {
                     <RadioGroup onChange={(val: string) => setValue('censusType', val)} value={censusType}>
                       <Stack direction='row'>
                         <Radio value='farcaster'>All farcaster users</Radio>
-                        <Radio value='custom'>Custom via CSV</Radio>
+                        <Radio value='custom'>Token gated via CSV</Radio>
                       </Stack>
                     </RadioGroup>
                   </FormControl>
                   {censusType === 'custom' && (
                     <FormControl isDisabled={loading} isRequired>
-                      <FormLabel htmlFor='csv'>CSV</FormLabel>
+                      <FormLabel htmlFor='csv'>CSV files</FormLabel>
                       <Input
                         id='csv'
-                        placeholder='Select CSV'
+                        placeholder='Upload CSV'
                         type='file'
+                        multiple
                         accept='text/csv,application/csv,.csv'
                         {...register('csv', {
                           required: {
@@ -251,9 +253,8 @@ const Form: React.FC = (props: FlexProps) => {
                         <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
                       ) : (
                         <FormHelperText>
-                          The CSV census must contain Ethereum addresses from any network and balances, split by coma.{' '}
-                          <br />
-                          You might go to{' '}
+                          The CSV files must include Ethereum addresses and their balances from any network. You might go
+                          to{' '}
                           <Link target='_blank' href='https://holders.at'>
                             holders.at
                           </Link>{' '}
@@ -261,7 +262,7 @@ const Form: React.FC = (props: FlexProps) => {
                           <Link target='_blank' href='https://airstack.xyz'>
                             airstack.xyz
                           </Link>{' '}
-                          to build your own.
+                          to build your own. If an address appears multiple times, its balances will be aggregated.
                         </FormHelperText>
                       )}
                     </FormControl>
