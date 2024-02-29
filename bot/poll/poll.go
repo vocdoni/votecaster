@@ -2,7 +2,7 @@
 // create a poll struct with the question, options and duration. The package
 // also contains the default configuration for a poll.
 // The parser follows the format:
-// !poll <question>
+// <question>
 // - <option 1>
 // - <option 2>
 // - <option 3*>
@@ -57,7 +57,7 @@ type Poll struct {
 
 // ParseString parses a string message and returns a Poll struct with the
 // question, options and duration. The message should follow the format:
-// !poll <question>
+// <question>
 // - <option 1>
 // - <option 2>
 // - <option 3*>
@@ -71,7 +71,7 @@ func ParseString(message string, config *PollConfig) (*Poll, error) {
 	var options []string
 	var duration time.Duration = config.DefaultDuration
 	// poll message follows the format:
-	// !poll <question>
+	// <question>
 	// - <option 1>
 	// - <option 2>
 	// - <option 3*>
@@ -138,7 +138,7 @@ func ParseString(message string, config *PollConfig) (*Poll, error) {
 	}
 	// return the results
 	return &Poll{
-		Question: strings.ReplaceAll(question, linebreak, space),
+		Question: strings.TrimSpace(strings.ReplaceAll(question, linebreak, space)),
 		Options:  options,
 		Duration: duration,
 	}, nil

@@ -72,9 +72,7 @@ var (
 		Duration: time.Hour,
 	}
 	expectedMultilineQuestionPoll = &Poll{
-		Question: `Multi
-line
-question`,
+		Question: "Multi line question",
 		Options:  []string{"Red", "Blue"},
 		Duration: DefaultConfig.DefaultDuration,
 	}
