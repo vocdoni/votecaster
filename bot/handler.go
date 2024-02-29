@@ -13,7 +13,7 @@ import (
 var (
 	// PollReplyTemplate is the template for the reply to a cast with a poll. It
 	// must be formatted with the poll URL.
-	PollReplyTemplate = `🗳️ Your verifiable poll frame has been created using farcaster.vote & @vocdoni
+	PollReplyTemplate = `🗳️ Your verifiable poll frame has been created using farcaster.vote
 
 Now copy & paste the URL of the frame into a Cast to share your poll with others!
 
