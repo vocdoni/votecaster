@@ -11,6 +11,7 @@ import (
 const (
 	optionPrefix    = "-"
 	lineBreakSuffix = "\n"
+	pollCommand     = "!poll"
 )
 
 var DefaultConfig = PollConfig{
@@ -75,8 +76,9 @@ func ParseString(message string, config PollConfig) (*Poll, error) {
 			continue
 		}
 		// if the line contains the command, set the flag and continue
-		if line == "!poll" {
+		if strings.HasPrefix(line, pollCommand) {
 			recognisedCommand = true
+			question = strings.TrimSpace(strings.TrimPrefix(line, pollCommand))
 			continue
 		}
 		// if the line is not a command, and the command has not been

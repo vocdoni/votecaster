@@ -50,6 +50,18 @@ What is your favourite colour?
 - Yellow
 1h
 `
+	unrecognisedCommandMessage = `!lalala
+What is your favourite colour?
+- Red
+- Blue
+- Green
+- Yellow
+1h
+`
+	inlineQuestionMessage = `!poll What is your favourite colour?
+- Red
+- Blue
+`
 )
 
 var (
@@ -67,6 +79,11 @@ var (
 		Question: "What is your favourite colour?",
 		Options:  []string{"Red", "Blue", "Green", "Yellow"},
 		Duration: time.Hour,
+	}
+	expectedInlineQuestionPoll = &Poll{
+		Question: "What is your favourite colour?",
+		Options:  []string{"Red", "Blue"},
+		Duration: DefaultConfig.DefaultDuration,
 	}
 )
 
@@ -91,6 +108,12 @@ func TestParseString(t *testing.T) {
 	c.Assert(nonDefaultDurationPoll.Options, qt.ContentEquals, expectedNonDefaultDurationPoll.Options)
 	c.Assert(nonDefaultDurationPoll.Duration, qt.Equals, expectedNonDefaultDurationPoll.Duration)
 
+	inlineQuestionPoll, err := ParseString(inlineQuestionMessage, DefaultConfig)
+	c.Assert(err, qt.IsNil)
+	c.Assert(inlineQuestionPoll.Question, qt.Equals, expectedInlineQuestionPoll.Question)
+	c.Assert(inlineQuestionPoll.Options, qt.ContentEquals, expectedInlineQuestionPoll.Options)
+	c.Assert(inlineQuestionPoll.Duration, qt.Equals, expectedInlineQuestionPoll.Duration)
+
 	_, err = ParseString(notEnoughOptionsMessage, DefaultConfig)
 	c.Assert(err, qt.ErrorIs, ErrMinOptionsNotReached)
 
@@ -99,4 +122,7 @@ func TestParseString(t *testing.T) {
 
 	_, err = ParseString(invalidDurationMessage, DefaultConfig)
 	c.Assert(err, qt.ErrorIs, ErrParsingDuration)
+
+	_, err = ParseString(unrecognisedCommandMessage, DefaultConfig)
+	c.Assert(err, qt.ErrorIs, ErrUnrecognisedCommand)
 }
