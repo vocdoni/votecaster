@@ -70,6 +70,8 @@ var frameMain = header + `
     <meta name="fc:frame:button:4" content="Create new" />
     <meta name="fc:frame:button:4:action" content="link" />
     <meta name="fc:frame:button:4:target" content="{server}" />
+
+    <meta http-equiv="refresh" content="0;url={server}/app/#poll/{processID}" />
 ` + body
 
 var frameVote = header + `

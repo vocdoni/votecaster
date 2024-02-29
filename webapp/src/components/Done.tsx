@@ -2,7 +2,7 @@ import { Box, Button, Code, Icon, IconButton, Image, Link, Text, useClipboard } 
 import { Dispatch, SetStateAction, useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { FaArchway, FaCheck, FaDownload, FaRegCopy } from 'react-icons/fa6'
-import { CsvGenerator } from './generator'
+import { CsvGenerator } from '../generator'
 
 const appUrl = import.meta.env.APP_URL
 const pollUrl = (pid: string) => `${appUrl}/${pid}`
