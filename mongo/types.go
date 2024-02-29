@@ -10,6 +10,12 @@ var (
 	ErrElectionUnknown = fmt.Errorf("electionID unknown")
 )
 
+const (
+	ElectionSourceWebApp  = "farcaster.vote"
+	ElectionSourceBot     = "bot"
+	ElectionSourceUnknown = "unknown"
+)
+
 // Users is the list of users.
 type Users struct {
 	Users []uint64 `json:"users"`
@@ -33,6 +39,7 @@ type Election struct {
 	CastedVotes  uint64    `json:"castedVotes" bson:"castedVotes"`
 	LastVoteTime time.Time `json:"lastVoteTime" bson:"lastVoteTime"`
 	CreatedTime  time.Time `json:"createdTime" bson:"createdTime"`
+	Source       string    `json:"source" bson:"source"`
 }
 
 // Results represents the final results of an election.

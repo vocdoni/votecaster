@@ -1,30 +1,5 @@
 package neynar
 
-type NotificationAuthor struct {
-	FID uint64 `json:"fid"`
-}
-
-type Notification struct {
-	Hash      string             `json:"hash"`
-	Author    NotificationAuthor `json:"author"`
-	Type      string             `json:"type"`
-	Text      string             `json:"text"`
-	Timestamp string             `json:"timestamp"`
-}
-
-type NextNotificationCursor struct {
-	Cursor string `json:"cursor"`
-}
-
-type NotificationsResult struct {
-	Notifications []*Notification        `json:"notifications"`
-	NextCursor    NextNotificationCursor `json:"next"`
-}
-
-type NotificationsResponse struct {
-	Result *NotificationsResult `json:"result"`
-}
-
 type CastPostRequest struct {
 	Signer string `json:"signer_uuid"`
 	Text   string `json:"text"`
@@ -59,6 +34,19 @@ type UserdataResult struct {
 
 type UserdataResponse struct {
 	Result *UserdataResult `json:"result"`
+}
+
+type CastWebhookData struct {
+	Object    string      `json:"object"`
+	Hash      string      `json:"hash"`
+	Text      string      `json:"text"`
+	Timestamp string      `json:"timestamp"`
+	Author    *UserdataV2 `json:"author"`
+}
+
+type CastWebhookRequest struct {
+	Type string           `json:"type"`
+	Data *CastWebhookData `json:"data"`
 }
 
 // ---

@@ -6,11 +6,15 @@ import (
 )
 
 var (
+	// ErrNoDataFound is returned when there is no data found.
 	ErrNoDataFound = fmt.Errorf("no data found")
+	// ErrNoNewCasts is returned when there are no new casts.
+	ErrNoNewCasts = fmt.Errorf("no new casts")
 )
 
 type API interface {
 	// SetFarcasterUser sets the farcaster user with the given fid and signer
+	// (UUID or privKey).
 	SetFarcasterUser(fid uint64, signer string) error
 	// Stop stops the API
 	Stop() error
@@ -27,6 +31,8 @@ type API interface {
 	// UserDataByVerificationAddress retrieves the Userdata of the user with the
 	// given verification address, if something goes wrong, it returns an error
 	UserDataByVerificationAddress(ctx context.Context, address []string) ([]*Userdata, error)
+	// WebhookHandler handles the incoming webhooks from the farcaster API
+	WebhookHandler(body []byte) error
 	// SignersFromFID retrieves the signers (appkeys) of the user with the given fid
 	SignersFromFID(fid uint64) ([]string, error)
 }

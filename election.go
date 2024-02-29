@@ -54,41 +54,10 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		}
 	}
 
-	electionID, err := createElection(v.cli, &req.ElectionDescription, census)
+	electionID, err := v.createAndSaveElectionAndProfile(&req.ElectionDescription, census, req.Profile, false)
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
-
-	go func() {
-		election, err := waitForElection(v.cli, electionID)
-		if err != nil {
-			log.Errorw(err, "failed to create election")
-			return
-		}
-		// add the election to the LRU cache and the database
-		v.electionLRU.Add(electionID.String(), election)
-		if err := v.db.AddElection(electionID, req.Profile.FID); err != nil {
-			log.Errorw(err, "failed to add election to database")
-		}
-		u, err := v.db.User(req.Profile.FID)
-		if err != nil {
-			if !errors.Is(err, mongo.ErrUserUnknown) {
-				log.Errorw(err, "failed to get user from database")
-				return
-			}
-			if err := v.db.AddUser(req.Profile.FID, req.Profile.Username, req.Profile.Verifications, []string{}, req.Profile.Custody, 1); err != nil {
-				log.Errorw(err, "failed to add user to database")
-			}
-			return
-		}
-		u.Addresses = req.Profile.Verifications
-		u.Username = req.Profile.Username
-		u.ElectionCount++
-		if err := v.db.UpdateUser(u); err != nil {
-			log.Errorw(err, "failed to update user in database")
-		}
-	}()
-
 	ctx.Writer.Header().Set("Content-Type", "application/json")
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)
 }
@@ -299,6 +268,74 @@ func ensureAccountExist(cli *apiclient.HTTPclient) error {
 	defer cancel()
 	if _, err := cli.WaitUntilTxIsMined(ctx, hash); err != nil {
 		return fmt.Errorf("failed to wait for tx to be mined: %w", err)
+	}
+	return nil
+}
+
+// createAndSaveElectionAndProfile creates an election and saves it in the
+// database. It receives a description of the election, a census, a profile and
+// a wait flag. If the wait flag is true, it waits until the election is created
+// and saved in the database.
+func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescription,
+	census *CensusInfo, profile *FarcasterProfile, wait bool,
+) (types.HexBytes, error) {
+	// use the request census or use the one hardcoded for all farcaster users
+	if census == nil {
+		census = v.defaultCensus
+	}
+	// create the election
+	electionID, err := createElection(v.cli, desc, census)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create election: %v", err)
+	}
+	// create an inline function with the rest of the method logic
+	backgroundProcess := func() error {
+		election, err := waitForElection(v.cli, electionID)
+		if err != nil {
+			return fmt.Errorf("failed to create election: %w", err)
+		}
+		if err := v.saveElectionAndProfile(election, profile); err != nil {
+			return fmt.Errorf("failed to save election and profile: %w", err)
+		}
+		return nil
+	}
+	// if wait flag is true, run the background process in the current goroutine
+	// and return the resulting error, otherwise, run it in a new goroutine and
+	// print the error if any.
+	if wait {
+		return electionID, backgroundProcess()
+	} else {
+		go func() {
+			if err := backgroundProcess(); err != nil {
+				log.Errorw(err, "failed to create election")
+			}
+		}()
+	}
+	return electionID, nil
+}
+
+// saveElectionAndProfile saves the election and the profile in the database.
+func (v *vocdoniHandler) saveElectionAndProfile(election *api.Election, profile *FarcasterProfile) error {
+	// add the election to the LRU cache and the database
+	v.electionLRU.Add(election.ElectionID.String(), election)
+	if err := v.db.AddElection(election.ElectionID, profile.FID, mongo.ElectionSourceWebApp); err != nil {
+		return fmt.Errorf("failed to add election to database: %w", err)
+	}
+	u, err := v.db.User(profile.FID)
+	if err != nil {
+		if !errors.Is(err, mongo.ErrUserUnknown) {
+			return fmt.Errorf("failed to get user from database: %w", err)
+		}
+		if err := v.db.AddUser(profile.FID, profile.Username, profile.Verifications, []string{}, profile.Custody, 1); err != nil {
+			return fmt.Errorf("failed to add user to database: %w", err)
+		}
+		return nil
+	}
+	u.Addresses = profile.Verifications
+	u.Username = profile.Username
+	u.ElectionCount++
+	if err := v.db.UpdateUser(u); err != nil {
+		return fmt.Errorf("failed to update user in database: %w", err)
 	}
 	return nil
 }

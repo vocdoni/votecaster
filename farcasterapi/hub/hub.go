@@ -38,6 +38,8 @@ const (
 	farcasterEpoch uint64 = 1609459200 // January 1, 2021 UTC
 )
 
+// Hub struct implements the farcasterapi.API interface and represents the
+// API of a Farcaster Hub.
 type Hub struct {
 	fid      uint64
 	privKey  []byte
@@ -48,23 +50,24 @@ type Hub struct {
 // Init initializes the API Hub with the given arguments.
 // apiKeys must be a slice of strings with an even number of elements, where
 // each pair of elements is a header and a key.
-func (h *Hub) Init(apiEndpoint string, apiKeys []string) error {
-	h.endpoint = apiEndpoint
+func NewHubAPI(apiEndpoint string, apiKeys []string) (*Hub, error) {
+	h := &Hub{endpoint: apiEndpoint}
 	// take the apikeys by group of two and set them as header/key
 	if len(apiKeys)%2 != 0 {
-		return fmt.Errorf("invalid number of api keys")
+		return nil, fmt.Errorf("invalid number of api keys")
 	}
 	h.auth = map[string]string{}
 	for i := 0; i < len(apiKeys); i += 2 {
 		h.auth[apiKeys[i]] = apiKeys[i+1]
 	}
-	return nil
+	return h, nil
 }
 
-// SetFarcasterUser sets the farcaster user with the given fid and signer privateKey in hex.
-func (h *Hub) SetFarcasterUser(fid uint64, signer string) error {
+// SetFarcasterUser sets the farcaster user with the given fid and signer
+// privateKey in hex.
+func (h *Hub) SetFarcasterUser(fid uint64, signerPrivKey string) error {
 	var err error
-	h.privKey, err = hex.DecodeString(signer)
+	h.privKey, err = hex.DecodeString(strings.TrimPrefix(signerPrivKey, "0x"))
 	if err != nil {
 		return fmt.Errorf("error decoding signer: %w", err)
 	}
@@ -72,10 +75,13 @@ func (h *Hub) SetFarcasterUser(fid uint64, signer string) error {
 	return nil
 }
 
+// Stop stops the API Hub. It does nothing.
 func (h *Hub) Stop() error {
 	return nil
 }
 
+// LastMentions method returns the last mentions of the bot since the given
+// timestamp. It returns the messages, the last timestamp and an error.
 func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcasterapi.APIMessage, uint64, error) {
 	if h.fid == 0 {
 		return nil, 0, fmt.Errorf("no farcaster user set")
@@ -134,13 +140,16 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 	}
 	// if there are no new casts, return an error
 	if len(messages) == 0 {
-		return nil, timestamp, fmt.Errorf("no new casts")
+		return nil, timestamp, farcasterapi.ErrNoNewCasts
 	}
 	// return the filtered messages and the last timestamp
 	return messages, lastTimestamp + farcasterEpoch, nil
 }
 
+// Reply method sends a reply to the given targetFid and targetHash with the
+// given content.
 func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, content string) error {
+	log.Infow("replying to cast", "msg", content)
 	if h.fid == 0 {
 		return fmt.Errorf("no farcaster user set")
 	}
@@ -224,6 +233,8 @@ func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, co
 	return nil
 }
 
+// UserDataByFID method returns the user data for the given FID. It includes the
+// username, the custody address, the verification addresses and the signers.
 func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.Userdata, error) {
 	// create a intenal context with a timeout
 	internalCtx, cancel := context.WithTimeout(ctx, userdataTimeout)
@@ -315,14 +326,27 @@ func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.User
 	}, nil
 }
 
+// UserDataByVerificationAddress method returns the user data for the given
+// verification addresses. It returns a slice of user data and an error. Hub
+// does not implement this method.
 func (h *Hub) UserDataByVerificationAddress(ctx context.Context, address []string) ([]*farcasterapi.Userdata, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
+// WebhookHandler method handles the incoming webhooks. Hub does not implement
+// this method.
+func (h *Hub) WebhookHandler(_ []byte) error {
+	return fmt.Errorf("not implemented")
+}
+
+// SignersFromFID method returns the signers for the given FID. It returns a
+// slice of signers and an error. Hub does not implement this method.
 func (h *Hub) SignersFromFID(fid uint64) ([]string, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
+// newRequest method creates a new http request with the given method, uri and
+// body. It returns the request and an error.
 func (h *Hub) newRequest(ctx context.Context, method string, uri string, body io.Reader) (*http.Request, error) {
 	endpoint := fmt.Sprintf("%s/%s", h.endpoint, uri)
 	req, err := http.NewRequestWithContext(ctx, method, endpoint, body)
