@@ -407,7 +407,7 @@ func ParseCSV(csvData []byte) ([][]string, error) {
 		r := csv.NewReader(strings.NewReader(string(csvData)))
 		r.Comment = '#'
 		r.TrimLeadingSpace = true // trim leading space of each field
-		r.FieldsPerRecord = 7     // expect 7 fields per record
+		r.FieldsPerRecord = 6     // expect 6 fields per record
 		count := 0
 		for {
 			record, err := r.Read()
