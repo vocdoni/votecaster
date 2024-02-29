@@ -363,27 +363,67 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 	return participants, nil
 }
 
+const (
+	POAP_CSV_HEADER = "ID,Collection,ENS,Minting Date,Tx Count,Power"
+)
+
 func ParseCSV(csvData []byte) ([][]string, error) {
-	// Convert the byte slice to a reader
-	r := csv.NewReader(strings.NewReader(string(csvData)))
-	r.Comment = '#'
-	r.TrimLeadingSpace = true // trim leading space of each field
-	r.FieldsPerRecord = 2     // expect 2 fields per record
-	count := 0
+	if len(csvData) == 0 {
+		return nil, fmt.Errorf("empty csv")
+	}
+	csvType := "Weight-Balance"
+
+	// get the first line of the csv to check if it's a POAP csv
+	firstLine := strings.Split(string(csvData), "\n")[0]
+	if strings.Contains(firstLine, POAP_CSV_HEADER) {
+		csvType = "POAP"
+	}
 	var records [][]string
-	for {
-		record, err := r.Read()
-		if err == io.EOF {
-			break
+	log.Infow("parsing csv", "type", csvType)
+	switch csvType {
+	case "Weight-Balance":
+		// Convert the byte slice to a reader
+		r := csv.NewReader(strings.NewReader(string(csvData)))
+		r.Comment = '#'
+		r.TrimLeadingSpace = true // trim leading space of each field
+		r.FieldsPerRecord = 2     // expect 2 fields per record
+		count := 0
+		for {
+			record, err := r.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
+			records = append(records, record)
+			count++
+			if count > maxNumOfCsvRecords {
+				return nil, fmt.Errorf("max number of records exceeded")
+			}
 		}
-		if err != nil {
-			return nil, err
+	case "POAP":
+		// Convert the byte slice to a reader
+		r := csv.NewReader(strings.NewReader(string(csvData)))
+		r.Comment = '#'
+		r.TrimLeadingSpace = true // trim leading space of each field
+		r.FieldsPerRecord = 7     // expect 7 fields per record
+		count := 0
+		for {
+			record, err := r.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
+			records = append(records, []string{record[1], "1"})
+			count++
+			if count > maxNumOfCsvRecords {
+				return nil, fmt.Errorf("max number of records exceeded")
+			}
 		}
-		records = append(records, record)
-		count++
-		if count > maxNumOfCsvRecords {
-			return nil, fmt.Errorf("max number of records exceeded")
-		}
+
 	}
 	return records, nil
 }
