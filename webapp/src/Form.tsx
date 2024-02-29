@@ -258,9 +258,9 @@ const Form: React.FC = (props: FlexProps) => {
                           <Link target='_blank' href='https://holders.at'>
                             holders.at
                           </Link>{' '}
-                          or{' '}
-                          <Link target='_blank' href='https://airstack.xyz'>
-                            airstack.xyz
+                          or for POAPs to{' '}
+                          <Link target='_blank' href='https://collectors.poap.xyz'>
+                            collectors.poap.xyz
                           </Link>{' '}
                           to build your own. If an address appears multiple times, its balances will be aggregated.
                         </FormHelperText>
