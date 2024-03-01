@@ -128,7 +128,6 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 		}
 		if m.Data.Timestamp > timestamp {
 			content, err := h.composeCastContent(m.Data.CastAddBody)
-			log.Info(content)
 			if err != nil {
 				log.Error(err)
 			}
