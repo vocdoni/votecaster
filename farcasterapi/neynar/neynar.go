@@ -127,7 +127,7 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 	return messages, lastTimestamp, nil
 }
 
-func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content string) error {
+func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content string, _ ...string) error {
 	if n.fid == 0 {
 		return fmt.Errorf("farcaster user not set")
 	}

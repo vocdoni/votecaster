@@ -24,7 +24,7 @@ type API interface {
 	LastMentions(ctx context.Context, timestamp uint64) ([]*APIMessage, uint64, error)
 	// Reply replies to a cast of the given fid with the given hash and content,
 	// it returns an error if something goes wrong
-	Reply(ctx context.Context, fid uint64, hash string, content string) error
+	Reply(ctx context.Context, fid uint64, hash string, content string, embedURLS ...string) error
 	// UserDataByFID retrieves the Userdata of the user with the given fid, if
 	// something goes wrong, it returns an error
 	UserDataByFID(ctx context.Context, fid uint64) (*Userdata, error)
