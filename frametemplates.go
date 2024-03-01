@@ -108,9 +108,9 @@ var frameResults = header + `
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{onvote}/processes/{processID}" />
 
-    <meta property="fc:frame:button:2" content="Participants" />
-    <meta property="fc:frame:button:2:action" content="link" />
-    <meta property="fc:frame:button:2:target" content="{server}/app/#poll/{processID}" />
+    <meta property="fc:frame:button:3" content="Participants" />
+    <meta property="fc:frame:button:3:action" content="link" />
+    <meta property="fc:frame:button:3:target" content="{server}/app/#poll/{processID}" />
 ` + body
 
 var frameFinalResults = header + `

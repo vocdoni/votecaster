@@ -100,9 +100,9 @@ func buildResultsPNG(election *api.Election) ([]byte, error) {
 	} else {
 		turnOut := 100 * election.VoteCount / election.Census.MaxCensusSize
 		if turnOut > 1 {
-			text = []string{fmt.Sprintf("       Votes: %d (%d%%) | Weight: %d", election.VoteCount, turnOut, castedWeight)}
+			text = []string{fmt.Sprintf("> Votes: %d (%d%%) | Weight: %d", election.VoteCount, turnOut, castedWeight)}
 		} else {
-			text = []string{fmt.Sprintf("          Votes: %d | Weight: %d", election.VoteCount, castedWeight)}
+			text = []string{fmt.Sprintf("> Votes: %d | Weight: %d", election.VoteCount, castedWeight)}
 		}
 		for i, r := range election.Metadata.Questions[0].Choices {
 			votesForOption := election.Results[0][r.Value].MathBigInt().Uint64()
