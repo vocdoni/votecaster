@@ -122,7 +122,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 	if err != nil {
 		return err
 	}
-	v.censusCreationMap.Store(censusID.String(), &CensusInfo{})
+	v.censusCreationMap.Store(censusID.String(), CensusInfo{})
 
 	go func() {
 		startTime := time.Now()
@@ -130,13 +130,13 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		participants, err := v.farcasterCensusFromEthereumCSV(msg.Data, censusID)
 		if err != nil {
 			log.Warnw("failed to build census from ethereum csv", "err", err.Error())
-			v.censusCreationMap.Store(censusID.String(), &CensusInfo{Error: err.Error()})
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
 		ci, err := CreateCensus(v.cli, participants)
 		if err != nil {
 			log.Errorw(err, "failed to create census")
-			v.censusCreationMap.Store(censusID.String(), &CensusInfo{Error: err.Error()})
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
 
@@ -151,7 +151,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		}
 		ci.Usernames = uniqueParticipants
 		log.Infow("census created from CSV", "censusID", censusID.String(), "size", len(ci.Usernames), "duration", time.Since(startTime))
-		v.censusCreationMap.Store(censusID.String(), ci)
+		v.censusCreationMap.Store(censusID.String(), *ci)
 	}()
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
 	if err != nil {
@@ -168,23 +168,23 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 	if !ok {
 		return ctx.Send(nil, http.StatusNotFound)
 	}
-	if censusInfo.(*CensusInfo).Error != "" {
-		return ctx.Send([]byte(censusInfo.(*CensusInfo).Error), http.StatusInternalServerError)
+	if censusInfo.(CensusInfo).Error != "" {
+		return ctx.Send([]byte(censusInfo.(CensusInfo).Error), http.StatusInternalServerError)
 	}
-	if censusInfo.(*CensusInfo).Root == nil {
+	if censusInfo.(CensusInfo).Root == nil {
 		data, err := json.Marshal(map[string]uint32{
-			"progress": censusInfo.(*CensusInfo).Progress,
+			"progress": censusInfo.(CensusInfo).Progress,
 		})
 		if err != nil {
 			return err
 		}
-		return ctx.Send(data, http.StatusContinue)
+		return ctx.Send(data, http.StatusAccepted)
 	}
 	data, err := json.Marshal(censusInfo)
 	if err != nil {
 		return err
 	}
-	return ctx.Send(data, http.StatusAccepted)
+	return ctx.Send(data, http.StatusOK)
 }
 
 func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, censusID types.HexBytes) ([]*FarcasterParticipant, error) {
@@ -198,18 +198,28 @@ func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, censusID typ
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.
 // The record is expected to be a string containing the address and the weight.
 func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types.HexBytes) ([]*FarcasterParticipant, error) {
-	updateCensusProgress := func(progress uint32) {
-		censusInfo, ok := v.censusCreationMap.Load(censusID.String())
-		if !ok {
-			return
-		}
-		censusInfo.(*CensusInfo).Progress = progress
-		v.censusCreationMap.Store(censusID.String(), censusInfo)
-	}
-
 	// Create a context to cancel the goroutines
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	updateCensusProgress := func(progress uint32) {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			censusInfo, ok := v.censusCreationMap.Load(censusID.String())
+			if !ok {
+				return
+			}
+			ci := censusInfo.(CensusInfo)
+			// no need to update the progress if the census is already ready
+			if ci.Root != nil {
+				return
+			}
+			ci.Progress = progress
+			v.censusCreationMap.Store(censusID.String(), ci)
+		}
+	}
 
 	// build a map for unique addresses and their weights
 	addressMap := make(map[string]*big.Int)
@@ -296,11 +306,11 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types
 		for {
 			select {
 			case <-ctx.Done():
-				updateCensusProgress(processedAddresses.Load() / uniqueAddressesCount)
+				updateCensusProgress(100 * processedAddresses.Load() / uniqueAddressesCount)
 				return
 			case <-logTicker.C:
 				processed := processedAddresses.Load()
-				updateCensusProgress(processed / uniqueAddressesCount)
+				updateCensusProgress(100 * processed / uniqueAddressesCount)
 				log.Debugw("census creation",
 					"processed", processed,
 					"total", uniqueAddressesCount,
