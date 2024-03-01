@@ -57,6 +57,7 @@ func (b *Bot) Start(ctx context.Context) {
 	b.ctx, b.cancel = context.WithCancel(ctx)
 	go func() {
 		ticker := time.NewTicker(b.coolDown)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-b.ctx.Done():
@@ -77,7 +78,6 @@ func (b *Bot) Start(ctx context.Context) {
 				}
 				// wait for the cool down time
 				<-ticker.C
-				ticker.Reset(b.coolDown)
 			}
 		}
 	}()

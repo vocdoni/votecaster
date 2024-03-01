@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -33,6 +34,8 @@ const (
 	stageMaxElectionSize   = 100000
 	defaultMaxElectionSize = 200000
 	maxNumOfCsvRecords     = 10000
+
+	POAP_CSV_HEADER = "ID,Collection,ENS,Minting Date,Tx Count,Power"
 )
 
 var (
@@ -45,14 +48,18 @@ var (
 	ErrUserNotFoundInFarcaster = fmt.Errorf("user not found in farcaster")
 )
 
+// CensusInfo contains the information of a census.
 type CensusInfo struct {
 	Root      types.HexBytes `json:"root"`
 	Url       string         `json:"uri"`
 	Size      uint64         `json:"size"`
-	Error     string         `json:"-"`
 	Usernames []string       `json:"usernames,omitempty"`
+
+	Error    string `json:"-"`
+	Progress uint32 `json:"-"` // Progress of the census creation process (0-100)
 }
 
+// FromFile loads the census information from a file.
 func (c *CensusInfo) FromFile(file string) error {
 	log.Debugw("loading census from file", "file", file)
 	data, err := os.ReadFile(file)
@@ -120,7 +127,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 	go func() {
 		startTime := time.Now()
 		log.Debugw("building census from csv", "censusID", censusID)
-		participants, err := v.farcasterCensusFromEthereumCSV(msg.Data)
+		participants, err := v.farcasterCensusFromEthereumCSV(msg.Data, censusID)
 		if err != nil {
 			log.Warnw("failed to build census from ethereum csv", "err", err.Error())
 			v.censusCreationMap.Store(censusID.String(), &CensusInfo{Error: err.Error()})
@@ -132,6 +139,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			v.censusCreationMap.Store(censusID.String(), &CensusInfo{Error: err.Error()})
 			return
 		}
+
 		// since each participant can have multiple signers, we need to get the unique usernames
 		uniqueParticipantsMap := make(map[string]struct{})
 		for _, p := range participants {
@@ -164,7 +172,13 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 		return ctx.Send([]byte(censusInfo.(*CensusInfo).Error), http.StatusInternalServerError)
 	}
 	if censusInfo.(*CensusInfo).Root == nil {
-		return ctx.Send(nil, http.StatusNoContent)
+		data, err := json.Marshal(map[string]uint32{
+			"progress": censusInfo.(*CensusInfo).Progress,
+		})
+		if err != nil {
+			return err
+		}
+		return ctx.Send(data, http.StatusContinue)
 	}
 	data, err := json.Marshal(censusInfo)
 	if err != nil {
@@ -173,17 +187,30 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte) ([]*FarcasterParticipant, error) {
+func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, censusID types.HexBytes) ([]*FarcasterParticipant, error) {
 	records, err := ParseCSV(csv)
 	if err != nil {
 		return nil, err
 	}
-	return processCensusRecords(records, v.db, v.fcapi)
+	return v.processCensusRecords(records, censusID)
 }
 
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.
 // The record is expected to be a string containing the address and the weight.
-func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farcasterapi.API) ([]*FarcasterParticipant, error) {
+func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types.HexBytes) ([]*FarcasterParticipant, error) {
+	updateCensusProgress := func(progress uint32) {
+		censusInfo, ok := v.censusCreationMap.Load(censusID.String())
+		if !ok {
+			return
+		}
+		censusInfo.(*CensusInfo).Progress = progress
+		v.censusCreationMap.Store(censusID.String(), censusInfo)
+	}
+
+	// Create a context to cancel the goroutines
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// build a map for unique addresses and their weights
 	addressMap := make(map[string]*big.Int)
 	for _, record := range records {
@@ -217,6 +244,11 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 		}
 	}
 
+	uniqueAddressesCount := uint32(len(addressMap))
+	if uniqueAddressesCount == 0 {
+		return nil, ErrNoValidParticipants
+	}
+
 	// Fetch the users from the database concurrently
 	var wg sync.WaitGroup
 	participantsCh := make(chan *FarcasterParticipant) // Channel to collect participants
@@ -224,22 +256,58 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 	concurrencyLimit := make(chan struct{}, 10)        // Concurrency limiter, N is the max number of goroutines
 	participants := []*FarcasterParticipant{}
 	pendingAddresses := []string{}
+	var processedAddresses atomic.Uint32
 
 	// Start goroutines to consume data from channels
 	go func() {
-		for participant := range participantsCh {
-			participants = append(participants, participant)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case participant, ok := <-participantsCh:
+				if !ok {
+					log.Debugw("collected valid database participants", "count", len(participants))
+					return
+				}
+				participants = append(participants, participant)
+			}
 		}
-		// Handle the collected participants
-		log.Debugw("collected valid database participants", "count", len(participants))
 	}()
 
 	go func() {
-		for addr := range pendingAddressesCh {
-			pendingAddresses = append(pendingAddresses, addr)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case addr, ok := <-pendingAddressesCh:
+				if !ok {
+					log.Debugw("collected pending participants", "count", len(pendingAddresses))
+					return
+				}
+				pendingAddresses = append(pendingAddresses, addr)
+			}
 		}
-		// Handle the collected pending addresses
-		log.Debugw("collected pending participants", "count", len(pendingAddresses))
+	}()
+
+	// Progress update goroutine
+	go func() {
+		logTicker := time.NewTicker(2 * time.Second)
+		defer logTicker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				updateCensusProgress(processedAddresses.Load() / uniqueAddressesCount)
+				return
+			case <-logTicker.C:
+				processed := processedAddresses.Load()
+				updateCensusProgress(processed / uniqueAddressesCount)
+				log.Debugw("census creation",
+					"processed", processed,
+					"total", uniqueAddressesCount,
+					"progress", 100*processed/uniqueAddressesCount,
+				)
+			}
+		}
 	}()
 
 	// Processing addresses
@@ -250,7 +318,7 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 			defer wg.Done()
 			defer func() { <-concurrencyLimit }() // Release semaphore
 
-			user, err := db.UserByAddress(addr)
+			user, err := v.db.UserByAddress(addr)
 			if err != nil {
 				if !errors.Is(err, mongo.ErrUserUnknown) {
 					log.Warnw("error fetching user from database", "address", addr, "error", err)
@@ -275,6 +343,7 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 					Username: user.Username,
 				}
 			}
+			processedAddresses.Add(1)
 		}(address)
 	}
 
@@ -288,14 +357,14 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 	log.Debugw("fetching users from farcaster", "count", len(pendingAddresses))
 	for i := 0; i < len(pendingAddresses); i += neynar.MaxAddressesPerRequest {
 		// Fetch the user data from the farcaster API
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 		to := i + neynar.MaxAddressesPerRequest
 		if to > len(pendingAddresses) {
 			to = len(pendingAddresses)
 		}
 		log.Debugw("fetching users from farcaster", "from", i, "to", to)
-		usersData, err := fcapi.UserDataByVerificationAddress(ctx, pendingAddresses[i:to])
+		usersData, err := v.fcapi.UserDataByVerificationAddress(ctx2, pendingAddresses[i:to])
 		if err != nil {
 			if errors.Is(err, farcasterapi.ErrNoDataFound) {
 				break
@@ -304,12 +373,12 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 		}
 		for _, userData := range usersData {
 			// Add or update the user on the database
-			dbUser, err := db.User(userData.FID)
+			dbUser, err := v.db.User(userData.FID)
 			if err != nil {
 				if !errors.Is(err, mongo.ErrUserUnknown) {
 					return nil, err
 				}
-				if err := db.AddUser(
+				if err := v.db.AddUser(
 					userData.FID,
 					userData.Username,
 					userData.VerificationsAddresses,
@@ -324,7 +393,7 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 				dbUser.Username = userData.Username
 				dbUser.Signers = userData.Signers
 				dbUser.CustodyAddress = userData.CustodyAddress
-				if err := db.UpdateUser(dbUser); err != nil {
+				if err := v.db.UpdateUser(dbUser); err != nil {
 					return nil, err
 				}
 			}
@@ -337,6 +406,7 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 					break
 				}
 			}
+
 			if weight == nil {
 				log.Warnf("weight not found for user %s with address %v", userData.Username, userData.VerificationsAddresses)
 				continue
@@ -356,16 +426,13 @@ func processCensusRecords(records [][]string, db *mongo.MongoStorage, fcapi farc
 			}
 			count++
 		}
+		processedAddresses.Add(uint32(to - i))
 	}
 	if len(pendingAddresses) > 0 {
 		log.Infow("users found on farcaster", "count", count, "ratio", fmt.Sprintf("%.2f%%", 100*float64(count)/float64(len(pendingAddresses))))
 	}
 	return participants, nil
 }
-
-const (
-	POAP_CSV_HEADER = "ID,Collection,ENS,Minting Date,Tx Count,Power"
-)
 
 func ParseCSV(csvData []byte) ([][]string, error) {
 	if len(csvData) == 0 {
@@ -409,6 +476,7 @@ func ParseCSV(csvData []byte) ([][]string, error) {
 		r.TrimLeadingSpace = true // trim leading space of each field
 		r.FieldsPerRecord = 6     // expect 6 fields per record
 		count := 0
+		firstLine := true
 		for {
 			record, err := r.Read()
 			if err == io.EOF {
@@ -416,6 +484,10 @@ func ParseCSV(csvData []byte) ([][]string, error) {
 			}
 			if err != nil {
 				return nil, err
+			}
+			if firstLine {
+				firstLine = false
+				continue
 			}
 			records = append(records, []string{record[1], "1"})
 			count++
