@@ -89,7 +89,7 @@ var frames = map[string]*theme{
 			fg:       "#ff3333",
 			fontSize: &fontSize{min: 20, max: 30, maxStringLength: 200},
 			x:        20,
-			y:        200,
+			y:        250,
 		},
 	},
 	BackgroundInfo: {

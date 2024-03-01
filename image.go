@@ -23,7 +23,8 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	}
 	idSplit := strings.Split(id, "_")
 	if len(idSplit) != 2 {
-		return errorImageResponse(ctx, fmt.Errorf("invalid id"))
+		log.Debugw("access to old PNG", "requestURI", ctx.Request.RequestURI, "url", ctx.Request.URL, "headers", ctx.Request.Header)
+		return errorImageResponse(ctx, fmt.Errorf("nothing here... click results"))
 	}
 	electionID, err := hex.DecodeString(idSplit[0])
 	if err != nil {
