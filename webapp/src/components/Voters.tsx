@@ -44,24 +44,28 @@ export const Voters = () => {
 
   return (
     <Box w={{ base: 'full', lg: '50%' }}>
-      <Image src={`${import.meta.env.APP_URL}/preview/${pid}`} />
-      <Heading display='flex' justifyContent='space-between' mb={5}>
-        Voters{' '}
-        <Link href={usersfile.url} download={'voters-list.csv'}>
-          <Button alignSelf='end' fontWeight='normal' variant='text' rightIcon={<FaDownload />}>
-            download list
-          </Button>
-        </Link>
-      </Heading>
-      <SimpleGrid columns={columns} p={{ base: 5 }}>
-        {voters.map((username, index) => (
-          <Box key={index}>
-            <Link href={`https://warpcast.com/${username}`} isExternal>
-              {username}
+      <Image src={`${import.meta.env.APP_URL}/preview/${pid}`} mb={10} />
+      {voters.length > 0 && (
+        <Box pt={5} px={{ base: 5, sm: 0 }} borderTop='1px solid gray'>
+          <Heading display='flex' justifyContent='space-between'>
+            Voters
+            <Link href={usersfile.url} download={'voters-list.csv'}>
+              <Button alignSelf='end' fontWeight='normal' variant='text' rightIcon={<FaDownload />}>
+                download list
+              </Button>
             </Link>
-          </Box>
-        ))}
-      </SimpleGrid>
+          </Heading>
+          <SimpleGrid columns={columns}>
+            {voters.map((username, index) => (
+              <Box key={index}>
+                <Link href={`https://warpcast.com/${username}`} isExternal>
+                  {username}
+                </Link>
+              </Box>
+            ))}
+          </SimpleGrid>
+        </Box>
+      )}
     </Box>
   )
 }
