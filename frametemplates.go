@@ -55,13 +55,13 @@ var frameMain = header + `
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta name="fc:frame:post_url" content="{server}/router/{processID}" />
 
-    <meta name="fc:frame:button:1" content="Results" />
+    <meta name="fc:frame:button:1" content="🗳️ Vote" />
     <meta name="fc:frame:button:1:action" content="post" />
-    <meta name="fc:frame:button:1:target" content="{server}/poll/results/{processID}" />
+    <meta name="fc:frame:button:1:target" content="{server}/poll/{processID}" />
 
-    <meta name="fc:frame:button:2" content="🗳️ Vote" />
+    <meta name="fc:frame:button:2" content="Results" />
     <meta name="fc:frame:button:2:action" content="post" />
-    <meta name="fc:frame:button:2:target" content="{server}/poll/{processID}" />
+    <meta name="fc:frame:button:2:target" content="{server}/poll/results/{processID}" />
 
     <meta name="fc:frame:button:3" content="Info" />
     <meta name="fc:frame:button:3:action" content="post" />
@@ -107,6 +107,10 @@ var frameResults = header + `
     <meta property="fc:frame:button:2" content="Check at onvote.app" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{onvote}/processes/{processID}" />
+
+    <meta property="fc:frame:button:2" content="Participants" />
+    <meta property="fc:frame:button:2:action" content="link" />
+    <meta property="fc:frame:button:2:target" content="{server}/app/#poll/{processID}" />
 ` + body
 
 var frameFinalResults = header + `
