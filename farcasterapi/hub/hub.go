@@ -127,9 +127,14 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 			continue
 		}
 		if m.Data.Timestamp > timestamp {
+			content, err := h.composeCastContent(m.Data.CastAddBody)
+			log.Info(content)
+			if err != nil {
+				log.Error(err)
+			}
 			messages = append(messages, &farcasterapi.APIMessage{
 				IsMention: true,
-				Content:   m.Data.CastAddBody.Text,
+				Content:   content,
 				Author:    m.Data.From,
 				Hash:      m.HexHash,
 			})
@@ -371,4 +376,28 @@ func (h *Hub) newRequest(ctx context.Context, method string, uri string, body io
 		}
 	}
 	return req, nil
+}
+
+// composeCastContent method composes the cast content with the given body. It
+// returns the content and an error. If the body is nil, it returns an empty
+// string and no error. If the body is not nil, it replaces the mentions with
+// the usernames and returns the content.
+func (h *Hub) composeCastContent(body *HubCastAddBody) (string, error) {
+	if body == nil {
+		return "", nil
+	}
+	content := body.Text
+	for i := len(body.Mentions) - 1; i >= 0; i-- {
+		fid := body.Mentions[i]
+		pos := body.MentionsPositions[i]
+		if pos == 0 && fid == h.fid {
+			continue
+		}
+		user, err := h.UserDataByFID(context.Background(), fid)
+		if err != nil {
+			return "", err
+		}
+		content = content[:pos] + "@" + user.Username + content[pos:]
+	}
+	return content, nil
 }
