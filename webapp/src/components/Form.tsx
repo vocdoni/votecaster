@@ -30,7 +30,7 @@ import {
 } from '@chakra-ui/react'
 import { SignInButton } from '@farcaster/auth-kit'
 import axios from 'axios'
-import React, { useState } from 'react'
+import React, { SetStateAction, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { useLogin } from '../useLogin'
@@ -71,6 +71,7 @@ const Form: React.FC = (props: FlexProps) => {
   const [pid, setPid] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [usernames, setUsernames] = useState<string[]>([])
+  const [status, setStatus] = useState<string | null>(null)
 
   const checkElection = async (pid: string) => {
     try {
@@ -85,10 +86,13 @@ const Form: React.FC = (props: FlexProps) => {
     }
   }
 
-  const checkCensus = async (pid: string) => {
+  const checkCensus = async (pid: string, setStatus: Dispatch<SetStateAction<string | null>>) => {
     const checkRes = await axios.get(`${appUrl}/census/check/${pid}`)
     if (checkRes.status === 200) {
       return checkRes.data
+    }
+    if (checkRes.data.progress) {
+      setStatus(`Creating census... ${checkRes.data.progress}%`)
     }
     // wait 3 seconds between requests
     await new Promise((resolve) => setTimeout(resolve, 3000))
@@ -98,6 +102,7 @@ const Form: React.FC = (props: FlexProps) => {
 
   const onSubmit = async (data: FormValues) => {
     setError(null)
+    setStatus(null)
     try {
       setLoading(true)
 
@@ -109,6 +114,7 @@ const Form: React.FC = (props: FlexProps) => {
       }
 
       if (data.csv) {
+        setStatus('Creating census...')
         // create the census
         try {
           const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
@@ -136,6 +142,7 @@ const Form: React.FC = (props: FlexProps) => {
         }
       }
 
+      setStatus('Storing poll in blockchain...')
       const res = await axios.post(`${appUrl}/create`, election)
       const intervalId = window.setInterval(async () => {
         const success = await checkElection(res.data.replace('\n', ''))
@@ -303,7 +310,7 @@ const Form: React.FC = (props: FlexProps) => {
 
                   {isAuthenticated ? (
                     <>
-                      <Button type='submit' colorScheme='purple' isLoading={loading}>
+                      <Button type='submit' colorScheme='purple' isLoading={loading} loadingText={status}>
                         Create
                       </Button>
                       <Box fontSize='xs' align='right'>
