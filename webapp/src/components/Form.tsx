@@ -72,6 +72,7 @@ const Form: React.FC = (props: FlexProps) => {
   const [error, setError] = useState<string | null>(null)
   const [usernames, setUsernames] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
+  const [censusRecords, setCensusRecords] = useState<number>(0)
 
   const checkElection = async (pid: string) => {
     try {
@@ -124,6 +125,7 @@ const Form: React.FC = (props: FlexProps) => {
           )
           const csv = await axios.post(`${appUrl}/census/csv`, contents)
           const census = await checkCensus(csv.data.censusId, setStatus)
+          setCensusRecords(census.fromTotalAddresses)
           setUsernames(census.usernames)
           census.size = census.usernames.length
           delete census.usernames
@@ -187,7 +189,13 @@ const Form: React.FC = (props: FlexProps) => {
           <FormProvider {...methods}>
             <VStack as='form' onSubmit={handleSubmit(onSubmit)} spacing={4} align='left'>
               {pid ? (
-                <Done pid={pid} setPid={setPid} usernames={usernames} setUsernames={setUsernames} />
+                <Done
+                  pid={pid}
+                  setPid={setPid}
+                  usernames={usernames}
+                  setUsernames={setUsernames}
+                  censusRecords={censusRecords}
+                />
               ) : (
                 <>
                   <FormControl isRequired isDisabled={loading} isInvalid={!!errors.question}>

@@ -13,9 +13,10 @@ type DoneProps = {
   setPid: Dispatch<SetStateAction<string | null>>
   usernames: string[]
   setUsernames: Dispatch<SetStateAction<string[]>>
+  censusRecords: number
 }
 
-export const Done = ({ pid, setPid, usernames, setUsernames }: DoneProps) => {
+export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords }: DoneProps) => {
   const { hasCopied, onCopy } = useClipboard(pollUrl(pid))
   const { reset } = useFormContext()
 
@@ -68,7 +69,8 @@ export const Done = ({ pid, setPid, usernames, setUsernames }: DoneProps) => {
       {usernames.length > 0 && (
         <Box>
           <Text>
-            You created a custom census for a total of {usernames.length} farcaster users.{` `}
+            You created a census for a total of {usernames.length} farcaster users, containing{' '}
+            {Math.round((usernames.length / censusRecords) * 1000) / 10}% of the provided CSV file.{` `}
             <Link download={'census-usernames.csv'} href={usersfile.url}>
               Download usernames list <Icon as={FaDownload} />
             </Link>
