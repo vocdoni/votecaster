@@ -53,6 +53,19 @@ question
 	randomMessage = `The current transactions spec is a great fallback for all kinds of transactions, but in a couple months most transactions in frames won't happen with it imo.
 
 Just as frames allowed embeds by implementing a limited, safe scope, there's an opportunity to do the same with transactions, starting with small payments`
+
+	noSpacesOnOptionsMessage = `What is your favourite colour?
+-Red
+-Blue`
+
+	otherDurationFormatMessage = `What is your favourite colour?
+-Red
+-Blue
+12 hours`
+	otherDurationFormat2Message = `What is your favourite colour?
+-Red
+-Blue
+1 hour`
 )
 
 var (
@@ -75,6 +88,21 @@ var (
 		Question: "Multi line question",
 		Options:  []string{"Red", "Blue"},
 		Duration: DefaultConfig.DefaultDuration,
+	}
+	expectedNoSpacesOnOptionsPoll = &Poll{
+		Question: "What is your favourite colour?",
+		Options:  []string{"Red", "Blue"},
+		Duration: DefaultConfig.DefaultDuration,
+	}
+	expectedOtherDurationFormatPoll = &Poll{
+		Question: "What is your favourite colour?",
+		Options:  []string{"Red", "Blue"},
+		Duration: time.Hour * 12,
+	}
+	expectedOtherDurationFormat2Poll = &Poll{
+		Question: "What is your favourite colour?",
+		Options:  []string{"Red", "Blue"},
+		Duration: time.Hour,
 	}
 )
 
@@ -104,6 +132,24 @@ func TestParseString(t *testing.T) {
 	c.Assert(multilineQuestionPoll.Question, qt.Equals, expectedMultilineQuestionPoll.Question)
 	c.Assert(multilineQuestionPoll.Options, qt.ContentEquals, expectedMultilineQuestionPoll.Options)
 	c.Assert(multilineQuestionPoll.Duration, qt.Equals, expectedMultilineQuestionPoll.Duration)
+
+	noSpacesOnOptionsPoll, err := ParseString(noSpacesOnOptionsMessage, DefaultConfig)
+	c.Assert(err, qt.IsNil)
+	c.Assert(noSpacesOnOptionsPoll.Question, qt.Equals, expectedNoSpacesOnOptionsPoll.Question)
+	c.Assert(noSpacesOnOptionsPoll.Options, qt.ContentEquals, expectedNoSpacesOnOptionsPoll.Options)
+	c.Assert(noSpacesOnOptionsPoll.Duration, qt.Equals, expectedNoSpacesOnOptionsPoll.Duration)
+
+	otherDurationFormatPoll, err := ParseString(otherDurationFormatMessage, DefaultConfig)
+	c.Assert(err, qt.IsNil)
+	c.Assert(otherDurationFormatPoll.Question, qt.Equals, expectedOtherDurationFormatPoll.Question)
+	c.Assert(otherDurationFormatPoll.Options, qt.ContentEquals, expectedOtherDurationFormatPoll.Options)
+	c.Assert(otherDurationFormatPoll.Duration, qt.Equals, expectedOtherDurationFormatPoll.Duration)
+
+	otherDurationFormat2Poll, err := ParseString(otherDurationFormat2Message, DefaultConfig)
+	c.Assert(err, qt.IsNil)
+	c.Assert(otherDurationFormat2Poll.Question, qt.Equals, expectedOtherDurationFormat2Poll.Question)
+	c.Assert(otherDurationFormat2Poll.Options, qt.ContentEquals, expectedOtherDurationFormat2Poll.Options)
+	c.Assert(otherDurationFormat2Poll.Duration, qt.Equals, expectedOtherDurationFormat2Poll.Duration)
 
 	_, err = ParseString(notEnoughOptionsMessage, DefaultConfig)
 	c.Assert(err, qt.ErrorIs, ErrMinOptionsNotReached)
