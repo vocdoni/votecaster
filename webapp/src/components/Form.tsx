@@ -97,7 +97,7 @@ const Form: React.FC = (props: FlexProps) => {
     // wait 3 seconds between requests
     await new Promise((resolve) => setTimeout(resolve, 3000))
     // continue retrying until we get a 200 status
-    return await checkCensus(pid)
+    return await checkCensus(pid, setStatus)
   }
 
   const onSubmit = async (data: FormValues) => {
@@ -123,7 +123,7 @@ const Form: React.FC = (props: FlexProps) => {
             { type: 'text/csv' }
           )
           const csv = await axios.post(`${appUrl}/census/csv`, contents)
-          const census = await checkCensus(csv.data.censusId)
+          const census = await checkCensus(csv.data.censusId, setStatus)
           setUsernames(census.usernames)
           census.size = census.usernames.length
           delete census.usernames
