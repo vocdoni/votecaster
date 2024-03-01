@@ -126,24 +126,24 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return fmt.Errorf("election has no questions")
 	}
 
-	response, err := v.buildLandingResponse(election)
+	png, err := buildLandingPNG(election)
 	if err != nil {
 		return fmt.Errorf("failed to build landing PNG: %w", err)
 	}
+	response := strings.ReplaceAll(frame(frameMain), "{processID}", election.ElectionID.String())
+	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+	response = strings.ReplaceAll(response, "{image}", v.addImageToCache(png, election.ElectionID))
 
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-func (v *vocdoniHandler) buildLandingResponse(election *api.Election) (string, error) {
+func buildLandingPNG(election *api.Election) ([]byte, error) {
 	png, err := textToImage(electionImageContents(election), frames[BackgroundGeneric])
 	if err != nil {
-		return "", fmt.Errorf("failed to create image: %w", err)
+		return nil, fmt.Errorf("failed to create image: %w", err)
 	}
-	response := strings.ReplaceAll(frame(frameMain), "{processID}", election.ElectionID.String())
-	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
-	response = strings.ReplaceAll(response, "{image}", v.addImageToCache(png, election.ElectionID))
-	return response, nil
+	return png, err
 }
 
 func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {

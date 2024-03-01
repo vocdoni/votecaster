@@ -33,18 +33,16 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	if v.checkIfElectionFinishedAndHandle(electionID, ctx) {
 		return nil
 	}
-	// as fallback, get the election and return the landing page
+	// as fallback, get the election and return the landing png
 	election, err := v.election(electionID)
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to get election: %w", err))
 	}
-	response, err := v.buildLandingResponse(election)
+	png, err := buildLandingPNG(election)
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to build landing: %w", err))
 	}
-	ctx.SetResponseContentType("text/html; charset=utf-8")
-	return ctx.Send([]byte(response), http.StatusOK)
-
+	return imageResponse(ctx, png)
 }
 
 // addImageToCache adds an image to the LRU cache.
