@@ -117,6 +117,7 @@ var frameFinalResults = header + `
     <meta property="fc:frame" content="vNext" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="{image}" />
+    <meta http-equiv="refresh" content="0;url={server}/app/#poll/{processID}" />
 ` + body
 
 var frameInfo = header + `

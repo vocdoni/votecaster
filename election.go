@@ -88,7 +88,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 		return fmt.Errorf("failed to generate image: %v", err)
 	}
 	// send the response
-	response := strings.ReplaceAll(frame(frameVote), "{image}", v.addImageToCache(png))
+	response := strings.ReplaceAll(frame(frameVote), "{image}", v.addImageToCache(png, electionIDbytes))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
 

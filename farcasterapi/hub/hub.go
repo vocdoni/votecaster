@@ -148,7 +148,7 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 
 // Reply method sends a reply to the given targetFid and targetHash with the
 // given content.
-func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, content string) error {
+func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, content string, embeds ...string) error {
 	log.Infow("replying to cast", "msg", content)
 	if h.fid == 0 {
 		return fmt.Errorf("no farcaster user set")
@@ -158,6 +158,14 @@ func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, co
 	bTargetHash, err := hex.DecodeString(strings.TrimPrefix(targetHash, "0x"))
 	if err != nil {
 		return fmt.Errorf("error decoding target hash: %s", err)
+	}
+	castEmbeds := []*hubproto.Embed{}
+	if len(embeds) > 0 {
+		for _, embed := range embeds {
+			castEmbeds = append(castEmbeds, &hubproto.Embed{
+				Embed: &hubproto.Embed_Url{Url: embed},
+			})
+		}
 	}
 	castAdd := &hubproto.CastAddBody{
 		Text: content,
@@ -169,6 +177,7 @@ func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, co
 				Hash: bTargetHash,
 			},
 		},
+		Embeds: castEmbeds,
 	}
 	// compose the message data with the message type, the bot FID, the current
 	// timestamp, the network, and the cast add body

@@ -50,10 +50,11 @@ var (
 
 // CensusInfo contains the information of a census.
 type CensusInfo struct {
-	Root      types.HexBytes `json:"root"`
-	Url       string         `json:"uri"`
-	Size      uint64         `json:"size"`
-	Usernames []string       `json:"usernames,omitempty"`
+	Root               types.HexBytes `json:"root"`
+	Url                string         `json:"uri"`
+	Size               uint64         `json:"size"`
+	Usernames          []string       `json:"usernames,omitempty"`
+	FromTotalAddresses uint32         `json:"fromTotalAddresses,omitempty"`
 
 	Error    string `json:"-"`
 	Progress uint32 `json:"-"` // Progress of the census creation process (0-100)
@@ -123,11 +124,12 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		return err
 	}
 	v.censusCreationMap.Store(censusID.String(), CensusInfo{})
-
+	totalCSVaddresses := uint32(0)
 	go func() {
 		startTime := time.Now()
 		log.Debugw("building census from csv", "censusID", censusID)
-		participants, err := v.farcasterCensusFromEthereumCSV(msg.Data, censusID)
+		var participants []*FarcasterParticipant
+		participants, totalCSVaddresses, err = v.farcasterCensusFromEthereumCSV(msg.Data, censusID)
 		if err != nil {
 			log.Warnw("failed to build census from ethereum csv", "err", err.Error())
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
@@ -150,7 +152,12 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			uniqueParticipants = append(uniqueParticipants, k)
 		}
 		ci.Usernames = uniqueParticipants
-		log.Infow("census created from CSV", "censusID", censusID.String(), "size", len(ci.Usernames), "duration", time.Since(startTime))
+		ci.FromTotalAddresses = totalCSVaddresses
+		log.Infow("census created from CSV",
+			"censusID", censusID.String(),
+			"size", len(ci.Usernames),
+			"duration", time.Since(startTime),
+			"fromTotalAddresses", totalCSVaddresses)
 		v.censusCreationMap.Store(censusID.String(), *ci)
 	}()
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
@@ -187,17 +194,18 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, censusID types.HexBytes) ([]*FarcasterParticipant, error) {
+func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, censusID types.HexBytes) ([]*FarcasterParticipant, uint32, error) {
 	records, err := ParseCSV(csv)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	return v.processCensusRecords(records, censusID)
 }
 
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.
 // The record is expected to be a string containing the address and the weight.
-func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types.HexBytes) ([]*FarcasterParticipant, error) {
+// Returns the list of participants and the total number of unique addresses available in the records.
+func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types.HexBytes) ([]*FarcasterParticipant, uint32, error) {
 	// Create a context to cancel the goroutines
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -225,7 +233,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types
 	addressMap := make(map[string]*big.Int)
 	for _, record := range records {
 		if len(record) != 2 {
-			return nil, fmt.Errorf("invalid record: %v", record)
+			return nil, 0, fmt.Errorf("invalid record: %v", record)
 		}
 		var weight *big.Int
 		var ok bool
@@ -256,7 +264,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types
 
 	uniqueAddressesCount := uint32(len(addressMap))
 	if uniqueAddressesCount == 0 {
-		return nil, ErrNoValidParticipants
+		return nil, 0, ErrNoValidParticipants
 	}
 
 	// Fetch the users from the database concurrently
@@ -379,14 +387,14 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types
 			if errors.Is(err, farcasterapi.ErrNoDataFound) {
 				break
 			}
-			return nil, err
+			return nil, 0, err
 		}
 		for _, userData := range usersData {
 			// Add or update the user on the database
 			dbUser, err := v.db.User(userData.FID)
 			if err != nil {
 				if !errors.Is(err, mongo.ErrUserUnknown) {
-					return nil, err
+					return nil, 0, err
 				}
 				if err := v.db.AddUser(
 					userData.FID,
@@ -396,7 +404,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types
 					userData.CustodyAddress,
 					0,
 				); err != nil {
-					return nil, err
+					return nil, 0, err
 				}
 			} else {
 				dbUser.Addresses = userData.VerificationsAddresses
@@ -404,7 +412,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types
 				dbUser.Signers = userData.Signers
 				dbUser.CustodyAddress = userData.CustodyAddress
 				if err := v.db.UpdateUser(dbUser); err != nil {
-					return nil, err
+					return nil, 0, err
 				}
 			}
 			// find the addres on the map to get the weight
@@ -441,7 +449,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types
 	if len(pendingAddresses) > 0 {
 		log.Infow("users found on farcaster", "count", count, "ratio", fmt.Sprintf("%.2f%%", 100*float64(count)/float64(len(pendingAddresses))))
 	}
-	return participants, nil
+	return participants, uint32(len(addressMap)), nil
 }
 
 func ParseCSV(csvData []byte) ([][]string, error) {

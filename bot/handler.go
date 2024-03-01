@@ -13,11 +13,13 @@ import (
 var (
 	// PollReplyTemplate is the template for the reply to a cast with a poll. It
 	// must be formatted with the poll URL.
-	PollReplyTemplate = `🗳️ Your verifiable poll has been created using farcaster.vote
+	PollReplyTemplate = `🗳️ Your poll is ready! And just so you know, we used the Vocdoni blockchain to make it verifiable and censorship-resistant! 😎
 
-Now copy & paste the URL of the frame into a Cast to share your poll with others!
+%s
 
-👉 %s`
+Now copy the URL, paste the Frame into a cast and share it with others!
+
+👇`
 )
 
 func (b *Bot) PollMessageHandler(ctx context.Context, msg *farcasterapi.APIMessage, maxDuration time.Duration) (*farcasterapi.Userdata, *poll.Poll, error) {
@@ -44,7 +46,7 @@ func (b *Bot) PollMessageHandler(ctx context.Context, msg *farcasterapi.APIMessa
 }
 
 func (b *Bot) ReplyWithPollURL(ctx context.Context, msg *farcasterapi.APIMessage, pollURL string) error {
-	if err := b.api.Reply(ctx, msg.Author, msg.Hash, fmt.Sprintf(PollReplyTemplate, pollURL)); err != nil {
+	if err := b.api.Reply(ctx, msg.Author, msg.Hash, fmt.Sprintf(PollReplyTemplate, pollURL), pollURL); err != nil {
 		return errors.Join(ErrReplyingToCast, err)
 	}
 	return nil

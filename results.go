@@ -21,7 +21,7 @@ func (v *vocdoniHandler) checkIfElectionFinishedAndHandle(electionID types.HexBy
 	if pngResults == nil {
 		return false
 	}
-	response := strings.ReplaceAll(frame(frameFinalResults), "{image}", v.addImageToCache(pngResults))
+	response := strings.ReplaceAll(frame(frameFinalResults), "{image}", v.addImageToCache(pngResults, electionID))
 	response = strings.ReplaceAll(response, "{processID}", electionID.String())
 	response = strings.ReplaceAll(response, "{title}", "Final results")
 
@@ -79,7 +79,7 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
-	response := strings.ReplaceAll(frame(frameResults), "{image}", v.addImageToCache(png))
+	response := strings.ReplaceAll(frame(frameResults), "{image}", v.addImageToCache(png, electionIDbytes))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")

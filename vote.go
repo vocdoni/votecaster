@@ -47,7 +47,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png))
+		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png, electionIDbytes))
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
@@ -59,7 +59,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png))
+		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png, electionIDbytes))
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
@@ -81,7 +81,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frame(frameNotElegible), "{image}", v.addImageToCache(png))
+		response := strings.ReplaceAll(frame(frameNotElegible), "{image}", v.addImageToCache(png, electionIDbytes))
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 
@@ -95,7 +95,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frame(frameAlreadyVoted), "{image}", v.addImageToCache(png))
+		response := strings.ReplaceAll(frame(frameAlreadyVoted), "{image}", v.addImageToCache(png, electionIDbytes))
 		response = strings.ReplaceAll(response, "{nullifier}", fmt.Sprintf("%x", nullifier))
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
@@ -110,7 +110,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png))
+		response := strings.ReplaceAll(frame(frameError), "{image}", v.addImageToCache(png, electionIDbytes))
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 
@@ -136,7 +136,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}
-	response = strings.ReplaceAll(response, "{image}", v.addImageToCache(png))
+	response = strings.ReplaceAll(response, "{image}", v.addImageToCache(png, electionIDbytes))
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
