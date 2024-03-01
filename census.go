@@ -184,7 +184,7 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 	if err != nil {
 		return err
 	}
-	return ctx.Send(data, http.StatusOK)
+	return ctx.Send(data, http.StatusAccepted)
 }
 
 func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, censusID types.HexBytes) ([]*FarcasterParticipant, error) {
