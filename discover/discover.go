@@ -21,8 +21,8 @@ const (
 	farcasterV2APIuser          = "https://client.warpcast.com/v2/user?fid=%d"
 	farcasterV2APIverifications = "https://client.warpcast.com/v2/verifications?fid=%d&limit=100"
 	farcasterV2APIrecentUsers   = "https://api.warpcast.com/v2/recent-users?filter=off&limit=%d"
-	Throttle                    = 5 * time.Second
-	updatedUsersByIteration     = 10
+	Throttle                    = 1 * time.Second
+	updatedUsersByIteration     = 100
 	protocolEthereum            = "ethereum"
 	userAgent                   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
 )
@@ -239,15 +239,17 @@ func (d *FarcasterDiscover) lastRegisteredFID() (uint64, error) {
 
 // Run starts the discovery process to update user profiles that are pending in the database.
 // This is a non blocking function that runs in the background.
-func (d *FarcasterDiscover) Run(ctx context.Context) {
+func (d *FarcasterDiscover) Run(ctx context.Context, indexNewUsers bool) {
 	go d.runPendingProfiles(ctx)
 	go d.runExistingProfilesUpdate(ctx)
-	go d.runDiscoverProfilesFromRandomStart(ctx, 10)
+	if indexNewUsers {
+		go d.runDiscoverProfilesFromRandomStart(ctx, 10)
+	}
 }
 
 // runGeneralProfileUpdate starts the discovery process to update user profiles in the database.
 func (d *FarcasterDiscover) runExistingProfilesUpdate(ctx context.Context) {
-	startID := uint64(0)
+	startID, _ := d.randomFID()
 	for {
 		select {
 		case <-ctx.Done():
@@ -260,11 +262,12 @@ func (d *FarcasterDiscover) runExistingProfilesUpdate(ctx context.Context) {
 			}
 			if len(users) == 0 {
 				// no pending users, wait a bit more and reset the startID
-				time.Sleep(Throttle * 6)
+				time.Sleep(Throttle * 10)
 				startID = 0
 				continue
 			}
-			log.Infow("updating user profiles", "count", len(users), "from", startID, "to", users[len(users)-1])
+			log.Debugw("updating user profiles", "count", len(users),
+				"fromFID", startID, "toFID", users[len(users)-1], "totalKnown", d.db.CountUsers())
 			for _, fid := range users {
 				time.Sleep(Throttle)
 				if err := d.updateUser(fid); err != nil {
@@ -290,7 +293,7 @@ func (d *FarcasterDiscover) runPendingProfiles(ctx context.Context) {
 			}
 			if len(users) == 0 {
 				// no pending users, wait a bit more
-				time.Sleep(Throttle * 6)
+				time.Sleep(Throttle * 10)
 				continue
 			}
 			for _, fid := range users {
@@ -303,17 +306,22 @@ func (d *FarcasterDiscover) runPendingProfiles(ctx context.Context) {
 	}
 }
 
-// runDiscoverProfilesFromRandomStart initializes the update process from a random FID.
-// It allows for running up to N parallel workers to update profiles consecutively.
-func (d *FarcasterDiscover) runDiscoverProfilesFromRandomStart(ctx context.Context, workerCount int) {
+// randomFID returns a random FID and the last registered FID from the Farcaster API v2.
+func (d *FarcasterDiscover) randomFID() (uint64, uint64) {
 	lastFID, err := d.lastRegisteredFID()
 	if err != nil {
 		log.Errorw(err, "failed to get last registered FID, fallback to 370000")
 		lastFID = 370000
 	}
-	startFID := uint64(rand.NewSource(time.Now().UnixNano()).Int63())%lastFID + 1
+	return uint64(rand.NewSource(time.Now().UnixNano()).Int63())%lastFID + 1, lastFID
+}
+
+// runDiscoverProfilesFromRandomStart initializes the update process from a random FID.
+// It allows for running up to N parallel workers to update profiles consecutively.
+func (d *FarcasterDiscover) runDiscoverProfilesFromRandomStart(ctx context.Context, workerCount int) {
+	startFID, lastFID := d.randomFID()
 	fidChan := make(chan uint64, workerCount*2) // Buffer to hold twice the number of workers to keep them busy
-	log.Infow("starting user profile discovery", "startFID", startFID, "lastFID", lastFID)
+	log.Infow("starting user profile discovery", "startFID", startFID, "lastFID", lastFID, "totalUsers", d.db.CountUsers())
 
 	var wg sync.WaitGroup
 	wg.Add(workerCount)
@@ -351,7 +359,8 @@ func (d *FarcasterDiscover) runDiscoverProfilesFromRandomStart(ctx context.Conte
 			case <-timer.C:
 				totalCount := float64(updateCounter) / time.Since(startTime).Seconds()
 				partialCount := float64(updateCounter) / time.Since(partialTime).Seconds()
-				log.Monitor("discovery indexer (users/second)", map[string]any{"partial": partialCount, "total": totalCount, "fid": fid})
+				log.Monitor("discovery indexer (users/second)",
+					map[string]any{"partial u/s": partialCount, "total u/s": totalCount, "fid": fid, "totalUsers": d.db.CountUsers()})
 				partialTime = time.Now()
 				timer.Reset(30 * time.Second)
 			case <-ctx.Done():

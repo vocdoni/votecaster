@@ -55,6 +55,7 @@ func main() {
 	flag.String("web3",
 		"https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
 		"Web3 RPC Optimism endpoint")
+	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 
 	// bot flags
 	// DISCLAMER: Currently the bot needs a HUB with write permissions to work.
@@ -99,11 +100,13 @@ func main() {
 	pprofPort := viper.GetInt("pprofPort")
 	web3endpointStr := viper.GetString("web3")
 	web3endpoint := strings.Split(web3endpointStr, ",")
+	neynarAPIKey := viper.GetString("neynarAPIKey")
+	indexer := viper.GetBool("indexer")
+
 	// bot vars
 	botFid := viper.GetUint64("botFid")
 	botPrivKey := viper.GetString("botPrivKey")
 	botHubEndpoint := viper.GetString("botHubEndpoint")
-	neynarAPIKey := viper.GetString("neynarAPIKey")
 	neynarSignerUUID := viper.GetString("neynarSignerUUID")
 	neynarWebhookSecret := viper.GetString("neynarWebhookSecret")
 
@@ -135,6 +138,7 @@ func main() {
 		"botHubEndpoint", botHubEndpoint,
 		"neynarSignerUUID", neynarSignerUUID,
 		"web3endpoint", web3endpoint,
+		"indexer", indexer,
 	)
 
 	// Start the pprof http endpoints
@@ -197,7 +201,7 @@ func main() {
 
 	// Start the discovery user profile background process
 	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
-	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx)
+	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
 	defer mainCtxCancel()
 
 	// Create the Vocdoni handler

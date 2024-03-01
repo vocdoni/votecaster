@@ -62,22 +62,22 @@ func (b *Bot) Start(ctx context.Context) {
 			case <-b.ctx.Done():
 				return
 			default:
-				log.Debugw("checking for new casts", "last-cast", b.lastCast)
 				// retrieve new messages from the last cast
 				messages, lastCast, err := b.api.LastMentions(b.ctx, b.lastCast)
 				if err != nil && !errors.Is(err, farcasterapi.ErrNoNewCasts) {
-					log.Errorf("error retrieving new casts: %s", err)
+					log.Errorw(err, "error retrieving new casts")
 					continue
 				}
 				b.lastCast = lastCast
 				if len(messages) > 0 {
 					for _, msg := range messages {
+						log.Infow("new bot cast", "from", msg.Author, "message", msg.Content)
 						b.Messages <- msg
 					}
-				} else {
-					log.Debugw("no new casts", "last-cast", b.lastCast)
 				}
+				// wait for the cool down time
 				<-ticker.C
+				ticker.Reset(b.coolDown)
 			}
 		}
 	}()

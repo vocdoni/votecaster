@@ -51,6 +51,25 @@ func (ms *MongoStorage) UserIDs(startId uint64, maxResults int) ([]uint64, error
 	return ids, nil
 }
 
+// CountUsers returns the total number of users in the database.
+func (ms *MongoStorage) CountUsers() uint64 {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	// Creating a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Counting the documents in the users collection
+	count, err := ms.users.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		log.Warnw("cannot count users", "err", err)
+		return 0
+	}
+
+	return uint64(count)
+}
+
 // AddUser adds a new user to the database. If the user already exists, it returns an error.
 func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []string, signers []string, custodyAddr string, elections uint64) error {
 	ms.keysLock.Lock()
@@ -66,7 +85,6 @@ func (ms *MongoStorage) AddUser(userFID uint64, usernanme string, addresses []st
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := ms.users.InsertOne(ctx, user)
-	log.Infow("added new user", "userID", userFID, "username", usernanme, "signers", len(signers), "addresses", len(addresses))
 	return err
 }
 
@@ -84,14 +102,6 @@ func (ms *MongoStorage) User(userFID uint64) (*User, error) {
 func (ms *MongoStorage) UpdateUser(udata *User) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
-	log.Debugw("update user",
-		"userID", udata.UserID,
-		"username", udata.Username,
-		"electionCount", udata.ElectionCount,
-		"castedVotes", udata.CastedVotes,
-		"addresses", udata.Addresses,
-		"signers", udata.Signers,
-	)
 	return ms.updateUser(udata)
 }
 
