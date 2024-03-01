@@ -17,6 +17,8 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -26,6 +28,10 @@ const (
 	linebreak    = "\n"
 	space        = " "
 )
+
+// durationRgx var contains the regular expression to parse the duration from a
+// string message
+var durationRgx = regexp.MustCompile(`^(\d{1,2})\s*[hours|hour|h]+$`)
 
 // DefaultConfig var contains the default configuration for a poll with a
 // minimum of 2 options, a maximum of 4 options, a minimum duration of 1 hour,
@@ -112,7 +118,7 @@ func ParseString(message string, config *PollConfig) (*Poll, error) {
 			// if the line is a duration, try to parse it, if it fails, return
 			// an error, otherwise, break the loop and return the result
 			var err error
-			if duration, err = time.ParseDuration(line); err != nil {
+			if duration, err = parseDuration(line); err != nil {
 				return nil, errors.Join(ErrParsingDuration, err)
 			}
 			if duration < config.MinDuration || duration > config.MaxDuration {
@@ -142,4 +148,22 @@ func ParseString(message string, config *PollConfig) (*Poll, error) {
 		Options:  options,
 		Duration: duration,
 	}, nil
+}
+
+// parseDuration parses a string and returns a time.Duration. The string should
+// follow the format: <hours> (hours|hour|h). If the string does not follow the
+// format, an error is returned.
+func parseDuration(line string) (time.Duration, error) {
+	if !durationRgx.MatchString(line) {
+		return 0, errors.Join(ErrParsingDuration, errors.New("invalid duration format"))
+	}
+	hours := durationRgx.FindStringSubmatch(line)[1]
+	if hours == "" {
+		return 0, errors.Join(ErrParsingDuration, errors.New("invalid duration format"))
+	}
+	iHours, err := strconv.Atoi(hours)
+	if err != nil {
+		return 0, errors.Join(ErrParsingDuration, err)
+	}
+	return time.Hour * time.Duration(iHours), nil
 }
