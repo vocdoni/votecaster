@@ -10,12 +10,6 @@ var (
 	ErrElectionUnknown = fmt.Errorf("electionID unknown")
 )
 
-const (
-	ElectionSourceWebApp  = "farcaster.vote"
-	ElectionSourceBot     = "bot"
-	ElectionSourceUnknown = "unknown"
-)
-
 // Users is the list of users.
 type Users struct {
 	Users []uint64 `json:"users"`

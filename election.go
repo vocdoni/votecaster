@@ -19,6 +19,11 @@ import (
 	"go.vocdoni.io/dvote/types"
 )
 
+const (
+	ElectionSourceWebApp = "farcaster.vote"
+	ElectionSourceBot    = "bot"
+)
+
 func (v *vocdoniHandler) election(electionID types.HexBytes) (*api.Election, error) {
 	electionCached, ok := v.electionLRU.Get(electionID.String())
 	if ok {
@@ -54,7 +59,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		}
 	}
 
-	electionID, err := v.createAndSaveElectionAndProfile(&req.ElectionDescription, census, req.Profile, false)
+	electionID, err := v.createAndSaveElectionAndProfile(&req.ElectionDescription, census, req.Profile, false, ElectionSourceWebApp)
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
@@ -277,7 +282,7 @@ func ensureAccountExist(cli *apiclient.HTTPclient) error {
 // a wait flag. If the wait flag is true, it waits until the election is created
 // and saved in the database.
 func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescription,
-	census *CensusInfo, profile *FarcasterProfile, wait bool,
+	census *CensusInfo, profile *FarcasterProfile, wait bool, source string,
 ) (types.HexBytes, error) {
 	// use the request census or use the one hardcoded for all farcaster users
 	if census == nil {
@@ -294,7 +299,7 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 		if err != nil {
 			return fmt.Errorf("failed to create election: %w", err)
 		}
-		if err := v.saveElectionAndProfile(election, profile); err != nil {
+		if err := v.saveElectionAndProfile(election, profile, source); err != nil {
 			return fmt.Errorf("failed to save election and profile: %w", err)
 		}
 		return nil
@@ -315,10 +320,10 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 }
 
 // saveElectionAndProfile saves the election and the profile in the database.
-func (v *vocdoniHandler) saveElectionAndProfile(election *api.Election, profile *FarcasterProfile) error {
+func (v *vocdoniHandler) saveElectionAndProfile(election *api.Election, profile *FarcasterProfile, source string) error {
 	// add the election to the LRU cache and the database
 	v.electionLRU.Add(election.ElectionID.String(), election)
-	if err := v.db.AddElection(election.ElectionID, profile.FID, mongo.ElectionSourceWebApp); err != nil {
+	if err := v.db.AddElection(election.ElectionID, profile.FID, source); err != nil {
 		return fmt.Errorf("failed to add election to database: %w", err)
 	}
 	u, err := v.db.User(profile.FID)

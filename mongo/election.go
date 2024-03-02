@@ -14,9 +14,6 @@ import (
 func (ms *MongoStorage) AddElection(electionID types.HexBytes, userFID uint64, source string) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
-	if source != ElectionSourceWebApp && source != ElectionSourceBot {
-		return fmt.Errorf("unknown source: %s", source)
-	}
 
 	election := Election{
 		UserID:      userFID,

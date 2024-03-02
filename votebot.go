@@ -53,7 +53,7 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 					Custody:       user.CustodyAddress,
 					Verifications: user.VerificationsAddresses,
 				}
-				electionID, err := handler.createAndSaveElectionAndProfile(description, census, profile, true)
+				electionID, err := handler.createAndSaveElectionAndProfile(description, census, profile, true, ElectionSourceBot)
 				if err != nil {
 					log.Errorf("error creating election: %s", err)
 					continue

@@ -30,7 +30,6 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 				CastedVotes: 0,
 				ElectionID:  electionID.String(),
 				CreatedTime: time.Now(),
-				Source:      ElectionSourceUnknown,
 			}
 			if err := ms.addElection(election); err != nil {
 				return err
