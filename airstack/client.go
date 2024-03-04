@@ -28,11 +28,6 @@ func (t *httpTransportWithAuth) RoundTrip(req *http.Request) (*http.Response, er
 	return t.underlying.RoundTrip(clone)
 }
 
-// ClientConf wraps the Airstack client configuration
-type ClientConf struct {
-	endpoint, apiKey string
-}
-
 // Client manages the API client for Airstack.
 type Client struct {
 	gqlClient.Client
@@ -42,20 +37,20 @@ type Client struct {
 }
 
 // NewClient initializes a new Airstack client.
-func NewClient(ctx context.Context, conf *ClientConf) (*Client, error) {
-	if conf.endpoint == "" || conf.apiKey == "" {
+func NewClient(ctx context.Context, endpoint, apiKey string) (*Client, error) {
+	if endpoint == "" || apiKey == "" {
 		return nil, fmt.Errorf("endpoint and apiKey are required")
 	}
 
 	ac := &Client{
-		apiKey: conf.apiKey,
-		url:    conf.endpoint,
+		apiKey: apiKey,
+		url:    endpoint,
 		ctx:    ctx,
 	}
-	ac.Client = gqlClient.NewClient(conf.endpoint, &http.Client{
+	ac.Client = gqlClient.NewClient(endpoint, &http.Client{
 		Timeout: apiTimeout,
 		Transport: &httpTransportWithAuth{
-			key:        conf.apiKey,
+			key:        apiKey,
 			underlying: http.DefaultTransport,
 		},
 	})

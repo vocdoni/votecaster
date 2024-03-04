@@ -35,6 +35,7 @@ type vocdoniHandler struct {
 	db            *mongo.MongoStorage
 	electionLRU   *lru.Cache[string, *api.Election]
 	fcapi         farcasterapi.API
+	airstack      *Airstack
 
 	censusCreationMap sync.Map
 }
@@ -48,6 +49,7 @@ func NewVocdoniHandler(
 	ctx context.Context,
 	fcapi farcasterapi.API,
 	token *uuid.UUID,
+	airstack *Airstack,
 ) (*vocdoniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
@@ -83,6 +85,7 @@ func NewVocdoniHandler(
 		webappdir:     webappdir,
 		db:            db,
 		fcapi:         fcapi,
+		airstack:      airstack,
 		electionLRU: func() *lru.Cache[string, *api.Election] {
 			lru, err := lru.New[string, *api.Election](100)
 			if err != nil {

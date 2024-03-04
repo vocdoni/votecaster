@@ -70,6 +70,10 @@ func main() {
 	flag.String("neynarSignerUUID", "", "neynar signer UUID")
 	flag.String("neynarWebhookSecret", "", "neynar Webhook shared secret")
 
+	// Airstack flags
+	flag.String("airstackAPIEndpoint", "", "The Airstack API endpoint to use")
+	flag.String("airstackAPIKey", "", "The Airstack API key to use")
+
 	// Parse the command line flags
 	flag.Parse()
 
@@ -111,6 +115,10 @@ func main() {
 	botHubEndpoint := viper.GetString("botHubEndpoint")
 	neynarSignerUUID := viper.GetString("neynarSignerUUID")
 	neynarWebhookSecret := viper.GetString("neynarWebhookSecret")
+
+	// airstack vars
+	airstackEndpoint := viper.GetString("airstackAPIEndpoint")
+	airstackKey := viper.GetString("airstackAPIKey")
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
@@ -207,6 +215,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Create Airstack artifact
+	as, err := NewAirstack(context.Background(), airstackEndpoint, airstackKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Start the discovery user profile background process
 	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
 	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
@@ -214,7 +228,7 @@ func main() {
 
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)
-	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli, &apiTokenUUID)
+	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as)
 	if err != nil {
 		log.Fatal(err)
 	}
