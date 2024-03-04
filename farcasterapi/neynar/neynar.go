@@ -31,6 +31,7 @@ const (
 	neynarGetCastsEndpoint    = NeynarAPIEndpoint + "/v1/farcaster/mentions-and-replies?fid=%d&limit=150&cursor=%s"
 	neynarReplyEndpoint       = NeynarAPIEndpoint + "/v2/farcaster/cast"
 	neynarUserByEthAddresses  = NeynarAPIEndpoint + "/v2/farcaster/user/bulk-by-address?addresses=%s"
+	neynarUsersByChannelID    = NeynarAPIEndpoint + "/v2/farcaster/channel/followers?id=%s&limit=1000&cursor=%s"
 	neynarVerificationsByFID  = NeynarHubEndpoint + "/verificationsByFid?fid=%d"
 
 	MaxAddressesPerRequest = 300
@@ -256,6 +257,45 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 	}
 
 	return userDataSlice, nil
+}
+
+// UsersDataByChannelID method returns the userdata of the users that follow the
+// channel with the given id.
+func (n *NeynarAPI) UsersDataByChannelID(ctx context.Context, channelID string) ([]*farcasterapi.Userdata, error) {
+	cursor := ""
+	users := []*farcasterapi.Userdata{}
+	for {
+		// create request with the channel id provided
+		url := fmt.Sprintf(neynarUsersByChannelID, channelID, cursor)
+		log.Info(url)
+		body, err := n.request(url, http.MethodGet, nil)
+		if err != nil {
+			return nil, fmt.Errorf("error creating request: %w", err)
+		}
+		usersResult := &UserdataV2Result{}
+		if err := json.Unmarshal(body, &usersResult); err != nil {
+			return nil, fmt.Errorf("error unmarshalling response body: %w", err)
+		}
+		for _, user := range usersResult.Users {
+			// Get signers
+			signers, err := n.SignersFromFID(user.Fid)
+			if err != nil {
+				return nil, fmt.Errorf("error getting signers: %w", err)
+			}
+			users = append(users, &farcasterapi.Userdata{
+				FID:                    user.Fid,
+				Username:               user.Username,
+				CustodyAddress:         user.CustodyAddress,
+				VerificationsAddresses: user.Verifications,
+				Signers:                signers,
+			})
+		}
+		if usersResult.NextCursor == nil || usersResult.NextCursor.Cursor == "" {
+			break
+		}
+		cursor = usersResult.NextCursor.Cursor
+	}
+	return users, nil
 }
 
 func (n *NeynarAPI) WebhookHandler(body []byte) error {

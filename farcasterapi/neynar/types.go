@@ -13,23 +13,37 @@ type UserdataV1 struct {
 	VerificationsAddresses []string `json:"verifications"`
 }
 
+type VerifiedAddressesV2 struct {
+	EthAddresses []string `json:"eth_addresses"`
+	SolAddresses []string `json:"sol_addresses"`
+}
+
 type UserdataV2 struct {
-	Object            string            `json:"object"`
-	Fid               uint64            `json:"fid"`
-	CustodyAddress    string            `json:"custody_address"`
-	Username          string            `json:"username"`
-	DisplayName       string            `json:"display_name"`
-	PfpUrl            string            `json:"pfp_url"`
-	Profile           UserProfile       `json:"profile"`
-	FollowerCount     int               `json:"follower_count"`
-	FollowingCount    int               `json:"following_count"`
-	Verifications     []string          `json:"verifications"`
-	VerifiedAddresses VerifiedAddresses `json:"verified_addresses"`
-	ActiveStatus      string            `json:"active_status"`
+	Object            string               `json:"object"`
+	Fid               uint64               `json:"fid"`
+	CustodyAddress    string               `json:"custody_address"`
+	Username          string               `json:"username"`
+	DisplayName       string               `json:"display_name"`
+	PfpUrl            string               `json:"pfp_url"`
+	Profile           UserProfile          `json:"profile"`
+	FollowerCount     int                  `json:"follower_count"`
+	FollowingCount    int                  `json:"following_count"`
+	Verifications     []string             `json:"verifications"`
+	VerifiedAddresses *VerifiedAddressesV2 `json:"verified_addresses"`
+	ActiveStatus      string               `json:"active_status"`
 }
 
 type UserdataResult struct {
 	User *UserdataV1 `json:"user"`
+}
+
+type UserdataV2Cursor struct {
+	Cursor string `json:"cursor"`
+}
+
+type UserdataV2Result struct {
+	Users      []*UserdataV2     `json:"users"`
+	NextCursor *UserdataV2Cursor `json:"next"`
 }
 
 type UserdataResponse struct {
