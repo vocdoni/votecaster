@@ -23,8 +23,8 @@ const (
 	ElectionSourceWebApp = "farcaster.vote"
 	ElectionSourceBot    = "bot"
 	shortenerTimeout     = 10 * time.Second
-	shortenerBase        = "https://frame.vote/%s"
-	shortenerEndpoint    = fmt.Sprintf(shortenerBase, "add/%s")
+	shortenerBase        = "https://frame.vote/"
+	shortenerEndpoint    = shortenerBase + "add/%s"
 )
 
 func (v *vocdoniHandler) election(electionID types.HexBytes) (*api.Election, error) {
@@ -374,5 +374,5 @@ func ShortElectionURL(ctx context.Context, electionURL string) (string, error) {
 	if err := json.NewDecoder(res.Body).Decode(shortenerResponse); err != nil {
 		return "", fmt.Errorf("failed to decode json: %w", err)
 	}
-	return fmt.Sprintf(shortenerBase, shortenerResponse.Link), nil
+	return shortenerBase + shortenerResponse.Link, nil
 }
