@@ -348,6 +348,7 @@ func (d *FarcasterDiscover) runDiscoverProfilesFromRandomStart(ctx context.Conte
 	go func() {
 		startTime := time.Now()
 		partialTime := time.Now()
+		partialUpdateCounter := 0
 		for fid := startFID; ; fid++ {
 			if fid > lastFID { // Reset FID to 1 after reaching lastFID
 				fid = 1
@@ -356,12 +357,14 @@ func (d *FarcasterDiscover) runDiscoverProfilesFromRandomStart(ctx context.Conte
 			select {
 			case fidChan <- fid:
 				updateCounter++
+				partialUpdateCounter++
 			case <-timer.C:
 				totalCount := float64(updateCounter) / time.Since(startTime).Seconds()
-				partialCount := float64(updateCounter) / time.Since(partialTime).Seconds()
+				partialCount := float64(partialUpdateCounter) / time.Since(partialTime).Seconds()
 				log.Monitor("discovery indexer (users/second)",
 					map[string]any{"partial u/s": partialCount, "total u/s": totalCount, "fid": fid, "totalUsers": d.db.CountUsers()})
 				partialTime = time.Now()
+				partialUpdateCounter = 0
 				timer.Reset(30 * time.Second)
 			case <-ctx.Done():
 				close(fidChan)

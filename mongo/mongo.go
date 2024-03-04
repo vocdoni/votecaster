@@ -58,7 +58,7 @@ func New(url, database string) (*MongoStorage, error) {
 	timeout := time.Second * 10
 	opts.ConnectTimeout = &timeout
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(url))
+	client, err := mongo.Connect(ctx, opts)
 	defer cancel()
 	if err != nil {
 		return nil, err
