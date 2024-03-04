@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	gql "github.com/vocdoni/vote-frame/airstack/graphql"
 )
 
@@ -16,7 +17,37 @@ func (c *Client) getFarcasterUsersWithAssociatedAddresses(
 	return gql.GetFarcasterUsersWithAssociatedAddresses(c.ctx, c.Client, limit, cursor)
 }
 
-// TODO GetFarcasterUsersWithAssociatedAddresses implement pagination
+// FarcasterUserWithAssociatedAddresses wraps the information for a Farcaster user
+// when calling GetFarcasterUsersWithAssociatedAddresses
+type FarcasterUserWithAssociatedAddresses struct {
+	FID          string
+	EVMAddresses []common.Address
+}
+
+// GetFarcasterUsersWithAssociatedAddresses gets all the Farcaster users ids with their
+// associated EVM addresses calling the Airstack API. This function also takes care of Airstack API pagination.
+func (c *Client) GetFarcasterUsersWithAssociatedAddresses() ([]*FarcasterUserWithAssociatedAddresses, error) {
+	hasNextPage := true
+	cursor := ""
+	fu := make([]*FarcasterUserWithAssociatedAddresses, 0)
+	for hasNextPage {
+		resp, err := c.getFarcasterUsersWithAssociatedAddresses(airstackAPIlimit, cursor)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get users from Airstack: %w", err)
+		}
+		for _, u := range resp.Socials.Social {
+			fu = append(fu, &FarcasterUserWithAssociatedAddresses{
+				FID:          u.UserId,
+				EVMAddresses: u.UserAssociatedAddresses,
+			})
+		}
+		cursor = resp.Socials.PageInfo.NextCursor
+		if resp.Socials.PageInfo.NextCursor == "" {
+			hasNextPage = false
+		}
+	}
+	return fu, nil
+}
 
 // getFarcasterUsersByChannel is a wrapper around the generated function
 // for GraphQL query GetFarcasterUsersByChannel.
@@ -37,7 +68,7 @@ func (c *Client) GetFarcasterUsersByChannel(channelId string) ([]string, error) 
 	for hasNextPage {
 		resp, err := c.getFarcastersUsersByChannel(channelId, airstackAPIlimit, cursor)
 		if err != nil {
-			return nil, fmt.Errorf("cannot channel users id from Airstack: %w", err)
+			return nil, fmt.Errorf("cannot get channel users id from Airstack: %w", err)
 		}
 		for _, fcc := range resp.FarcasterChannels.FarcasterChannel {
 			for _, fid := range fcc.Participants {
