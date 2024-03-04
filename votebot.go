@@ -62,7 +62,13 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 					"electionID", electionID,
 					"poll", poll)
 				frameUrl := fmt.Sprintf("%s/%s", serverURL, electionID.String())
-				if err := voteBot.ReplyWithPollURL(ctx, msg, frameUrl); err != nil {
+				shortenedUrl, err := ShortElectionURL(ctx, frameUrl)
+				if err != nil {
+					log.Errorf("error shortening election url: %s", err)
+					continue
+				}
+
+				if err := voteBot.ReplyWithPollURL(ctx, msg, shortenedUrl); err != nil {
 					log.Errorf("error replying to poll: %s", err)
 					continue
 				}
