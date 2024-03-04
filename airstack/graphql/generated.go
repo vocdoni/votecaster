@@ -27,13 +27,7 @@ func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutput) Get
 
 // GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannel includes the requested fields of the GraphQL type FarcasterChannel.
 type GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannel struct {
-	Name         string                                                                                                                      `json:"name"`
 	Participants []GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipant `json:"participants"`
-}
-
-// GetName returns GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannel.Name, and is useful for accessing the field via an interface.
-func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannel) GetName() string {
-	return v.Name
 }
 
 // GetParticipants returns GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannel.Participants, and is useful for accessing the field via an interface.
@@ -43,12 +37,53 @@ func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarca
 
 // GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipant includes the requested fields of the GraphQL type FarcasterChannelParticipant.
 type GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipant struct {
-	ParticipantId string `json:"participantId"`
+	Participant GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial `json:"participant"`
 }
 
-// GetParticipantId returns GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipant.ParticipantId, and is useful for accessing the field via an interface.
-func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipant) GetParticipantId() string {
-	return v.ParticipantId
+// GetParticipant returns GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipant.Participant, and is useful for accessing the field via an interface.
+func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipant) GetParticipant() GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial {
+	return v.Participant
+}
+
+// GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial includes the requested fields of the GraphQL type Social.
+type GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial struct {
+	UserAddress common.Address `json:"userAddress"`
+	ProfileName string         `json:"profileName"`
+	Fid         string         `json:"fid"`
+	// blockchain addresses associated with the social profile
+	UserAssociatedAddresses []common.Address `json:"userAssociatedAddresses"`
+	FollowerCount           int              `json:"followerCount"`
+	FollowingCount          int              `json:"followingCount"`
+}
+
+// GetUserAddress returns GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial.UserAddress, and is useful for accessing the field via an interface.
+func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial) GetUserAddress() common.Address {
+	return v.UserAddress
+}
+
+// GetProfileName returns GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial.ProfileName, and is useful for accessing the field via an interface.
+func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial) GetProfileName() string {
+	return v.ProfileName
+}
+
+// GetFid returns GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial.Fid, and is useful for accessing the field via an interface.
+func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial) GetFid() string {
+	return v.Fid
+}
+
+// GetUserAssociatedAddresses returns GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial.UserAssociatedAddresses, and is useful for accessing the field via an interface.
+func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial) GetUserAssociatedAddresses() []common.Address {
+	return v.UserAssociatedAddresses
+}
+
+// GetFollowerCount returns GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial.FollowerCount, and is useful for accessing the field via an interface.
+func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial) GetFollowerCount() int {
+	return v.FollowerCount
+}
+
+// GetFollowingCount returns GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial.FollowingCount, and is useful for accessing the field via an interface.
+func (v *GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannelParticipantsFarcasterChannelParticipantParticipantSocial) GetFollowingCount() int {
+	return v.FollowingCount
 }
 
 // GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputPageInfo includes the requested fields of the GraphQL type PageInfo.
@@ -349,9 +384,15 @@ const GetFarcasterUsersByChannel_Operation = `
 query GetFarcasterUsersByChannel ($channelId: String, $limit: Int, $cursor: String) {
 	FarcasterChannels(input: {filter:{channelId:{_eq:$channelId}},blockchain:ALL,limit:$limit,cursor:$cursor}) {
 		FarcasterChannel {
-			name
 			participants {
-				participantId
+				participant {
+					userAddress
+					profileName
+					fid: userId
+					userAssociatedAddresses
+					followerCount
+					followingCount
+				}
 			}
 		}
 		pageInfo {

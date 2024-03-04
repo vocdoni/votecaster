@@ -20,9 +20,15 @@ query GetFarcasterUsersByChannel($channelId: String, $limit: Int, $cursor: Strin
         input: {filter: {channelId: {_eq: $channelId}} blockchain: ALL, limit: $limit, cursor: $cursor}
     ) {
         FarcasterChannel {
-            name
             participants {
-                participantId
+                participant {
+                    userAddress
+                    profileName
+                    fid: userId
+                    userAssociatedAddresses
+                    followerCount
+                    followingCount
+                }
             }
         }
         pageInfo {

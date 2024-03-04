@@ -100,9 +100,10 @@ func (c *CensusInfo) FromFile(file string) error {
 
 // FarcasterParticipant is a participant in the Farcaster network to be included in the census.
 type FarcasterParticipant struct {
-	PubKey   []byte   `json:"pubkey"`
-	Weight   *big.Int `json:"weight"`
-	Username string   `json:"username"`
+	PubKey       []byte           `json:"pubkey"`
+	Weight       *big.Int         `json:"weight"`
+	Username     string           `json:"username"`
+	EVMAddresses []common.Address `json:"evmAddresses"`
 }
 
 // CreateCensus creates a new census from a list of participants.
