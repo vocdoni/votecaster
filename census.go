@@ -167,6 +167,59 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 	return ctx.Send(data, http.StatusOK)
 }
 
+func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// check if channelID is provided, it is required so if it's not provided
+	// return a BadRequest error
+	channelID := ctx.URLParam("channelID")
+	if channelID == "" {
+		return ctx.Send([]byte("channelID is required"), http.StatusBadRequest)
+	}
+	// get the fids of the users in the channel from neynar farcaster API, if
+	// the channel does not exist, return a NotFound error
+	users, err := v.fcapi.ChannelFIDs(ctx.Request.Context(), channelID)
+	if err != nil {
+		if errors.Is(err, farcasterapi.ErrChannelNotFound) {
+			return ctx.Send([]byte(err.Error()), http.StatusNotFound)
+		}
+		return err
+	}
+	// get participants from the users fids, quering the database and to get the
+	// users public keys
+	participants := []*FarcasterParticipant{}
+	for _, fid := range users {
+		user, err := v.db.User(fid)
+		if err != nil {
+			log.Errorf("error fetching user from database: %v", err)
+			continue
+		}
+		for _, signer := range user.Signers {
+			signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
+			if err != nil {
+				log.Warnw("error decoding signer",
+					"signer", signer,
+					"err", err)
+				continue
+			}
+			participants = append(participants, &FarcasterParticipant{
+				PubKey:   signerBytes,
+				Weight:   big.NewInt(1),
+				Username: user.Username,
+			})
+		}
+	}
+	// create the census from the participants
+	censusInfo, err := CreateCensus(v.cli, participants)
+	if err != nil {
+		return err
+	}
+	// encoding the censusInfo to json and send it as response
+	data, err := json.Marshal(censusInfo)
+	if err != nil {
+		return err
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
 // censusQueueInfo returns the status of the census creation process.
 // Returns 204 if the census is not yet ready or not found.
 func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {

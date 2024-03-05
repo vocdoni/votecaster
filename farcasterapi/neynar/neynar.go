@@ -54,11 +54,6 @@ const (
 	timeLayout            = "2006-01-02T15:04:05.000Z"
 )
 
-var (
-	// errors
-	ErrChannelNotFound = fmt.Errorf("channel not found")
-)
-
 type NeynarAPI struct {
 	fid          uint64
 	username     string
@@ -275,7 +270,7 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string) ([]uint64
 		return nil, fmt.Errorf("error checking channel existence: %w", err)
 	}
 	if !exists {
-		return nil, ErrChannelNotFound
+		return nil, farcasterapi.ErrChannelNotFound
 	}
 	cursor := ""
 	userFIDs := []uint64{}
