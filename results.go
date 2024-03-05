@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/vocdoni/vote-frame/imageframe"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
@@ -87,39 +88,5 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 }
 
 func buildResultsPNG(election *api.Election) ([]byte, error) {
-	castedWeight := uint64(0)
-	for i := 0; i < len(election.Results[0]); i++ {
-		castedWeight += (election.Results[0][i].MathBigInt().Uint64())
-	}
-	var text []string
-	var logResults []uint64
-	title := election.Metadata.Questions[0].Title["default"]
-	// Check for division by zero error
-	if castedWeight == 0 {
-		text = []string{"Nothing yet here..."}
-	} else {
-		turnOut := 100 * election.VoteCount / election.Census.MaxCensusSize
-		if turnOut > 1 {
-			text = []string{fmt.Sprintf("> Votes: %d (%d%%) | Weight: %d", election.VoteCount, turnOut, castedWeight)}
-		} else {
-			text = []string{fmt.Sprintf("> Votes: %d | Weight: %d", election.VoteCount, castedWeight)}
-		}
-		for i, r := range election.Metadata.Questions[0].Choices {
-			votesForOption := election.Results[0][r.Value].MathBigInt().Uint64()
-			percentage := float64(votesForOption) * 100 / float64(castedWeight)
-			text = append(text, (fmt.Sprintf("%d. %s",
-				i+1,
-				r.Title["default"],
-			)))
-			text = append(text, generateProgressBar(percentage))
-			logResults = append(logResults, votesForOption)
-		}
-	}
-	log.Debugw("election results", "castedVotes", castedWeight, "castedVotes", election.VoteCount, "results", logResults)
-
-	png, err := textToImage(textToImageContents{title: title, body: text}, frames[BackgroundResults])
-	if err != nil {
-		return nil, fmt.Errorf("failed to create image: %w", err)
-	}
-	return png, nil
+	return imageframe.ResultsImage(election)
 }

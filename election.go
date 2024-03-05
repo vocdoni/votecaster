@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
@@ -88,7 +89,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	if err != nil {
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
-	png, err := textToImage(electionImageContents(election), frames[BackgroundGeneric])
+	png, err := imageframe.QuestionImage(election)
 	if err != nil {
 		return fmt.Errorf("failed to generate image: %v", err)
 	}
@@ -151,10 +152,6 @@ func (v *vocdoniHandler) votersForElection(msg *apirest.APIdata, ctx *httprouter
 		return fmt.Errorf("failed to marshal voters: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
-}
-
-func generateElectionImage(title string) ([]byte, error) {
-	return textToImage(textToImageContents{title: title}, frames[BackgroundGeneric])
 }
 
 func newElectionDescription(description *ElectionDescription, census *CensusInfo) *api.ElectionDescription {

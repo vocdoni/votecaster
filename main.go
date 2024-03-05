@@ -363,14 +363,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/testimage", http.MethodGet, "public", handler.testImage); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := uAPI.Endpoint.RegisterMethod("/testimage", http.MethodPost, "public", handler.testImage); err != nil {
-		log.Fatal(err)
-	}
-
 	if err := uAPI.Endpoint.RegisterMethod("/preview/{electionID}", http.MethodGet, "public", handler.preview); err != nil {
 		log.Fatal(err)
 	}

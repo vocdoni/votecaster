@@ -38,7 +38,6 @@ RUN apt-get update && \
 WORKDIR /app
 COPY --from=builder /src/farcastervote ./
 COPY --from=builder /src/farcaster_census.json ./
-COPY --from=builder /src/fonts fonts
 COPY --from=builder /src/images images
 COPY --from=web /app/dist webapp
 
