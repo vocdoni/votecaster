@@ -212,8 +212,9 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 		// users public keys
 		participants := []*FarcasterParticipant{}
 		totalFids := uint32(len(users))
-		notFoundFids := uint32(0)
 		participantFids := uint32(0)
+		notFoundFids := uint32(0)
+		badSigners := uint32(0)
 		for i, fid := range users {
 			v.updateCensusProgress(internalCtx, censusID, 100*uint32(i)/totalFids)
 			user, err := v.db.User(fid)
@@ -228,6 +229,7 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 			for _, signer := range user.Signers {
 				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
 				if err != nil {
+					badSigners++
 					log.Warnw("error decoding signer",
 						"signer", signer,
 						"err", err)
@@ -253,6 +255,7 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 			"totalFids", totalFids,
 			"participantFids", participantFids,
 			"notFoundFids", notFoundFids,
+			"badSigners", badSigners,
 			"participants", len(participants))
 	}()
 	// return the censusID to the client
