@@ -71,7 +71,7 @@ func main() {
 	flag.String("neynarWebhookSecret", "", "neynar Webhook shared secret")
 
 	// Airstack flags
-	flag.String("airstackAPIEndpoint", "", "The Airstack API endpoint to use")
+	flag.String("airstackAPIEndpoint", "https://api.airstack.xyz/gql", "The Airstack API endpoint to use")
 	flag.String("airstackAPIKey", "", "The Airstack API key to use")
 
 	// Parse the command line flags
@@ -215,16 +215,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Create Airstack artifact
-	as, err := NewAirstack(context.Background(), airstackEndpoint, airstackKey)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Start the discovery user profile background process
 	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
 	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
 	defer mainCtxCancel()
+
+	// Create Airstack artifact
+	as, err := NewAirstack(mainCtx, airstackEndpoint, airstackKey)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)

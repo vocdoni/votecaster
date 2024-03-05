@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	ac "github.com/vocdoni/vote-frame/airstack"
-	"go.vocdoni.io/dvote/httprouter"
-	"go.vocdoni.io/dvote/httprouter/apirest"
 )
 
 // Airstack wraps all the required artifacts for interacting with the Airstack API
@@ -24,12 +22,4 @@ func NewAirstack(ctx context.Context, endpoint, apiKey string) (*Airstack, error
 	return &Airstack{
 		client: client,
 	}, nil
-}
-
-func (v *vocdoniHandler) createCensusChannel(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	return nil
-}
-
-func (v *vocdoniHandler) createCensusTwoTokens(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	return nil
 }
