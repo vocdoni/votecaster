@@ -167,6 +167,13 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 	return ctx.Send(data, http.StatusOK)
 }
 
+// censusChannel creates a new census that includes the users who follow a
+// specific Warpcast Channel. It builds the census async and returns the census
+// ID. If no channelID is provided, it returns a BadRequest error. If the
+// channel does not exist, it returns a NotFound error. The process of creating
+// the census includes fetching the users FIDs from the farcaster API and
+// querying the database to get the users signer keys. The census is created
+// from the participants and the progress is updated in the queue.
 func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	// check if channelID is provided, it is required so if it's not provided
 	// return a BadRequest error
