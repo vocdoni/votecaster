@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	// address is the same for all networks
 	DelegateRegistryAddress = "0x00000000000000447e69651d841bD8D104Bed493"
 	maxRetries              = 3
 )
