@@ -41,6 +41,7 @@ const (
 	getBotUsernameTimeout   = 10 * time.Second
 	getCastByMentionTimeout = 60 * time.Second
 	postCastTimeout         = 10 * time.Second
+	defaultRequestTimeout   = 10 * time.Second
 
 	// Requests backoff parameters
 	maxConcurrentRequests = 2
@@ -144,7 +145,7 @@ func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content s
 		return fmt.Errorf("error marshalling request body: %w", err)
 	}
 	// create request with the bot fid and set the api key header
-	_, err = n.request(neynarReplyEndpoint, http.MethodPost, body)
+	_, err = n.request(neynarReplyEndpoint, http.MethodPost, body, 0)
 	return err
 }
 
@@ -153,7 +154,7 @@ func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content s
 func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.Userdata, error) {
 	// create request with the bot fid
 	url := fmt.Sprintf(neynarGetUsernameEndpoint, fid)
-	body, err := n.request(url, http.MethodGet, nil)
+	body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -204,7 +205,7 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 	url := fmt.Sprintf(neynarUserByEthAddresses, addressesStr)
 
 	// Make the request
-	body, err := n.request(url, http.MethodGet, nil)
+	body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +278,7 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string) ([]uint64
 	for {
 		// create request with the channel id provided
 		url := fmt.Sprintf(neynarUsersByChannelID, channelID, cursor)
-		body, err := n.request(url, http.MethodGet, nil)
+		body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
 		if err != nil {
 			return nil, fmt.Errorf("error creating request: %w", err)
 		}
@@ -302,7 +303,7 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string) ([]uint64
 func (n *NeynarAPI) ChannelExists(channelID string) (bool, error) {
 	// create request with the channel id provided
 	url := fmt.Sprintf(neynarChannelDataByID, channelID)
-	if _, err := n.request(url, http.MethodGet, nil); err != nil {
+	if _, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout); err != nil {
 		if strings.Contains(err.Error(), "404") {
 			return false, nil
 		}
@@ -349,9 +350,9 @@ func (n *NeynarAPI) WebhookHandler(body []byte) error {
 	return nil
 }
 
-func (n *NeynarAPI) request(url, method string, body []byte) ([]byte, error) {
+func (n *NeynarAPI) request(url, method string, body []byte, timeout time.Duration) ([]byte, error) {
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
 		if err != nil {

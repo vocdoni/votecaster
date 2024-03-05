@@ -174,46 +174,79 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 	if channelID == "" {
 		return ctx.Send([]byte("channelID is required"), http.StatusBadRequest)
 	}
-	// get the fids of the users in the channel from neynar farcaster API, if
-	// the channel does not exist, return a NotFound error
-	users, err := v.fcapi.ChannelFIDs(ctx.Request.Context(), channelID)
+	// create a censusID for the queue and store into it
+	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
-		if errors.Is(err, farcasterapi.ErrChannelNotFound) {
-			return ctx.Send([]byte(err.Error()), http.StatusNotFound)
-		}
 		return err
 	}
-	// get participants from the users fids, quering the database and to get the
-	// users public keys
-	participants := []*FarcasterParticipant{}
-	for _, fid := range users {
-		user, err := v.db.User(fid)
+	v.censusCreationMap.Store(censusID.String(), CensusInfo{})
+	// run a goroutine to create the census, update the queue with the progress,
+	// and update the queue result when it's ready
+	go func() {
+		internalCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// get the fids of the users in the channel from neynar farcaster API, if
+		// the channel does not exist, return a NotFound error
+		users, err := v.fcapi.ChannelFIDs(internalCtx, channelID)
 		if err != nil {
-			log.Errorf("error fetching user from database: %v", err)
-			continue
-		}
-		for _, signer := range user.Signers {
-			signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
-			if err != nil {
-				log.Warnw("error decoding signer",
-					"signer", signer,
-					"err", err)
-				continue
+			if errors.Is(err, farcasterapi.ErrChannelNotFound) {
+				v.censusCreationMap.Store(censusID.String(), CensusInfo{
+					Error: farcasterapi.ErrChannelNotFound.Error(),
+				})
+				return
 			}
-			participants = append(participants, &FarcasterParticipant{
-				PubKey:   signerBytes,
-				Weight:   big.NewInt(1),
-				Username: user.Username,
-			})
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
 		}
-	}
-	// create the census from the participants
-	censusInfo, err := CreateCensus(v.cli, participants)
-	if err != nil {
-		return err
-	}
-	// encoding the censusInfo to json and send it as response
-	data, err := json.Marshal(censusInfo)
+		// get participants from the users fids, quering the database and to get the
+		// users public keys
+		participants := []*FarcasterParticipant{}
+		totalFids := uint32(len(users))
+		notFoundFids := uint32(0)
+		participantFids := uint32(0)
+		for i, fid := range users {
+			v.updateCensusProgress(internalCtx, censusID, 100*uint32(i)/totalFids)
+			user, err := v.db.User(fid)
+			if err != nil {
+				if errors.Is(err, mongo.ErrUserUnknown) {
+					notFoundFids++
+					continue
+				}
+				v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
+				return
+			}
+			for _, signer := range user.Signers {
+				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
+				if err != nil {
+					log.Warnw("error decoding signer",
+						"signer", signer,
+						"err", err)
+					continue
+				}
+				participants = append(participants, &FarcasterParticipant{
+					PubKey:   signerBytes,
+					Weight:   big.NewInt(1),
+					Username: user.Username,
+				})
+			}
+			participantFids++
+		}
+		// create the census from the participants
+		censusInfo, err := CreateCensus(v.cli, participants)
+		if err != nil {
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+		v.censusCreationMap.Store(censusID.String(), *censusInfo)
+		log.Infow("census created from channel",
+			"channelID", channelID,
+			"totalFids", totalFids,
+			"participantFids", participantFids,
+			"notFoundFids", notFoundFids,
+			"participants", len(participants))
+	}()
+	// return the censusID to the client
+	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
 	if err != nil {
 		return err
 	}
@@ -255,6 +288,25 @@ func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, censusID typ
 	return v.processCensusRecords(records, censusID)
 }
 
+func (v *vocdoniHandler) updateCensusProgress(ctx context.Context, censusID types.HexBytes, progress uint32) {
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		censusInfo, ok := v.censusCreationMap.Load(censusID.String())
+		if !ok {
+			return
+		}
+		ci := censusInfo.(CensusInfo)
+		// no need to update the progress if the census is already ready
+		if ci.Root != nil {
+			return
+		}
+		ci.Progress = progress
+		v.censusCreationMap.Store(censusID.String(), ci)
+	}
+}
+
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.
 // The record is expected to be a string containing the address and the weight.
 // Returns the list of participants and the total number of unique addresses available in the records.
@@ -262,25 +314,6 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types
 	// Create a context to cancel the goroutines
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	updateCensusProgress := func(progress uint32) {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			censusInfo, ok := v.censusCreationMap.Load(censusID.String())
-			if !ok {
-				return
-			}
-			ci := censusInfo.(CensusInfo)
-			// no need to update the progress if the census is already ready
-			if ci.Root != nil {
-				return
-			}
-			ci.Progress = progress
-			v.censusCreationMap.Store(censusID.String(), ci)
-		}
-	}
 
 	// build a map for unique addresses and their weights
 	addressMap := make(map[string]*big.Int)
@@ -367,11 +400,11 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types
 		for {
 			select {
 			case <-ctx.Done():
-				updateCensusProgress(100 * processedAddresses.Load() / uniqueAddressesCount)
+				v.updateCensusProgress(ctx, censusID, 100*processedAddresses.Load()/uniqueAddressesCount)
 				return
 			case <-logTicker.C:
 				processed := processedAddresses.Load()
-				updateCensusProgress(100 * processed / uniqueAddressesCount)
+				v.updateCensusProgress(ctx, censusID, 100*processed/uniqueAddressesCount)
 				log.Debugw("census creation",
 					"processed", processed,
 					"total", uniqueAddressesCount,
