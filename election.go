@@ -135,11 +135,11 @@ func (v *vocdoniHandler) checkElection(msg *apirest.APIdata, ctx *httprouter.HTT
 		return ctx.Send(nil, http.StatusNoContent)
 	}
 	frameUrl := fmt.Sprintf("%s/%x", serverURL, electionID)
-	shortedURL, err := shortener.ShortURL(ctx.Request.Context(), frameUrl)
+	resultURL, err := shortener.ShortURL(ctx.Request.Context(), frameUrl)
 	if err != nil {
-		return fmt.Errorf("failed to shorten election url: %w", err)
+		resultURL = fmt.Sprintf("%s/%x", serverURL, electionID)
 	}
-	body, err := json.Marshal(map[string]string{"url": shortedURL})
+	body, err := json.Marshal(map[string]string{"url": resultURL})
 	if err != nil {
 		return fmt.Errorf("failed to marshal response: %w", err)
 	}
