@@ -174,6 +174,15 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 	if channelID == "" {
 		return ctx.Send([]byte("channelID is required"), http.StatusBadRequest)
 	}
+	// check if the channel exists, if not return a NotFound error. If something
+	// fails when checking the channel existence, return the error.
+	exists, err := v.fcapi.ChannelExists(channelID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return ctx.Send([]byte("channel not found"), http.StatusNotFound)
+	}
 	// create a censusID for the queue and store into it
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
@@ -189,12 +198,6 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 		// the channel does not exist, return a NotFound error
 		users, err := v.fcapi.ChannelFIDs(internalCtx, channelID)
 		if err != nil {
-			if errors.Is(err, farcasterapi.ErrChannelNotFound) {
-				v.censusCreationMap.Store(censusID.String(), CensusInfo{
-					Error: farcasterapi.ErrChannelNotFound.Error(),
-				})
-				return
-			}
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
