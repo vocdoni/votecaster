@@ -30,7 +30,7 @@ import {
 } from '@chakra-ui/react'
 import { SignInButton } from '@farcaster/auth-kit'
 import axios from 'axios'
-import React, { SetStateAction, useState } from 'react'
+import React, { SetStateAction, useEffect, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { useLogin } from '../useLogin'
@@ -70,16 +70,26 @@ const Form: React.FC = (props: FlexProps) => {
   const { isAuthenticated, profile, logout } = useLogin()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
+  const [shortened, setShortened] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [usernames, setUsernames] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [censusRecords, setCensusRecords] = useState<number>(0)
+
+  useEffect(() => {
+    if (pid) return
+
+    setShortened(null)
+  }, [pid])
 
   const checkElection = async (pid: string) => {
     try {
       const checkRes = await axios.get(`${appUrl}/create/check/${pid}`)
       if (checkRes.status === 200) {
         setPid(pid)
+        if (checkRes.data.url) {
+          setShortened(checkRes.data.url)
+        }
         return true
       }
     } catch (error) {
@@ -207,6 +217,7 @@ const Form: React.FC = (props: FlexProps) => {
                   usernames={usernames}
                   setUsernames={setUsernames}
                   censusRecords={censusRecords}
+                  shortened={shortened}
                 />
               ) : (
                 <>

@@ -6,7 +6,7 @@ import { CsvGenerator } from '../generator'
 
 const appUrl = import.meta.env.APP_URL
 const pollUrl = (pid: string) => `${appUrl}/${pid}`
-const cast = (uri: string) => window.open(`https://warpcast.com/~/compose?embeds[]=${encodeURIComponent(pollUrl(uri))}`)
+const cast = (uri: string) => window.open(`https://warpcast.com/~/compose?embeds[]=${encodeURIComponent(uri)}`)
 
 type DoneProps = {
   pid: string
@@ -14,10 +14,11 @@ type DoneProps = {
   usernames: string[]
   setUsernames: Dispatch<SetStateAction<string[]>>
   censusRecords: number
+  shortened: string | null
 }
 
-export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords }: DoneProps) => {
-  const { hasCopied, onCopy } = useClipboard(pollUrl(pid))
+export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords, shortened }: DoneProps) => {
+  const { hasCopied, onCopy } = useClipboard(shortened ?? pollUrl(pid))
   const { reset } = useFormContext()
 
   const usersfile = useMemo(() => {
@@ -34,7 +35,7 @@ export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords }: Do
       <Text display='inline'>Done! You can now cast it using this link:</Text>
       <Box display='flex' alignItems='center' justifyContent='space-between' overflow='hidden'>
         <Code overflowX='auto' whiteSpace='nowrap' flex={1} isTruncated>
-          {pollUrl(pid)}
+          {shortened ?? pollUrl(pid)}
         </Code>
         <IconButton
           colorScheme='purple'
@@ -47,7 +48,7 @@ export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords }: Do
         />
       </Box>
       <Image src={`${appUrl}/preview/${pid}`} alt='poll preview' />
-      <Button colorScheme='purple' rightIcon={<FaArchway />} onClick={() => cast(pid)}>
+      <Button colorScheme='purple' rightIcon={<FaArchway />} onClick={() => cast(shortened ?? pollUrl(pid))}>
         Cast it!
       </Button>
       <Box fontSize='xs' align='right'>
