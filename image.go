@@ -56,6 +56,7 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	// check if the election is finished and if so, send the final results as a static PNG
 	pngResults := v.db.FinalResultsPNG(electionID)
 	if pngResults != nil {
+		log.Warnw("image recovery, found final results PNG!", "electionID", electionID, "imgID", id)
 		// for future requests, add the image to the cache with the given id
 		imageframe.AddImageToCacheWithID(id, pngResults)
 		return imageResponse(ctx, pngResults)
@@ -70,8 +71,7 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to build landing: %w", err))
 	}
-	// for future requests, add the image to the cache with the given id
-	imageframe.AddImageToCacheWithID(id, imageframe.FromCache(png))
+	log.Warnw("image recovery, built landing PNG", "electionID", electionID, "imgID", id)
 	return imageResponse(ctx, imageframe.FromCache(png))
 }
 

@@ -24,6 +24,14 @@ const (
 
 	BackgroundsDir    = "images/"
 	ImageGeneratorURL = "https://img.frame.vote"
+
+	TimeoutImageGeneration = 15 * time.Second
+)
+
+const (
+	imageType = iota
+	imageTypeQuestion
+	imageTypeResults
 )
 
 var backgroundFrames map[string][]byte
@@ -108,7 +116,7 @@ func QuestionImage(election *api.Election) (string, error) {
 		return "", fmt.Errorf("election has no questions")
 	}
 	// Check if the image is already in the cache
-	if id := electionImageInCache(election); id != "" {
+	if id := electionImageCacheKey(election, imageTypeQuestion); id != "" {
 		return id, nil
 	}
 
@@ -129,9 +137,11 @@ func QuestionImage(election *api.Election) (string, error) {
 			log.Warnw("failed to create image", "error", err)
 			return
 		}
-		addElectionImageToCache(png, election)
+		cacheElectionImage(png, election, imageTypeQuestion)
 	}()
-	return cacheElectionID(election), nil
+	// Add some time to allow the image to be generated
+	time.Sleep(2 * time.Second)
+	return generateElectionCacheKey(election, imageTypeQuestion), nil
 }
 
 // ResultsImage creates an image showing the results of a poll.
@@ -140,7 +150,7 @@ func ResultsImage(election *api.Election) (string, error) {
 		return "", fmt.Errorf("election has no questions")
 	}
 	// Check if the image is already in the cache
-	if id := electionImageInCache(election); id != "" {
+	if id := electionImageCacheKey(election, imageTypeResults); id != "" {
 		return id, nil
 	}
 
@@ -167,9 +177,10 @@ func ResultsImage(election *api.Election) (string, error) {
 			log.Warnw("failed to create image", "error", err)
 			return
 		}
-		addElectionImageToCache(png, election)
+		cacheElectionImage(png, election, imageTypeResults)
 	}()
-	return cacheElectionID(election), nil
+	time.Sleep(2 * time.Second)
+	return generateElectionCacheKey(election, imageTypeResults), nil
 }
 
 // AfterVoteImage creates a static image to be displayed after a vote has been cast.

@@ -67,14 +67,22 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		if err := v.db.AddFinalResults(electionIDbytes, imageframe.FromCache(id)); err != nil {
-			return fmt.Errorf("failed to add final results to database: %w", err)
-		}
-		log.Infow("final results image built ondemand", "electionID", electionID)
-		if v.checkIfElectionFinishedAndHandle(electionIDbytes, ctx) {
-			return nil
-		}
+		go func() {
+			if err := v.db.AddFinalResults(electionIDbytes, imageframe.FromCache(id)); err != nil {
+				log.Errorw(err, "failed to add final results to database")
+				return
+			}
+			log.Infow("final results image built ondemand", "electionID", electionID)
+		}()
+
+		response := strings.ReplaceAll(frame(frameFinalResults), "{image}", imageLink(id))
+		response = strings.ReplaceAll(response, "{processID}", electionID)
+		response = strings.ReplaceAll(response, "{title}", "Final results")
+
+		ctx.SetResponseContentType("text/html; charset=utf-8")
+		return ctx.Send([]byte(response), http.StatusOK)
 	}
+
 	// if not final results, create the dynamic PNG image with the results
 	response := strings.ReplaceAll(frame(frameResults), "{image}", resultsPNGfile(election))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])

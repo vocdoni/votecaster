@@ -167,7 +167,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	// send the response
-	response := strings.ReplaceAll(frame(frameInfo), "{image}", png)
+	response := strings.ReplaceAll(frame(frameInfo), "{image}", imageLink(png))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
