@@ -24,10 +24,6 @@ import (
 	"go.vocdoni.io/dvote/util"
 )
 
-const (
-	imageHandlerPath = "/images"
-)
-
 var (
 	ErrElectionUnknown = fmt.Errorf("electionID unknown")
 )
@@ -38,7 +34,6 @@ type vocdoniHandler struct {
 	webappdir     string
 	db            *mongo.MongoStorage
 	electionLRU   *lru.Cache[string, *api.Election]
-	imagesLRU     *lru.Cache[string, []byte]
 	fcapi         farcasterapi.API
 
 	censusCreationMap sync.Map
@@ -89,13 +84,6 @@ func NewVocdoniHandler(
 			}
 			return lru
 		}(),
-		imagesLRU: func() *lru.Cache[string, []byte] {
-			lru, err := lru.New[string, []byte](1024)
-			if err != nil {
-				log.Fatal(err)
-			}
-			return lru
-		}(),
 	}
 
 	// Add the election callback to the mongo database to fetch the election information
@@ -123,24 +111,21 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return fmt.Errorf("election has no questions")
 	}
 
-	png, err := buildLandingPNG(election)
-	if err != nil {
-		return fmt.Errorf("failed to build landing PNG: %w", err)
-	}
 	response := strings.ReplaceAll(frame(frameMain), "{processID}", election.ElectionID.String())
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
-	response = strings.ReplaceAll(response, "{image}", v.addImageToCache(png, election.ElectionID))
+	response = strings.ReplaceAll(response, "{image}", landingPNGfile(election))
 
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-func buildLandingPNG(election *api.Election) ([]byte, error) {
-	png, err := imageframe.QuestionImage(election)
+func landingPNGfile(election *api.Election) string {
+	pngFile, err := imageframe.QuestionImage(election)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create image: %w", err)
+		log.Warnw("failed to create landing image", "error", err)
+		return imageLink(imageframe.NotFoundImage())
 	}
-	return png, err
+	return imageLink(pngFile)
 }
 
 func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -182,7 +167,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	// send the response
-	response := strings.ReplaceAll(frame(frameInfo), "{image}", v.addImageToCache(png, electionIDbytes))
+	response := strings.ReplaceAll(frame(frameInfo), "{image}", png)
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
@@ -211,50 +196,4 @@ func (v *vocdoniHandler) importDB(msg *apirest.APIdata, ctx *httprouter.HTTPCont
 		return fmt.Errorf("failed to import database: %w", err)
 	}
 	return ctx.Send(nil, http.StatusOK)
-}
-
-// finalizeElectionsAtBackround checks for elections without results and finalizes them.
-// Stores the final results as a static PNG image in the database. It must run in the background.
-func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(120 * time.Second):
-			electionIDs, err := v.db.ElectionsWithoutResults(ctx)
-			if err != nil {
-				log.Errorw(err, "failed to get elections without results")
-				continue
-			}
-			if len(electionIDs) > 0 {
-				log.Debugw("found elections without results", "count", len(electionIDs))
-			}
-			for _, electionID := range electionIDs {
-				time.Sleep(5 * time.Second)
-				electionIDbytes, err := hex.DecodeString(electionID)
-				if err != nil {
-					log.Errorw(err, "failed to decode electionID")
-					continue
-				}
-				election, err := v.cli.Election(electionIDbytes)
-				if err != nil {
-					log.Errorw(err, "failed to get election")
-					continue
-				}
-				if election.FinalResults {
-					png, err := buildResultsPNG(election)
-					if err != nil {
-						log.Errorw(err, "failed to generate results image")
-						continue
-					}
-					if err := v.db.AddFinalResults(electionIDbytes, png); err != nil {
-						log.Errorw(err, "failed to add final results to database")
-						continue
-					}
-					log.Infow("finalized election", "electionID", electionID)
-				}
-			}
-		}
-
-	}
 }

@@ -22,7 +22,7 @@ func (v *vocdoniHandler) checkIfElectionFinishedAndHandle(electionID types.HexBy
 	if pngResults == nil {
 		return false
 	}
-	response := strings.ReplaceAll(frame(frameFinalResults), "{image}", v.addImageToCache(pngResults, electionID))
+	response := strings.ReplaceAll(frame(frameFinalResults), "{image}", imageLink(imageframe.AddImageToCache(pngResults)))
 	response = strings.ReplaceAll(response, "{processID}", electionID.String())
 	response = strings.ReplaceAll(response, "{title}", "Final results")
 
@@ -63,11 +63,11 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 
 	// if final results, create the static PNG image with the results
 	if election.FinalResults {
-		png, err := buildResultsPNG(election)
+		id, err := imageframe.ResultsImage(election)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
-		if err := v.db.AddFinalResults(electionIDbytes, png); err != nil {
+		if err := v.db.AddFinalResults(electionIDbytes, imageframe.FromCache(id)); err != nil {
 			return fmt.Errorf("failed to add final results to database: %w", err)
 		}
 		log.Infow("final results image built ondemand", "electionID", electionID)
@@ -76,17 +76,18 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		}
 	}
 	// if not final results, create the dynamic PNG image with the results
-	png, err := buildResultsPNG(election)
-	if err != nil {
-		return fmt.Errorf("failed to create image: %w", err)
-	}
-	response := strings.ReplaceAll(frame(frameResults), "{image}", v.addImageToCache(png, electionIDbytes))
+	response := strings.ReplaceAll(frame(frameResults), "{image}", resultsPNGfile(election))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-func buildResultsPNG(election *api.Election) ([]byte, error) {
-	return imageframe.ResultsImage(election)
+func resultsPNGfile(election *api.Election) string {
+	id, err := imageframe.ResultsImage(election)
+	if err != nil {
+		log.Warnw("failed to create results image", "error", err)
+		return imageLink(imageframe.NotFoundImage())
+	}
+	return imageLink(id)
 }

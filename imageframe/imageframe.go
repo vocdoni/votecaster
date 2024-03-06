@@ -5,24 +5,30 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
+	"sync/atomic"
+	"time"
 
+	lru "github.com/hashicorp/golang-lru/v2"
 	"go.vocdoni.io/dvote/api"
+	"go.vocdoni.io/dvote/log"
 )
 
 const (
 	BackgroundAfterVote    = "aftervote.png"
 	BackgroundAlreadyVoted = "alreadyvoted.png"
 	BackgroundNotElegible  = "notelegible.png"
+	BackgroundNotFound     = "notfound.png"
 
-	BackgroundsDir = "images/"
-	BaseURL        = "https://img.frame.vote"
+	BackgroundsDir    = "images/"
+	ImageGeneratorURL = "https://img.frame.vote"
 )
 
 var backgroundFrames map[string][]byte
+var imagesLRU *lru.Cache[string, []byte]
+var hitsCounter, missesCounter atomic.Int64
 
 func init() {
 	loadImage := func(name string) []byte {
@@ -41,6 +47,19 @@ func init() {
 	backgroundFrames[BackgroundAfterVote] = loadImage(BackgroundAfterVote)
 	backgroundFrames[BackgroundAlreadyVoted] = loadImage(BackgroundAlreadyVoted)
 	backgroundFrames[BackgroundNotElegible] = loadImage(BackgroundNotElegible)
+	backgroundFrames[BackgroundNotFound] = loadImage(BackgroundNotFound)
+
+	var err error
+	imagesLRU, err = lru.New[string, []byte](2048)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		for range time.Tick(60 * time.Second) {
+			log.Infow("image cache stats", "hits", hitsCounter.Load(), "misses", missesCounter.Load(), "size", imagesLRU.Len())
+		}
+	}()
 }
 
 // ImageRequest is a general struct for making requests to the API.
@@ -57,25 +76,42 @@ type ImageRequest struct {
 }
 
 // ErrorImage creates an image representing an error message.
-func ErrorImage(errorMessage string) ([]byte, error) {
+func ErrorImage(errorMessage string) (string, error) {
 	requestData := ImageRequest{
 		Type:  "error",
 		Error: errorMessage,
 	}
-	return makeRequest(requestData)
+	png, err := makeRequest(requestData)
+	if err != nil {
+		return "", fmt.Errorf("failed to create image: %w", err)
+	}
+	return AddImageToCache(png), nil
 }
 
 // InfoImage creates an image displaying an informational message.
-func InfoImage(infoLines []string) ([]byte, error) {
+// Returns the image id that can be fetch using FromCache(id).
+func InfoImage(infoLines []string) (string, error) {
 	requestData := ImageRequest{
 		Type: "info",
 		Info: infoLines,
 	}
-	return makeRequest(requestData)
+	png, err := makeRequest(requestData)
+	if err != nil {
+		return "", fmt.Errorf("failed to create image: %w", err)
+	}
+	return AddImageToCache(png), nil
 }
 
 // QuestionImage creates an image representing a question with choices.
-func QuestionImage(election *api.Election) ([]byte, error) {
+func QuestionImage(election *api.Election) (string, error) {
+	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
+		return "", fmt.Errorf("election has no questions")
+	}
+	// Check if the image is already in the cache
+	if id := electionImageInCache(election); id != "" {
+		return id, nil
+	}
+
 	title := election.Metadata.Questions[0].Title["default"]
 	var choices []string
 	for _, option := range election.Metadata.Questions[0].Choices {
@@ -87,13 +123,25 @@ func QuestionImage(election *api.Election) ([]byte, error) {
 		Question: title,
 		Choices:  choices,
 	}
-	return makeRequest(requestData)
+	go func() {
+		png, err := makeRequest(requestData)
+		if err != nil {
+			log.Warnw("failed to create image", "error", err)
+			return
+		}
+		addElectionImageToCache(png, election)
+	}()
+	return cacheElectionID(election), nil
 }
 
 // ResultsImage creates an image showing the results of a poll.
-func ResultsImage(election *api.Election) ([]byte, error) {
+func ResultsImage(election *api.Election) (string, error) {
 	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
-		return nil, fmt.Errorf("election has no questions")
+		return "", fmt.Errorf("election has no questions")
+	}
+	// Check if the image is already in the cache
+	if id := electionImageInCache(election); id != "" {
+		return id, nil
 	}
 
 	title := election.Metadata.Questions[0].Title["default"]
@@ -113,22 +161,35 @@ func ResultsImage(election *api.Election) ([]byte, error) {
 		MaxCensusSize: int(election.Census.MaxCensusSize),
 	}
 
-	return makeRequest(requestData)
+	go func() {
+		png, err := makeRequest(requestData)
+		if err != nil {
+			log.Warnw("failed to create image", "error", err)
+			return
+		}
+		addElectionImageToCache(png, election)
+	}()
+	return cacheElectionID(election), nil
 }
 
 // AfterVoteImage creates a static image to be displayed after a vote has been cast.
-func AfterVoteImage() []byte {
-	return backgroundFrames[BackgroundAfterVote]
+func AfterVoteImage() string {
+	return AddImageToCache(backgroundFrames[BackgroundAfterVote])
 }
 
 // AlreadyVotedImage creates a static image to be displayed when a user has already voted.
-func AlreadyVotedImage() []byte {
-	return backgroundFrames[BackgroundAlreadyVoted]
+func AlreadyVotedImage() string {
+	return AddImageToCache(backgroundFrames[BackgroundAlreadyVoted])
 }
 
 // NotElegibleImage creates a static image to be displayed when a user is not elegible to vote.
-func NotElegibleImage() []byte {
-	return backgroundFrames[BackgroundNotElegible]
+func NotElegibleImage() string {
+	return AddImageToCache(backgroundFrames[BackgroundNotElegible])
+}
+
+// NotFoundImage creates a static image to be displayed when an election is not found.
+func NotFoundImage() string {
+	return AddImageToCache(backgroundFrames[BackgroundNotFound])
 }
 
 // makeRequest handles the communication with the API.
@@ -137,13 +198,13 @@ func makeRequest(data ImageRequest) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	response, err := http.Post(fmt.Sprintf("%s/image", BaseURL), "application/json", bytes.NewBuffer(jsonData))
+	startTime := time.Now()
+	response, err := http.Post(fmt.Sprintf("%s/image", ImageGeneratorURL), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
 	defer response.Body.Close()
-
+	log.Debugw("image request", "type", data.Type, "elapsed (s)", time.Since(startTime).Seconds())
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API request failed with status code: %d", response.StatusCode)
 	}

@@ -367,7 +367,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod(fmt.Sprintf("%s/{id}.png", imageHandlerPath), http.MethodGet, "public", handler.imagesHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/images/{id}.png", http.MethodGet, "public", handler.imagesHandler); err != nil {
 		log.Fatal(err)
 	}
 	// if a bot FID is provided, start the bot background process
