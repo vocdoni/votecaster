@@ -49,6 +49,26 @@ var (
 	ErrUserNotFoundInFarcaster = fmt.Errorf("user not found in farcaster")
 )
 
+// FrameCensusType is a custom type to identify the different types of censuses.
+type FrameCensusType int
+
+const (
+	// FrameCensusTypeAllFarcaster is the default census type and includes all
+	// the users in the Farcaster network.
+	FrameCensusTypeAllFarcaster FrameCensusType = iota
+	// FrameCensusTypeCSV is a census created from a CSV file containing
+	// Ethereum addresses and weights.
+	FrameCensusTypeCSV
+	// FrameCensusTypeChannelGated is a census created from the users who follow
+	// a specific Warpcast Channel.
+	FrameCensusTypeChannelGated
+	// FrameCensusTypeFollowers is a census created from the users who follow a
+	// specific user in the Farcaster network.
+	FrameCensusTypeFollowers
+	// FrameCensusTypeFile is a census created from a file.
+	FrameCensusTypeFile
+)
+
 // CensusInfo contains the information of a census.
 type CensusInfo struct {
 	Root               types.HexBytes `json:"root"`
@@ -57,8 +77,9 @@ type CensusInfo struct {
 	Usernames          []string       `json:"usernames,omitempty"`
 	FromTotalAddresses uint32         `json:"fromTotalAddresses,omitempty"`
 
-	Error    string `json:"-"`
-	Progress uint32 `json:"-"` // Progress of the census creation process (0-100)
+	Error    string          `json:"-"`
+	Progress uint32          `json:"-"` // Progress of the census creation process (0-100)
+	Type     FrameCensusType `json:"-"` // Type of the census
 }
 
 // FromFile loads the census information from a file.
@@ -68,7 +89,12 @@ func (c *CensusInfo) FromFile(file string) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(data, c)
+	if err := json.Unmarshal(data, c); err != nil {
+		return err
+	}
+	// Set the type of the census
+	c.Type = FrameCensusTypeFile
+	return nil
 }
 
 // FarcasterParticipant is a participant in the Farcaster network to be included in the census.
@@ -79,7 +105,9 @@ type FarcasterParticipant struct {
 }
 
 // CreateCensus creates a new census from a list of participants.
-func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipant) (*CensusInfo, error) {
+func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipant,
+	censusType FrameCensusType,
+) (*CensusInfo, error) {
 	censusList := api.CensusParticipants{}
 	for _, p := range participants {
 		voterID := state.NewVoterID(state.VoterIDTypeEd25519, p.PubKey)
@@ -114,6 +142,7 @@ func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipan
 		Root: root,
 		Url:  url,
 		Size: size,
+		Type: censusType,
 	}, nil
 }
 
@@ -136,7 +165,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		ci, err := CreateCensus(v.cli, participants)
+		ci, err := CreateCensus(v.cli, participants, FrameCensusTypeCSV)
 		if err != nil {
 			log.Errorw(err, "failed to create census")
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
@@ -240,7 +269,7 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 			return
 		}
 		// create the census from the participants
-		censusInfo, err := CreateCensus(v.cli, participants)
+		censusInfo, err := CreateCensus(v.cli, participants, FrameCensusTypeChannelGated)
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
@@ -301,7 +330,7 @@ func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTT
 			return
 		}
 		// create the census from the participants
-		censusInfo, err := CreateCensus(v.cli, participants)
+		censusInfo, err := CreateCensus(v.cli, participants, FrameCensusTypeFollowers)
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
@@ -326,21 +355,28 @@ func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTT
 // Returns 204 if the census is not yet ready or not found.
 func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	censusID := ctx.URLParam("censusID")
-	censusInfo, ok := v.censusCreationMap.Load(censusID)
+	iCensusInfo, ok := v.censusCreationMap.Load(censusID)
 	if !ok {
 		return ctx.Send(nil, http.StatusNotFound)
 	}
-	if censusInfo.(CensusInfo).Error != "" {
-		return ctx.Send([]byte(censusInfo.(CensusInfo).Error), http.StatusInternalServerError)
+	censusInfo, ok := iCensusInfo.(CensusInfo)
+	if !ok {
+		return ctx.Send(nil, http.StatusNotFound)
 	}
-	if censusInfo.(CensusInfo).Root == nil {
+	if censusInfo.Error != "" {
+		return ctx.Send([]byte(censusInfo.Error), http.StatusInternalServerError)
+	}
+	if censusInfo.Root == nil {
 		data, err := json.Marshal(map[string]uint32{
-			"progress": censusInfo.(CensusInfo).Progress,
+			"progress": censusInfo.Progress,
 		})
 		if err != nil {
 			return err
 		}
 		return ctx.Send(data, http.StatusAccepted)
+	}
+	if censusInfo.Type != FrameCensusTypeCSV {
+		censusInfo.Usernames = nil
 	}
 	data, err := json.Marshal(censusInfo)
 	if err != nil {
