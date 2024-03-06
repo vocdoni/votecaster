@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/vocdoni/vote-frame/imageframe"
 	"go.vocdoni.io/dvote/api"
@@ -13,6 +14,8 @@ import (
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 )
+
+var resultsPNGgenerationMutex = sync.Mutex{}
 
 // checkIfElectionFinishedAndHandle checks if the election is finished and if so, sends the final results.
 // Returns true if the election is finished and the response was sent, false otherwise.
@@ -92,6 +95,8 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 }
 
 func resultsPNGfile(election *api.Election) string {
+	resultsPNGgenerationMutex.Lock()
+	defer resultsPNGgenerationMutex.Unlock()
 	id, err := imageframe.ResultsImage(election)
 	if err != nil {
 		log.Warnw("failed to create results image", "error", err)
