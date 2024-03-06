@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
+	"github.com/vocdoni/vote-frame/shortener"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/httprouter"
@@ -88,7 +90,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	if err != nil {
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
-	png, err := textToImage(electionImageContents(election), frames[BackgroundGeneric])
+	png, err := imageframe.QuestionImage(election)
 	if err != nil {
 		return fmt.Errorf("failed to generate image: %v", err)
 	}
@@ -133,7 +135,16 @@ func (v *vocdoniHandler) checkElection(msg *apirest.APIdata, ctx *httprouter.HTT
 	if !ok {
 		return ctx.Send(nil, http.StatusNoContent)
 	}
-	return ctx.Send(nil, http.StatusOK)
+	frameUrl := fmt.Sprintf("%s/%x", serverURL, electionID)
+	resultURL, err := shortener.ShortURL(ctx.Request.Context(), frameUrl)
+	if err != nil {
+		resultURL = fmt.Sprintf("%s/%x", serverURL, electionID)
+	}
+	body, err := json.Marshal(map[string]string{"url": resultURL})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	return ctx.Send(body, http.StatusOK)
 }
 
 // votersForElection returns the list of voters for the given election.
@@ -151,10 +162,6 @@ func (v *vocdoniHandler) votersForElection(msg *apirest.APIdata, ctx *httprouter
 		return fmt.Errorf("failed to marshal voters: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
-}
-
-func generateElectionImage(title string) ([]byte, error) {
-	return textToImage(textToImageContents{title: title}, frames[BackgroundGeneric])
 }
 
 func newElectionDescription(description *ElectionDescription, census *CensusInfo) *api.ElectionDescription {

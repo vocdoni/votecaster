@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/vocdoni/vote-frame/imageframe"
 	"go.vocdoni.io/proto/build/go/models"
 
 	"go.vocdoni.io/dvote/apiclient"
@@ -43,7 +44,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	election, err := v.election(electionIDbytes)
 	if err != nil {
 		log.Warnw("failed to fetch election", "error", err)
-		png, err := errorImage(err)
+		png, err := imageframe.ErrorImage(err.Error())
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -55,7 +56,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	if election.FinalResults {
-		png, err := errorImage(errors.New("The poll has finalized"))
+		png, err := imageframe.ErrorImage(err.Error())
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -77,10 +78,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	// handle the vote result
 	if errors.Is(err, ErrNotInCensus) {
 		log.Infow("participant not in the census", "voterID", fmt.Sprintf("%x", voterID))
-		png, err := textToImage(textToImageContents{title: ""}, frames[BackgroundNotElegible])
-		if err != nil {
-			return fmt.Errorf("failed to create image: %w", err)
-		}
+		png := imageframe.NotElegibleImage()
 		response := strings.ReplaceAll(frame(frameNotElegible), "{image}", v.addImageToCache(png, electionIDbytes))
 		response = strings.ReplaceAll(response, "{processID}", electionID)
 		response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
@@ -91,10 +89,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	if errors.Is(err, ErrAlreadyVoted) {
 		log.Infow("participant already voted", "voterID", fmt.Sprintf("%x", voterID))
-		png, err := textToImage(textToImageContents{title: ""}, frames[BackgroundAlreadyVoted])
-		if err != nil {
-			return fmt.Errorf("failed to create image: %w", err)
-		}
+		png := imageframe.AlreadyVotedImage()
 		response := strings.ReplaceAll(frame(frameAlreadyVoted), "{image}", v.addImageToCache(png, electionIDbytes))
 		response = strings.ReplaceAll(response, "{nullifier}", fmt.Sprintf("%x", nullifier))
 		response = strings.ReplaceAll(response, "{processID}", electionID)
@@ -106,7 +101,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	if err != nil {
 		log.Warnw("failed to vote", "error", err)
-		png, err := textToImage(textToImageContents{title: fmt.Sprintf("Error: %s", err.Error())}, frames[BackgroundGeneric])
+		png, err := imageframe.ErrorImage(err.Error())
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -132,10 +127,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	response := strings.ReplaceAll(frame(frameAfterVote), "{nullifier}", fmt.Sprintf("%x", nullifier))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
-	png, err := textToImage(textToImageContents{title: ""}, frames[BackgroundAfterVote])
-	if err != nil {
-		return fmt.Errorf("failed to create image: %w", err)
-	}
+	png := imageframe.AfterVoteImage()
 	response = strings.ReplaceAll(response, "{image}", v.addImageToCache(png, electionIDbytes))
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)

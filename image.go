@@ -2,12 +2,10 @@ package main
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 
-	"go.vocdoni.io/dvote/api"
+	"github.com/vocdoni/vote-frame/imageframe"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
@@ -113,7 +111,7 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return errorImageResponse(ctx, fmt.Errorf("election has no questions"))
 	}
 
-	png, err := textToImage(electionImageContents(election), frames[BackgroundGeneric])
+	png, err := buildLandingPNG(election)
 	if err != nil {
 		return errorImageResponse(ctx, err)
 	}
@@ -134,44 +132,9 @@ func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
 }
 
 func errorImageResponse(ctx *httprouter.HTTPContext, err error) error {
-	png, err := errorImage(err)
+	png, err := imageframe.ErrorImage(err.Error())
 	if err != nil {
 		return err
 	}
 	return imageResponse(ctx, png)
-}
-
-func electionImageContents(election *api.Election) textToImageContents {
-	title := election.Metadata.Questions[0].Title["default"]
-	var questions []string
-	for k, option := range election.Metadata.Questions[0].Choices {
-		questions = append(questions, fmt.Sprintf("%d. %s", k+1, option.Title["default"]))
-	}
-	return textToImageContents{title: title, body: questions}
-}
-
-func (v *vocdoniHandler) testImage(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	if ctx.Request.Method == http.MethodGet {
-		png, err := generateElectionImage("How would you like to take kiwi in Mumbai?")
-		if err != nil {
-			return err
-		}
-		response := strings.ReplaceAll(frame(testImageHTML), "{image}", v.addImageToCache(png, nil))
-		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(response), http.StatusOK)
-	}
-	description := &ElectionDescription{}
-	if err := json.Unmarshal(msg.Data, description); err != nil {
-		return fmt.Errorf("failed to unmarshal election description: %w", err)
-	}
-	png, err := generateElectionImage(description.Question)
-	if err != nil {
-		return fmt.Errorf("failed to create image: %w", err)
-	}
-	jresponse, err := json.Marshal(map[string]string{"image": v.addImageToCache(png, nil)})
-	if err != nil {
-		return fmt.Errorf("failed to marshal response: %w", err)
-	}
-	ctx.Writer.Header().Set("Content-Type", "application/json")
-	return ctx.Send(jresponse, http.StatusOK)
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/vocdoni/vote-frame/farcasterapi"
+	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
@@ -73,10 +74,6 @@ func NewVocdoniHandler(
 
 	if err := cli.SetAccount(accountPrivKey); err != nil {
 		return nil, fmt.Errorf("failed to set account: %w", err)
-	}
-
-	if err := loadImages(); err != nil {
-		return nil, fmt.Errorf("failed to load images: %w", err)
 	}
 
 	vh := &vocdoniHandler{
@@ -139,7 +136,7 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 }
 
 func buildLandingPNG(election *api.Election) ([]byte, error) {
-	png, err := textToImage(electionImageContents(election), frames[BackgroundGeneric])
+	png, err := imageframe.QuestionImage(election)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image: %w", err)
 	}
@@ -163,7 +160,6 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
 
-	title := "Vocdoni secured poll"
 	text := []string{}
 	text = append(text, fmt.Sprintf("\nStarted at %s", election.StartDate.Format("2006-01-02 15:04:05")))
 	if !election.FinalResults {
@@ -180,7 +176,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		text = append(text, fmt.Sprintf("Census size %d", election.Census.MaxCensusSize))
 	}
 
-	png, err := textToImage(textToImageContents{title: title, body: text}, frames[BackgroundInfo])
+	png, err := imageframe.InfoImage(text)
 	if err != nil {
 		return fmt.Errorf("failed to create image: %w", err)
 	}

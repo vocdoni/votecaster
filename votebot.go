@@ -8,6 +8,7 @@ import (
 	"github.com/vocdoni/vote-frame/bot"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
+	"github.com/vocdoni/vote-frame/shortener"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
@@ -62,7 +63,12 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 					"electionID", electionID,
 					"poll", poll)
 				frameUrl := fmt.Sprintf("%s/%s", serverURL, electionID.String())
-				if err := voteBot.ReplyWithPollURL(ctx, msg, frameUrl); err != nil {
+				shortenedUrl, err := shortener.ShortURL(ctx, frameUrl)
+				if err != nil {
+					// if shortening fails, use the original url
+					shortenedUrl = frameUrl
+				}
+				if err := voteBot.ReplyWithPollURL(ctx, msg, shortenedUrl); err != nil {
 					log.Errorf("error replying to poll: %s", err)
 					continue
 				}
