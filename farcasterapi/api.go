@@ -37,6 +37,9 @@ type API interface {
 	WebhookHandler(body []byte) error
 	// SignersFromFID retrieves the signers (appkeys) of the user with the given fid
 	SignersFromFID(fid uint64) ([]string, error)
+	// UserFollowers method returns the FIDs of the followers of the user with
+	// the given id. If something goes wrong, it returns an error.
+	UserFollowers(ctx context.Context, fid uint64) ([]uint64, error)
 	// ChannelFIDs method returns the FIDs of the users that follow the channel
 	// with the given id. If something goes wrong, it returns an error. It
 	// return an ErrChannelNotFound error if the channel does not exist to be

@@ -19,7 +19,7 @@ type HubMessage struct {
 	HexHash string          `json:"hash"`
 }
 
-type HubMentionsResponse struct {
+type HubMessageResponse struct {
 	Messages []*HubMessage `json:"messages"`
 }
 

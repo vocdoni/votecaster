@@ -31,8 +31,9 @@ const (
 	neynarGetCastsEndpoint    = NeynarAPIEndpoint + "/v1/farcaster/mentions-and-replies?fid=%d&limit=150&cursor=%s"
 	neynarReplyEndpoint       = NeynarAPIEndpoint + "/v2/farcaster/cast"
 	neynarUserByEthAddresses  = NeynarAPIEndpoint + "/v2/farcaster/user/bulk-by-address?addresses=%s"
-	neynarUsersByChannelID    = NeynarAPIEndpoint + "/v2/farcaster/channel/followers?id=%s&limit=1000&cursor=%s"
+	neynarUserFollowers       = NeynarAPIEndpoint + "/v1/farcaster/followers?fid=%d&limit=150&cursor=%s"
 	neynarChannelDataByID     = NeynarAPIEndpoint + "/v2/farcaster/channel?id=%s"
+	neynarUsersByChannelID    = NeynarAPIEndpoint + "/v2/farcaster/channel/followers?id=%s&limit=1000&cursor=%s"
 	neynarVerificationsByFID  = NeynarHubEndpoint + "/verificationsByFid?fid=%d"
 
 	MaxAddressesPerRequest = 300
@@ -197,25 +198,20 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 	if len(addresses) > MaxAddressesPerRequest {
 		return nil, fmt.Errorf("address slice exceeds the maximum limit of 350 addresses")
 	}
-
 	// Concatenate addresses separated by commas
 	addressesStr := strings.Join(addresses, ",")
-
 	// Construct the URL with multiple addresses
 	url := fmt.Sprintf(neynarUserByEthAddresses, addressesStr)
-
 	// Make the request
 	body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, err
 	}
-
 	// Decode the response
 	var results map[string][]UserdataV2
 	if err := json.Unmarshal(body, &results); err != nil {
 		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 	}
-
 	// Process results into []*farcasterapi.Userdata
 	userDataSlice := make([]*farcasterapi.Userdata, 0)
 	for address, dataItems := range results {
@@ -230,7 +226,6 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 				for _, addr := range item.VerifiedAddresses.EthAddresses {
 					normalizedAddresses = append(normalizedAddresses, common.HexToAddress(addr).Hex())
 				}
-
 				// Get signers
 				signers, err := n.SignersFromFID(item.Fid)
 				if err != nil {
@@ -247,18 +242,21 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 					VerificationsAddresses: normalizedAddresses,
 					Signers:                signers,
 				}
-
 				userDataSlice = append(userDataSlice, userData)
 				break // we only need the first valid user data per address
 			}
 		}
 	}
-
 	if len(userDataSlice) == 0 {
 		return nil, farcasterapi.ErrNoDataFound
 	}
-
 	return userDataSlice, nil
+}
+
+// UserFollowers method returns the FIDs of the followers of the user with the
+// given id. If something goes wrong, it returns an error.
+func (n *NeynarAPI) UserFollowers(ctx context.Context, fid uint64) ([]uint64, error) {
+	return nil, fmt.Errorf("TODO")
 }
 
 // ChannelFIDs method returns the FIDs of the users that follow the channel with

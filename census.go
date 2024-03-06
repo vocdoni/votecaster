@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -247,6 +248,65 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 		v.censusCreationMap.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from channel",
 			"channelID", channelID,
+			"totalFids", len(users),
+			"participants", len(participants))
+	}()
+	// return the censusID to the client
+	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
+	if err != nil {
+		return err
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
+func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// check if userFid is provided, it is required so if it's not provided
+	// return a BadRequest error
+	strUserFid := ctx.URLParam("userFid")
+	if strUserFid == "" {
+		return ctx.Send([]byte("userFid is required"), http.StatusBadRequest)
+	}
+	userFid, err := strconv.ParseUint(strUserFid, 10, 64)
+	if err != nil {
+		return ctx.Send([]byte("invalid userFid"), http.StatusBadRequest)
+	}
+	// create a censusID for the queue and store into it
+	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
+	if err != nil {
+		return err
+	}
+	v.censusCreationMap.Store(censusID.String(), CensusInfo{})
+	// run a goroutine to create the census, update the queue with the progress,
+	// and update the queue result when it's ready
+	go func() {
+		internalCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		users, err := v.fcapi.UserFollowers(internalCtx, userFid)
+		if err != nil {
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+		participants, errFids := v.farcasterCensusFromFids(internalCtx, users, censusID)
+		for fid, err := range errFids {
+			if errors.Is(err, mongo.ErrUserUnknown) {
+				log.Warnw("user not found in database", "fid", fid)
+			} else {
+				log.Warnw("error fetching user from database", "fid", fid, "error", err)
+			}
+		}
+		if len(participants) == 0 {
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: "no valid participants"})
+			return
+		}
+		// create the census from the participants
+		censusInfo, err := CreateCensus(v.cli, participants)
+		if err != nil {
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+		v.censusCreationMap.Store(censusID.String(), *censusInfo)
+		log.Infow("census created from user followers",
+			"userFid", userFid,
 			"totalFids", len(users),
 			"participants", len(participants))
 	}()
