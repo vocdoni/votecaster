@@ -1,9 +1,14 @@
 package neynar
 
+type CastEmbed struct {
+	Url string `json:"url"`
+}
+
 type CastPostRequest struct {
-	Signer string `json:"signer_uuid"`
-	Text   string `json:"text"`
-	Parent string `json:"parent"`
+	Signer string       `json:"signer_uuid"`
+	Text   string       `json:"text"`
+	Parent string       `json:"parent"`
+	Embeds []*CastEmbed `json:"embeds"`
 }
 
 type UserdataV1 struct {

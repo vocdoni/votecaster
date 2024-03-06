@@ -128,15 +128,48 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 	return messages, lastTimestamp, nil
 }
 
-func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content string, _ ...string) error {
+func (n *NeynarAPI) Publish(ctx context.Context, content string, _ []uint64, embeds ...string) error {
 	if n.fid == 0 {
 		return fmt.Errorf("farcaster user not set")
+	}
+	castEmbeds := []*CastEmbed{}
+	if len(embeds) > 0 {
+		for _, embed := range embeds {
+			castEmbeds = append(castEmbeds, &CastEmbed{embed})
+		}
 	}
 	// create request body
 	castReq := &CastPostRequest{
 		Signer: n.signerUUID,
 		Text:   content,
-		Parent: parentHash,
+		Embeds: castEmbeds,
+	}
+	body, err := json.Marshal(castReq)
+	if err != nil {
+		return fmt.Errorf("error marshalling request body: %w", err)
+	}
+	// create request with the bot fid and set the api key header
+	_, err = n.request(neynarReplyEndpoint, http.MethodPost, body)
+	return err
+}
+
+func (n *NeynarAPI) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessage,
+	content string, _ []uint64, embeds ...string) error {
+	if n.fid == 0 {
+		return fmt.Errorf("farcaster user not set")
+	}
+	castEmbeds := []*CastEmbed{}
+	if len(embeds) > 0 {
+		for _, embed := range embeds {
+			castEmbeds = append(castEmbeds, &CastEmbed{embed})
+		}
+	}
+	// create request body
+	castReq := &CastPostRequest{
+		Signer: n.signerUUID,
+		Text:   content,
+		Parent: targetMsg.Hash,
+		Embeds: castEmbeds,
 	}
 	body, err := json.Marshal(castReq)
 	if err != nil {

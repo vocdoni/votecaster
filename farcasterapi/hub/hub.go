@@ -3,7 +3,6 @@ package hub
 import (
 	"bytes"
 	"context"
-	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -14,9 +13,7 @@ import (
 
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	hubproto "github.com/vocdoni/vote-frame/farcasterapi/hub/proto"
-	"github.com/zeebo/blake3"
 	"go.vocdoni.io/dvote/log"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -150,77 +147,68 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 	return messages, lastTimestamp + farcasterEpoch, nil
 }
 
+func (h *Hub) Publish(ctx context.Context, content string, mentionFIDs []uint64, embeds ...string) error {
+	log.Infow("publishing cast", "msg", content)
+	// create the cast add body
+	castBody, err := h.newAddCastBody(content, mentionFIDs, embeds...)
+	if err != nil {
+		return fmt.Errorf("error decomposing content: %s", err)
+	}
+	msgBytes, err := h.buildAndSignAddCastBody(castBody)
+	if err != nil {
+		return fmt.Errorf("error building and signing cast body: %s", err)
+	}
+	// create a new context with a timeout
+	internalCtx, cancel := context.WithTimeout(ctx, submitMessageTimeout)
+	defer cancel()
+	// submit the message to the API endpoint
+	req, err := h.newRequest(internalCtx, http.MethodPost, ENDPOINT_SUBMIT_MESSAGE, bytes.NewBuffer(msgBytes))
+	if err != nil {
+		return fmt.Errorf("error creating request: %s", err)
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error submitting the message: %s", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		// read the response body
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("error reading response body: %s", err)
+		}
+		return fmt.Errorf("error submitting the message: %s", string(body))
+	}
+	return nil
+}
+
 // Reply method sends a reply to the given targetFid and targetHash with the
 // given content.
-func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, content string, embeds ...string) error {
+func (h *Hub) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessage,
+	content string, mentionFIDs []uint64, embeds ...string) error {
 	log.Infow("replying to cast", "msg", content)
-	if h.fid == 0 {
-		return fmt.Errorf("no farcaster user set")
+	if targetMsg == nil {
+		return fmt.Errorf("invalid target message")
+	}
+	castAdd, err := h.newAddCastBody(content, mentionFIDs, embeds...)
+	if err != nil {
+		return fmt.Errorf("error creating cast add body: %s", err)
 	}
 	// create the cast as a reply to the message with the parentFID provided
 	// and the desired text
-	bTargetHash, err := hex.DecodeString(strings.TrimPrefix(targetHash, "0x"))
+	bTargetHash, err := hex.DecodeString(strings.TrimPrefix(targetMsg.Hash, "0x"))
 	if err != nil {
 		return fmt.Errorf("error decoding target hash: %s", err)
 	}
-	castEmbeds := []*hubproto.Embed{}
-	if len(embeds) > 0 {
-		for _, embed := range embeds {
-			castEmbeds = append(castEmbeds, &hubproto.Embed{
-				Embed: &hubproto.Embed_Url{Url: embed},
-			})
-		}
-	}
-	castAdd := &hubproto.CastAddBody{
-		Text: content,
-		// Mentions:          []uint64{targetFid},
-		// MentionsPositions: []uint32{0},
-		Parent: &hubproto.CastAddBody_ParentCastId{
-			ParentCastId: &hubproto.CastId{
-				Fid:  targetFid,
-				Hash: bTargetHash,
-			},
+	castAdd.Parent = &hubproto.CastAddBody_ParentCastId{
+		ParentCastId: &hubproto.CastId{
+			Fid:  targetMsg.Author,
+			Hash: bTargetHash,
 		},
-		Embeds: castEmbeds,
 	}
-	// compose the message data with the message type, the bot FID, the current
-	// timestamp, the network, and the cast add body
-	msgData := &hubproto.MessageData{
-		Type:      hubproto.MessageType_MESSAGE_TYPE_CAST_ADD,
-		Fid:       h.fid,
-		Timestamp: uint32(uint64(time.Now().Unix()) - farcasterEpoch),
-		Network:   hubproto.FarcasterNetwork_FARCASTER_NETWORK_MAINNET,
-		Body:      &hubproto.MessageData_CastAddBody{CastAddBody: castAdd},
-	}
-	// marshal the message data
-	msgDataBytes, err := proto.Marshal(msgData)
+	msgBytes, err := h.buildAndSignAddCastBody(castAdd)
 	if err != nil {
-		return fmt.Errorf("error marshalling message data: %s", err)
-	}
-	// calculate the hash of the message data
-	hasher := blake3.New()
-	hasher.Write(msgDataBytes)
-	hash := hasher.Sum(nil)[:20]
-	// create the message with the hash scheme, the hash and the signature
-	// scheme
-	msg := &hubproto.Message{
-		HashScheme:      hubproto.HashScheme_HASH_SCHEME_BLAKE3,
-		Hash:            hash,
-		SignatureScheme: hubproto.SignatureScheme_SIGNATURE_SCHEME_ED25519,
-		Data:            msgData,
-		DataBytes:       msgDataBytes,
-	}
-	// sign the message with the private key
-	privateKey := ed25519.NewKeyFromSeed(h.privKey)
-	signature := ed25519.Sign(privateKey, hash)
-	signer := privateKey.Public().(ed25519.PublicKey)
-	// set the signature and the signer to the message
-	msg.Signature = signature
-	msg.Signer = signer
-	// marshal the message
-	msgBytes, err := proto.Marshal(msg)
-	if err != nil {
-		return fmt.Errorf("error marshalling message: %s", err)
+		return fmt.Errorf("error building and signing cast body: %s", err)
 	}
 	// create a new context with a timeout
 	internalCtx, cancel := context.WithTimeout(ctx, submitMessageTimeout)
@@ -356,47 +344,4 @@ func (h *Hub) WebhookHandler(_ []byte) error {
 // slice of signers and an error. Hub does not implement this method.
 func (h *Hub) SignersFromFID(fid uint64) ([]string, error) {
 	return nil, fmt.Errorf("not implemented")
-}
-
-// newRequest method creates a new http request with the given method, uri and
-// body. It returns the request and an error.
-func (h *Hub) newRequest(ctx context.Context, method string, uri string, body io.Reader) (*http.Request, error) {
-	endpoint := fmt.Sprintf("%s/%s", h.endpoint, uri)
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, body)
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
-	if h.auth != nil {
-		for k, v := range h.auth {
-			if k == "" || v == "" {
-				continue
-			}
-			req.Header.Set(k, v)
-		}
-	}
-	return req, nil
-}
-
-// composeCastContent method composes the cast content with the given body. It
-// returns the content and an error. If the body is nil, it returns an empty
-// string and no error. If the body is not nil, it replaces the mentions with
-// the usernames and returns the content.
-func (h *Hub) composeCastContent(body *HubCastAddBody) (string, error) {
-	if body == nil {
-		return "", nil
-	}
-	content := body.Text
-	for i := len(body.Mentions) - 1; i >= 0; i-- {
-		fid := body.Mentions[i]
-		pos := body.MentionsPositions[i]
-		if pos == 0 && fid == h.fid {
-			continue
-		}
-		user, err := h.UserDataByFID(context.Background(), fid)
-		if err != nil {
-			return "", err
-		}
-		content = content[:pos] + "@" + user.Username + content[pos:]
-	}
-	return content, nil
 }
