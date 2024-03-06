@@ -167,6 +167,24 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 	return ctx.Send(data, http.StatusOK)
 }
 
+// censusChannelExists checks if a Warpcast Channel exists. It returns a NotFound
+// error if the channel does not exist. If the channelID is not provided, it
+// returns a BadRequest error. If the channel exists, it returns a 200 OK.
+func (v *vocdoniHandler) censusChannelExists(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	channelID := ctx.URLParam("channelID")
+	if channelID == "" {
+		return ctx.Send([]byte("channelID is required"), http.StatusBadRequest)
+	}
+	exists, err := v.fcapi.ChannelExists(channelID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return ctx.Send(nil, http.StatusNotFound)
+	}
+	return ctx.Send(nil, http.StatusOK)
+}
+
 // censusChannel creates a new census that includes the users who follow a
 // specific Warpcast Channel. It builds the census async and returns the census
 // ID. If no channelID is provided, it returns a BadRequest error. If the
