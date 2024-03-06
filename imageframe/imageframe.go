@@ -89,11 +89,17 @@ func ErrorImage(errorMessage string) (string, error) {
 		Type:  "error",
 		Error: errorMessage,
 	}
-	png, err := makeRequest(requestData)
-	if err != nil {
-		return "", fmt.Errorf("failed to create image: %w", err)
-	}
-	return AddImageToCache(png), nil
+	imgCacheKey := oneTimeImageCacheKey()
+	go func() {
+		png, err := makeRequest(requestData)
+		if err != nil {
+			log.Errorw(fmt.Errorf("failed to create image: %w", err), "error image")
+			return
+		}
+		AddImageToCacheWithID(imgCacheKey, png)
+	}()
+	time.Sleep(2 * time.Second)
+	return imgCacheKey, nil
 }
 
 // InfoImage creates an image displaying an informational message.
@@ -103,11 +109,17 @@ func InfoImage(infoLines []string) (string, error) {
 		Type: "info",
 		Info: infoLines,
 	}
-	png, err := makeRequest(requestData)
-	if err != nil {
-		return "", fmt.Errorf("failed to create image: %w", err)
-	}
-	return AddImageToCache(png), nil
+	imgCacheKey := oneTimeImageCacheKey()
+	go func() {
+		png, err := makeRequest(requestData)
+		if err != nil {
+			log.Errorw(fmt.Errorf("failed to create image: %w", err), "info image")
+			return
+		}
+		AddImageToCacheWithID(imgCacheKey, png)
+	}()
+	time.Sleep(2 * time.Second)
+	return imgCacheKey, nil
 }
 
 // QuestionImage creates an image representing a question with choices.

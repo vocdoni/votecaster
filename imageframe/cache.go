@@ -7,6 +7,7 @@ import (
 	"github.com/zeebo/blake3"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/log"
+	"go.vocdoni.io/dvote/util"
 )
 
 // generateElectionCacheKey returns a unique identifier cache key, for the election.
@@ -52,6 +53,11 @@ func electionImageCacheKey(election *api.Election, imageType int) string {
 	}
 	hitsCounter.Add(1)
 	return id
+}
+
+// genericImageCacheKey returns a unique identifier cache key, for the image data.
+func oneTimeImageCacheKey() string {
+	return util.RandomHex(20)
 }
 
 // AddImageToCache adds an image to the LRU cache.

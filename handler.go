@@ -146,7 +146,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	text := []string{}
-	text = append(text, fmt.Sprintf("\nStarted at %s", election.StartDate.Format("2006-01-02 15:04:05")))
+	text = append(text, fmt.Sprintf("\nStarted at %s UTC", election.StartDate.Format("2006-01-02 15:04:05")))
 	if !election.FinalResults {
 		text = append(text, fmt.Sprintf("Remaining time %s", time.Until(election.EndDate).Round(time.Minute).String()))
 	} else {
@@ -154,7 +154,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 	text = append(text, fmt.Sprintf("Poll id %x...", election.ElectionID[:16]))
 	text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
-	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:16]))
+	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:12]))
 	if election.Census.MaxCensusSize >= uint64(maxElectionSize) {
 		text = append(text, fmt.Sprintf("Allowed voters %d", election.Census.MaxCensusSize))
 	} else {
