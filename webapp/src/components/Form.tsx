@@ -42,7 +42,8 @@ interface FormValues {
   choices: { choice: string }[]
   duration?: number
   csv: File | undefined
-  censusType: string
+  censusType: 'farcaster' | 'channel' | 'followers' | 'custom'
+  channel?: string
 }
 
 const appUrl = import.meta.env.APP_URL
@@ -114,34 +115,45 @@ const Form: React.FC = (props: FlexProps) => {
         options: data.choices.map((c) => c.choice),
       }
 
-      if (data.csv) {
-        setStatus('Creating census...')
-        // create the census
-        try {
-          const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
-          const contents = new Blob(
-            Array.from(data.csv).flatMap((file) => [file, lineBreak]),
-            { type: 'text/csv' }
-          )
-          const csv = await axios.post(`${appUrl}/census/csv`, contents)
-          const census = await checkCensus(csv.data.censusId, setStatus)
-          setCensusRecords(census.fromTotalAddresses)
-          setUsernames(census.usernames)
-          census.size = census.usernames.length
-          delete census.usernames
-          election.census = census
-        } catch (e) {
-          console.error('there was an error creating the census:', e)
-          if ('response' in e && 'data' in e.response) {
-            setError(e.response.data)
-          } else {
-            if ('message' in e) {
-              setError(e.message)
+      setStatus('Creating census...')
+      try {
+        switch (data.censusType) {
+          case 'channel':
+            const channel = cleanChannel(data.channel)
+            const ccensus = await axios.post(`${appUrl}/census/channel-gated/${channel}`)
+            const census = await checkCensus(ccensus.data.censusId, setStatus)
+            election.census = census
+            break
+          case 'custom':
+            if (data.csv) {
+              const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
+              const contents = new Blob(
+                Array.from(data.csv).flatMap((file) => [file, lineBreak]),
+                { type: 'text/csv' }
+              )
+              const csv = await axios.post(`${appUrl}/census/csv`, contents)
+              const census = await checkCensus(csv.data.censusId, setStatus)
+              setCensusRecords(census.fromTotalAddresses)
+              setUsernames(census.usernames)
+              census.size = census.usernames.length
+              delete census.usernames
+              election.census = census
             }
-          }
-          setLoading(false)
-          return
+            break
+          default:
+            throw new Error('specified census type does not exist')
         }
+      } catch (e) {
+        console.error('there was an error creating the census:', e)
+        if ('response' in e && 'data' in e.response) {
+          setError(e.response.data)
+        } else {
+          if ('message' in e) {
+            setError(e.message)
+          }
+        }
+        setLoading(false)
+        return
       }
 
       setStatus('Storing poll in blockchain...')
@@ -245,12 +257,39 @@ const Form: React.FC = (props: FlexProps) => {
                   <FormControl isDisabled={loading}>
                     <FormLabel>Census/voters</FormLabel>
                     <RadioGroup onChange={(val: string) => setValue('censusType', val)} value={censusType}>
-                      <Stack direction='row'>
+                      <Stack direction='row' flexWrap='wrap'>
                         <Radio value='farcaster'>All farcaster users</Radio>
+                        <Radio value='channel'>Channel gated</Radio>
+                        <Radio value='followers'>Only my followers</Radio>
                         <Radio value='custom'>Token gated via CSV</Radio>
                       </Stack>
                     </RadioGroup>
                   </FormControl>
+                  {censusType === 'channel' && (
+                    <FormControl isDisabled={loading} isRequired isInvalid={!!errors.channel}>
+                      <FormLabel htmlFor='channel'>Channel slug (URL identifier)</FormLabel>
+                      <Input
+                        id='channel'
+                        placeholder='Enter channel i.e. degen'
+                        {...register('channel', {
+                          required,
+                          validate: async (val) => {
+                            val = cleanChannel(val)
+                            try {
+                              const res = await axios.get(`${appUrl}/census/channel-gated/${val}/exists`)
+                              if (res.status === 200) {
+                                return true
+                              }
+                            } catch (e) {
+                              return e.response.data
+                            }
+                            return 'Invalid channel specified'
+                          },
+                        })}
+                      />
+                      <FormErrorMessage>{errors.channel?.message?.toString()}</FormErrorMessage>
+                    </FormControl>
+                  )}
                   {censusType === 'custom' && (
                     <FormControl isDisabled={loading} isRequired>
                       <FormLabel htmlFor='csv'>CSV files</FormLabel>
@@ -350,3 +389,5 @@ const Form: React.FC = (props: FlexProps) => {
 }
 
 export default Form
+
+const cleanChannel = (channel: string) => channel.replace(/.*channel\//, '')
