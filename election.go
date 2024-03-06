@@ -394,6 +394,5 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 				}
 			}
 		}
-
 	}
 }

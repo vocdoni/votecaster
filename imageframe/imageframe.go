@@ -34,9 +34,11 @@ const (
 	imageTypeResults
 )
 
-var backgroundFrames map[string][]byte
-var imagesLRU *lru.Cache[string, []byte]
-var hitsCounter, missesCounter atomic.Int64
+var (
+	backgroundFrames           map[string][]byte
+	imagesLRU                  *lru.Cache[string, []byte]
+	hitsCounter, missesCounter atomic.Int64
+)
 
 func init() {
 	loadImage := func(name string) []byte {

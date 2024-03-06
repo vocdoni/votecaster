@@ -199,7 +199,9 @@ func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, co
 	}
 	// calculate the hash of the message data
 	hasher := blake3.New()
-	hasher.Write(msgDataBytes)
+	if _, err := hasher.Write(msgDataBytes); err != nil {
+		return fmt.Errorf("error hashing message data: %s", err)
+	}
 	hash := hasher.Sum(nil)[:20]
 	// create the message with the hash scheme, the hash and the signature
 	// scheme

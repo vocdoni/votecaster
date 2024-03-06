@@ -24,9 +24,7 @@ import (
 	"go.vocdoni.io/dvote/util"
 )
 
-var (
-	ErrElectionUnknown = fmt.Errorf("electionID unknown")
-)
+var ErrElectionUnknown = fmt.Errorf("electionID unknown")
 
 type vocdoniHandler struct {
 	cli           *apiclient.HTTPclient
