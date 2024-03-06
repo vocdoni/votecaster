@@ -7,10 +7,27 @@ type CastPostRequest struct {
 }
 
 type UserdataV1 struct {
-	FID                    uint64   `json:"fid"`
+	Fid                    uint64   `json:"fid"`
 	Username               string   `json:"username"`
 	CustodyAddress         string   `json:"custodyAddress"`
 	VerificationsAddresses []string `json:"verifications"`
+}
+
+type UserdataV1Result struct {
+	User *UserdataV1 `json:"user"`
+}
+
+type UsersdataV1Result struct {
+	Users      []*UserdataV1 `json:"users"`
+	NextCursor *Cursor       `json:"next"`
+}
+
+type UserdataV1Response struct {
+	Result *UserdataV1Result `json:"result"`
+}
+
+type UsersdataV1Response struct {
+	Result *UsersdataV1Result `json:"result"`
 }
 
 type VerifiedAddressesV2 struct {
@@ -33,21 +50,13 @@ type UserdataV2 struct {
 	ActiveStatus      string               `json:"active_status"`
 }
 
-type UserdataResult struct {
-	User *UserdataV1 `json:"user"`
-}
-
-type UserdataV2Cursor struct {
+type Cursor struct {
 	Cursor string `json:"cursor"`
 }
 
 type UserdataV2Result struct {
-	Users      []*UserdataV2     `json:"users"`
-	NextCursor *UserdataV2Cursor `json:"next"`
-}
-
-type UserdataResponse struct {
-	Result *UserdataResult `json:"result"`
+	Users      []*UserdataV2 `json:"users"`
+	NextCursor *Cursor       `json:"next"`
 }
 
 type CastWebhookData struct {

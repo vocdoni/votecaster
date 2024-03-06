@@ -160,7 +160,7 @@ func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterap
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 	// decode username
-	usernameResponse := &UserdataResponse{}
+	usernameResponse := &UserdataV1Response{}
 	if err := json.Unmarshal(body, usernameResponse); err != nil {
 		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 	}
@@ -256,7 +256,31 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 // UserFollowers method returns the FIDs of the followers of the user with the
 // given id. If something goes wrong, it returns an error.
 func (n *NeynarAPI) UserFollowers(ctx context.Context, fid uint64) ([]uint64, error) {
-	return nil, fmt.Errorf("TODO")
+	cursor := ""
+	userFIDs := []uint64{}
+	for {
+		// create request with the channel id provided
+		url := fmt.Sprintf(neynarUserFollowers, fid, cursor)
+		body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
+		if err != nil {
+			return nil, fmt.Errorf("error creating request: %w", err)
+		}
+		usersResponse := &UsersdataV1Response{}
+		if err := json.Unmarshal(body, &usersResponse); err != nil {
+			return nil, fmt.Errorf("error unmarshalling response body: %w", err)
+		}
+		if usersResponse.Result.Users == nil {
+			return nil, farcasterapi.ErrNoDataFound
+		}
+		for _, user := range usersResponse.Result.Users {
+			userFIDs = append(userFIDs, user.Fid)
+		}
+		if usersResponse.Result.NextCursor == nil || usersResponse.Result.NextCursor.Cursor == "" {
+			break
+		}
+		cursor = usersResponse.Result.NextCursor.Cursor
+	}
+	return userFIDs, nil
 }
 
 // ChannelFIDs method returns the FIDs of the users that follow the channel with

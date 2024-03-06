@@ -248,6 +248,8 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 		v.censusCreationMap.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from channel",
 			"channelID", channelID,
+			"errorFids", len(errFids),
+			"successFids", len(users)-len(errFids),
 			"totalFids", len(users),
 			"participants", len(participants))
 	}()
@@ -307,6 +309,8 @@ func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTT
 		v.censusCreationMap.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from user followers",
 			"userFid", userFid,
+			"errorFids", len(errFids),
+			"successFids", len(users)-len(errFids),
 			"totalFids", len(users),
 			"participants", len(participants))
 	}()
