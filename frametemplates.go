@@ -166,11 +166,3 @@ var frameError = header + `
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
 ` + body
-
-var testImageHTML = header + `
-  </head>
-  <body>
-      <img src="{image}" alt="Image" />
-  </body>
-</html>
-`

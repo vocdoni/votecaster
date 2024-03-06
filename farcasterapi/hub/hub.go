@@ -24,16 +24,19 @@ const (
 	ENDPOINT_CAST_BY_MENTION       = "castsByMention?fid=%d"
 	ENDPOINT_SUBMIT_MESSAGE        = "submitMessage"
 	ENDPOINT_USERNAME_PROOFS       = "userNameProofsByFid?fid=%d"
+	ENDPOINT_USER_FOLLOWERs        = "linksByTargetFid?target_fid=%d"
 	ENDPOINT_VERIFICATIONS         = "verificationsByFid?fid=%d"
 	ENDPOINT_IDREGISTRY_BY_ADDRESS = "onChainIdRegistryEventByAddress?address=%s"
 	// timeouts
 	getCastByMentionTimeout = 15 * time.Second
 	submitMessageTimeout    = 5 * time.Minute
 	userdataTimeout         = 15 * time.Second
+	userFollowersTimeout    = 15 * time.Second
 	// message types
 	MESSAGE_TYPE_CAST_ADD     = "MESSAGE_TYPE_CAST_ADD"
 	MESSAGE_TYPE_USERPROOF    = "USERNAME_TYPE_FNAME"
 	MESSAGE_TYPE_VERIFICATION = "MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS"
+	MESSAGE_TYPE_LINK         = "MESSAGE_TYPE_LINK_ADD"
 	// other constants
 	farcasterEpoch uint64 = 1609459200 // January 1, 2021 UTC
 )
@@ -114,7 +117,7 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 		return nil, 0, fmt.Errorf("error reading response body: %w", err)
 	}
 	// unmarshal the json
-	mentions := &HubMentionsResponse{}
+	mentions := &HubMessageResponse{}
 	if err := json.Unmarshal(body, mentions); err != nil {
 		return nil, 0, fmt.Errorf("error unmarshalling json: %w", err)
 	}
@@ -199,7 +202,9 @@ func (h *Hub) Reply(ctx context.Context, targetFid uint64, targetHash string, co
 	}
 	// calculate the hash of the message data
 	hasher := blake3.New()
-	hasher.Write(msgDataBytes)
+	if _, err := hasher.Write(msgDataBytes); err != nil {
+		return fmt.Errorf("error hashing message data: %s", err)
+	}
 	hash := hasher.Sum(nil)[:20]
 	// create the message with the hash scheme, the hash and the signature
 	// scheme
@@ -344,6 +349,48 @@ func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.User
 // does not implement this method.
 func (h *Hub) UserDataByVerificationAddress(ctx context.Context, address []string) ([]*farcasterapi.Userdata, error) {
 	return nil, fmt.Errorf("not implemented")
+}
+
+// UserFollowers method returns the FIDs of the followers of the user with the
+// given id. If something goes wrong, it returns an error.
+func (h *Hub) UserFollowers(ctx context.Context, fid uint64) ([]uint64, error) {
+	// create a intenal context with a timeout
+	internalCtx, cancel := context.WithTimeout(ctx, userFollowersTimeout)
+	defer cancel()
+	// prepare the request to get the followers from the API
+	uri := fmt.Sprintf(ENDPOINT_USER_FOLLOWERs, fid)
+	req, err := h.newRequest(internalCtx, http.MethodGet, uri, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating user followers request: %w", err)
+	}
+	// download the followers from the API and check for errors
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading user followers: %w", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error downloading user followers: %s", res.Status)
+	}
+	// read the response body
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading user followers response body: %w", err)
+	}
+	// unmarshal the json
+	followersResponse := &HubMessageResponse{}
+	if err := json.Unmarshal(body, followersResponse); err != nil {
+		return nil, fmt.Errorf("error unmarshalling user followers: %w", err)
+	}
+	// filter the followers FIDs and return them
+	followersFids := []uint64{}
+	for _, msg := range followersResponse.Messages {
+		if msg.Data.Type != MESSAGE_TYPE_LINK {
+			continue
+		}
+		followersFids = append(followersFids, msg.Data.From)
+	}
+	return followersFids, nil
 }
 
 // ChannelFIDs method returns the FIDs of the users that follow the channel with
