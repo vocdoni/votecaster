@@ -128,28 +128,34 @@ const Form: React.FC = (props: FlexProps) => {
       setStatus('Creating census...')
       try {
         switch (data.censusType) {
-          case 'channel':
+          case 'channel': {
             const channel = cleanChannel(data.channel)
             const ccensus = await axios.post(`${appUrl}/census/channel-gated/${channel}`)
             const census = await checkCensus(ccensus.data.censusId, setStatus)
             election.census = census
             break
-          case 'custom':
-            if (data.csv) {
-              const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
-              const contents = new Blob(
-                Array.from(data.csv).flatMap((file) => [file, lineBreak]),
-                { type: 'text/csv' }
-              )
-              const csv = await axios.post(`${appUrl}/census/csv`, contents)
-              const census = await checkCensus(csv.data.censusId, setStatus)
-              setCensusRecords(census.fromTotalAddresses)
-              setUsernames(census.usernames)
-              census.size = census.usernames.length
-              delete census.usernames
-              election.census = census
-            }
+          }
+          case 'followers': {
+            const fcensus = await axios.post(`${appUrl}/census/followers/${profile.fid}`)
+            const census = await checkCensus(fcensus.data.censusId, setStatus)
+            election.census = census
             break
+          }
+          case 'custom': {
+            const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
+            const contents = new Blob(
+              Array.from(data.csv).flatMap((file) => [file, lineBreak]),
+              { type: 'text/csv' }
+            )
+            const csv = await axios.post(`${appUrl}/census/csv`, contents)
+            const census = await checkCensus(csv.data.censusId, setStatus)
+            setCensusRecords(census.fromTotalAddresses)
+            setUsernames(census.usernames)
+            census.size = census.usernames.length
+            delete census.usernames
+            election.census = census
+            break
+          }
           default:
             throw new Error('specified census type does not exist')
         }
@@ -292,7 +298,7 @@ const Form: React.FC = (props: FlexProps) => {
                                 return true
                               }
                             } catch (e) {
-                              return e.response.data
+                              return 'Invalid channel specified'
                             }
                             return 'Invalid channel specified'
                           },
