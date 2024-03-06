@@ -227,14 +227,7 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		participants, errFids := v.farcasterCensusFromFids(internalCtx, users, censusID)
-		for fid, err := range errFids {
-			if errors.Is(err, mongo.ErrUserUnknown) {
-				log.Warnw("user not found in database", "fid", fid)
-			} else {
-				log.Warnw("error fetching user from database", "fid", fid, "error", err)
-			}
-		}
+		participants := v.farcasterCensusFromFids(users, censusID)
 		if len(participants) == 0 {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: "no valid participants"})
 			return
@@ -248,9 +241,6 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 		v.censusCreationMap.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from channel",
 			"channelID", channelID,
-			"errorFids", len(errFids),
-			"successFids", len(users)-len(errFids),
-			"totalFids", len(users),
 			"participants", len(participants))
 	}()
 	// return the censusID to the client
@@ -288,14 +278,7 @@ func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTT
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		participants, errFids := v.farcasterCensusFromFids(internalCtx, users, censusID)
-		for fid, err := range errFids {
-			if errors.Is(err, mongo.ErrUserUnknown) {
-				log.Warnw("user not found in database", "fid", fid)
-			} else {
-				log.Warnw("error fetching user from database", "fid", fid, "error", err)
-			}
-		}
+		participants := v.farcasterCensusFromFids(users, censusID)
 		if len(participants) == 0 {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: "no valid participants"})
 			return
@@ -308,10 +291,7 @@ func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTT
 		}
 		v.censusCreationMap.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from user followers",
-			"userFid", userFid,
-			"errorFids", len(errFids),
-			"successFids", len(users)-len(errFids),
-			"totalFids", len(users),
+			"fid", userFid,
 			"participants", len(participants))
 	}()
 	// return the censusID to the client
@@ -361,35 +341,87 @@ func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, censusID typ
 // of FIDs. It queries the database to get the users signer keys and creates the
 // participants from them. It returns the list of participants and a map of the
 // FIDs that failed to get the users from the database or decoding the keys.
-func (v *vocdoniHandler) farcasterCensusFromFids(ctx context.Context, fids []uint64,
-	censusID types.HexBytes,
-) ([]*FarcasterParticipant, map[uint64]error) {
+func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, censusID types.HexBytes) []*FarcasterParticipant {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// get participants from the users fids, quering the database and to get the
 	// users public keys
-	participants := []*FarcasterParticipant{}
 	totalFids := uint32(len(fids))
-	errorFids := make(map[uint64]error)
-	for i, fid := range fids {
-		v.updateCensusProgress(ctx, censusID, 100*uint32(i)/totalFids)
-		user, err := v.db.User(fid)
-		if err != nil {
-			errorFids[fid] = err
-			continue
-		}
-		for _, signer := range user.Signers {
-			signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
+	var wg sync.WaitGroup
+	participants := []*FarcasterParticipant{}
+	participantsCh := make(chan *FarcasterParticipant)
+	concurrencyLimit := make(chan struct{}, 10)
+	var processedFids atomic.Uint32
+	for _, fid := range fids {
+		concurrencyLimit <- struct{}{}
+		wg.Add(1)
+		go func(fid uint64) {
+			defer wg.Done()
+			defer func() { <-concurrencyLimit }()
+
+			user, err := v.db.User(fid)
 			if err != nil {
-				errorFids[fid] = err
-				continue
+				if !errors.Is(err, mongo.ErrUserUnknown) {
+					log.Warnw("error fetching user from database", "fid", fid, "error", err)
+				}
+				return
 			}
-			participants = append(participants, &FarcasterParticipant{
-				PubKey:   signerBytes,
-				Weight:   big.NewInt(1),
-				Username: user.Username,
-			})
-		}
+			for _, signer := range user.Signers {
+				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
+				if err != nil {
+					log.Warnw("error decoding signer", "signer", signer, "err", err)
+					return
+				}
+				participantsCh <- &FarcasterParticipant{
+					PubKey:   signerBytes,
+					Weight:   big.NewInt(1),
+					Username: user.Username,
+				}
+			}
+		}(fid)
 	}
-	return participants, errorFids
+
+	// Start goroutines to consume data from channels
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case participant, ok := <-participantsCh:
+				if !ok {
+					log.Debugw("collected valid database participants", "count", len(participants))
+					return
+				}
+				participants = append(participants, participant)
+			}
+		}
+	}()
+
+	// Progress update goroutine
+	go func() {
+		logTicker := time.NewTicker(2 * time.Second)
+		defer logTicker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				v.updateCensusProgress(ctx, censusID, 100*processedFids.Load()/totalFids)
+				return
+			case <-logTicker.C:
+				processed := processedFids.Load()
+				v.updateCensusProgress(ctx, censusID, 100*processed/totalFids)
+				log.Debugw("census creation",
+					"processed", processed,
+					"total", totalFids,
+					"progress", 100*processed/totalFids,
+				)
+			}
+		}
+	}()
+
+	wg.Wait()
+	close(participantsCh)
+	close(concurrencyLimit)
+	return participants
 }
 
 func (v *vocdoniHandler) updateCensusProgress(ctx context.Context, censusID types.HexBytes, progress uint32) {
