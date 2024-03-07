@@ -4,16 +4,14 @@ go 1.22.0
 
 require (
 	github.com/ethereum/go-ethereum v1.13.8
-	github.com/fogleman/gg v1.3.0
 	github.com/frankban/quicktest v1.14.6
-	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/uuid v1.5.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	github.com/zeebo/blake3 v0.2.3
 	go.mongodb.org/mongo-driver v1.14.0
-	go.vocdoni.io/dvote v1.10.2-0.20240216163710-0b7923337d8a
+	go.vocdoni.io/dvote v1.10.2-0.20240307145253-e66a959238a5
 	go.vocdoni.io/proto v1.15.6-0.20240209115732-27836380ccae
 	google.golang.org/protobuf v1.32.0
 	lukechampine.com/blake3 v1.2.1
@@ -321,7 +319,6 @@ require (
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/exp v0.0.0-20231127185646-65229373498e // indirect
-	golang.org/x/image v0.15.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/oauth2 v0.15.0 // indirect

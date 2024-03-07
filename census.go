@@ -10,9 +10,7 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -151,59 +149,23 @@ func (v *vocdoniHandler) CreateCensus(cli *apiclient.HTTPclient, participants []
 			time.Sleep(500 * time.Millisecond)
 		}
 	}
-
-	// create the publish census request to the vochain manually to customize
-	// the request timeout and avoid closing the connection before the request
-	// is completed. It means to replicate the source code of the following
-	// lines:
-	//
-	// root, url, err := cli.CensusPublish(censusID)
-	// if err != nil {
-	// 	log.Warnw("failed to publish census", "censusID", censusID, "error", err, "participants", len(censusList.Participants))
-	// 	return nil, err
-	// }
-	u, err := url.Parse(v.apiEndpoint.String())
+	// increase the http client timeout to 5 minutes to allow to publish large
+	// censuses
+	cli.SetTimeout(5 * time.Minute)
+	root, url, err := cli.CensusPublish(censusID)
 	if err != nil {
+		log.Warnw("failed to publish census", "censusID", censusID, "error", err, "participants", len(censusList.Participants))
 		return nil, err
 	}
-	u.Path = path.Join(u.Path, path.Join([]string{"censuses", censusID.String(), "publish"}...))
-	// create the request with 10 minutes timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	request.Header = http.Header{
-		"Authorization": []string{"Bearer " + v.cliToken.String()},
-		"User-Agent":    []string{"Vocdoni API client / 1.0"},
-		"Content-Type":  []string{"application/json"},
-	}
-	resp, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error publishing census: %d (%s)", resp.StatusCode, http.StatusText(resp.StatusCode))
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	censusData := &api.Census{}
-	if err := json.Unmarshal(body, censusData); err != nil {
-		return nil, fmt.Errorf("could not unmarshal response: %w", err)
-	}
-	// end of the census publish request to the vochain
+	cli.SetTimeout(apiclient.DefaultTimeout)
 
 	size, err := cli.CensusSize(censusID)
 	if err != nil {
 		return nil, err
 	}
 	return &CensusInfo{
-		Root: censusData.CensusID,
-		Url:  censusData.URI,
+		Root: root,
+		Url:  url,
 		Size: size,
 		Type: censusType,
 	}, nil
