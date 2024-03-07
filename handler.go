@@ -28,7 +28,7 @@ var ErrElectionUnknown = fmt.Errorf("electionID unknown")
 
 type vocdoniHandler struct {
 	cli           *apiclient.HTTPclient
-	defaultCensus *CensusInfo
+		defaultCensus *CensusInfo
 	webappdir     string
 	db            *mongo.MongoStorage
 	electionLRU   *lru.Cache[string, *api.Election]
@@ -71,7 +71,7 @@ func NewVocdoniHandler(
 
 	vh := &vocdoniHandler{
 		cli:           cli,
-		defaultCensus: census,
+				defaultCensus: census,
 		webappdir:     webappdir,
 		db:            db,
 		fcapi:         fcapi,
@@ -190,8 +190,12 @@ func (v *vocdoniHandler) dumpDB(msg *apirest.APIdata, ctx *httprouter.HTTPContex
 
 // importDB is a handler to import the database contents produced by dumpDB.
 func (v *vocdoniHandler) importDB(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	if err := v.db.Import(msg.Data); err != nil {
-		return fmt.Errorf("failed to import database: %w", err)
-	}
+	// import the database in the background to avoid issues when the request
+	// times out and the import is not finished (for large databases)
+	go func() {
+		if err := v.db.Import(msg.Data); err != nil {
+			log.Errorf("failed to import database: %v", err)
+		}
+	}()
 	return ctx.Send(nil, http.StatusOK)
 }
