@@ -245,14 +245,14 @@ func main() {
 
 	// The root endpoint redirects to /app
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodGet, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-		ctx.Writer.Header().Add("Location", "/app")
+		ctx.SetHeader("Location", "/app")
 		return ctx.Send([]byte("Redirecting to /app"), http.StatusTemporaryRedirect)
 	}); err != nil {
 		log.Fatal(err)
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-		ctx.Writer.Header().Add("Location", "/app")
+		ctx.SetHeader("Location", "/app")
 		return ctx.Send([]byte("Redirecting to /app"), http.StatusTemporaryRedirect)
 	}); err != nil {
 		log.Fatal(err)
@@ -305,7 +305,7 @@ func main() {
 			redirectURL = serverURL + "/"
 		}
 		log.Infow("received router request", "electionID", electionID, "buttonIndex", packet.UntrustedData.ButtonIndex, "redirectURL", redirectURL)
-		ctx.Writer.Header().Add("Location", redirectURL)
+		ctx.SetHeader("Location", redirectURL)
 		return ctx.Send([]byte(redirectURL), http.StatusTemporaryRedirect)
 	}); err != nil {
 		log.Fatal(err)

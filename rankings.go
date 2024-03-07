@@ -20,7 +20,7 @@ func (v *vocdoniHandler) rankingByElectionsCreated(msg *apirest.APIdata, ctx *ht
 	if err != nil {
 		return fmt.Errorf("failed to marshal response: %w", err)
 	}
-	ctx.Writer.Header().Set("Content-Type", "application/json")
+	ctx.SetResponseContentType("application/json")
 	return ctx.Send(jresponse, http.StatusOK)
 }
 
@@ -35,7 +35,7 @@ func (v *vocdoniHandler) rankingByVotes(msg *apirest.APIdata, ctx *httprouter.HT
 	if err != nil {
 		return fmt.Errorf("failed to marshal response: %w", err)
 	}
-	ctx.Writer.Header().Set("Content-Type", "application/json")
+	ctx.SetResponseContentType("application/json")
 	return ctx.Send(jresponse, http.StatusOK)
 }
 
@@ -50,6 +50,6 @@ func (v *vocdoniHandler) rankingOfElections(msg *apirest.APIdata, ctx *httproute
 	if err != nil {
 		return fmt.Errorf("failed to marshal response: %w", err)
 	}
-	ctx.Writer.Header().Set("Content-Type", "application/json")
+	ctx.SetResponseContentType("application/json")
 	return ctx.Send(jresponse, http.StatusOK)
 }

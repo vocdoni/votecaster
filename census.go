@@ -35,6 +35,7 @@ const (
 	stageMaxElectionSize   = 100000
 	defaultMaxElectionSize = 200000
 	maxNumOfCsvRecords     = 10000
+	maxBatchParticipants   = 8000
 
 	POAP_CSV_HEADER = "ID,Collection,ENS,Minting Date,Tx Count,Power"
 )
@@ -119,25 +120,50 @@ func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipan
 	if len(censusList.Participants) == 0 {
 		return nil, ErrNoValidParticipants
 	}
-
 	censusID, err := cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
 		return nil, err
 	}
-
-	if err := cli.CensusAddParticipants(censusID, &censusList); err != nil {
-		return nil, err
+	// Add the participants to the census, if the number of participants is less
+	// than the maxBatchParticipants add them all at once, otherwise split them
+	// into batches
+	if len(censusList.Participants) < maxBatchParticipants {
+		if err := cli.CensusAddParticipants(censusID, &censusList); err != nil {
+			return nil, err
+		}
+	} else {
+		log.Debugw("max batch participants exceeded", "participants", len(censusList.Participants))
+		// Split the participants into batches
+		idxBatch := 0
+		for i := 0; i < len(censusList.Participants); i += maxBatchParticipants {
+			to := i + maxBatchParticipants
+			if to > len(censusList.Participants) {
+				to = len(censusList.Participants)
+			}
+			batch := api.CensusParticipants{Participants: censusList.Participants[i:to]}
+			if err := cli.CensusAddParticipants(censusID, &batch); err != nil {
+				return nil, err
+			}
+			idxBatch++
+			log.Debugw("census batch added, sleeping 100ms...", "index", idxBatch, "from", i, "to", to)
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
-
+	// increase the http client timeout to 5 minutes to allow to publish large
+	// censuses
+	cli.SetTimeout(5 * time.Minute)
 	root, url, err := cli.CensusPublish(censusID)
 	if err != nil {
+		log.Warnw("failed to publish census", "censusID", censusID, "error", err, "participants", len(censusList.Participants))
 		return nil, err
 	}
+	cli.SetTimeout(apiclient.DefaultTimeout)
+
 	size, err := cli.CensusSize(censusID)
 	if err != nil {
+		log.Warnw("failed to get census size", "censusID", censusID, "error", err, "participants", len(censusList.Participants))
 		return nil, err
 	}
-
 	return &CensusInfo{
 		Root: root,
 		Url:  url,
