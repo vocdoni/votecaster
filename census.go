@@ -106,7 +106,7 @@ type FarcasterParticipant struct {
 }
 
 // CreateCensus creates a new census from a list of participants.
-func (v *vocdoniHandler) CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipant,
+func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipant,
 	censusType FrameCensusType,
 ) (*CensusInfo, error) {
 	censusList := api.CensusParticipants{}
@@ -145,8 +145,8 @@ func (v *vocdoniHandler) CreateCensus(cli *apiclient.HTTPclient, participants []
 				return nil, err
 			}
 			idxBatch++
-			log.Debugw("census batch added, sleeping 0.5s...", "index", idxBatch, "from", i, "to", to)
-			time.Sleep(500 * time.Millisecond)
+			log.Debugw("census batch added, sleeping 100ms...", "index", idxBatch, "from", i, "to", to)
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 	// increase the http client timeout to 5 minutes to allow to publish large
@@ -161,6 +161,7 @@ func (v *vocdoniHandler) CreateCensus(cli *apiclient.HTTPclient, participants []
 
 	size, err := cli.CensusSize(censusID)
 	if err != nil {
+		log.Warnw("failed to get census size", "censusID", censusID, "error", err, "participants", len(censusList.Participants))
 		return nil, err
 	}
 	return &CensusInfo{
@@ -190,7 +191,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		ci, err := v.CreateCensus(v.cli, participants, FrameCensusTypeCSV)
+		ci, err := CreateCensus(v.cli, participants, FrameCensusTypeCSV)
 		if err != nil {
 			log.Errorw(err, "failed to create census")
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
@@ -294,7 +295,7 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 			return
 		}
 		// create the census from the participants
-		censusInfo, err := v.CreateCensus(v.cli, participants, FrameCensusTypeChannelGated)
+		censusInfo, err := CreateCensus(v.cli, participants, FrameCensusTypeChannelGated)
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
@@ -355,7 +356,7 @@ func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTT
 			return
 		}
 		// create the census from the participants
-		censusInfo, err := v.CreateCensus(v.cli, participants, FrameCensusTypeFollowers)
+		censusInfo, err := CreateCensus(v.cli, participants, FrameCensusTypeFollowers)
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
