@@ -28,7 +28,9 @@ var ErrElectionUnknown = fmt.Errorf("electionID unknown")
 
 type vocdoniHandler struct {
 	cli           *apiclient.HTTPclient
-		defaultCensus *CensusInfo
+	cliToken      uuid.UUID
+	apiEndpoint   *url.URL
+	defaultCensus *CensusInfo
 	webappdir     string
 	db            *mongo.MongoStorage
 	electionLRU   *lru.Cache[string, *api.Election]
@@ -71,7 +73,9 @@ func NewVocdoniHandler(
 
 	vh := &vocdoniHandler{
 		cli:           cli,
-				defaultCensus: census,
+		cliToken:      token,
+		apiEndpoint:   hostURL,
+		defaultCensus: census,
 		webappdir:     webappdir,
 		db:            db,
 		fcapi:         fcapi,

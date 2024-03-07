@@ -10,7 +10,9 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,6 +37,7 @@ const (
 	stageMaxElectionSize   = 100000
 	defaultMaxElectionSize = 200000
 	maxNumOfCsvRecords     = 10000
+	maxBatchParticipants   = 8000
 
 	POAP_CSV_HEADER = "ID,Collection,ENS,Minting Date,Tx Count,Power"
 )
@@ -105,7 +108,7 @@ type FarcasterParticipant struct {
 }
 
 // CreateCensus creates a new census from a list of participants.
-func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipant,
+func (v *vocdoniHandler) CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipant,
 	censusType FrameCensusType,
 ) (*CensusInfo, error) {
 	censusList := api.CensusParticipants{}
@@ -119,28 +122,88 @@ func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipan
 	if len(censusList.Participants) == 0 {
 		return nil, ErrNoValidParticipants
 	}
-
 	censusID, err := cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
 		return nil, err
 	}
-
-	if err := cli.CensusAddParticipants(censusID, &censusList); err != nil {
-		return nil, err
+	// Add the participants to the census, if the number of participants is less
+	// than the maxBatchParticipants add them all at once, otherwise split them
+	// into batches
+	if len(censusList.Participants) < maxBatchParticipants {
+		if err := cli.CensusAddParticipants(censusID, &censusList); err != nil {
+			return nil, err
+		}
+	} else {
+		log.Debugw("max batch participants exceeded", "participants", len(censusList.Participants))
+		// Split the participants into batches
+		idxBatch := 0
+		for i := 0; i < len(censusList.Participants); i += maxBatchParticipants {
+			to := i + maxBatchParticipants
+			if to > len(censusList.Participants) {
+				to = len(censusList.Participants)
+			}
+			batch := api.CensusParticipants{Participants: censusList.Participants[i:to]}
+			if err := cli.CensusAddParticipants(censusID, &batch); err != nil {
+				return nil, err
+			}
+			idxBatch++
+			log.Debugw("census batch added, sleeping 0.5s...", "index", idxBatch, "from", i, "to", to)
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
 
-	root, url, err := cli.CensusPublish(censusID)
+	// create the publish census request to the vochain manually to customize
+	// the request timeout and avoid closing the connection before the request
+	// is completed. It means to replicate the source code of the following
+	// lines:
+	//
+	// root, url, err := cli.CensusPublish(censusID)
+	// if err != nil {
+	// 	log.Warnw("failed to publish census", "censusID", censusID, "error", err, "participants", len(censusList.Participants))
+	// 	return nil, err
+	// }
+	u, err := url.Parse(v.apiEndpoint.String())
 	if err != nil {
 		return nil, err
 	}
+	u.Path = path.Join(u.Path, path.Join([]string{"censuses", censusID.String(), "publish"}...))
+	// create the request with 10 minutes timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header = http.Header{
+		"Authorization": []string{"Bearer " + v.cliToken.String()},
+		"User-Agent":    []string{"Vocdoni API client / 1.0"},
+		"Content-Type":  []string{"application/json"},
+	}
+	resp, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error publishing census: %d (%s)", resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	censusData := &api.Census{}
+	if err := json.Unmarshal(body, censusData); err != nil {
+		return nil, fmt.Errorf("could not unmarshal response: %w", err)
+	}
+	// end of the census publish request to the vochain
+
 	size, err := cli.CensusSize(censusID)
 	if err != nil {
 		return nil, err
 	}
-
 	return &CensusInfo{
-		Root: root,
-		Url:  url,
+		Root: censusData.CensusID,
+		Url:  censusData.URI,
 		Size: size,
 		Type: censusType,
 	}, nil
@@ -165,7 +228,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		ci, err := CreateCensus(v.cli, participants, FrameCensusTypeCSV)
+		ci, err := v.CreateCensus(v.cli, participants, FrameCensusTypeCSV)
 		if err != nil {
 			log.Errorw(err, "failed to create census")
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
@@ -269,7 +332,7 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 			return
 		}
 		// create the census from the participants
-		censusInfo, err := CreateCensus(v.cli, participants, FrameCensusTypeChannelGated)
+		censusInfo, err := v.CreateCensus(v.cli, participants, FrameCensusTypeChannelGated)
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
@@ -330,7 +393,7 @@ func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTT
 			return
 		}
 		// create the census from the participants
-		censusInfo, err := CreateCensus(v.cli, participants, FrameCensusTypeFollowers)
+		censusInfo, err := v.CreateCensus(v.cli, participants, FrameCensusTypeFollowers)
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
