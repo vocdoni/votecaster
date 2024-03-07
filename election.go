@@ -65,7 +65,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
-	ctx.Writer.Header().Set("Content-Type", "application/json")
+	ctx.SetResponseContentType("application/json")
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)
 }
 
