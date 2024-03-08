@@ -188,13 +188,18 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		startTime := time.Now()
 		log.Debugw("building census from csv", "censusID", censusID)
 		var participants []*FarcasterParticipant
-		participants, totalCSVaddresses, err = v.farcasterCensusFromEthereumCSV(msg.Data, censusID)
+		v.trackStepProgress(censusID, 1, 2, func(progress chan int) {
+			participants, totalCSVaddresses, err = v.farcasterCensusFromEthereumCSV(msg.Data, progress)
+		})
 		if err != nil {
 			log.Warnw("failed to build census from ethereum csv", "err", err.Error())
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		ci, err := CreateCensus(v.cli, participants, FrameCensusTypeCSV, nil)
+		var ci *CensusInfo
+		v.trackStepProgress(censusID, 2, 2, func(progress chan int) {
+			ci, err = CreateCensus(v.cli, participants, FrameCensusTypeCSV, progress)
+		})
 		if err != nil {
 			log.Errorw(err, "failed to create census")
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
@@ -412,12 +417,12 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, censusID types.HexBytes) ([]*FarcasterParticipant, uint32, error) {
+func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, progress chan int) ([]*FarcasterParticipant, uint32, error) {
 	records, err := ParseCSV(csv)
 	if err != nil {
 		return nil, 0, err
 	}
-	return v.processCensusRecords(records, censusID)
+	return v.processCensusRecords(records, progress)
 }
 
 // farcasterCensusFromFids creates a list of Farcaster participants from a list
@@ -529,29 +534,10 @@ func (v *vocdoniHandler) trackStepProgress(censusID types.HexBytes, step, totalS
 	action(progress)
 }
 
-func (v *vocdoniHandler) updateCensusProgress(ctx context.Context, censusID types.HexBytes, progress uint32) {
-	select {
-	case <-ctx.Done():
-		return
-	default:
-		censusInfo, ok := v.censusCreationMap.Load(censusID.String())
-		if !ok {
-			return
-		}
-		ci := censusInfo.(CensusInfo)
-		// no need to update the progress if the census is already ready
-		if ci.Root != nil {
-			return
-		}
-		ci.Progress = progress
-		v.censusCreationMap.Store(censusID.String(), ci)
-	}
-}
-
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.
 // The record is expected to be a string containing the address and the weight.
 // Returns the list of participants and the total number of unique addresses available in the records.
-func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types.HexBytes) ([]*FarcasterParticipant, uint32, error) {
+func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan int) ([]*FarcasterParticipant, uint32, error) {
 	// Create a context to cancel the goroutines
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -641,16 +627,12 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, censusID types
 		for {
 			select {
 			case <-ctx.Done():
-				v.updateCensusProgress(ctx, censusID, 100*processedAddresses.Load()/uniqueAddressesCount)
 				return
 			case <-logTicker.C:
-				processed := processedAddresses.Load()
-				v.updateCensusProgress(ctx, censusID, 100*processed/uniqueAddressesCount)
-				log.Debugw("census creation",
-					"processed", processed,
-					"total", uniqueAddressesCount,
-					"progress", 100*processed/uniqueAddressesCount,
-				)
+				if progress == nil {
+					return
+				}
+				progress <- int(100 * processedAddresses.Load() / uniqueAddressesCount)
 			}
 		}
 	}()
