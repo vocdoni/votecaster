@@ -156,6 +156,8 @@ const Form: React.FC = (props: FlexProps) => {
             election.census = census
             break
           }
+          case 'farcaster':
+            break
           default:
             throw new Error('specified census type does not exist')
         }
@@ -274,11 +276,11 @@ const Form: React.FC = (props: FlexProps) => {
                   <FormControl isDisabled={loading}>
                     <FormLabel>Census/voters</FormLabel>
                     <RadioGroup onChange={(val: string) => setValue('censusType', val)} value={censusType}>
-                      <Stack direction='row' flexWrap='wrap'>
-                        <Radio value='farcaster'>All farcaster users</Radio>
-                        <Radio value='channel'>Channel gated</Radio>
-                        <Radio value='followers'>Only my followers</Radio>
-                        <Radio value='custom'>Token gated via CSV</Radio>
+                      <Stack direction='column' flexWrap='wrap'>
+                        <Radio value='farcaster'>🌐 All farcaster users</Radio>
+                        <Radio value='channel'>⛩ Channel gated</Radio>
+                        <Radio value='followers'>❤️ Only my followers</Radio>
+                        <Radio value='custom'>🦄 Token gated via CSV</Radio>
                       </Stack>
                     </RadioGroup>
                   </FormControl>
