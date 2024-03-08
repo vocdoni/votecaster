@@ -138,7 +138,7 @@ func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content s
 		return fmt.Errorf("farcaster user not set")
 	}
 	// create request body
-	castReq := &CastPostRequest{
+	castReq := &castPostRequest{
 		Signer: n.signerUUID,
 		Text:   content,
 		Parent: parentHash,
@@ -162,7 +162,7 @@ func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterap
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 	// decode username
-	usernameResponse := &UserdataV1Response{}
+	usernameResponse := &userdataV1Response{}
 	if err := json.Unmarshal(body, usernameResponse); err != nil {
 		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 	}
@@ -210,7 +210,7 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 		return nil, err
 	}
 	// Decode the response
-	var results map[string][]UserdataV2
+	var results map[string][]userdataV2
 	if err := json.Unmarshal(body, &results); err != nil {
 		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 	}
@@ -298,18 +298,17 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress 
 		return nil, farcasterapi.ErrChannelNotFound
 	}
 	// get the followers of the channel to update the progress
+	totalFollowers := 0
 	channelURL := fmt.Sprintf(warpcastChannelInfo, channelID)
 	body, err := n.request(channelURL, http.MethodGet, nil, defaultRequestTimeout)
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
-	channelResponse := &WarpcastChannelResponse{}
-	if err := json.Unmarshal(body, &channelResponse); err != nil {
-		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
+	if err == nil {
+		channelResponse := &warpcastChannelResponse{}
+		if err := json.Unmarshal(body, &channelResponse); err == nil {
+			totalFollowers = channelResponse.Result.Channel.Followers
+		}
 	}
 	cursor := ""
 	userFIDs := []uint64{}
-	totalFollowers := channelResponse.Result.Channel.Followers
 	for {
 		// create request with the channel id provided
 		url := fmt.Sprintf(neynarUsersByChannelID, channelID, cursor)
@@ -317,7 +316,7 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress 
 		if err != nil {
 			return nil, fmt.Errorf("error creating request: %w", err)
 		}
-		usersResult := &UserdataV2Result{}
+		usersResult := &userdataV2Result{}
 		if err := json.Unmarshal(body, &usersResult); err != nil {
 			return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 		}
@@ -326,7 +325,7 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress 
 		}
 		// update the progress calculating the percentage of the followers
 		// already processed
-		if progress != nil {
+		if progress != nil && totalFollowers > 0 {
 			processedFollowers := len(userFIDs)
 			progress <- int(float64(processedFollowers) / float64(totalFollowers) * 100)
 		}
@@ -358,7 +357,7 @@ func (n *NeynarAPI) ChannelExists(channelID string) (bool, error) {
 
 func (n *NeynarAPI) WebhookHandler(body []byte) error {
 	// decode the request body
-	castWebhookReq := &CastWebhookRequest{}
+	castWebhookReq := &castWebhookRequest{}
 	if err := json.Unmarshal(body, castWebhookReq); err != nil {
 		return fmt.Errorf("error unmarshalling request body: %s", err.Error())
 	}
