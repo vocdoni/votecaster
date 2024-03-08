@@ -87,6 +87,22 @@ type VerifiedAddresses struct {
 	SolAddresses []string `json:"sol_addresses"`
 }
 
+type WarpcastChannel struct {
+	ImageURL    string `json:"imageUrl"`
+	Followers   int    `json:"followerCount"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ID          string `json:"key"`
+}
+
+type WarpcastChannelResult struct {
+	Channel *WarpcastChannel `json:"channel"`
+}
+
+type WarpcastChannelResponse struct {
+	Result *WarpcastChannelResult `json:"result"`
+}
+
 // HUB API
 
 type HubAPIResponse struct {

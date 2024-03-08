@@ -107,7 +107,7 @@ type FarcasterParticipant struct {
 
 // CreateCensus creates a new census from a list of participants.
 func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipant,
-	censusType FrameCensusType,
+	censusType FrameCensusType, progress chan int,
 ) (*CensusInfo, error) {
 	censusList := api.CensusParticipants{}
 	for _, p := range participants {
@@ -147,6 +147,9 @@ func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipan
 			idxBatch++
 			log.Debugw("census batch added, sleeping 100ms...", "index", idxBatch, "from", i, "to", to)
 			time.Sleep(100 * time.Millisecond)
+			if progress != nil {
+				progress <- 100 * i / len(censusList.Participants)
+			}
 		}
 	}
 	// increase the http client timeout to 5 minutes to allow to publish large
@@ -191,7 +194,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		ci, err := CreateCensus(v.cli, participants, FrameCensusTypeCSV)
+		ci, err := CreateCensus(v.cli, participants, FrameCensusTypeCSV, nil)
 		if err != nil {
 			log.Errorw(err, "failed to create census")
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
@@ -275,20 +278,31 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 	go func() {
 		internalCtx, cancel := context.WithCancel(context.Background())
 		defer cancel()
+		var err error
 		// get the fids of the users in the channel from neynar farcaster API, if
 		// the channel does not exist, return a NotFound error
-		users, err := v.fcapi.ChannelFIDs(internalCtx, channelID)
+		var users []uint64
+		v.trackStepProgress(censusID, 1, 3, func(progress chan int) {
+			users, err = v.fcapi.ChannelFIDs(internalCtx, channelID, progress)
+		})
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		participants := v.farcasterCensusFromFids(users, censusID)
+		// create the participants from the database users using the fids
+		var participants []*FarcasterParticipant
+		v.trackStepProgress(censusID, 2, 3, func(progress chan int) {
+			participants = v.farcasterCensusFromFids(users, progress)
+		})
 		if len(participants) == 0 {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: "no valid participants"})
 			return
 		}
 		// create the census from the participants
-		censusInfo, err := CreateCensus(v.cli, participants, FrameCensusTypeChannelGated)
+		var censusInfo *CensusInfo
+		v.trackStepProgress(censusID, 3, 3, func(progress chan int) {
+			censusInfo, err = CreateCensus(v.cli, participants, FrameCensusTypeChannelGated, progress)
+		})
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
@@ -333,13 +347,20 @@ func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTT
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		participants := v.farcasterCensusFromFids(users, censusID)
+		// create the participants from the database users using the fids
+		var participants []*FarcasterParticipant
+		v.trackStepProgress(censusID, 1, 2, func(progress chan int) {
+			participants = v.farcasterCensusFromFids(users, progress)
+		})
 		if len(participants) == 0 {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: "no valid participants"})
 			return
 		}
 		// create the census from the participants
-		censusInfo, err := CreateCensus(v.cli, participants, FrameCensusTypeFollowers)
+		var censusInfo *CensusInfo
+		v.trackStepProgress(censusID, 2, 2, func(progress chan int) {
+			censusInfo, err = CreateCensus(v.cli, participants, FrameCensusTypeChannelGated, progress)
+		})
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
@@ -403,47 +424,18 @@ func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, censusID typ
 // of FIDs. It queries the database to get the users signer keys and creates the
 // participants from them. It returns the list of participants and a map of the
 // FIDs that failed to get the users from the database or decoding the keys.
-func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, censusID types.HexBytes) []*FarcasterParticipant {
+func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, progress chan int) []*FarcasterParticipant {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	// get participants from the users fids, quering the database and to get the
 	// users public keys
-	totalFids := uint32(len(fids))
+	totalFids := len(fids)
 	var wg sync.WaitGroup
 	participants := []*FarcasterParticipant{}
 	participantsCh := make(chan *FarcasterParticipant)
 	concurrencyLimit := make(chan struct{}, 10)
 	var processedFids atomic.Uint32
-	for _, fid := range fids {
-		concurrencyLimit <- struct{}{}
-		wg.Add(1)
-		go func(fid uint64) {
-			defer wg.Done()
-			defer func() { <-concurrencyLimit }()
-
-			user, err := v.db.User(fid)
-			if err != nil {
-				if !errors.Is(err, mongo.ErrUserUnknown) {
-					log.Warnw("error fetching user from database", "fid", fid, "error", err)
-				}
-				return
-			}
-			for _, signer := range user.Signers {
-				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
-				if err != nil {
-					log.Warnw("error decoding signer", "signer", signer, "err", err)
-					return
-				}
-				participantsCh <- &FarcasterParticipant{
-					PubKey:   signerBytes,
-					Weight:   big.NewInt(1),
-					Username: user.Username,
-				}
-			}
-		}(fid)
-	}
-
-	// Start goroutines to consume data from channels
+	// Start goroutines to consume data from channel
 	go func() {
 		for {
 			select {
@@ -458,32 +450,83 @@ func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, censusID types.H
 			}
 		}
 	}()
-
-	// Progress update goroutine
-	go func() {
-		logTicker := time.NewTicker(2 * time.Second)
-		defer logTicker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				v.updateCensusProgress(ctx, censusID, 100*processedFids.Load()/totalFids)
+	// run database queries concurrently
+	for i, fid := range fids {
+		concurrencyLimit <- struct{}{}
+		wg.Add(1)
+		go func(idx int, fid uint64) {
+			defer wg.Done()
+			defer func() { <-concurrencyLimit }()
+			// get the user from the database
+			user, err := v.db.User(fid)
+			if err != nil {
+				if !errors.Is(err, mongo.ErrUserUnknown) {
+					log.Warnw("error fetching user from database", "fid", fid, "error", err)
+				}
 				return
-			case <-logTicker.C:
-				processed := processedFids.Load()
-				v.updateCensusProgress(ctx, censusID, 100*processed/totalFids)
-				log.Debugw("census creation",
-					"processed", processed,
-					"total", totalFids,
-					"progress", 100*processed/totalFids,
-				)
 			}
-		}
-	}()
-
+			// create a participant for each signer of the user
+			for _, signer := range user.Signers {
+				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
+				if err != nil {
+					log.Warnw("error decoding signer", "signer", signer, "err", err)
+					return
+				}
+				participantsCh <- &FarcasterParticipant{
+					PubKey:   signerBytes,
+					Weight:   big.NewInt(1),
+					Username: user.Username,
+				}
+			}
+			// update the progress if the progress channel is provided
+			if progress != nil {
+				// ensure the progress is updated only if the current fid is the
+				// last one processed (its index is greater than the current
+				// processed fids)
+				if currentProcessedFids := processedFids.Add(1); uint32(idx) > currentProcessedFids {
+					currentProgress := 100 * idx / totalFids
+					progress <- currentProgress
+				}
+			}
+		}(i, fid)
+	}
 	wg.Wait()
 	close(participantsCh)
 	close(concurrencyLimit)
 	return participants
+}
+
+// trackStepProgress tracks the progress of a step in the census creation
+// process. It updates the census progress in the queue. This method must
+// envolve the steps actions secuentally in a goroutine to avoid blocking the
+// main thread, while the progress is tracked in the main. This method creates
+// its own channel and goroutine to track the progress of the current step. This
+// channel is provided to the action function to update the progress and it's
+// closed when the action function finishes. The action function is expected to
+// update the progress channel with the progress of the step.
+func (v *vocdoniHandler) trackStepProgress(censusID types.HexBytes, step, totalSteps int, action func(chan int)) {
+	progress := make(chan int)
+	defer close(progress)
+	go func() {
+		for p := range progress {
+			censusInfo, ok := v.censusCreationMap.Load(censusID.String())
+			if !ok {
+				return
+			}
+			ci, ok := censusInfo.(CensusInfo)
+			if !ok || ci.Root != nil {
+				return
+			}
+			// calc partial progress of current step
+			stepIndex := uint32(step - 1)
+			partialStep := 100 / uint32(totalSteps)
+			stepProgress := stepIndex*partialStep + uint32(p)/uint32(totalSteps)
+			// update the census progress
+			ci.Progress = stepProgress
+			v.censusCreationMap.Store(censusID.String(), ci)
+		}
+	}()
+	action(progress)
 }
 
 func (v *vocdoniHandler) updateCensusProgress(ctx context.Context, censusID types.HexBytes, progress uint32) {
