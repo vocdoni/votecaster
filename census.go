@@ -325,7 +325,13 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+func (v *vocdoniHandler) censusFollowers(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	req := struct {
+		Profile FarcasterProfile `json:"profile"`
+	}{}
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		return err
+	}
 	// check if userFid is provided, it is required so if it's not provided
 	// return a BadRequest error
 	strUserFid := ctx.URLParam("userFid")
@@ -352,6 +358,8 @@ func (v *vocdoniHandler) censusFollowers(_ *apirest.APIdata, ctx *httprouter.HTT
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
+		// include poll author in the census
+		users = append(users, req.Profile.FID)
 		// create the participants from the database users using the fids
 		var participants []*FarcasterParticipant
 		v.trackStepProgress(censusID, 1, 2, func(progress chan int) {
