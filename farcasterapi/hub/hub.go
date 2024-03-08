@@ -117,7 +117,7 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 		return nil, 0, fmt.Errorf("error reading response body: %w", err)
 	}
 	// unmarshal the json
-	mentions := &HubMessageResponse{}
+	mentions := &hubMessageResponse{}
 	if err := json.Unmarshal(body, mentions); err != nil {
 		return nil, 0, fmt.Errorf("error unmarshalling json: %w", err)
 	}
@@ -276,12 +276,12 @@ func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.User
 		return nil, fmt.Errorf("error reading user data response body: %w", err)
 	}
 	// unmarshal the json
-	userdata := &UserdataResponse{}
+	userdata := &userdataResponse{}
 	if err := json.Unmarshal(usernameBody, userdata); err != nil {
 		return nil, fmt.Errorf("error unmarshalling user data: %w", err)
 	}
 	// get the latest proof
-	currentUserdata := &UsernameProofs{}
+	currentUserdata := &usernameProofs{}
 	lastUserdataTimestamp := uint64(0)
 	for _, proof := range userdata.Proofs {
 		// discard proofs that are not of the type we are looking for and
@@ -314,7 +314,7 @@ func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.User
 		return nil, fmt.Errorf("error reading verifications response body: %w", err)
 	}
 	// decode verifications json
-	verificationsData := &VerificationsResponse{}
+	verificationsData := &verificationsResponse{}
 	if err := json.Unmarshal(verificationsBody, verificationsData); err != nil {
 		return nil, fmt.Errorf("error unmarshalling verifications: %w", err)
 	}
@@ -378,7 +378,7 @@ func (h *Hub) UserFollowers(ctx context.Context, fid uint64) ([]uint64, error) {
 		return nil, fmt.Errorf("error reading user followers response body: %w", err)
 	}
 	// unmarshal the json
-	followersResponse := &HubMessageResponse{}
+	followersResponse := &hubMessageResponse{}
 	if err := json.Unmarshal(body, followersResponse); err != nil {
 		return nil, fmt.Errorf("error unmarshalling user followers: %w", err)
 	}
@@ -396,7 +396,7 @@ func (h *Hub) UserFollowers(ctx context.Context, fid uint64) ([]uint64, error) {
 // ChannelFIDs method returns the FIDs of the users that follow the channel with
 // the given id. If something goes wrong, it returns an error. It return an
 // specific error if the channel does not exist to be handled by the caller.
-func (n *Hub) ChannelFIDs(ctx context.Context, channelID string) ([]uint64, error) {
+func (n *Hub) ChannelFIDs(ctx context.Context, channelID string, _ chan int) ([]uint64, error) {
 	return nil, fmt.Errorf("hub api does not support channels yet")
 }
 
@@ -442,7 +442,7 @@ func (h *Hub) newRequest(ctx context.Context, method string, uri string, body io
 // returns the content and an error. If the body is nil, it returns an empty
 // string and no error. If the body is not nil, it replaces the mentions with
 // the usernames and returns the content.
-func (h *Hub) composeCastContent(body *HubCastAddBody) (string, error) {
+func (h *Hub) composeCastContent(body *hubCastAddBody) (string, error) {
 	if body == nil {
 		return "", nil
 	}

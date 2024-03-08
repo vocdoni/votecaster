@@ -44,7 +44,7 @@ type API interface {
 	// with the given id. If something goes wrong, it returns an error. It
 	// return an ErrChannelNotFound error if the channel does not exist to be
 	// handled by the caller.
-	ChannelFIDs(ctx context.Context, channelID string) ([]uint64, error)
+	ChannelFIDs(ctx context.Context, channelID string, progress chan int) ([]uint64, error)
 	// ChannelExists method returns a boolean indicating if the channel with the
 	// given id exists. If something goes wrong checking the channel existence,
 	// it returns an error.

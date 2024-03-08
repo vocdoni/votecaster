@@ -1,90 +1,101 @@
 package neynar
 
-type CastPostRequest struct {
+type castPostRequest struct {
 	Signer string `json:"signer_uuid"`
 	Text   string `json:"text"`
 	Parent string `json:"parent"`
 }
 
-type UserdataV1 struct {
+type userdataV1 struct {
 	Fid                    uint64   `json:"fid"`
 	Username               string   `json:"username"`
 	CustodyAddress         string   `json:"custodyAddress"`
 	VerificationsAddresses []string `json:"verifications"`
 }
 
-type UserdataV1Result struct {
-	User *UserdataV1 `json:"user"`
+type userdataV1Result struct {
+	User *userdataV1 `json:"user"`
 }
 
-type UsersdataV1Result struct {
-	Users      []*UserdataV1 `json:"users"`
-	NextCursor *Cursor       `json:"next"`
+type usersdataV1Result struct {
+	Users      []*userdataV1 `json:"users"`
+	NextCursor *cursor       `json:"next"`
 }
 
-type UserdataV1Response struct {
-	Result *UserdataV1Result `json:"result"`
+type userdataV1Response struct {
+	Result *userdataV1Result `json:"result"`
 }
 
 type UsersdataV1Response struct {
-	Result *UsersdataV1Result `json:"result"`
+	Result *usersdataV1Result `json:"result"`
 }
 
-type VerifiedAddressesV2 struct {
+type verifiedAddressesV2 struct {
 	EthAddresses []string `json:"eth_addresses"`
 	SolAddresses []string `json:"sol_addresses"`
 }
 
-type UserdataV2 struct {
+type userdataV2 struct {
 	Object            string               `json:"object"`
 	Fid               uint64               `json:"fid"`
 	CustodyAddress    string               `json:"custody_address"`
 	Username          string               `json:"username"`
 	DisplayName       string               `json:"display_name"`
 	PfpUrl            string               `json:"pfp_url"`
-	Profile           UserProfile          `json:"profile"`
+	Profile           userProfile          `json:"profile"`
 	FollowerCount     int                  `json:"follower_count"`
 	FollowingCount    int                  `json:"following_count"`
 	Verifications     []string             `json:"verifications"`
-	VerifiedAddresses *VerifiedAddressesV2 `json:"verified_addresses"`
+	VerifiedAddresses *verifiedAddressesV2 `json:"verified_addresses"`
 	ActiveStatus      string               `json:"active_status"`
 }
 
-type Cursor struct {
+type cursor struct {
 	Cursor string `json:"cursor"`
 }
 
-type UserdataV2Result struct {
-	Users      []*UserdataV2 `json:"users"`
-	NextCursor *Cursor       `json:"next"`
+type userdataV2Result struct {
+	Users      []*userdataV2 `json:"users"`
+	NextCursor *cursor       `json:"next"`
 }
 
-type CastWebhookData struct {
+type castWebhookData struct {
 	Object    string      `json:"object"`
 	Hash      string      `json:"hash"`
 	Text      string      `json:"text"`
 	Timestamp string      `json:"timestamp"`
-	Author    *UserdataV2 `json:"author"`
+	Author    *userdataV2 `json:"author"`
 }
 
-type CastWebhookRequest struct {
+type castWebhookRequest struct {
 	Type string           `json:"type"`
-	Data *CastWebhookData `json:"data"`
+	Data *castWebhookData `json:"data"`
 }
 
 // ---
 
-type UserProfile struct {
-	Bio UserBio `json:"bio"`
+type userProfile struct {
+	Bio userBio `json:"bio"`
 }
 
-type UserBio struct {
+type userBio struct {
 	Text string `json:"text"`
 }
 
-type VerifiedAddresses struct {
-	EthAddresses []string `json:"eth_addresses"`
-	SolAddresses []string `json:"sol_addresses"`
+type warpcastChannel struct {
+	ImageURL    string `json:"imageUrl"`
+	Followers   int    `json:"followerCount"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ID          string `json:"key"`
+}
+
+type warpcastChannelResult struct {
+	Channel *warpcastChannel `json:"channel"`
+}
+
+type warpcastChannelResponse struct {
+	Result *warpcastChannelResult `json:"result"`
 }
 
 // HUB API

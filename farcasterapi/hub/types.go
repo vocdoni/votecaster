@@ -1,29 +1,29 @@
 package hub
 
-type HubCastAddBody struct {
+type hubCastAddBody struct {
 	Text              string   `json:"text"`
 	ParentURL         string   `json:"parentUrl"`
 	Mentions          []uint64 `json:"mentions"`
 	MentionsPositions []uint64 `json:"mentionsPositions"`
 }
 
-type HubMessageData struct {
+type hubMessageData struct {
 	Type        string          `json:"type"`
 	From        uint64          `json:"fid"`
 	Timestamp   uint64          `json:"timestamp"`
-	CastAddBody *HubCastAddBody `json:"castAddBody,omitempty"`
+	CastAddBody *hubCastAddBody `json:"castAddBody,omitempty"`
 }
 
-type HubMessage struct {
-	Data    *HubMessageData `json:"data"`
+type hubMessage struct {
+	Data    *hubMessageData `json:"data"`
 	HexHash string          `json:"hash"`
 }
 
-type HubMessageResponse struct {
-	Messages []*HubMessage `json:"messages"`
+type hubMessageResponse struct {
+	Messages []*hubMessage `json:"messages"`
 }
 
-type UsernameProofs struct {
+type usernameProofs struct {
 	Username       string `json:"name"`
 	CustodyAddress string `json:"owner"`
 	FID            uint64 `json:"fid"`
@@ -31,28 +31,24 @@ type UsernameProofs struct {
 	Timestamp      uint64 `json:"timestamp"`
 }
 
-type UserdataResponse struct {
-	Proofs []*UsernameProofs `json:"proofs"`
+type userdataResponse struct {
+	Proofs []*usernameProofs `json:"proofs"`
 }
 
-type Verification struct {
+type verification struct {
 	Address string `json:"address"`
 }
 
-type VerificationData struct {
+type verificationData struct {
 	Type         string        `json:"type"`
-	Verification *Verification `json:"verificationAddEthAddressBody"`
+	Verification *verification `json:"verificationAddEthAddressBody"`
 	Signer       string        `json:"signer"`
 }
 
-type VerificationMessage struct {
-	Data *VerificationData `json:"data"`
+type verificationMessage struct {
+	Data *verificationData `json:"data"`
 }
 
-type VerificationsResponse struct {
-	Messages []*VerificationMessage `json:"messages"`
-}
-
-type FidResponse struct {
-	FID uint64 `json:"fid"`
+type verificationsResponse struct {
+	Messages []*verificationMessage `json:"messages"`
 }
