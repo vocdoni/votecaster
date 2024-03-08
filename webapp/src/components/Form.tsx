@@ -156,6 +156,8 @@ const Form: React.FC = (props: FlexProps) => {
             election.census = census
             break
           }
+          case 'farcaster':
+            break
           default:
             throw new Error('specified census type does not exist')
         }
