@@ -136,7 +136,7 @@ const Form: React.FC = (props: FlexProps) => {
             break
           }
           case 'followers': {
-            const fcensus = await axios.post(`${appUrl}/census/followers/${profile.fid}`)
+            const fcensus = await axios.post(`${appUrl}/census/followers/${profile.fid}`, { profile })
             const census = await checkCensus(fcensus.data.censusId, setStatus)
             election.census = census
             break
