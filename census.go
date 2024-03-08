@@ -519,9 +519,14 @@ func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, progress chan in
 // update the progress channel with the progress of the step.
 func (v *vocdoniHandler) trackStepProgress(censusID types.HexBytes, step, totalSteps int, action func(chan int)) {
 	progress := make(chan int)
-	defer close(progress)
+	chanClosed := atomic.Bool{}
 	go func() {
-		for p := range progress {
+		for {
+			p, ok := <-progress
+			if !ok {
+				chanClosed.Store(true)
+				return
+			}
 			censusInfo, ok := v.censusCreationMap.Load(censusID.String())
 			if !ok {
 				return
@@ -540,6 +545,9 @@ func (v *vocdoniHandler) trackStepProgress(censusID types.HexBytes, step, totalS
 		}
 	}()
 	action(progress)
+	if !chanClosed.Load() {
+		close(progress)
+	}
 }
 
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.
