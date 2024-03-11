@@ -7,12 +7,28 @@ import (
 	"time"
 
 	gqlClient "github.com/Khan/genqlient/graphql"
+	gql "github.com/vocdoni/vote-frame/airstack/graphql"
 )
 
 // Constants
 const (
-	apiTimeout       = 60 * time.Second
+	apiTimeout       = 10 * time.Second
 	airstackAPIlimit = 200
+	maxAPIRetries    = 3
+)
+
+// keep up to date when regenerating bindings for Airstack schema
+const (
+	// BlockchainEthereum is the blockchain type used for querying Ethereum Mainnet
+	BlockchainEthereum = "ethereum"
+	// BlockchainPolygon is the blockchain type used for querying Polygon
+	BlockchainPolygon = "polygon"
+	// BlockchainBase is the blockchain type used for querying Base
+	BlockchainBase = "base"
+	// BlockchainZora is the blockchain type used for querying Zora
+	BlockchainZora = "zora"
+	// BlockchainALL is a special blockchain type required for some queries
+	BlockchainALL = "ALL"
 )
 
 type httpTransportWithAuth struct {
@@ -56,4 +72,18 @@ func NewClient(ctx context.Context, endpoint, apiKey string) (*Client, error) {
 	})
 
 	return ac, nil
+}
+
+func BlockchainToTokenBlockchain(b string) (gql.TokenBlockchain, error) {
+	switch b {
+	case "ethereum":
+		return gql.TokenBlockchainEthereum, nil
+	case "polygon":
+		return gql.TokenBlockchainPolygon, nil
+	case "base":
+		return gql.TokenBlockchainBase, nil
+	case "zora":
+		return gql.TokenBlockchainZora, nil
+	}
+	return "", fmt.Errorf("invalid blockchain")
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	gql "github.com/vocdoni/vote-frame/airstack/graphql"
@@ -20,22 +21,33 @@ type TokenDetails struct {
 // GetTokenDetails gets a token details given its address and blockchain
 func (c *Client) GetTokenDetails(
 	tokenAddress common.Address,
-	blockchain gql.TokenBlockchain,
+	blockchain string,
 ) (*TokenDetails, error) {
 	cctx, cancel := context.WithTimeout(c.ctx, apiTimeout)
 	defer cancel()
-	resp, err := gql.GetTokenDetails(cctx, c.Client, tokenAddress, blockchain)
+	r := 0
+	resp := &gql.GetTokenDetailsResponse{}
+	b, err := BlockchainToTokenBlockchain(blockchain)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get token details from Airstack: %w", err)
+		return nil, fmt.Errorf("invalid blockchain provided")
 	}
-	totalSupply := new(big.Int)
-	totalSupply.SetString(resp.Token.TotalSupply, 10)
-	return &TokenDetails{
-		Decimals:    int8(resp.Token.Decimals),
-		Name:        resp.Token.Name,
-		Symbol:      resp.Token.Symbol,
-		TotalSupply: totalSupply,
-	}, nil
+	for r < maxAPIRetries {
+		resp, err = gql.GetTokenDetails(cctx, c.Client, tokenAddress, b)
+		if err != nil {
+			r += 1
+			time.Sleep(time.Second * 3)
+			continue
+		}
+		totalSupply := new(big.Int)
+		totalSupply.SetString(resp.Token.TotalSupply, 10)
+		return &TokenDetails{
+			Decimals:    int8(resp.Token.Decimals),
+			Name:        resp.Token.Name,
+			Symbol:      resp.Token.Symbol,
+			TotalSupply: totalSupply,
+		}, nil
+	}
+	return nil, fmt.Errorf("max GraphQL retries reached, error: %w", err)
 }
 
 // TokenHolder wraps a token holder with its address and balance of a certain token
@@ -53,17 +65,33 @@ func (c *Client) getTokenBalances(
 ) (*gql.GetTokenBalancesResponse, error) {
 	cctx, cancel := context.WithTimeout(c.ctx, apiTimeout)
 	defer cancel()
-	return gql.GetTokenBalances(cctx, c.Client, tokenAddress, blockchain, limit, cursor)
+	r := 0
+	var err error
+	resp := &gql.GetTokenBalancesResponse{}
+	for r < maxAPIRetries {
+		resp, err = gql.GetTokenBalances(cctx, c.Client, tokenAddress, blockchain, limit, cursor)
+		if err != nil {
+			r += 1
+			time.Sleep(time.Second * 3)
+			continue
+		}
+		return resp, nil
+	}
+	return nil, fmt.Errorf("max GraphQL retries reached, error: %w", err)
 }
 
 // GetTokenBalances gets all the token holders of a given token in a given chain
 // calling the Airstack API. This function also takes care of Airstack API pagination.
-func (c *Client) GetTokenBalances(tokenAddress common.Address, blockchain gql.TokenBlockchain) ([]*TokenHolder, error) {
+func (c *Client) GetTokenBalances(tokenAddress common.Address, blockchain string) ([]*TokenHolder, error) {
 	hasNextPage := true
 	cursor := ""
 	th := make([]*TokenHolder, 0)
+	b, err := BlockchainToTokenBlockchain(blockchain)
+	if err != nil {
+		return nil, fmt.Errorf("invalid blockchain provided")
+	}
 	for hasNextPage {
-		resp, err := c.getTokenBalances(tokenAddress, blockchain, airstackAPIlimit, cursor)
+		resp, err := c.getTokenBalances(tokenAddress, b, airstackAPIlimit, cursor)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get token balances from Airstack: %w", err)
 		}
@@ -76,9 +104,7 @@ func (c *Client) GetTokenBalances(tokenAddress common.Address, blockchain gql.To
 			})
 		}
 		cursor = resp.TokenBalances.PageInfo.NextCursor
-		if resp.TokenBalances.PageInfo.NextCursor == "" {
-			hasNextPage = false
-		}
+		hasNextPage = cursor != ""
 	}
 	return th, nil
 }

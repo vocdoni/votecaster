@@ -3,6 +3,7 @@ package airstack
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	gql "github.com/vocdoni/vote-frame/airstack/graphql"
@@ -21,7 +22,21 @@ func (c *Client) getFarcasterUsersWithAssociatedAddresses(
 	limit int,
 	cursor string,
 ) (*gql.GetFarcasterUsersWithAssociatedAddressesResponse, error) {
-	return gql.GetFarcasterUsersWithAssociatedAddresses(c.ctx, c.Client, limit, cursor)
+	cctx, cancel := context.WithTimeout(c.ctx, apiTimeout)
+	defer cancel()
+	r := 0
+	var err error
+	resp := &gql.GetFarcasterUsersWithAssociatedAddressesResponse{}
+	for r < maxAPIRetries {
+		resp, err = gql.GetFarcasterUsersWithAssociatedAddresses(cctx, c.Client, limit, cursor)
+		if err != nil {
+			r += 1
+			time.Sleep(time.Second * 3)
+			continue
+		}
+		return resp, nil
+	}
+	return nil, fmt.Errorf("max GraphQL retries reached, error: %w", err)
 }
 
 // GetFarcasterUsersWithAssociatedAddresses gets all the Farcaster users ids with their
@@ -42,9 +57,7 @@ func (c *Client) GetFarcasterUsersWithAssociatedAddresses() ([]*FarcasterUser, e
 			})
 		}
 		cursor = resp.Socials.PageInfo.NextCursor
-		if resp.Socials.PageInfo.NextCursor == "" {
-			hasNextPage = false
-		}
+		hasNextPage = cursor != ""
 	}
 	return fu, nil
 }
@@ -56,7 +69,19 @@ func (c *Client) getFarcastersUsersByChannel(
 ) (*gql.GetFarcasterUsersByChannelResponse, error) {
 	cctx, cancel := context.WithTimeout(c.ctx, apiTimeout)
 	defer cancel()
-	return gql.GetFarcasterUsersByChannel(cctx, c.Client, channelName, limit, cursor)
+	r := 0
+	var err error
+	resp := &gql.GetFarcasterUsersByChannelResponse{}
+	for r < maxAPIRetries {
+		resp, err = gql.GetFarcasterUsersByChannel(cctx, c.Client, channelName, limit, cursor)
+		if err != nil {
+			r += 1
+			time.Sleep(time.Second * 3)
+			continue
+		}
+		return resp, nil
+	}
+	return nil, fmt.Errorf("max GraphQL retries reached, error: %w", err)
 }
 
 // GetFarcasterUsersByChannel gets all the Farcaster user ids of a given channel
@@ -81,9 +106,7 @@ func (c *Client) GetFarcasterUsersByChannel(channelId string) ([]*FarcasterUser,
 			}
 		}
 		cursor = resp.FarcasterChannels.PageInfo.NextCursor
-		if resp.FarcasterChannels.PageInfo.NextCursor == "" {
-			hasNextPage = false
-		}
+		hasNextPage = cursor != ""
 	}
 	return fuser, nil
 }
