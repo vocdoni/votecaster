@@ -279,8 +279,8 @@ const Form: React.FC = (props: FlexProps) => {
                       <Stack direction='column' flexWrap='wrap'>
                         <Radio value='farcaster'>🌐 All farcaster users</Radio>
                         <Radio value='channel'>⛩ Channel gated</Radio>
-                        <Radio value='followers'>❤️ Only my followers</Radio>
-                        <Radio value='custom'>🦄 Token gated via CSV</Radio>
+                        <Radio value='followers'>❤️ My followers and me</Radio>
+                        <Radio value='custom'>🦄 Token based via CSV</Radio>
                       </Stack>
                     </RadioGroup>
                   </FormControl>
