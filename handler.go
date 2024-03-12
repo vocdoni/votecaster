@@ -28,7 +28,7 @@ var ErrElectionUnknown = fmt.Errorf("electionID unknown")
 
 type vocdoniHandler struct {
 	cli           *apiclient.HTTPclient
-	cliToken      uuid.UUID
+	cliToken      *uuid.UUID
 	apiEndpoint   *url.URL
 	defaultCensus *CensusInfo
 	webappdir     string
@@ -47,6 +47,7 @@ func NewVocdoniHandler(
 	db *mongo.MongoStorage,
 	ctx context.Context,
 	fcapi farcasterapi.API,
+	token *uuid.UUID,
 ) (*vocdoniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
@@ -60,8 +61,11 @@ func NewVocdoniHandler(
 		return nil, fmt.Errorf("failed to parse apiEndpoint: %w", err)
 	}
 	log.Debugf("connecting to %s", hostURL.String())
-	token := uuid.New()
-	cli, err := apiclient.NewHTTPclient(hostURL, &token)
+	if token == nil {
+		token = new(uuid.UUID)
+		*token = uuid.New()
+	}
+	cli, err := apiclient.NewWithBearer(hostURL.String(), token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create apiclient: %w", err)
 	}

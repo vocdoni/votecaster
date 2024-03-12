@@ -41,6 +41,7 @@ func main() {
 	flag.Int("listenPort", 8888, "The port to listen on")
 	flag.String("dataDir", "", "The directory to use for the data")
 	flag.String("apiEndpoint", "https://api-dev.vocdoni.net/v2", "The Vocdoni API endpoint to use")
+	flag.String("apiToken", "", "The Vocdoni Bearer API token to use for the apiEndpoint (if not set, it will be generated)")
 	flag.String("vocdoniPrivKey", "", "The Vocdoni private key to use for orchestrating the election (hex)")
 	flag.String("censusFromFile", "farcaster_census.json", "Take census details from JSON file")
 	flag.String("logLevel", "info", "The log level to use")
@@ -87,6 +88,7 @@ func main() {
 	port := viper.GetInt("listenPort")
 	dataDir := viper.GetString("dataDir")
 	apiEndpoint := viper.GetString("apiEndpoint")
+	apiToken := viper.GetString("apiToken")
 	vocdoniPrivKey := viper.GetString("vocdoniPrivKey")
 	censusFromFile := viper.GetString("censusFromFile")
 	logLevel := viper.GetString("logLevel")
@@ -112,7 +114,12 @@ func main() {
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
-		fmt.Printf("generated admin token: %s\n", adminToken)
+		fmt.Printf("generated admin token for internal API: %s\n", adminToken)
+	}
+
+	if apiToken == "" {
+		apiToken = uuid.New().String()
+		fmt.Printf("generated vocdoni api token: %s\n", apiToken)
 	}
 
 	log.Init(logLevel, "stdout", nil)
@@ -139,6 +146,7 @@ func main() {
 		"neynarSignerUUID", neynarSignerUUID,
 		"web3endpoint", web3endpoint,
 		"indexer", indexer,
+		"apiToken", apiToken,
 	)
 
 	// Start the pprof http endpoints
@@ -205,7 +213,8 @@ func main() {
 	defer mainCtxCancel()
 
 	// Create the Vocdoni handler
-	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli)
+	apiTokenUUID := uuid.MustParse(apiToken)
+	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli, &apiTokenUUID)
 	if err != nil {
 		log.Fatal(err)
 	}
