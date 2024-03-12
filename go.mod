@@ -11,7 +11,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/zeebo/blake3 v0.2.3
 	go.mongodb.org/mongo-driver v1.14.0
-	go.vocdoni.io/dvote v1.10.2-0.20240307145253-e66a959238a5
+	go.vocdoni.io/dvote v1.10.2-0.20240312111432-63753a7bf391
 	go.vocdoni.io/proto v1.15.6-0.20240209115732-27836380ccae
 	google.golang.org/protobuf v1.32.0
 	lukechampine.com/blake3 v1.2.1
