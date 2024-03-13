@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
@@ -35,7 +36,7 @@ type vocdoniHandler struct {
 	db            *mongo.MongoStorage
 	electionLRU   *lru.Cache[string, *api.Election]
 	fcapi         farcasterapi.API
-	airstack      *Airstack
+	airstack      *airstack.Airstack
 
 	censusCreationMap sync.Map
 }
@@ -49,7 +50,7 @@ func NewVocdoniHandler(
 	ctx context.Context,
 	fcapi farcasterapi.API,
 	token *uuid.UUID,
-	airstack *Airstack,
+	airstack *airstack.Airstack,
 ) (*vocdoniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {

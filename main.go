@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/discover"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/hub"
@@ -221,7 +222,7 @@ func main() {
 	defer mainCtxCancel()
 
 	// Create Airstack artifact
-	as, err := NewAirstack(mainCtx, airstackEndpoint, airstackKey)
+	as, err := airstack.NewAirstack(mainCtx, airstackEndpoint, airstackKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -383,6 +384,14 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}", http.MethodPost, "public", handler.censusChannel); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/airstack/nft", http.MethodPost, "public", handler.censusTokenNFT); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/airstack/erc20", http.MethodPost, "public", handler.censusTokenERC20); err != nil {
 		log.Fatal(err)
 	}
 

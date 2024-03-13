@@ -68,6 +68,8 @@ const (
 	FrameCensusTypeFollowers
 	// FrameCensusTypeFile is a census created from a file.
 	FrameCensusTypeFile
+	// FrameCensusTypeToken is a census created from the token holders of an NFT
+	FrameCensusTypeToken
 )
 
 // CensusInfo contains the information of a census.
@@ -100,10 +102,9 @@ func (c *CensusInfo) FromFile(file string) error {
 
 // FarcasterParticipant is a participant in the Farcaster network to be included in the census.
 type FarcasterParticipant struct {
-	PubKey       []byte           `json:"pubkey"`
-	Weight       *big.Int         `json:"weight"`
-	Username     string           `json:"username"`
-	EVMAddresses []common.Address `json:"evmAddresses"`
+	PubKey   []byte   `json:"pubkey"`
+	Weight   *big.Int `json:"weight"`
+	Username string   `json:"username"`
 }
 
 // CreateCensus creates a new census from a list of participants.
@@ -431,6 +432,147 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 		return err
 	}
 	return ctx.Send(data, http.StatusOK)
+}
+
+type Token struct {
+	Address    string `json:"address"`
+	Blockchain string `json:"blockchain"`
+}
+
+func (v *vocdoniHandler) censusTokenNFT(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	req := struct {
+		Tokens []*Token `json:"tokens"`
+	}{}
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		return err
+	}
+
+	// check valid tokens length
+	if len(req.Tokens) > 3 || len(req.Tokens) == 0 {
+		return fmt.Errorf("invalid number of NFT tokens, bounds between 1 and 3")
+	}
+	// check valid tokens
+	for _, token := range req.Tokens {
+		if _, err := v.airstack.BlockchainToTokenBlockchain(token.Blockchain); err != nil {
+			return fmt.Errorf("invalid blockchain for token %s provided", token.Address)
+		}
+	}
+	return v.censusToken(req.Tokens, ctx)
+}
+
+func (v *vocdoniHandler) censusTokenERC20(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	req := struct {
+		Token Token `json:"token"`
+	}{}
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		return err
+	}
+
+	// check valid token
+	if _, err := v.airstack.BlockchainToTokenBlockchain(req.Token.Blockchain); err != nil {
+		return fmt.Errorf("invalid blockchain for token %s provided", req.Token.Address)
+	}
+	tks := make([]*Token, 1)
+	tks[0] = &req.Token
+	return v.censusToken(tks, ctx)
+}
+
+func (v *vocdoniHandler) censusToken(tokens []*Token, ctx *httprouter.HTTPContext) error {
+	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
+	if err != nil {
+		return err
+	}
+	v.censusCreationMap.Store(censusID.String(), CensusInfo{})
+	totalAddresses := uint32(0)
+	go func() {
+		startTime := time.Now()
+		log.Debugw("building NFT based census", "censusID", censusID)
+		// get holders for each token
+		holders := make([][]string, 0)
+		v.trackStepProgress(censusID, 1, 3, func(progress chan int) {
+			holders, err = v.GetTokenHolders(tokens, censusID, progress)
+		})
+		if err != nil {
+			log.Warnw("failed to build census from NFT, cannot get holders", "err", err.Error())
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+		// create census from token holders
+		var participants []*FarcasterParticipant
+		v.trackStepProgress(censusID, 2, 3, func(progress chan int) {
+			participants, totalAddresses, err = v.processCensusRecords(holders, progress)
+		})
+		if err != nil {
+			log.Warnw("failed to build census from NFT", "err", err.Error())
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+		var ci *CensusInfo
+		v.trackStepProgress(censusID, 3, 3, func(progress chan int) {
+			ci, err = CreateCensus(v.cli, participants, FrameCensusTypeToken, progress)
+		})
+		if err != nil {
+			log.Errorw(err, "failed to create census")
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+
+		// since each participant can have multiple signers, we need to get the unique usernames
+		uniqueParticipantsMap := make(map[string]struct{})
+		for _, p := range participants {
+			uniqueParticipantsMap[p.Username] = struct{}{}
+		}
+		uniqueParticipants := []string{}
+		for k := range uniqueParticipantsMap {
+			uniqueParticipants = append(uniqueParticipants, k)
+		}
+		ci.Usernames = uniqueParticipants
+		log.Infow("census created from NFT",
+			"censusID", censusID.String(),
+			"size", len(ci.Usernames),
+			"duration", time.Since(startTime),
+			"totalAddresses", totalAddresses)
+		v.censusCreationMap.Store(censusID.String(), *ci)
+	}()
+	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
+	if err != nil {
+		return err
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
+func (v *vocdoniHandler) GetTokenHolders(
+	tokens []*Token, censusID types.HexBytes, progress chan int,
+) ([][]string, error) {
+	holders := make([][]string, 0)
+	processedTokens := 0
+	totalTokens := len(tokens)
+	for _, token := range tokens {
+		tokenAddress := common.HexToAddress(token.Address)
+		tokenHolders, err := v.airstack.GetTokenBalances(tokenAddress, token.Blockchain)
+		if err != nil {
+			log.Warnw("failed to create census for token %s: %v", token.Address, err)
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{
+				Error: fmt.Sprintf("cannot get token %s details: %v", token.Address, err),
+			})
+			return nil, err
+		}
+
+		for _, tokenHolder := range tokenHolders {
+			holders = append(holders, []string{tokenHolder.Address.String(), tokenHolder.Balance.String()})
+		}
+
+		// update the progress if the progress channel is provided
+		// since the response time of GetTokenBalances is unknown, because it dependends on the total number
+		// holders and cannot be known beforehand, update at least the progress between tokens
+		if progress != nil {
+			if currentProcessedTokens := processedTokens + 1; totalTokens >= int(currentProcessedTokens) {
+				currentProgress := 100 * currentProcessedTokens / totalTokens
+				progress <- currentProgress
+			}
+		}
+	}
+	return holders, nil
 }
 
 func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, progress chan int) ([]*FarcasterParticipant, uint32, error) {

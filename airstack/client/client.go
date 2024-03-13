@@ -1,4 +1,4 @@
-package airstack
+package client
 
 import (
 	"context"
@@ -27,8 +27,6 @@ const (
 	BlockchainBase = "base"
 	// BlockchainZora is the blockchain type used for querying Zora
 	BlockchainZora = "zora"
-	// BlockchainALL is a special blockchain type required for some queries
-	BlockchainALL = "ALL"
 )
 
 type httpTransportWithAuth struct {
@@ -57,7 +55,6 @@ func NewClient(ctx context.Context, endpoint, apiKey string) (*Client, error) {
 	if endpoint == "" || apiKey == "" {
 		return nil, fmt.Errorf("endpoint and apiKey are required")
 	}
-
 	ac := &Client{
 		apiKey: apiKey,
 		url:    endpoint,
@@ -74,7 +71,7 @@ func NewClient(ctx context.Context, endpoint, apiKey string) (*Client, error) {
 	return ac, nil
 }
 
-func BlockchainToTokenBlockchain(b string) (gql.TokenBlockchain, error) {
+func (c *Client) BlockchainToTokenBlockchain(b string) (gql.TokenBlockchain, error) {
 	switch b {
 	case "ethereum":
 		return gql.TokenBlockchainEthereum, nil

@@ -1,15 +1,15 @@
-package main
+package airstack
 
 import (
 	"context"
 	"fmt"
 
-	ac "github.com/vocdoni/vote-frame/airstack"
+	ac "github.com/vocdoni/vote-frame/airstack/client"
 )
 
 // Airstack wraps all the required artifacts for interacting with the Airstack API
 type Airstack struct {
-	client *ac.Client
+	*ac.Client
 }
 
 // NewAirstack creates a new Airstack artifact with a reference to a MongoDB and an Airstack client that
@@ -20,6 +20,6 @@ func NewAirstack(ctx context.Context, endpoint, apiKey string) (*Airstack, error
 		return nil, fmt.Errorf("error creating Airstack: %w", err)
 	}
 	return &Airstack{
-		client: client,
+		Client: client,
 	}, nil
 }

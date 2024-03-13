@@ -1,4 +1,4 @@
-package airstack
+package client
 
 import (
 	"context"
@@ -27,7 +27,7 @@ func (c *Client) GetTokenDetails(
 	defer cancel()
 	r := 0
 	resp := &gql.GetTokenDetailsResponse{}
-	b, err := BlockchainToTokenBlockchain(blockchain)
+	b, err := c.BlockchainToTokenBlockchain(blockchain)
 	if err != nil {
 		return nil, fmt.Errorf("invalid blockchain provided")
 	}
@@ -86,7 +86,7 @@ func (c *Client) GetTokenBalances(tokenAddress common.Address, blockchain string
 	hasNextPage := true
 	cursor := ""
 	th := make([]*TokenHolder, 0)
-	b, err := BlockchainToTokenBlockchain(blockchain)
+	b, err := c.BlockchainToTokenBlockchain(blockchain)
 	if err != nil {
 		return nil, fmt.Errorf("invalid blockchain provided")
 	}

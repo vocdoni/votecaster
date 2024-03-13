@@ -1,4 +1,4 @@
-package airstack
+package client
 
 import (
 	"context"
