@@ -301,20 +301,32 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress 
 	totalFollowers := 0
 	channelURL := fmt.Sprintf(warpcastChannelInfo, channelID)
 	body, err := n.request(channelURL, http.MethodGet, nil, defaultRequestTimeout)
-	if err == nil {
-		channelResponse := &warpcastChannelResponse{}
-		if err := json.Unmarshal(body, &channelResponse); err == nil {
-			totalFollowers = channelResponse.Result.Channel.Followers
-		}
+	if err != nil {
+		return nil, fmt.Errorf("error getting channel info from neynar: %w", err)
+	}
+	channelResponse := &warpcastChannelResponse{}
+	if err := json.Unmarshal(body, &channelResponse); err != nil {
+		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
+	}
+
+	totalFollowers = channelResponse.Result.Channel.Followers
+	if totalFollowers == 0 {
+		return nil, fmt.Errorf("channel %s has no followers", channelID)
 	}
 	cursor := ""
 	userFIDs := []uint64{}
+	failedAttempts := 5
 	for {
 		// create request with the channel id provided
 		url := fmt.Sprintf(neynarUsersByChannelID, channelID, cursor)
 		body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
 		if err != nil {
-			return nil, fmt.Errorf("error creating request: %w", err)
+			failedAttempts--
+			if failedAttempts == 0 {
+				return nil, fmt.Errorf("error creating request: %w", err)
+			}
+			log.Warnw("error getting channel followers, retrying", "channel", channelID, "error", err)
+			continue
 		}
 		usersResult := &userdataV2Result{}
 		if err := json.Unmarshal(body, &usersResult); err != nil {

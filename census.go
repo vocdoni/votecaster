@@ -291,7 +291,13 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 			users, err = v.fcapi.ChannelFIDs(internalCtx, channelID, progress)
 		})
 		if err != nil {
+			log.Errorw(err, "failed to get channel fids from farcaster API")
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+		if len(users) == 0 {
+			log.Errorw(fmt.Errorf("no valid participants found for the channel %s", channelID), "")
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: "no valid participants found for the channel"})
 			return
 		}
 		// create the participants from the database users using the fids
@@ -300,7 +306,8 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 			participants = v.farcasterCensusFromFids(users, progress)
 		})
 		if len(participants) == 0 {
-			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: "no valid participants"})
+			log.Errorw(fmt.Errorf("no valid participant signers found for the channel %s", channelID), "")
+			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: "no valid participant signers found for the channel"})
 			return
 		}
 		// create the census from the participants
