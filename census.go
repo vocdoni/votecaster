@@ -446,7 +446,6 @@ func (v *vocdoniHandler) censusTokenNFT(msg *apirest.APIdata, ctx *httprouter.HT
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return err
 	}
-
 	// check valid tokens length
 	if len(req.Tokens) > 3 || len(req.Tokens) == 0 {
 		return fmt.Errorf("invalid number of NFT tokens, bounds between 1 and 3")
@@ -457,7 +456,11 @@ func (v *vocdoniHandler) censusTokenNFT(msg *apirest.APIdata, ctx *httprouter.HT
 			return fmt.Errorf("invalid blockchain for token %s provided", token.Address)
 		}
 	}
-	return v.censusToken(req.Tokens, ctx)
+	data, err := v.censusToken(req.Tokens)
+	if err != nil {
+		return fmt.Errorf("cannot create nft census: %w", err)
+	}
+	return ctx.Send(data, http.StatusOK)
 }
 
 func (v *vocdoniHandler) censusTokenERC20(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -474,13 +477,17 @@ func (v *vocdoniHandler) censusTokenERC20(msg *apirest.APIdata, ctx *httprouter.
 	}
 	tks := make([]*Token, 1)
 	tks[0] = &req.Token
-	return v.censusToken(tks, ctx)
+	data, err := v.censusToken(tks)
+	if err != nil {
+		return fmt.Errorf("cannot create erc20 census: %w", err)
+	}
+	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) censusToken(tokens []*Token, ctx *httprouter.HTTPContext) error {
+func (v *vocdoniHandler) censusToken(tokens []*Token) ([]byte, error) {
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	v.censusCreationMap.Store(censusID.String(), CensusInfo{})
 	totalAddresses := uint32(0)
@@ -536,9 +543,9 @@ func (v *vocdoniHandler) censusToken(tokens []*Token, ctx *httprouter.HTTPContex
 	}()
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return ctx.Send(data, http.StatusOK)
+	return data, nil
 }
 
 func (v *vocdoniHandler) GetTokenHolders(
@@ -547,6 +554,7 @@ func (v *vocdoniHandler) GetTokenHolders(
 	holders := make([][]string, 0)
 	processedTokens := 0
 	totalTokens := len(tokens)
+	totalHolders := 0
 	for _, token := range tokens {
 		tokenAddress := common.HexToAddress(token.Address)
 		tokenHolders, err := v.airstack.GetTokenBalances(tokenAddress, token.Blockchain)
@@ -560,6 +568,7 @@ func (v *vocdoniHandler) GetTokenHolders(
 
 		for _, tokenHolder := range tokenHolders {
 			holders = append(holders, []string{tokenHolder.Address.String(), tokenHolder.Balance.String()})
+			totalHolders++
 		}
 
 		// update the progress if the progress channel is provided
@@ -572,6 +581,7 @@ func (v *vocdoniHandler) GetTokenHolders(
 			}
 		}
 	}
+	log.Debugf("airstack total holders found: %d", totalHolders)
 	return holders, nil
 }
 
