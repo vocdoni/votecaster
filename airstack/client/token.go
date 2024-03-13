@@ -18,8 +18,8 @@ type TokenDetails struct {
 	TotalSupply *big.Int
 }
 
-// GetTokenDetails gets a token details given its address and blockchain
-func (c *Client) GetTokenDetails(
+// TokenDetails gets a token details given its address and blockchain
+func (c *Client) TokenDetails(
 	tokenAddress common.Address,
 	blockchain string,
 ) (*TokenDetails, error) {
@@ -56,8 +56,8 @@ type TokenHolder struct {
 	Balance *big.Int
 }
 
-// getTokenBalances is a wrapper around the generated function for GraphQL query GetTokenBalances.
-func (c *Client) getTokenBalances(
+// tokenBalances is a wrapper around the generated function for GraphQL query TokenBalances.
+func (c *Client) tokenBalances(
 	tokenAddress common.Address,
 	blockchain gql.TokenBlockchain,
 	limit int,
@@ -80,9 +80,9 @@ func (c *Client) getTokenBalances(
 	return nil, fmt.Errorf("max GraphQL retries reached, error: %w", err)
 }
 
-// GetTokenBalances gets all the token holders of a given token in a given chain
+// TokenBalances gets all the token holders of a given token in a given chain
 // calling the Airstack API. This function also takes care of Airstack API pagination.
-func (c *Client) GetTokenBalances(tokenAddress common.Address, blockchain string) ([]*TokenHolder, error) {
+func (c *Client) TokenBalances(tokenAddress common.Address, blockchain string) ([]*TokenHolder, error) {
 	hasNextPage := true
 	cursor := ""
 	th := make([]*TokenHolder, 0)
@@ -91,7 +91,7 @@ func (c *Client) GetTokenBalances(tokenAddress common.Address, blockchain string
 		return nil, fmt.Errorf("invalid blockchain provided")
 	}
 	for hasNextPage {
-		resp, err := c.getTokenBalances(tokenAddress, b, airstackAPIlimit, cursor)
+		resp, err := c.tokenBalances(tokenAddress, b, airstackAPIlimit, cursor)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get token balances from Airstack: %w", err)
 		}

@@ -68,8 +68,10 @@ const (
 	FrameCensusTypeFollowers
 	// FrameCensusTypeFile is a census created from a file.
 	FrameCensusTypeFile
-	// FrameCensusTypeToken is a census created from the token holders of an NFT
-	FrameCensusTypeToken
+	// FrameCensusTypeNFT is a census created from the token holders of an NFT
+	FrameCensusTypeNFT
+	// FrameCensusTypeERC20 is a census created from the token holders of an ERC20
+	FrameCensusTypeERC20
 )
 
 // CensusInfo contains the information of a census.
@@ -434,57 +436,73 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 	return ctx.Send(data, http.StatusOK)
 }
 
-type Token struct {
-	Address    string `json:"address"`
-	Blockchain string `json:"blockchain"`
-}
+const (
+	// NFTtype represents an NFT token type used in the census
+	NFTtype = iota
+	// ERC20type representing an ERC20 token type used in the census
+	ERC20type
 
-func (v *vocdoniHandler) censusTokenNFT(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	req := struct {
-		Tokens []*Token `json:"tokens"`
-	}{}
+	MAXNFTTokens   = 3
+	MAXERC20Tokens = 1
+)
+
+func (v *vocdoniHandler) censusTokenNFTAirstack(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	req := &CensusTokensRequest{}
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return err
 	}
 	// check valid tokens length
-	if len(req.Tokens) > 3 || len(req.Tokens) == 0 {
+	if len(req.Tokens) > MAXNFTTokens || len(req.Tokens) == 0 {
 		return fmt.Errorf("invalid number of NFT tokens, bounds between 1 and 3")
 	}
 	// check valid tokens
-	for _, token := range req.Tokens {
-		if _, err := v.airstack.BlockchainToTokenBlockchain(token.Blockchain); err != nil {
-			return fmt.Errorf("invalid blockchain for token %s provided", token.Address)
-		}
+	if err := v.checkTokens(req.Tokens); err != nil {
+		return err
 	}
-	data, err := v.censusToken(req.Tokens)
+
+	data, err := v.censusTokenAirstack(req.Tokens, NFTtype)
 	if err != nil {
 		return fmt.Errorf("cannot create nft census: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) censusTokenERC20(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	req := struct {
-		Token Token `json:"token"`
-	}{}
+func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) error {
+	for _, token := range tokens {
+		if len(token.Address) == 0 {
+			return fmt.Errorf("invalid token information: %v", token)
+		}
+		if _, err := v.airstack.BlockchainToTokenBlockchain(token.Blockchain); err != nil {
+			return fmt.Errorf("invalid blockchain for token %s provided", token.Address)
+		}
+	}
+	return nil
+}
+
+func (v *vocdoniHandler) censusTokenERC20Airstack(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	req := &CensusTokensRequest{}
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return err
 	}
-
-	// check valid token
-	if _, err := v.airstack.BlockchainToTokenBlockchain(req.Token.Blockchain); err != nil {
-		return fmt.Errorf("invalid blockchain for token %s provided", req.Token.Address)
+	if len(req.Tokens) != MAXERC20Tokens {
+		return fmt.Errorf("invalid number of ERC20 tokens, must be %d", MAXERC20Tokens)
 	}
-	tks := make([]*Token, 1)
-	tks[0] = &req.Token
-	data, err := v.censusToken(tks)
+	// check valid token
+	if err := v.checkTokens(req.Tokens); err != nil {
+		return err
+	}
+
+	data, err := v.censusTokenAirstack(req.Tokens, ERC20type)
 	if err != nil {
 		return fmt.Errorf("cannot create erc20 census: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) censusToken(tokens []*Token) ([]byte, error) {
+func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType int) ([]byte, error) {
+	if v.airstack == nil {
+		return nil, fmt.Errorf("airstack service not available")
+	}
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
 		return nil, err
@@ -497,7 +515,7 @@ func (v *vocdoniHandler) censusToken(tokens []*Token) ([]byte, error) {
 		// get holders for each token
 		holders := make([][]string, 0)
 		v.trackStepProgress(censusID, 1, 3, func(progress chan int) {
-			holders, err = v.GetTokenHolders(tokens, censusID, progress)
+			holders, err = v.getTokenHoldersFromAirstack(tokens, censusID, progress)
 		})
 		if err != nil {
 			log.Warnw("failed to build census from NFT, cannot get holders", "err", err.Error())
@@ -516,7 +534,11 @@ func (v *vocdoniHandler) censusToken(tokens []*Token) ([]byte, error) {
 		}
 		var ci *CensusInfo
 		v.trackStepProgress(censusID, 3, 3, func(progress chan int) {
-			ci, err = CreateCensus(v.cli, participants, FrameCensusTypeToken, progress)
+			if tokenType == ERC20type {
+				ci, err = CreateCensus(v.cli, participants, FrameCensusTypeERC20, progress)
+			} else if tokenType == NFTtype {
+				ci, err = CreateCensus(v.cli, participants, FrameCensusTypeNFT, progress)
+			}
 		})
 		if err != nil {
 			log.Errorw(err, "failed to create census")
@@ -548,8 +570,10 @@ func (v *vocdoniHandler) censusToken(tokens []*Token) ([]byte, error) {
 	return data, nil
 }
 
-func (v *vocdoniHandler) GetTokenHolders(
-	tokens []*Token, censusID types.HexBytes, progress chan int,
+// getTokenHoldersFromAirstack retuns a list of token holders ans their balances given a list of tokens
+// It fetches the information of the token holders by consuming the Airstack API
+func (v *vocdoniHandler) getTokenHoldersFromAirstack(
+	tokens []*CensusToken, censusID types.HexBytes, progress chan int,
 ) ([][]string, error) {
 	holders := make([][]string, 0)
 	processedTokens := 0
@@ -557,7 +581,7 @@ func (v *vocdoniHandler) GetTokenHolders(
 	totalHolders := 0
 	for _, token := range tokens {
 		tokenAddress := common.HexToAddress(token.Address)
-		tokenHolders, err := v.airstack.GetTokenBalances(tokenAddress, token.Blockchain)
+		tokenHolders, err := v.airstack.TokenBalances(tokenAddress, token.Blockchain)
 		if err != nil {
 			log.Warnw("failed to create census for token %s: %v", token.Address, err)
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{

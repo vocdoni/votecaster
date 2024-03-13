@@ -31,3 +31,14 @@ type ElectionDescription struct {
 	Duration  time.Duration `json:"duration"`
 	Overwrite bool          `json:"overwrite"`
 }
+
+// CensusToken defines the parameters for a census token
+type CensusToken struct {
+	Address    string `json:"address"`
+	Blockchain string `json:"blockchain"`
+}
+
+// CensusTokensRequest wraps a token census creation request
+type CensusTokensRequest struct {
+	Tokens []*CensusToken `json:"tokens"`
+}

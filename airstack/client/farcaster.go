@@ -16,9 +16,9 @@ type FarcasterUser struct {
 	ProfileName  string
 }
 
-// getFarcasterUsersWithAssociatedAddresses is a wrapper around the generated function
-// for GraphQL query GetFarcasterUsersWithAssociatedAddresses.
-func (c *Client) getFarcasterUsersWithAssociatedAddresses(
+// farcasterUsersWithAssociatedAddresses is a wrapper around the generated function
+// for GraphQL query farcasterUsersWithAssociatedAddresses.
+func (c *Client) farcasterUsersWithAssociatedAddresses(
 	limit int,
 	cursor string,
 ) (*gql.GetFarcasterUsersWithAssociatedAddressesResponse, error) {
@@ -39,14 +39,14 @@ func (c *Client) getFarcasterUsersWithAssociatedAddresses(
 	return nil, fmt.Errorf("max GraphQL retries reached, error: %w", err)
 }
 
-// GetFarcasterUsersWithAssociatedAddresses gets all the Farcaster users ids with their
+// FarcasterUsersWithAssociatedAddresses gets all the Farcaster users ids with their
 // associated EVM addresses calling the Airstack API. This function also takes care of Airstack API pagination.
-func (c *Client) GetFarcasterUsersWithAssociatedAddresses() ([]*FarcasterUser, error) {
+func (c *Client) FarcasterUsersWithAssociatedAddresses() ([]*FarcasterUser, error) {
 	hasNextPage := true
 	cursor := ""
 	fu := make([]*FarcasterUser, 0)
 	for hasNextPage {
-		resp, err := c.getFarcasterUsersWithAssociatedAddresses(airstackAPIlimit, cursor)
+		resp, err := c.farcasterUsersWithAssociatedAddresses(airstackAPIlimit, cursor)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get users from Airstack: %w", err)
 		}
@@ -62,9 +62,9 @@ func (c *Client) GetFarcasterUsersWithAssociatedAddresses() ([]*FarcasterUser, e
 	return fu, nil
 }
 
-// getFarcasterUsersByChannel is a wrapper around the generated function
-// for GraphQL query GetFarcasterUsersByChannel.
-func (c *Client) getFarcastersUsersByChannel(
+// farcasterUsersByChannel is a wrapper around the generated function
+// for GraphQL query FarcasterUsersByChannel.
+func (c *Client) farcasterUsersByChannel(
 	channelName string, limit int, cursor string,
 ) (*gql.GetFarcasterUsersByChannelResponse, error) {
 	cctx, cancel := context.WithTimeout(c.ctx, apiTimeout)
@@ -84,14 +84,14 @@ func (c *Client) getFarcastersUsersByChannel(
 	return nil, fmt.Errorf("max GraphQL retries reached, error: %w", err)
 }
 
-// GetFarcasterUsersByChannel gets all the Farcaster user ids of a given channel
+// FarcasterUsersByChannel gets all the Farcaster user ids of a given channel
 // calling the Airstack API. This function also takes care of Airstack API pagination.
-func (c *Client) GetFarcasterUsersByChannel(channelId string) ([]*FarcasterUser, error) {
+func (c *Client) FarcasterUsersByChannel(channelId string) ([]*FarcasterUser, error) {
 	hasNextPage := true
 	cursor := ""
 	fuser := make([]*FarcasterUser, 0)
 	for hasNextPage {
-		resp, err := c.getFarcastersUsersByChannel(channelId, airstackAPIlimit, cursor)
+		resp, err := c.farcasterUsersByChannel(channelId, airstackAPIlimit, cursor)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get channel users id from Airstack: %w", err)
 		}
