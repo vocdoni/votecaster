@@ -1,0 +1,41 @@
+query GetFarcasterUsersWithAssociatedAddresses($limit: Int, $cursor: String) {
+    Socials(
+        input: {filter: {dappName: {_eq: farcaster}}, blockchain: ethereum, limit: $limit, cursor: $cursor}
+    ) {
+        Social {
+            userId
+            userAssociatedAddresses
+        }
+        pageInfo {
+            nextCursor
+            prevCursor
+            hasNextPage
+            hasPrevPage
+        }
+    }
+}
+
+query GetFarcasterUsersByChannel($channelId: String, $limit: Int, $cursor: String) {
+    FarcasterChannels(
+        input: {filter: {channelId: {_eq: $channelId}} blockchain: ALL, limit: $limit, cursor: $cursor}
+    ) {
+        FarcasterChannel {
+            participants {
+                participant {
+                    userAddress
+                    profileName
+                    fid: userId
+                    userAssociatedAddresses
+                    followerCount
+                    followingCount
+                }
+            }
+        }
+        pageInfo {
+            hasNextPage
+            hasPrevPage
+            nextCursor
+            prevCursor
+        }
+    }
+}

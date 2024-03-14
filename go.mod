@@ -3,6 +3,7 @@ module github.com/vocdoni/vote-frame
 go 1.22.0
 
 require (
+	github.com/Khan/genqlient v0.6.0
 	github.com/ethereum/go-ethereum v1.13.8
 	github.com/frankban/quicktest v1.14.6
 	github.com/google/uuid v1.5.0
@@ -27,8 +28,11 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/VictoriaMetrics/fastcache v1.12.1 // indirect
 	github.com/VictoriaMetrics/metrics v1.24.0 // indirect
+	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 // indirect
+	github.com/alexflint/go-arg v1.4.2 // indirect
+	github.com/alexflint/go-scalar v1.0.0 // indirect
 	github.com/arnaucube/go-blindsecp256k1 v0.0.0-20211204171003-644e7408753f // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -282,6 +286,7 @@ require (
 	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb // indirect
 	github.com/valyala/fastrand v1.1.0 // indirect
 	github.com/valyala/histogram v1.2.0 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.1 // indirect
 	github.com/vocdoni/storage-proofs-eth-go v0.1.6 // indirect
 	github.com/wasmerio/wasmer-go v1.0.4 // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
