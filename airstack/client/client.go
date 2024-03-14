@@ -17,17 +17,8 @@ const (
 	maxAPIRetries    = 3
 )
 
-// keep up to date when regenerating bindings for Airstack schema
-const (
-	// BlockchainEthereum is the blockchain type used for querying Ethereum Mainnet
-	BlockchainEthereum = "ethereum"
-	// BlockchainPolygon is the blockchain type used for querying Polygon
-	BlockchainPolygon = "polygon"
-	// BlockchainBase is the blockchain type used for querying Base
-	BlockchainBase = "base"
-	// BlockchainZora is the blockchain type used for querying Zora
-	BlockchainZora = "zora"
-)
+// blockchains represent all supported airstack networks
+var blockchains = [4]string{"ethereum", "polygon", "base", "zora"}
 
 type httpTransportWithAuth struct {
 	key        string
@@ -83,4 +74,9 @@ func (c *Client) BlockchainToTokenBlockchain(b string) (gql.TokenBlockchain, err
 		return gql.TokenBlockchainZora, nil
 	}
 	return "", fmt.Errorf("invalid blockchain")
+}
+
+// Blockchains return an array of available Airstack EVM networks
+func (c *Client) Blockchains() []string {
+	return blockchains[:]
 }

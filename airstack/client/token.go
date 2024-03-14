@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	gql "github.com/vocdoni/vote-frame/airstack/graphql"
+	"go.vocdoni.io/dvote/log"
 )
 
 // TokenDetails wraps useful information about a token
@@ -90,6 +91,8 @@ func (c *Client) TokenBalances(tokenAddress common.Address, blockchain string) (
 	if err != nil {
 		return nil, fmt.Errorf("invalid blockchain provided")
 	}
+	totalHolders := 0
+	totalPages := 0
 	for hasNextPage {
 		resp, err := c.tokenBalances(tokenAddress, b, airstackAPIlimit, cursor)
 		if err != nil {
@@ -105,6 +108,9 @@ func (c *Client) TokenBalances(tokenAddress common.Address, blockchain string) (
 		}
 		cursor = resp.TokenBalances.PageInfo.NextCursor
 		hasNextPage = cursor != ""
+		totalHolders += len(resp.TokenBalances.TokenBalance)
+		totalPages++
 	}
+	log.Debugf("fetched %d items in %d pages for token %s", totalHolders, totalPages, tokenAddress)
 	return th, nil
 }

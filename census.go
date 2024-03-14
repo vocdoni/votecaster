@@ -446,6 +446,14 @@ const (
 	MAXERC20Tokens = 1
 )
 
+func (v *vocdoniHandler) censusBlockchainsAirstack(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	data, err := json.Marshal(map[string][]string{"blockchains": v.airstack.Blockchains()})
+	if err != nil {
+		return err
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
 func (v *vocdoniHandler) censusTokenNFTAirstack(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	req := &CensusTokensRequest{}
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
@@ -592,8 +600,9 @@ func (v *vocdoniHandler) getTokenHoldersFromAirstack(
 
 		for _, tokenHolder := range tokenHolders {
 			holders = append(holders, []string{tokenHolder.Address.String(), tokenHolder.Balance.String()})
-			totalHolders++
 		}
+
+		totalHolders += len(tokenHolders)
 
 		// update the progress if the progress channel is provided
 		// since the response time of GetTokenBalances is unknown, because it dependends on the total number
