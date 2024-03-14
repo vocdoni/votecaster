@@ -8,6 +8,7 @@ import (
 
 	gqlClient "github.com/Khan/genqlient/graphql"
 	gql "github.com/vocdoni/vote-frame/airstack/graphql"
+	"go.vocdoni.io/dvote/log"
 )
 
 // Constants
@@ -17,8 +18,14 @@ const (
 	maxAPIRetries    = 3
 )
 
-// blockchains represent all supported airstack networks
-var blockchains = [4]string{"ethereum", "polygon", "base", "zora"}
+// airstackSupportedBlockchains represent all supported airstack networks
+// add new blockchains if airstack schema changed and bindings regenerated
+var airstackSupportedBlockchains = map[string]gql.TokenBlockchain{
+	"ethereum": gql.TokenBlockchainEthereum,
+	"polygon":  gql.TokenBlockchainPolygon,
+	"base":     gql.TokenBlockchainBase,
+	"zora":     gql.TokenBlockchainZora,
+}
 
 type httpTransportWithAuth struct {
 	key        string
@@ -36,13 +43,14 @@ func (t *httpTransportWithAuth) RoundTrip(req *http.Request) (*http.Response, er
 // Client manages the API client for Airstack.
 type Client struct {
 	gqlClient.Client
-	apiKey string
-	url    string
-	ctx    context.Context
+	apiKey      string
+	url         string
+	blockchains []string
+	ctx         context.Context
 }
 
 // NewClient initializes a new Airstack client.
-func NewClient(ctx context.Context, endpoint, apiKey string) (*Client, error) {
+func NewClient(ctx context.Context, endpoint, apiKey string, blockchains []string) (*Client, error) {
 	if endpoint == "" || apiKey == "" {
 		return nil, fmt.Errorf("endpoint and apiKey are required")
 	}
@@ -50,6 +58,14 @@ func NewClient(ctx context.Context, endpoint, apiKey string) (*Client, error) {
 		apiKey: apiKey,
 		url:    endpoint,
 		ctx:    ctx,
+	}
+	// check if api requested blockchains are supported by airstack api
+	for _, chain := range blockchains {
+		if _, ok := airstackSupportedBlockchains[chain]; !ok {
+			log.Warnf("requested network %s not supported by airstack", chain)
+			continue
+		}
+		ac.blockchains = append(ac.blockchains, chain)
 	}
 	ac.Client = gqlClient.NewClient(endpoint, &http.Client{
 		Timeout: apiTimeout,
@@ -62,21 +78,15 @@ func NewClient(ctx context.Context, endpoint, apiKey string) (*Client, error) {
 	return ac, nil
 }
 
-func (c *Client) BlockchainToTokenBlockchain(b string) (gql.TokenBlockchain, error) {
-	switch b {
-	case "ethereum":
-		return gql.TokenBlockchainEthereum, nil
-	case "polygon":
-		return gql.TokenBlockchainPolygon, nil
-	case "base":
-		return gql.TokenBlockchainBase, nil
-	case "zora":
-		return gql.TokenBlockchainZora, nil
+func (c *Client) blockchainToTokenBlockchain(b string) (gql.TokenBlockchain, bool) {
+	tokenBlockchain, ok := airstackSupportedBlockchains[b]
+	if !ok {
+		return "", false
 	}
-	return "", fmt.Errorf("invalid blockchain")
+	return tokenBlockchain, true
 }
 
 // Blockchains return an array of available Airstack EVM networks
 func (c *Client) Blockchains() []string {
-	return blockchains[:]
+	return c.blockchains
 }

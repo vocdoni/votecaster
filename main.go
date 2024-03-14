@@ -74,6 +74,7 @@ func main() {
 	// Airstack flags
 	flag.String("airstackAPIEndpoint", "https://api.airstack.xyz/gql", "The Airstack API endpoint to use")
 	flag.String("airstackAPIKey", "", "The Airstack API key to use")
+	flag.String("airstackBlockchains", "ethereum,base,zora,polygon", "Supported Airstack networks")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -120,6 +121,7 @@ func main() {
 	// airstack vars
 	airstackEndpoint := viper.GetString("airstackAPIEndpoint")
 	airstackKey := viper.GetString("airstackAPIKey")
+	airstackBlockchains := viper.GetString("airstackBlockchains")
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
@@ -156,6 +158,9 @@ func main() {
 		"web3endpoint", web3endpoint,
 		"indexer", indexer,
 		"apiToken", apiToken,
+		"airstackAPIEndpoint", airstackEndpoint,
+		"airstackAPIKey", airstackKey,
+		"airstackBlockchains", airstackBlockchains,
 	)
 
 	// Start the pprof http endpoints
@@ -224,7 +229,7 @@ func main() {
 	// Create Airstack artifact
 	var as *airstack.Airstack
 	if airstackKey != "" {
-		as, err = airstack.NewAirstack(mainCtx, airstackEndpoint, airstackKey)
+		as, err = airstack.NewAirstack(mainCtx, airstackEndpoint, airstackKey, airstackBlockchains)
 		if err != nil {
 			log.Fatal(err)
 		}

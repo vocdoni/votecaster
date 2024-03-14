@@ -480,7 +480,13 @@ func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) error {
 		if len(token.Address) == 0 {
 			return fmt.Errorf("invalid token information: %v", token)
 		}
-		if _, err := v.airstack.BlockchainToTokenBlockchain(token.Blockchain); err != nil {
+		ok := false
+		for _, bk := range v.airstack.Blockchains() {
+			if bk == token.Blockchain {
+				ok = true
+			}
+		}
+		if !ok {
 			return fmt.Errorf("invalid blockchain for token %s provided", token.Address)
 		}
 	}
