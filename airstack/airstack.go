@@ -101,7 +101,7 @@ func (a *Airstack) NumHoldersByTokenAnkrAPI(tokenAddress, blockchain string) (ui
 	}
 
 	// Check for errors in the response
-	errorMsg, found := responseMap["result"].(map[string]interface{})
+	errorMsg, found := responseMap["error"].(map[string]interface{})
 	if found {
 		return 0, fmt.Errorf("error in response: %s", errorMsg)
 	}
