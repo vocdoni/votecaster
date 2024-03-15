@@ -489,6 +489,12 @@ func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) error {
 		if !ok {
 			return fmt.Errorf("invalid blockchain for token %s provided", token.Address)
 		}
+		// check max holders
+		if holders, err := v.airstack.NumHoldersByTokenAnkrAPI(token.Address, token.Blockchain); err != nil {
+			return fmt.Errorf("cannot get holders for token %s: %w", token.Address, err)
+		} else if holders > v.airstack.MaxHolders() {
+			return fmt.Errorf("token %s has too many holders: %d", token.Address, holders)
+		}
 	}
 	return nil
 }

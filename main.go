@@ -75,6 +75,8 @@ func main() {
 	flag.String("airstackAPIEndpoint", "https://api.airstack.xyz/gql", "The Airstack API endpoint to use")
 	flag.String("airstackAPIKey", "", "The Airstack API key to use")
 	flag.String("airstackBlockchains", "ethereum,base,zora,polygon", "Supported Airstack networks")
+	flag.Int("airstackMaxHolders", 10000, "The maximum number of holders to be retrieved from the Airstack API")
+	flag.String("airstackSupportAPIEndpoint", "", "Airstack support API endpoint")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -122,6 +124,8 @@ func main() {
 	airstackEndpoint := viper.GetString("airstackAPIEndpoint")
 	airstackKey := viper.GetString("airstackAPIKey")
 	airstackBlockchains := viper.GetString("airstackBlockchains")
+	airstackMaxHolders := uint32(viper.GetInt("airstackMaxHolders"))
+	airstackSupportAPIEndpoint := viper.GetString("airstackSupportAPIEndpoint")
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
@@ -229,7 +233,7 @@ func main() {
 	// Create Airstack artifact
 	var as *airstack.Airstack
 	if airstackKey != "" {
-		as, err = airstack.NewAirstack(mainCtx, airstackEndpoint, airstackKey, airstackBlockchains)
+		as, err = airstack.NewAirstack(mainCtx, airstackEndpoint, airstackKey, airstackSupportAPIEndpoint, airstackBlockchains, airstackMaxHolders)
 		if err != nil {
 			log.Fatal(err)
 		}
