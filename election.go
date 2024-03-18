@@ -24,6 +24,10 @@ import (
 const (
 	ElectionSourceWebApp = "farcaster.vote"
 	ElectionSourceBot    = "bot"
+	// MaxUsersToNotify is the maximum number of users to notify in a single
+	// election. If the census is larger than this number, the notification
+	// will not be sent, but the election will still be created.
+	MaxUsersToNotify = 1000
 )
 
 func (v *vocdoniHandler) election(electionID types.HexBytes) (*api.Election, error) {
@@ -311,6 +315,9 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 			return fmt.Errorf("failed to save election and profile: %w", err)
 		}
 		if notify {
+			if len(census.Usernames) > MaxUsersToNotify {
+				return fmt.Errorf("census too large to notify users but election has been created successfully")
+			}
 			frameURL := fmt.Sprintf("%s/%x", serverURL, electionID)
 			if err := v.createNotifications(electionID, profile, census, frameURL); err != nil {
 				return fmt.Errorf("failed to create notifications: %w", err)
