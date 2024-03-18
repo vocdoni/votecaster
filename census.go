@@ -102,6 +102,12 @@ func (c *CensusInfo) FromFile(file string) error {
 	return nil
 }
 
+// MustIncludeUsers returns true if the census type requires to include the
+// usernames in the census information when it's returned to the client.
+func (c *CensusInfo) MustIncludeUsers() bool {
+	return c.Type == FrameCensusTypeCSV || c.Type == FrameCensusTypeERC20
+}
+
 // FarcasterParticipant is a participant in the Farcaster network to be included in the census.
 type FarcasterParticipant struct {
 	PubKey   []byte   `json:"pubkey"`
@@ -209,7 +215,6 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-
 		// since each participant can have multiple signers, we need to get the unique usernames
 		uniqueParticipantsMap := make(map[string]struct{})
 		for _, p := range participants {
@@ -426,7 +431,7 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 		}
 		return ctx.Send(data, http.StatusAccepted)
 	}
-	if censusInfo.Type != FrameCensusTypeCSV {
+	if !censusInfo.MustIncludeUsers() {
 		censusInfo.Usernames = nil
 	}
 	data, err := json.Marshal(censusInfo)
