@@ -24,9 +24,16 @@ type API interface {
 	// returns the messages in a slice of APIMessage, the last timestamp and an
 	// error if something goes wrong
 	LastMentions(ctx context.Context, timestamp uint64) ([]*APIMessage, uint64, error)
+	// Publish publishes a new cast with the given content, it returns an error
+	// if something goes wrong. It receives a slice of fids to mention that will
+	// be used to complete the content with the mentions. The fids must be
+	// placed in the mentions slice in the same order they are in the content.
+	// It also receives a slice of embedURLS that will be used to embed the
+	// given URLs in the content.
+	Publish(ctx context.Context, content string, mentionFids []uint64, embedURLS ...string) error
 	// Reply replies to a cast of the given fid with the given hash and content,
 	// it returns an error if something goes wrong
-	Reply(ctx context.Context, fid uint64, hash string, content string, embedURLS ...string) error
+	Reply(ctx context.Context, targetMsg *APIMessage, content string, mentionFids []uint64, embedURLS ...string) error
 	// UserDataByFID retrieves the Userdata of the user with the given fid, if
 	// something goes wrong, it returns an error
 	UserDataByFID(ctx context.Context, fid uint64) (*Userdata, error)

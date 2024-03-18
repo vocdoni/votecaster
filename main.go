@@ -22,6 +22,7 @@ import (
 	"github.com/vocdoni/vote-frame/farcasterapi/hub"
 	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
 	"github.com/vocdoni/vote-frame/mongo"
+	"github.com/vocdoni/vote-frame/notifications"
 	urlapi "go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
@@ -461,6 +462,10 @@ func main() {
 		}
 		defer voteBot.Stop()
 		log.Info("bot started")
+		// start notification manager
+		notificationManager := notifications.New(mainCtx, db, botAPI, notifications.DefaultListenCoolDown)
+		notificationManager.Start()
+		defer notificationManager.Stop()
 	}
 
 	// close if interrupt received
