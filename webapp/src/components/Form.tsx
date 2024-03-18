@@ -7,6 +7,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Checkbox,
   Flex,
   FlexProps,
   FormControl,
@@ -44,6 +45,7 @@ interface FormValues {
   csv: File | undefined
   censusType: 'farcaster' | 'channel' | 'followers' | 'custom'
   channel?: string
+  notify?: boolean
 }
 
 const appUrl = import.meta.env.APP_URL
@@ -62,6 +64,7 @@ const Form: React.FC = (props: FlexProps) => {
     control,
     setValue,
     watch,
+    resetField,
   } = methods
   const { fields, append, remove } = useFieldArray({
     control,
@@ -76,11 +79,19 @@ const Form: React.FC = (props: FlexProps) => {
   const [status, setStatus] = useState<string | null>(null)
   const [censusRecords, setCensusRecords] = useState<number>(0)
 
+  const censusType = watch('censusType')
+
   useEffect(() => {
     if (pid) return
 
     setShortened(null)
   }, [pid])
+
+  useEffect(() => {
+    if (censusType !== 'custom') {
+      resetField('notify')
+    }
+  }, [censusType])
 
   const checkElection = async (pid: string) => {
     try {
@@ -154,7 +165,7 @@ const Form: React.FC = (props: FlexProps) => {
             setUsernames(census.usernames)
             census.size = census.usernames.length
             election.census = census
-            election.notifyUsers = true
+            election.notifyUsers = data.notify || false
             break
           }
           case 'farcaster':
@@ -201,8 +212,6 @@ const Form: React.FC = (props: FlexProps) => {
     value: 50,
     message: 'Max length is 50 characters',
   }
-
-  const censusType = watch('censusType')
 
   return (
     <Flex flexDir='column' alignItems='center' {...props}>
@@ -311,49 +320,54 @@ const Form: React.FC = (props: FlexProps) => {
                     </FormControl>
                   )}
                   {censusType === 'custom' && (
-                    <FormControl isDisabled={loading} isRequired>
-                      <FormLabel htmlFor='csv'>CSV files</FormLabel>
-                      <Input
-                        id='csv'
-                        placeholder='Upload CSV'
-                        type='file'
-                        multiple
-                        accept='text/csv,application/csv,.csv'
-                        {...register('csv', {
-                          required: {
-                            value: true,
-                            message: 'This field is required',
-                          },
-                        })}
-                      />
-                      {errors.csv ? (
-                        <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
-                      ) : (
-                        <FormHelperText>
-                          <Alert status='info'>
-                            <AlertDescription>
-                              The CSV files <strong>must include Ethereum addresses and their balances</strong> from any
-                              network. You can build your own at:
-                              <UnorderedList>
-                                <ListItem>
-                                  <Link target='_blank' href='https://holders.at' variant='primary'>
-                                    holders.at
-                                  </Link>{' '}
-                                  for NFTs
-                                </ListItem>
-                                <ListItem>
-                                  <Link target='_blank' href='https://collectors.poap.xyz' variant='primary'>
-                                    collectors.poap.xyz
-                                  </Link>{' '}
-                                  for POAPs
-                                </ListItem>
-                              </UnorderedList>
-                              <strong>If an address appears multiple times, its balances will be aggregated.</strong>
-                            </AlertDescription>
-                          </Alert>
-                        </FormHelperText>
-                      )}
-                    </FormControl>
+                    <>
+                      <FormControl isDisabled={loading}>
+                        <Checkbox {...register('notify')}>Notify farcaster users</Checkbox>
+                      </FormControl>
+                      <FormControl isDisabled={loading} isRequired>
+                        <FormLabel htmlFor='csv'>CSV files</FormLabel>
+                        <Input
+                          id='csv'
+                          placeholder='Upload CSV'
+                          type='file'
+                          multiple
+                          accept='text/csv,application/csv,.csv'
+                          {...register('csv', {
+                            required: {
+                              value: true,
+                              message: 'This field is required',
+                            },
+                          })}
+                        />
+                        {errors.csv ? (
+                          <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
+                        ) : (
+                          <FormHelperText>
+                            <Alert status='info'>
+                              <AlertDescription>
+                                The CSV files <strong>must include Ethereum addresses and their balances</strong> from
+                                any network. You can build your own at:
+                                <UnorderedList>
+                                  <ListItem>
+                                    <Link target='_blank' href='https://holders.at' variant='primary'>
+                                      holders.at
+                                    </Link>{' '}
+                                    for NFTs
+                                  </ListItem>
+                                  <ListItem>
+                                    <Link target='_blank' href='https://collectors.poap.xyz' variant='primary'>
+                                      collectors.poap.xyz
+                                    </Link>{' '}
+                                    for POAPs
+                                  </ListItem>
+                                </UnorderedList>
+                                <strong>If an address appears multiple times, its balances will be aggregated.</strong>
+                              </AlertDescription>
+                            </Alert>
+                          </FormHelperText>
+                        )}
+                      </FormControl>
+                    </>
                   )}
                   <FormControl isDisabled={loading} isInvalid={!!errors.duration}>
                     <FormLabel htmlFor='duration'>Duration (Optional)</FormLabel>
