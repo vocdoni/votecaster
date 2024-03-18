@@ -61,7 +61,8 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		}
 	}
 
-	electionID, err := v.createAndSaveElectionAndProfile(&req.ElectionDescription, census, req.Profile, false, ElectionSourceWebApp)
+	electionID, err := v.createAndSaveElectionAndProfile(&req.ElectionDescription, census,
+		req.Profile, false, req.NotifyUsers, ElectionSourceWebApp)
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
@@ -289,7 +290,7 @@ func ensureAccountExist(cli *apiclient.HTTPclient) error {
 // a wait flag. If the wait flag is true, it waits until the election is created
 // and saved in the database.
 func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescription,
-	census *CensusInfo, profile *FarcasterProfile, wait bool, source string,
+	census *CensusInfo, profile *FarcasterProfile, wait bool, notify bool, source string,
 ) (types.HexBytes, error) {
 	// use the request census or use the one hardcoded for all farcaster users
 	if census == nil {
@@ -308,6 +309,12 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 		}
 		if err := v.saveElectionAndProfile(election, profile, source); err != nil {
 			return fmt.Errorf("failed to save election and profile: %w", err)
+		}
+		if notify {
+			frameURL := fmt.Sprintf("%s/%x", serverURL, electionID)
+			if err := v.createNotifications(electionID, census, frameURL); err != nil {
+				return fmt.Errorf("failed to create notifications: %w", err)
+			}
 		}
 		return nil
 	}
@@ -350,6 +357,27 @@ func (v *vocdoniHandler) saveElectionAndProfile(election *api.Election, profile 
 		return fmt.Errorf("failed to update user in database: %w", err)
 	}
 	return nil
+}
+
+// createNotifications creates a notification for each user in the census.
+func (v *vocdoniHandler) createNotifications(election types.HexBytes, census *CensusInfo, frameURL string) error {
+	log.Debugw("creating notifications", "electionID", election.String(), "census", census, "frameURL", frameURL)
+	for _, username := range census.Usernames {
+		user, err := v.db.UserByUsername(username)
+		if err != nil {
+			if errors.Is(err, mongo.ErrUserUnknown) {
+				log.Warnw("user not found", "username", username)
+				continue
+			}
+			return fmt.Errorf("failed to get user: %w", err)
+		}
+		if err := v.db.AddNotifications(mongo.NotificationTypeNewElection,
+			election.String(), user.UserID, username, frameURL); err != nil {
+			return fmt.Errorf("failed to add notification: %w", err)
+		}
+	}
+	return nil
+
 }
 
 // finalizeElectionsAtBackround checks for elections without results and finalizes them.

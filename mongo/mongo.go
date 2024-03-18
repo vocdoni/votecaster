@@ -21,12 +21,13 @@ import (
 
 // MongoStorage uses an external MongoDB service for stoting the user data and election details.
 type MongoStorage struct {
-	users     *mongo.Collection
-	elections *mongo.Collection
-	results   *mongo.Collection
-	voters    *mongo.Collection
-	keysLock  sync.RWMutex
-	election  funcGetElection
+	users         *mongo.Collection
+	elections     *mongo.Collection
+	results       *mongo.Collection
+	voters        *mongo.Collection
+	notifications *mongo.Collection
+	keysLock      sync.RWMutex
+	election      funcGetElection
 }
 
 type Options struct {
@@ -88,6 +89,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.elections = client.Database(database).Collection("elections")
 	ms.results = client.Database(database).Collection("results")
 	ms.voters = client.Database(database).Collection("voters")
+	ms.notifications = client.Database(database).Collection("notifications")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
 	// else, just createIndexes

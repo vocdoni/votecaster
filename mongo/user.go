@@ -185,6 +185,21 @@ func (ms *MongoStorage) UserBySigner(signer string) (*User, error) {
 	return &userBySigner, nil
 }
 
+// UserByUsername returns the user that has the given username. If the user is
+// not found, it returns an error.
+func (ms *MongoStorage) UserByUsername(username string) (*User, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var userByUsername User
+	if err := ms.users.FindOne(ctx, bson.M{"username": username}).Decode(&userByUsername); err != nil {
+		return nil, ErrUserUnknown
+	}
+	return &userByUsername, nil
+}
+
 func (ms *MongoStorage) getUserData(userID uint64) (*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

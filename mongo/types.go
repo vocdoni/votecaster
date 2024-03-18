@@ -48,6 +48,24 @@ type VotersOfElection struct {
 	Voters     []uint64 `json:"voters" bson:"voters"`
 }
 
+// NotificationType represents the type of notification to be sent to a user.
+type NotificationType int
+
+const (
+	NotificationTypeNewElection NotificationType = iota
+	// create more notification types here
+)
+
+// Notification represents a notification to be sent to a user.
+type Notification struct {
+	ID         string           `json:"id" bson:"_id"`
+	Type       NotificationType `json:"type" bson:"type"`
+	UserID     uint64           `json:"userId" bson:"userId"`
+	Username   string           `json:"username" bson:"username"`
+	ElectionID string           `json:"electionId" bson:"electionId"`
+	FrameUrl   string           `json:"frameUrl" bson:"frameUrl"`
+}
+
 // Collection is a dataset containing several users, elections and results (used for dump and import).
 type Collection struct {
 	UserCollection
