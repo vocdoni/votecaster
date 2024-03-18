@@ -312,7 +312,7 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 		}
 		if notify {
 			frameURL := fmt.Sprintf("%s/%x", serverURL, electionID)
-			if err := v.createNotifications(electionID, census, frameURL); err != nil {
+			if err := v.createNotifications(electionID, profile, census, frameURL); err != nil {
 				return fmt.Errorf("failed to create notifications: %w", err)
 			}
 		}
@@ -360,7 +360,9 @@ func (v *vocdoniHandler) saveElectionAndProfile(election *api.Election, profile 
 }
 
 // createNotifications creates a notification for each user in the census.
-func (v *vocdoniHandler) createNotifications(election types.HexBytes, census *CensusInfo, frameURL string) error {
+func (v *vocdoniHandler) createNotifications(election types.HexBytes, profile *FarcasterProfile,
+	census *CensusInfo, frameURL string,
+) error {
 	log.Debugw("creating notifications", "electionID", election.String(), "census", census, "frameURL", frameURL)
 	for _, username := range census.Usernames {
 		user, err := v.db.UserByUsername(username)
@@ -371,8 +373,9 @@ func (v *vocdoniHandler) createNotifications(election types.HexBytes, census *Ce
 			}
 			return fmt.Errorf("failed to get user: %w", err)
 		}
-		if err := v.db.AddNotifications(mongo.NotificationTypeNewElection,
-			election.String(), user.UserID, username, frameURL); err != nil {
+
+		if _, err := v.db.AddNotifications(mongo.NotificationTypeNewElection, election.String(),
+			user.UserID, profile.FID, username, profile.DisplayName, frameURL); err != nil {
 			return fmt.Errorf("failed to add notification: %w", err)
 		}
 	}

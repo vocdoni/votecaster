@@ -151,7 +151,7 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 }
 
 func (h *Hub) Publish(ctx context.Context, content string, mentionFIDs []uint64, embeds ...string) error {
-	log.Infow("publishing cast", "msg", content)
+	log.Infow("publishing cast", "msg", content, "embeds", embeds, "mentions", mentionFIDs)
 	// create the cast add body
 	castBody, err := h.newAddCastBody(content, mentionFIDs, embeds...)
 	if err != nil {

@@ -58,12 +58,14 @@ const (
 
 // Notification represents a notification to be sent to a user.
 type Notification struct {
-	ID         string           `json:"id" bson:"_id"`
-	Type       NotificationType `json:"type" bson:"type"`
-	UserID     uint64           `json:"userId" bson:"userId"`
-	Username   string           `json:"username" bson:"username"`
-	ElectionID string           `json:"electionId" bson:"electionId"`
-	FrameUrl   string           `json:"frameUrl" bson:"frameUrl"`
+	ID             int64            `json:"id" bson:"_id"`
+	Type           NotificationType `json:"type" bson:"type"`
+	UserID         uint64           `json:"userId" bson:"userId"`
+	Username       string           `json:"username" bson:"username"`
+	AuthorID       uint64           `json:"authorId" bson:"authorId"`
+	AuthorUsername string           `json:"authorUsername" bson:"authorUsername"`
+	ElectionID     string           `json:"electionId" bson:"electionId"`
+	FrameUrl       string           `json:"frameUrl" bson:"frameUrl"`
 }
 
 // Collection is a dataset containing several users, elections and results (used for dump and import).

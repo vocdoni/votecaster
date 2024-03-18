@@ -123,6 +123,7 @@ const Form: React.FC = (props: FlexProps) => {
         question: data.question,
         duration: Number(data.duration),
         options: data.choices.map((c) => c.choice),
+        notifyUsers: true,
       }
 
       setStatus('Creating census...')
@@ -152,8 +153,8 @@ const Form: React.FC = (props: FlexProps) => {
             setCensusRecords(census.fromTotalAddresses)
             setUsernames(census.usernames)
             census.size = census.usernames.length
-            delete census.usernames
             election.census = census
+            election.notifyUsers = true
             break
           }
           case 'farcaster':
