@@ -233,7 +233,13 @@ func main() {
 	// Create Airstack artifact
 	var as *airstack.Airstack
 	if airstackKey != "" {
-		as, err = airstack.NewAirstack(mainCtx, airstackEndpoint, airstackKey, airstackSupportAPIEndpoint, airstackBlockchains, airstackMaxHolders)
+		as, err = airstack.NewAirstack(
+			mainCtx,
+			airstackEndpoint,
+			airstackKey,
+			airstackSupportAPIEndpoint,
+			strings.Split(airstackBlockchains, ","),
+			airstackMaxHolders)
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	ac "github.com/vocdoni/vote-frame/airstack/client"
@@ -23,8 +22,8 @@ type Airstack struct {
 
 // NewAirstack creates a new Airstack artifact with a reference to a MongoDB and an Airstack client that
 // enables to make predefined queries to the Airstack GraphQL API.
-func NewAirstack(ctx context.Context, endpoint, apiKey, supportAPI, supportedBlockchains string, maxHolders uint32) (*Airstack, error) {
-	client, err := ac.NewClient(ctx, endpoint, apiKey, strings.Split(supportedBlockchains, ","))
+func NewAirstack(ctx context.Context, endpoint, apiKey, supportAPI string, supportedBlockchains []string, maxHolders uint32) (*Airstack, error) {
+	client, err := ac.NewClient(ctx, endpoint, apiKey, supportedBlockchains)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Airstack: %w", err)
 	}
@@ -40,6 +39,11 @@ func (a *Airstack) MaxHolders() uint32 {
 }
 
 func (a *Airstack) NumHoldersByTokenAnkrAPI(tokenAddress, blockchain string) (uint32, error) {
+	if a.supportAPIEndpoint == "" {
+		log.Warnf("No support API endpoint provided, skipping token holder count retrieval")
+		return 0, nil
+	}
+
 	if blockchain == "ethereum" {
 		blockchain = "eth" // Ankr API uses "eth" instead of "ethereum"
 	}
