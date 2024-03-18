@@ -48,6 +48,17 @@ type VotersOfElection struct {
 	Voters     []uint64 `json:"voters" bson:"voters"`
 }
 
+// Authentication represents the authentication data for a user.
+type Authentication struct {
+	UserID     uint64    `json:"userId" bson:"_id"`
+	AuthTokens []string  `json:"authTokens" bson:"authTokens"`
+	UpdatedAt  time.Time `json:"updatedAt" bson:"updatedAt"`
+}
+
+type Authentications struct {
+	Authentications []Authentication `json:"authentications" bson:"authentications"`
+}
+
 // Collection is a dataset containing several users, elections and results (used for dump and import).
 type Collection struct {
 	UserCollection

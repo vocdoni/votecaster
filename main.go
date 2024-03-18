@@ -252,6 +252,23 @@ func main() {
 	// Set the admin token
 	uAPI.Endpoint.SetAdminToken(adminToken)
 
+	// Add the authentication tokens from the database
+	existingAuthTokens, err := db.Authentications()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, token := range existingAuthTokens {
+		uAPI.Endpoint.AddAuthToken(token, 0)
+	}
+
+	// Set the method for adding new auth tokens
+	handler.addAuthTokenFunc = func(fid uint64, token string) {
+		uAPI.Endpoint.AddAuthToken(token, 0)
+		if err := db.AddAuthentication(fid, token); err != nil {
+			log.Errorw(err, "failed to add authentication token to the database")
+		}
+	}
+
 	// The root endpoint redirects to /app
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodGet, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 		ctx.SetHeader("Location", "/app")
@@ -264,6 +281,18 @@ func main() {
 		ctx.SetHeader("Location", "/app")
 		return ctx.Send([]byte("Redirecting to /app"), http.StatusTemporaryRedirect)
 	}); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/auth", http.MethodGet, "public", handler.authLinkHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/auth/check", http.MethodGet, "public", handler.authCheckHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/auth/{id}", http.MethodGet, "public", handler.authVerifyHandler); err != nil {
 		log.Fatal(err)
 	}
 
@@ -352,31 +381,31 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/create", http.MethodPost, "public", handler.createElection); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/create", http.MethodPost, "private", handler.createElection); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/census/csv", http.MethodPost, "public", handler.censusCSV); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/census/csv", http.MethodPost, "private", handler.censusCSV); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}/exists", http.MethodGet, "public", handler.censusChannelExists); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}/exists", http.MethodGet, "private", handler.censusChannelExists); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/census/followers/{userFid}", http.MethodPost, "public", handler.censusFollowers); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/census/followers/{userFid}", http.MethodPost, "private", handler.censusFollowers); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}", http.MethodPost, "public", handler.censusChannel); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}", http.MethodPost, "private", handler.censusChannel); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/census/check/{censusID}", http.MethodGet, "public", handler.censusQueueInfo); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/census/check/{censusID}", http.MethodGet, "private", handler.censusQueueInfo); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/create/check/{electionID}", http.MethodGet, "public", handler.checkElection); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/create/check/{electionID}", http.MethodGet, "private", handler.checkElection); err != nil {
 		log.Fatal(err)
 	}
 
