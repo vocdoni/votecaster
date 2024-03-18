@@ -108,7 +108,7 @@ func (h *Hub) buildAndSignAddCastBody(castAddBody *hubproto.CastAddBody) ([]byte
 // returns the content and an error. If the body is nil, it returns an empty
 // string and no error. If the body is not nil, it replaces the mentions with
 // the usernames and returns the content.
-func (h *Hub) composeCastContent(body *HubCastAddBody) (string, error) {
+func (h *Hub) composeCastContent(body *hubCastAddBody) (string, error) {
 	if body == nil {
 		return "", nil
 	}
@@ -133,11 +133,11 @@ func (h *Hub) composeCastContent(body *HubCastAddBody) (string, error) {
 // the fids, it returns an error. If the mentions are the same length as the
 // fids, it calculates the position of the mentions, removes them from the
 // content, and returns the body.
-func (h *Hub) decomposeContent(content string, mentionFids []uint64) (*HubCastAddBody, error) {
+func (h *Hub) decomposeContent(content string, mentionFids []uint64) (*hubCastAddBody, error) {
 	// get the mentions from the content
 	usernames := mentionRgx.FindAllString(content, -1)
 	if len(usernames) == 0 {
-		return &HubCastAddBody{
+		return &hubCastAddBody{
 			Text: content,
 		}, nil
 	}
@@ -154,7 +154,7 @@ func (h *Hub) decomposeContent(content string, mentionFids []uint64) (*HubCastAd
 	// remove mentions from the content
 	content = mentionRgx.ReplaceAllString(content, "")
 	// build the body with the cleaned content and the mentions
-	return &HubCastAddBody{
+	return &hubCastAddBody{
 		Text:              content,
 		Mentions:          mentionFids,
 		MentionsPositions: mentionsPositions,

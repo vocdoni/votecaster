@@ -10,7 +10,6 @@ import (
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
-	"lukechampine.com/blake3"
 )
 
 var oldImagesHandlerMap = map[string]string{
@@ -19,7 +18,7 @@ var oldImagesHandlerMap = map[string]string{
 
 func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	id := ctx.URLParam("id")
-	data := v.imageFromCache(id)
+	data := imageframe.FromCache(id)
 	if data != nil {
 		return imageResponse(ctx, data)
 	}
@@ -39,11 +38,11 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 			if err != nil {
 				return errorImageResponse(ctx, fmt.Errorf("id not found... click results"))
 			}
-			png, err := buildResultsPNG(election)
+			id, err := imageframe.ResultsImage(election)
 			if err != nil {
 				return errorImageResponse(ctx, fmt.Errorf("failed to build results: %w", err))
 			}
-			return imageResponse(ctx, png)
+			return imageResponse(ctx, imageframe.FromCache(id))
 		} else {
 			log.Debugw("access to old PNG", "requestURI", ctx.Request.RequestURI, "url", ctx.Request.URL)
 			return errorImageResponse(ctx, fmt.Errorf("nothing here... click results"))
@@ -57,6 +56,9 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	// check if the election is finished and if so, send the final results as a static PNG
 	pngResults := v.db.FinalResultsPNG(electionID)
 	if pngResults != nil {
+		log.Warnw("image recovery, found final results PNG!", "electionID", electionID, "imgID", id)
+		// for future requests, add the image to the cache with the given id
+		imageframe.AddImageToCacheWithID(id, pngResults)
 		return imageResponse(ctx, pngResults)
 	}
 
@@ -65,36 +67,12 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to get election: %w", err))
 	}
-	png, err := buildLandingPNG(election)
+	png, err := imageframe.QuestionImage(election)
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to build landing: %w", err))
 	}
-	return imageResponse(ctx, png)
-}
-
-// addImageToCache adds an image to the LRU cache.
-// Returns the full URL (absolute) of the image.
-// If electionID is nil, the image is not associated with any election.
-func (v *vocdoniHandler) addImageToCache(data []byte, electionID types.HexBytes) string {
-	id := blake3.Sum256(data)
-	var idstr string
-	if electionID == nil {
-		idstr = hex.EncodeToString(id[:])
-	} else {
-		idstr = fmt.Sprintf("%s_%s", electionID.String(), hex.EncodeToString(id[:8]))
-	}
-	v.imagesLRU.Add(idstr, data)
-	return fmt.Sprintf("%s%s/%s.png", serverURL, imageHandlerPath, idstr)
-}
-
-// imageFromCache gets an image from the LRU cache.
-// Returns nil if the image is not in the cache.
-func (v *vocdoniHandler) imageFromCache(id string) []byte {
-	data, ok := v.imagesLRU.Get(id)
-	if !ok {
-		return nil
-	}
-	return data
+	log.Warnw("image recovery, built landing PNG", "electionID", electionID, "imgID", id)
+	return imageResponse(ctx, imageframe.FromCache(png))
 }
 
 func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -111,13 +89,13 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return errorImageResponse(ctx, fmt.Errorf("election has no questions"))
 	}
 
-	png, err := buildLandingPNG(election)
+	png, err := imageframe.QuestionImage(election)
 	if err != nil {
 		return errorImageResponse(ctx, err)
 	}
 
 	// set png headers and return response as is
-	return imageResponse(ctx, png)
+	return imageResponse(ctx, imageframe.FromCache(png))
 }
 
 func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
@@ -136,5 +114,10 @@ func errorImageResponse(ctx *httprouter.HTTPContext, err error) error {
 	if err != nil {
 		return err
 	}
-	return imageResponse(ctx, png)
+	return imageResponse(ctx, imageframe.FromCache(png))
+}
+
+// imageLink returns the URL for the image with the given key.
+func imageLink(imageKey string) string {
+	return fmt.Sprintf("%s/images/%s.png", serverURL, imageKey)
 }

@@ -65,7 +65,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
-	ctx.Writer.Header().Set("Content-Type", "application/json")
+	ctx.SetResponseContentType("application/json")
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)
 }
 
@@ -95,7 +95,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 		return fmt.Errorf("failed to generate image: %v", err)
 	}
 	// send the response
-	response := strings.ReplaceAll(frame(frameVote), "{image}", v.addImageToCache(png, electionIDbytes))
+	response := strings.ReplaceAll(frame(frameVote), "{image}", imageLink(png))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
 
@@ -350,4 +350,49 @@ func (v *vocdoniHandler) saveElectionAndProfile(election *api.Election, profile 
 		return fmt.Errorf("failed to update user in database: %w", err)
 	}
 	return nil
+}
+
+// finalizeElectionsAtBackround checks for elections without results and finalizes them.
+// Stores the final results as a static PNG image in the database. It must run in the background.
+func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(120 * time.Second):
+			electionIDs, err := v.db.ElectionsWithoutResults(ctx)
+			if err != nil {
+				log.Errorw(err, "failed to get elections without results")
+				continue
+			}
+			if len(electionIDs) > 0 {
+				log.Debugw("found elections without results", "count", len(electionIDs))
+			}
+			for _, electionID := range electionIDs {
+				time.Sleep(5 * time.Second)
+				electionIDbytes, err := hex.DecodeString(electionID)
+				if err != nil {
+					log.Errorw(err, "failed to decode electionID")
+					continue
+				}
+				election, err := v.cli.Election(electionIDbytes)
+				if err != nil {
+					log.Errorw(err, "failed to get election")
+					continue
+				}
+				if election.FinalResults {
+					png, err := imageframe.ResultsImage(election)
+					if err != nil {
+						log.Errorw(err, "failed to generate results image")
+						continue
+					}
+					if err := v.db.AddFinalResults(electionIDbytes, imageframe.FromCache(png)); err != nil {
+						log.Errorw(err, "failed to add final results to database")
+						continue
+					}
+					log.Infow("finalized election", "electionID", electionID)
+				}
+			}
+		}
+	}
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
@@ -24,22 +25,18 @@ import (
 	"go.vocdoni.io/dvote/util"
 )
 
-const (
-	imageHandlerPath = "/images"
-)
-
-var (
-	ErrElectionUnknown = fmt.Errorf("electionID unknown")
-)
+var ErrElectionUnknown = fmt.Errorf("electionID unknown")
 
 type vocdoniHandler struct {
 	cli           *apiclient.HTTPclient
+	cliToken      *uuid.UUID
+	apiEndpoint   *url.URL
 	defaultCensus *CensusInfo
 	webappdir     string
 	db            *mongo.MongoStorage
 	electionLRU   *lru.Cache[string, *api.Election]
-	imagesLRU     *lru.Cache[string, []byte]
 	fcapi         farcasterapi.API
+	airstack      *airstack.Airstack
 
 	censusCreationMap sync.Map
 }
@@ -52,6 +49,8 @@ func NewVocdoniHandler(
 	db *mongo.MongoStorage,
 	ctx context.Context,
 	fcapi farcasterapi.API,
+	token *uuid.UUID,
+	airstack *airstack.Airstack,
 ) (*vocdoniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
@@ -65,8 +64,11 @@ func NewVocdoniHandler(
 		return nil, fmt.Errorf("failed to parse apiEndpoint: %w", err)
 	}
 	log.Debugf("connecting to %s", hostURL.String())
-	token := uuid.New()
-	cli, err := apiclient.NewHTTPclient(hostURL, &token)
+	if token == nil {
+		token = new(uuid.UUID)
+		*token = uuid.New()
+	}
+	cli, err := apiclient.NewWithBearer(hostURL.String(), token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create apiclient: %w", err)
 	}
@@ -78,19 +80,15 @@ func NewVocdoniHandler(
 
 	vh := &vocdoniHandler{
 		cli:           cli,
+		cliToken:      token,
+		apiEndpoint:   hostURL,
 		defaultCensus: census,
 		webappdir:     webappdir,
 		db:            db,
 		fcapi:         fcapi,
+		airstack:      airstack,
 		electionLRU: func() *lru.Cache[string, *api.Election] {
 			lru, err := lru.New[string, *api.Election](100)
-			if err != nil {
-				log.Fatal(err)
-			}
-			return lru
-		}(),
-		imagesLRU: func() *lru.Cache[string, []byte] {
-			lru, err := lru.New[string, []byte](1024)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -123,24 +121,21 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return fmt.Errorf("election has no questions")
 	}
 
-	png, err := buildLandingPNG(election)
-	if err != nil {
-		return fmt.Errorf("failed to build landing PNG: %w", err)
-	}
 	response := strings.ReplaceAll(frame(frameMain), "{processID}", election.ElectionID.String())
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
-	response = strings.ReplaceAll(response, "{image}", v.addImageToCache(png, election.ElectionID))
+	response = strings.ReplaceAll(response, "{image}", landingPNGfile(election))
 
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-func buildLandingPNG(election *api.Election) ([]byte, error) {
-	png, err := imageframe.QuestionImage(election)
+func landingPNGfile(election *api.Election) string {
+	pngFile, err := imageframe.QuestionImage(election)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create image: %w", err)
+		log.Warnw("failed to create landing image", "error", err)
+		return imageLink(imageframe.NotFoundImage())
 	}
-	return png, err
+	return imageLink(pngFile)
 }
 
 func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -161,7 +156,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	text := []string{}
-	text = append(text, fmt.Sprintf("\nStarted at %s", election.StartDate.Format("2006-01-02 15:04:05")))
+	text = append(text, fmt.Sprintf("\nStarted at %s UTC", election.StartDate.Format("2006-01-02 15:04:05")))
 	if !election.FinalResults {
 		text = append(text, fmt.Sprintf("Remaining time %s", time.Until(election.EndDate).Round(time.Minute).String()))
 	} else {
@@ -169,7 +164,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 	text = append(text, fmt.Sprintf("Poll id %x...", election.ElectionID[:16]))
 	text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
-	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:16]))
+	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:12]))
 	if election.Census.MaxCensusSize >= uint64(maxElectionSize) {
 		text = append(text, fmt.Sprintf("Allowed voters %d", election.Census.MaxCensusSize))
 	} else {
@@ -182,7 +177,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	// send the response
-	response := strings.ReplaceAll(frame(frameInfo), "{image}", v.addImageToCache(png, electionIDbytes))
+	response := strings.ReplaceAll(frame(frameInfo), "{image}", imageLink(png))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
@@ -207,54 +202,12 @@ func (v *vocdoniHandler) dumpDB(msg *apirest.APIdata, ctx *httprouter.HTTPContex
 
 // importDB is a handler to import the database contents produced by dumpDB.
 func (v *vocdoniHandler) importDB(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	if err := v.db.Import(msg.Data); err != nil {
-		return fmt.Errorf("failed to import database: %w", err)
-	}
-	return ctx.Send(nil, http.StatusOK)
-}
-
-// finalizeElectionsAtBackround checks for elections without results and finalizes them.
-// Stores the final results as a static PNG image in the database. It must run in the background.
-func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(120 * time.Second):
-			electionIDs, err := v.db.ElectionsWithoutResults(ctx)
-			if err != nil {
-				log.Errorw(err, "failed to get elections without results")
-				continue
-			}
-			if len(electionIDs) > 0 {
-				log.Debugw("found elections without results", "count", len(electionIDs))
-			}
-			for _, electionID := range electionIDs {
-				time.Sleep(5 * time.Second)
-				electionIDbytes, err := hex.DecodeString(electionID)
-				if err != nil {
-					log.Errorw(err, "failed to decode electionID")
-					continue
-				}
-				election, err := v.cli.Election(electionIDbytes)
-				if err != nil {
-					log.Errorw(err, "failed to get election")
-					continue
-				}
-				if election.FinalResults {
-					png, err := buildResultsPNG(election)
-					if err != nil {
-						log.Errorw(err, "failed to generate results image")
-						continue
-					}
-					if err := v.db.AddFinalResults(electionIDbytes, png); err != nil {
-						log.Errorw(err, "failed to add final results to database")
-						continue
-					}
-					log.Infow("finalized election", "electionID", electionID)
-				}
-			}
+	// import the database in the background to avoid issues when the request
+	// times out and the import is not finished (for large databases)
+	go func() {
+		if err := v.db.Import(msg.Data); err != nil {
+			log.Errorf("failed to import database: %v", err)
 		}
-
-	}
+	}()
+	return ctx.Send(nil, http.StatusOK)
 }

@@ -10,17 +10,15 @@ import (
 	"github.com/vocdoni/vote-frame/farcasterapi"
 )
 
-var (
-	// PollReplyTemplate is the template for the reply to a cast with a poll. It
-	// must be formatted with the poll URL.
-	PollReplyTemplate = `🗳️ Your poll is ready! And just so you know, we used the Vocdoni blockchain to make it verifiable and censorship-resistant! 😎
+// PollReplyTemplate is the template for the reply to a cast with a poll. It
+// must be formatted with the poll URL.
+var PollReplyTemplate = `🗳️ Your poll is ready! And just so you know, we used the Vocdoni blockchain to make it verifiable and censorship-resistant! 😎
 
 %s
 
 Now copy the URL, paste the Frame into a cast and share it with others!
 
 👇`
-)
 
 func (b *Bot) PollMessageHandler(ctx context.Context, msg *farcasterapi.APIMessage, maxDuration time.Duration) (*farcasterapi.Userdata, *poll.Poll, error) {
 	// when a new cast is received, check if it is a mention and if

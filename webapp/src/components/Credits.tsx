@@ -75,11 +75,18 @@ export const Credits = (props: FlexProps) => {
               Roadmap
             </Heading>
             <UnorderedList>
-              <ListItem>Token-gated polls</ListItem>
-              <ListItem>Channel-based polls</ListItem>
+              <ListItem>Airstack integration</ListItem>
+              <ListItem>Delegated voting</ListItem>
+              <ListItem>Multiple token strategy polls</ListItem>
+              <ListItem>Better UX design</ListItem>
+              <ListItem>More rankings and statistics</ListItem>
+              <ListItem>Notification on Farcaster for elegible voters</ListItem>
               <ListItem>Gitcoin passport gated</ListItem>
               <ListItem>POAP event gated</ListItem>
-              <ListItem>Multiple token strategy polls</ListItem>
+              <ListItem>Voter rewards</ListItem>
+              <ListItem>On-chain governance with ChainLink</ListItem>
+              <ListItem>DAO integration</ListItem>
+              <ListItem>... and more!</ListItem>
             </UnorderedList>
           </Box>
           <Text fontWeight='bold' textAlign='center'>

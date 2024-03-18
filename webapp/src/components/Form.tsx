@@ -30,7 +30,7 @@ import {
 } from '@chakra-ui/react'
 import { SignInButton } from '@farcaster/auth-kit'
 import axios from 'axios'
-import React, { SetStateAction, useState } from 'react'
+import React, { SetStateAction, useEffect, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { useLogin } from '../useLogin'
@@ -42,7 +42,8 @@ interface FormValues {
   choices: { choice: string }[]
   duration?: number
   csv: File | undefined
-  censusType: string
+  censusType: 'farcaster' | 'channel' | 'followers' | 'custom'
+  channel?: string
 }
 
 const appUrl = import.meta.env.APP_URL
@@ -69,16 +70,26 @@ const Form: React.FC = (props: FlexProps) => {
   const { isAuthenticated, profile, logout } = useLogin()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
+  const [shortened, setShortened] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [usernames, setUsernames] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [censusRecords, setCensusRecords] = useState<number>(0)
+
+  useEffect(() => {
+    if (pid) return
+
+    setShortened(null)
+  }, [pid])
 
   const checkElection = async (pid: string) => {
     try {
       const checkRes = await axios.get(`${appUrl}/create/check/${pid}`)
       if (checkRes.status === 200) {
         setPid(pid)
+        if (checkRes.data.url) {
+          setShortened(checkRes.data.url)
+        }
         return true
       }
     } catch (error) {
@@ -114,34 +125,53 @@ const Form: React.FC = (props: FlexProps) => {
         options: data.choices.map((c) => c.choice),
       }
 
-      if (data.csv) {
-        setStatus('Creating census...')
-        // create the census
-        try {
-          const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
-          const contents = new Blob(
-            Array.from(data.csv).flatMap((file) => [file, lineBreak]),
-            { type: 'text/csv' }
-          )
-          const csv = await axios.post(`${appUrl}/census/csv`, contents)
-          const census = await checkCensus(csv.data.censusId, setStatus)
-          setCensusRecords(census.fromTotalAddresses)
-          setUsernames(census.usernames)
-          census.size = census.usernames.length
-          delete census.usernames
-          election.census = census
-        } catch (e) {
-          console.error('there was an error creating the census:', e)
-          if ('response' in e && 'data' in e.response) {
-            setError(e.response.data)
-          } else {
-            if ('message' in e) {
-              setError(e.message)
-            }
+      setStatus('Creating census...')
+      try {
+        switch (data.censusType) {
+          case 'channel': {
+            const channel = cleanChannel(data.channel)
+            const ccensus = await axios.post(`${appUrl}/census/channel-gated/${channel}`)
+            const census = await checkCensus(ccensus.data.censusId, setStatus)
+            election.census = census
+            break
           }
-          setLoading(false)
-          return
+          case 'followers': {
+            const fcensus = await axios.post(`${appUrl}/census/followers/${profile.fid}`, { profile })
+            const census = await checkCensus(fcensus.data.censusId, setStatus)
+            election.census = census
+            break
+          }
+          case 'custom': {
+            const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
+            const contents = new Blob(
+              Array.from(data.csv).flatMap((file) => [file, lineBreak]),
+              { type: 'text/csv' }
+            )
+            const csv = await axios.post(`${appUrl}/census/csv`, contents)
+            const census = await checkCensus(csv.data.censusId, setStatus)
+            setCensusRecords(census.fromTotalAddresses)
+            setUsernames(census.usernames)
+            census.size = census.usernames.length
+            delete census.usernames
+            election.census = census
+            break
+          }
+          case 'farcaster':
+            break
+          default:
+            throw new Error('specified census type does not exist')
         }
+      } catch (e) {
+        console.error('there was an error creating the census:', e)
+        if ('response' in e && 'data' in e.response) {
+          setError(e.response.data)
+        } else {
+          if ('message' in e) {
+            setError(e.message)
+          }
+        }
+        setLoading(false)
+        return
       }
 
       setStatus('Storing poll in blockchain...')
@@ -195,6 +225,7 @@ const Form: React.FC = (props: FlexProps) => {
                   usernames={usernames}
                   setUsernames={setUsernames}
                   censusRecords={censusRecords}
+                  shortened={shortened}
                 />
               ) : (
                 <>
@@ -245,12 +276,39 @@ const Form: React.FC = (props: FlexProps) => {
                   <FormControl isDisabled={loading}>
                     <FormLabel>Census/voters</FormLabel>
                     <RadioGroup onChange={(val: string) => setValue('censusType', val)} value={censusType}>
-                      <Stack direction='row'>
-                        <Radio value='farcaster'>All farcaster users</Radio>
-                        <Radio value='custom'>Token gated via CSV</Radio>
+                      <Stack direction='column' flexWrap='wrap'>
+                        <Radio value='farcaster'>🌐 All farcaster users</Radio>
+                        <Radio value='channel'>⛩ Channel gated</Radio>
+                        <Radio value='followers'>❤️ My followers and me</Radio>
+                        <Radio value='custom'>🦄 Token based via CSV</Radio>
                       </Stack>
                     </RadioGroup>
                   </FormControl>
+                  {censusType === 'channel' && (
+                    <FormControl isDisabled={loading} isRequired isInvalid={!!errors.channel}>
+                      <FormLabel htmlFor='channel'>Channel slug (URL identifier)</FormLabel>
+                      <Input
+                        id='channel'
+                        placeholder='Enter channel i.e. degen'
+                        {...register('channel', {
+                          required,
+                          validate: async (val) => {
+                            val = cleanChannel(val)
+                            try {
+                              const res = await axios.get(`${appUrl}/census/channel-gated/${val}/exists`)
+                              if (res.status === 200) {
+                                return true
+                              }
+                            } catch (e) {
+                              return 'Invalid channel specified'
+                            }
+                            return 'Invalid channel specified'
+                          },
+                        })}
+                      />
+                      <FormErrorMessage>{errors.channel?.message?.toString()}</FormErrorMessage>
+                    </FormControl>
+                  )}
                   {censusType === 'custom' && (
                     <FormControl isDisabled={loading} isRequired>
                       <FormLabel htmlFor='csv'>CSV files</FormLabel>
@@ -350,3 +408,5 @@ const Form: React.FC = (props: FlexProps) => {
 }
 
 export default Form
+
+const cleanChannel = (channel: string) => channel.replace(/.*channel\//, '')
