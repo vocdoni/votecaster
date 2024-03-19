@@ -71,7 +71,7 @@ export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords, shor
         <Box>
           <Text>
             You created a census for a total of {usernames.length} farcaster users, containing{' '}
-            {Math.round((usernames.length / censusRecords) * 1000) / 10}% of the provided CSV file.{` `}
+            {Math.round((usernames.length / censusRecords) * 1000) / 10}% of the specified census.{` `}
             <Link download={'census-usernames.csv'} href={usersfile.url}>
               Download usernames list <Icon as={FaDownload} />
             </Link>

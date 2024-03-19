@@ -109,6 +109,7 @@ const Form: React.FC = (props: FlexProps) => {
     name: 'addresses',
   })
   const censusType = watch('censusType')
+  const notify = watch('notify')
 
   const notifyAllowed = ['custom', 'nft', 'erc20']
 
@@ -240,8 +241,10 @@ const Form: React.FC = (props: FlexProps) => {
           if (census.usernames && census.usernames.length) {
             setUsernames(census.usernames)
           }
-          if (data.censusType === 'custom') {
+          if (census.fromTotalAddresses) {
             setCensusRecords(census.fromTotalAddresses)
+          }
+          if (data.censusType === 'custom') {
             census.size = census.usernames.length
           }
 
@@ -291,7 +294,7 @@ const Form: React.FC = (props: FlexProps) => {
 
   return (
     <Flex flexDir='column' alignItems='center' {...props}>
-      <Card maxW={{ base: '100%', md: 400, lg: 500 }}>
+      <Card w={{ base: '100%', md: 400, lg: 500 }}>
         <CardHeader align='center'>
           <Heading as='h1' size='2xl'>
             farcaster.vote
@@ -377,7 +380,9 @@ const Form: React.FC = (props: FlexProps) => {
                   </FormControl>
                   {notifyAllowed.includes(censusType) && (
                     <FormControl isDisabled={loading}>
-                      <Switch {...register('notify')}>Notify farcaster users (only for censuses &lt; 1k)</Switch>
+                      <Switch {...register('notify')} lineHeight={6}>
+                        Notify farcaster users via cast (only for censuses &lt; 1k)
+                      </Switch>
                     </FormControl>
                   )}
                   {['erc20', 'nft'].includes(censusType) &&
@@ -512,7 +517,7 @@ const Form: React.FC = (props: FlexProps) => {
                     </Alert>
                   )}
 
-                  {usernames.length > 1000 && (
+                  {notify && usernames.length > 1000 && (
                     <Alert status='warning'>
                       <AlertIcon />
                       <AlertDescription>
