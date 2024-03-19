@@ -93,7 +93,8 @@ const Form: React.FC = (props: FlexProps) => {
   const [usernames, setUsernames] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [censusRecords, setCensusRecords] = useState<number>(0)
-  const [blockchains, setBlockchains] = useState<string[]>(['base', 'zora', 'ethereum', 'polygon'])
+  const [blockchains, setBlockchains] = useState<string[]>([])
+  const [bloaded, setBloaded] = useState<boolean>(false)
   const {
     fields: addressFields,
     append: appendAddress,
@@ -117,6 +118,21 @@ const Form: React.FC = (props: FlexProps) => {
       resetField('notify')
     }
   }, [censusType])
+
+  useEffect(() => {
+    if (blockchains.length || bloaded) return
+    ;(async () => {
+      try {
+        const chains = await axios.get(`${appUrl}/census/airstack/blockchains`)
+        const { blockchains } = chains.data
+        setBlockchains(blockchains.sort())
+      } catch (e) {
+        console.error('error fetching blockchains:', e)
+      } finally {
+        setLoaded(true)
+      }
+    })()
+  }, [bloaded, blockchains])
 
   // reset address fields when censusType changes
   useEffect(() => {
