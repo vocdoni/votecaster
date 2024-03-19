@@ -233,7 +233,7 @@ const Form: React.FC = (props: FlexProps) => {
 
         if (data.censusType !== 'farcaster') {
           let cid: string
-          await call.then(({ data: { censusId } }: AxiosResponse<CID>) => {
+          await call.then(({ data: { censusId } }) => {
             cid = censusId
           })
           const census = await checkCensus(cid, setStatus)
@@ -375,6 +375,11 @@ const Form: React.FC = (props: FlexProps) => {
                       </Stack>
                     </RadioGroup>
                   </FormControl>
+                  {notifyAllowed.includes(censusType) && (
+                    <FormControl isDisabled={loading}>
+                      <Switch {...register('notify')}>Notify farcaster users (only for censuses &lt; 1k)</Switch>
+                    </FormControl>
+                  )}
                   {['erc20', 'nft'].includes(censusType) &&
                     addressFields.map((field, index) => (
                       <FormControl key={field.id}>
@@ -440,11 +445,6 @@ const Form: React.FC = (props: FlexProps) => {
                         })}
                       />
                       <FormErrorMessage>{errors.channel?.message?.toString()}</FormErrorMessage>
-                    </FormControl>
-                  )}
-                  {notifyAllowed.includes(censusType) && (
-                    <FormControl isDisabled={loading}>
-                      <Switch {...register('notify')}>Notify farcaster users (only for censuses &lt; 1k)</Switch>
                     </FormControl>
                   )}
                   {censusType === 'custom' && (
