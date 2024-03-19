@@ -36,6 +36,7 @@ const (
 	defaultMaxElectionSize = 200000
 	maxNumOfCsvRecords     = 10000
 	maxBatchParticipants   = 8000
+	maxUsersNamesToReturn  = 10000
 
 	POAP_CSV_HEADER = "ID,Collection,ENS,Minting Date,Tx Count,Power"
 )
@@ -100,12 +101,6 @@ func (c *CensusInfo) FromFile(file string) error {
 	// Set the type of the census
 	c.Type = FrameCensusTypeFile
 	return nil
-}
-
-// MustIncludeUsers returns true if the census type requires to include the
-// usernames in the census information when it's returned to the client.
-func (c *CensusInfo) MustIncludeUsers() bool {
-	return c.Type == FrameCensusTypeCSV || c.Type == FrameCensusTypeERC20
 }
 
 // FarcasterParticipant is a participant in the Farcaster network to be included in the census.
@@ -328,10 +323,14 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
+		for _, p := range participants {
+			censusInfo.Usernames = append(censusInfo.Usernames, p.Username)
+		}
+		censusInfo.FromTotalAddresses = uint32(len(censusInfo.Usernames))
 		v.censusCreationMap.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from channel",
 			"channelID", channelID,
-			"participants", len(participants))
+			"participants", len(censusInfo.Usernames))
 	}()
 	// return the censusID to the client
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
@@ -394,10 +393,14 @@ func (v *vocdoniHandler) censusFollowers(msg *apirest.APIdata, ctx *httprouter.H
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
+		for _, p := range participants {
+			censusInfo.Usernames = append(censusInfo.Usernames, p.Username)
+		}
+		censusInfo.FromTotalAddresses = uint32(len(censusInfo.Usernames))
 		v.censusCreationMap.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from user followers",
 			"fid", userFid,
-			"participants", len(participants))
+			"participants", len(censusInfo.Usernames))
 	}()
 	// return the censusID to the client
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
@@ -422,6 +425,9 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 	if censusInfo.Error != "" {
 		return ctx.Send([]byte(censusInfo.Error), http.StatusInternalServerError)
 	}
+	if len(censusInfo.Usernames) > maxUsersNamesToReturn {
+		censusInfo.Usernames = nil
+	}
 	if censusInfo.Root == nil {
 		data, err := json.Marshal(map[string]uint32{
 			"progress": censusInfo.Progress,
@@ -430,9 +436,6 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 			return err
 		}
 		return ctx.Send(data, http.StatusAccepted)
-	}
-	if !censusInfo.MustIncludeUsers() {
-		censusInfo.Usernames = nil
 	}
 	data, err := json.Marshal(censusInfo)
 	if err != nil {
@@ -538,7 +541,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType in
 		startTime := time.Now()
 		log.Debugw("building NFT based census", "censusID", censusID)
 		// get holders for each token
-		holders := make([][]string, 0)
+		var holders [][]string
 		v.trackStepProgress(censusID, 1, 3, func(progress chan int) {
 			holders, err = v.getTokenHoldersFromAirstack(tokens, censusID, progress)
 		})
@@ -581,11 +584,14 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType in
 			uniqueParticipants = append(uniqueParticipants, k)
 		}
 		ci.Usernames = uniqueParticipants
+		ci.FromTotalAddresses = totalAddresses
 		log.Infow("census created from NFT",
 			"censusID", censusID.String(),
 			"size", len(ci.Usernames),
 			"duration", time.Since(startTime),
-			"totalAddresses", totalAddresses)
+			"totalAddresses", totalAddresses,
+			"participants", len(ci.Usernames),
+		)
 		v.censusCreationMap.Store(censusID.String(), *ci)
 	}()
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
