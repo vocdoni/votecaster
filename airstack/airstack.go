@@ -129,5 +129,5 @@ func (a *Airstack) NumHoldersByTokenAnkrAPI(tokenAddress, blockchain string) (ui
 		return 0, fmt.Errorf("holderCount field missing in first item of holderCountHistory")
 	}
 
-	return holderCount.(uint32), nil
+	return uint32(holderCount.(float64)), nil
 }
