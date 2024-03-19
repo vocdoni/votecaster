@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	ac "github.com/vocdoni/vote-frame/airstack/client"
@@ -107,6 +108,11 @@ func (a *Airstack) NumHoldersByTokenAnkrAPI(tokenAddress, blockchain string) (ui
 	// Check for errors in the response
 	errorMsg, found := responseMap["error"].(map[string]interface{})
 	if found {
+		// if error in data contains the string "no currency found" return 0 and nil
+		if strings.Contains(errorMsg["data"].(string), "no currency found") {
+			log.Warnf("No currency found for token %s on blockchain %s", tokenAddress, blockchain)
+			return 0, nil
+		}
 		return 0, fmt.Errorf("error in response: %s", errorMsg)
 	}
 
