@@ -186,7 +186,7 @@ const Form: React.FC = (props: FlexProps) => {
           }
           case 'nft':
           case 'erc20':
-            const tcensus = await axios.post(`${appUrl}/census/${data.censusType}`, {
+            const tcensus = await axios.post(`${appUrl}/census/airstack/${data.censusType}`, {
               tokens: data.addresses,
             })
             const census = await checkCensus(tcensus.data.censusId, setStatus)
