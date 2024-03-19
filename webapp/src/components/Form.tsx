@@ -408,7 +408,7 @@ const Form: React.FC = (props: FlexProps) => {
                               placeholder='Smart contract address'
                               {...register(`addresses.${index}.address`, { required })}
                             />
-                            {(censusType === 'nft' || (censusType === 'erc20' && index > 0)) && (
+                            {addressFields.length > 1 && (
                               <InputRightElement>
                                 <IconButton
                                   aria-label='Remove address'
