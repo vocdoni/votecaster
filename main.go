@@ -16,11 +16,13 @@ import (
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/discover"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/hub"
 	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
 	"github.com/vocdoni/vote-frame/mongo"
+	"github.com/vocdoni/vote-frame/notifications"
 	urlapi "go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
@@ -70,6 +72,13 @@ func main() {
 	flag.String("neynarSignerUUID", "", "neynar signer UUID")
 	flag.String("neynarWebhookSecret", "", "neynar Webhook shared secret")
 
+	// Airstack flags
+	flag.String("airstackAPIEndpoint", "https://api.airstack.xyz/gql", "The Airstack API endpoint to use")
+	flag.String("airstackAPIKey", "", "The Airstack API key to use")
+	flag.String("airstackBlockchains", "ethereum,base,zora,polygon", "Supported Airstack networks")
+	flag.Int("airstackMaxHolders", 10000, "The maximum number of holders to be retrieved from the Airstack API")
+	flag.String("airstackSupportAPIEndpoint", "", "Airstack support API endpoint")
+
 	// Parse the command line flags
 	flag.Parse()
 
@@ -112,6 +121,13 @@ func main() {
 	neynarSignerUUID := viper.GetString("neynarSignerUUID")
 	neynarWebhookSecret := viper.GetString("neynarWebhookSecret")
 
+	// airstack vars
+	airstackEndpoint := viper.GetString("airstackAPIEndpoint")
+	airstackKey := viper.GetString("airstackAPIKey")
+	airstackBlockchains := viper.GetString("airstackBlockchains")
+	airstackMaxHolders := uint32(viper.GetInt("airstackMaxHolders"))
+	airstackSupportAPIEndpoint := viper.GetString("airstackSupportAPIEndpoint")
+
 	if adminToken == "" {
 		adminToken = uuid.New().String()
 		fmt.Printf("generated admin token for internal API: %s\n", adminToken)
@@ -147,6 +163,9 @@ func main() {
 		"web3endpoint", web3endpoint,
 		"indexer", indexer,
 		"apiToken", apiToken,
+		"airstackAPIEndpoint", airstackEndpoint,
+		"airstackAPIKey", airstackKey,
+		"airstackBlockchains", airstackBlockchains,
 	)
 
 	// Start the pprof http endpoints
@@ -212,9 +231,24 @@ func main() {
 	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
 	defer mainCtxCancel()
 
+	// Create Airstack artifact
+	var as *airstack.Airstack
+	if airstackKey != "" {
+		as, err = airstack.NewAirstack(
+			mainCtx,
+			airstackEndpoint,
+			airstackKey,
+			airstackSupportAPIEndpoint,
+			strings.Split(airstackBlockchains, ","),
+			airstackMaxHolders)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)
-	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli, &apiTokenUUID)
+	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -405,6 +439,20 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if as != nil { // if airstack activated
+		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/nft", http.MethodPost, "private", handler.censusTokenNFTAirstack); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/erc20", http.MethodPost, "private", handler.censusTokenERC20Airstack); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/blockchains", http.MethodGet, "private", handler.censusBlockchainsAirstack); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/create/check/{electionID}", http.MethodGet, "private", handler.checkElection); err != nil {
 		log.Fatal(err)
 	}
@@ -453,6 +501,10 @@ func main() {
 		}
 		defer voteBot.Stop()
 		log.Info("bot started")
+		// start notification manager
+		notificationManager := notifications.New(mainCtx, db, botAPI, notifications.DefaultListenCoolDown)
+		notificationManager.Start()
+		defer notificationManager.Stop()
 	}
 
 	// close if interrupt received

@@ -44,7 +44,7 @@ func (b *Bot) PollMessageHandler(ctx context.Context, msg *farcasterapi.APIMessa
 }
 
 func (b *Bot) ReplyWithPollURL(ctx context.Context, msg *farcasterapi.APIMessage, pollURL string) error {
-	if err := b.api.Reply(ctx, msg.Author, msg.Hash, fmt.Sprintf(PollReplyTemplate, pollURL), pollURL); err != nil {
+	if err := b.api.Reply(ctx, msg, fmt.Sprintf(PollReplyTemplate, pollURL), nil, pollURL); err != nil {
 		return errors.Join(ErrReplyingToCast, err)
 	}
 	return nil

@@ -1,0 +1,29 @@
+query GetTokenDetails($tokenAddress: Address!, $blockchain: TokenBlockchain!) {
+  Token(
+    input: {address: $tokenAddress, blockchain: $blockchain}
+  ) {
+    name
+    symbol
+    decimals
+    totalSupply
+  }
+}
+
+query GetTokenBalances($tokenAddress: Address!, $blockchain: TokenBlockchain!, $limit: Int, $cursor: String) {
+  TokenBalances(
+    input: {filter: {tokenAddress: {_eq: $tokenAddress}}, blockchain: $blockchain, limit: $limit, cursor: $cursor}
+  ) {
+    TokenBalance {
+      owner {
+        addresses
+      }
+      amount
+    }
+    pageInfo {
+      nextCursor
+      prevCursor
+      hasNextPage
+      hasPrevPage
+    }
+  }
+}

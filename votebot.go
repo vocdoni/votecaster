@@ -17,7 +17,7 @@ import (
 // initBot helper function initializes the bot and starts listening for new polls
 // to create elections
 func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
-	census *CensusInfo,
+	defaultCensus *CensusInfo,
 ) (*bot.Bot, error) {
 	voteBot, err := bot.New(bot.BotConfig{
 		API: api,
@@ -54,7 +54,8 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 					Custody:       user.CustodyAddress,
 					Verifications: user.VerificationsAddresses,
 				}
-				electionID, err := handler.createAndSaveElectionAndProfile(description, census, profile, true, ElectionSourceBot)
+				electionID, err := handler.createAndSaveElectionAndProfile(description,
+					defaultCensus, profile, true, false, ElectionSourceBot)
 				if err != nil {
 					log.Errorf("error creating election: %s", err)
 					continue

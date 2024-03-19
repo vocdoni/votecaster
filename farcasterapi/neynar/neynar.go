@@ -70,20 +70,20 @@ type NeynarAPI struct {
 }
 
 func NewNeynarAPI(apiKey string, web3endpoints []string) (*NeynarAPI, error) {
+	log.Infow("starting neynar api with web3 support", "web3endpoints", len(web3endpoints))
 	web3provider := web3.NewFarcasterProvider()
 	for _, web3endpoint := range web3endpoints {
 		if err := web3provider.AddEndpoint(web3endpoint); err != nil {
 			return nil, err
 		}
-		// Run a quick test to check if the web3 endpoint is working
-		signers, err := web3provider.GetAppKeysByFid(big.NewInt(3))
-		if err != nil {
-			return nil, err
-		}
-		if len(signers) == 0 {
-			log.Warnw("web3 endpoint not working", "endpoint", web3endpoint)
-			web3provider.DelEndpoint(web3endpoint)
-		}
+	}
+	// Run a quick test to check if the web3 endpoint is working
+	signers, err := web3provider.GetAppKeysByFid(big.NewInt(3))
+	if err != nil {
+		return nil, err
+	}
+	if len(signers) == 0 {
+		return nil, fmt.Errorf("no valid web3 endpoints found")
 	}
 	return &NeynarAPI{
 		apiKey:       apiKey,
@@ -133,15 +133,48 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 	return messages, lastTimestamp, nil
 }
 
-func (n *NeynarAPI) Reply(ctx context.Context, fid uint64, parentHash, content string, _ ...string) error {
+func (n *NeynarAPI) Publish(ctx context.Context, content string, _ []uint64, embeds ...string) error {
 	if n.fid == 0 {
 		return fmt.Errorf("farcaster user not set")
+	}
+	castEmbeds := []*castEmbed{}
+	if len(embeds) > 0 {
+		for _, embed := range embeds {
+			castEmbeds = append(castEmbeds, &castEmbed{embed})
+		}
 	}
 	// create request body
 	castReq := &castPostRequest{
 		Signer: n.signerUUID,
 		Text:   content,
-		Parent: parentHash,
+		Embeds: castEmbeds,
+	}
+	body, err := json.Marshal(castReq)
+	if err != nil {
+		return fmt.Errorf("error marshalling request body: %w", err)
+	}
+	// create request with the bot fid and set the api key header
+	_, err = n.request(neynarReplyEndpoint, http.MethodPost, body, defaultRequestTimeout)
+	return err
+}
+
+func (n *NeynarAPI) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessage,
+	content string, _ []uint64, embeds ...string) error {
+	if n.fid == 0 {
+		return fmt.Errorf("farcaster user not set")
+	}
+	castEmbeds := []*castEmbed{}
+	if len(embeds) > 0 {
+		for _, embed := range embeds {
+			castEmbeds = append(castEmbeds, &castEmbed{embed})
+		}
+	}
+	// create request body
+	castReq := &castPostRequest{
+		Signer: n.signerUUID,
+		Text:   content,
+		Parent: targetMsg.Hash,
+		Embeds: castEmbeds,
 	}
 	body, err := json.Marshal(castReq)
 	if err != nil {
