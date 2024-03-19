@@ -15,7 +15,7 @@ import (
 
 const (
 	KeyRegistryAddress = "0x00000000Fc1237824fb747aBDE0FF18990E59b7e"
-	maxRetries         = 3
+	maxRetries         = 5
 )
 
 type clientInfo struct {
@@ -42,7 +42,8 @@ func (p *FarcasterProvider) AddEndpoint(web3Endpoint string) error {
 
 	client, err := ethclient.Dial(web3Endpoint)
 	if err != nil {
-		return fmt.Errorf("failed to connect to Ethereum client: %w", err)
+		log.Warnw("web3 endpoint is not available, skip", "endpoint", web3Endpoint, "error", err)
+		return nil
 	}
 
 	keyRegistryAddress := common.HexToAddress(KeyRegistryAddress)
@@ -50,7 +51,7 @@ func (p *FarcasterProvider) AddEndpoint(web3Endpoint string) error {
 	if err != nil {
 		return fmt.Errorf("failed to instantiate Farcaster KeyRegistry contract: %w", err)
 	}
-
+	log.Debugw("added web3 endpoint", "endpoint", web3Endpoint, "count", len(p.clients)+1)
 	p.clients = append(p.clients, &clientInfo{
 		client:    client,
 		contract:  contract,
@@ -79,9 +80,9 @@ func (p *FarcasterProvider) getNextAvailableClient() *clientInfo {
 	defer p.mu.Unlock()
 
 	for i := 0; i < len(p.clients); i++ {
-		idx := (p.current + i) % len(p.clients)
+		idx := (p.current + i + 1) % len(p.clients)
 		if p.clients[idx].available {
-			p.current = (idx + 1) % len(p.clients) // Prepare next index
+			p.current = idx
 			return p.clients[idx]
 		}
 	}
@@ -116,7 +117,6 @@ func (p *FarcasterProvider) GetAppKeysByFid(fid *big.Int) ([][]byte, error) {
 		if clientInfo == nil {
 			return nil, fmt.Errorf("no available Ethereum clients")
 		}
-
 		keys, err = clientInfo.contract.FarcasterKeyRegistryCaller.KeysOf(nil, fid, 1)
 		if err == nil {
 			return keys, nil
@@ -129,7 +129,7 @@ func (p *FarcasterProvider) GetAppKeysByFid(fid *big.Int) ([][]byte, error) {
 			continue
 		}
 
-		log.Errorw(err, "failed to get keys from Farcaster KeyRegistry")
+		log.Errorw(fmt.Errorf("failed to get keys from Farcaster KeyRegistry"), fmt.Sprintf("endpoint: %s", clientInfo.endpoint))
 		p.markClientAsNotWorking(clientInfo.endpoint)
 	}
 
