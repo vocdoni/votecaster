@@ -15,6 +15,7 @@ import {
   FormHelperText,
   FormLabel,
   Heading,
+  Icon,
   IconButton,
   Image,
   Input,
@@ -24,6 +25,7 @@ import {
   ListItem,
   Radio,
   RadioGroup,
+  Select,
   Stack,
   Text,
   UnorderedList,
@@ -34,18 +36,31 @@ import axios from 'axios'
 import React, { SetStateAction, useEffect, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
+import Airstack from '../assets/airstack.svg?react'
 import { useLogin } from '../useLogin'
 import { Done } from './Done'
 import logo from '/poweredby.svg'
+
+interface Address {
+  address: string
+  blockchain: string
+}
 
 interface FormValues {
   question: string
   choices: { choice: string }[]
   duration?: number
   csv: File | undefined
-  censusType: 'farcaster' | 'channel' | 'followers' | 'custom'
+  censusType: 'farcaster' | 'channel' | 'followers' | 'custom' | 'erc20' | 'nft'
+  addresses?: Address[]
   channel?: string
   notify?: boolean
+}
+
+interface CensusResponse {
+  root: string
+  size: number
+  uri: string
 }
 
 const appUrl = import.meta.env.APP_URL
@@ -78,20 +93,58 @@ const Form: React.FC = (props: FlexProps) => {
   const [usernames, setUsernames] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [censusRecords, setCensusRecords] = useState<number>(0)
-
+  const [blockchains, setBlockchains] = useState<string[]>([])
+  const [bloaded, setBloaded] = useState<boolean>(false)
+  const {
+    fields: addressFields,
+    append: appendAddress,
+    remove: removeAddress,
+  } = useFieldArray({
+    control,
+    name: 'addresses',
+  })
   const censusType = watch('censusType')
 
+  // reset shortened when no pid received
   useEffect(() => {
     if (pid) return
 
     setShortened(null)
   }, [pid])
 
+  // reset notify field when censusType changes
   useEffect(() => {
     if (censusType !== 'custom') {
       resetField('notify')
     }
   }, [censusType])
+
+  useEffect(() => {
+    if (blockchains.length || bloaded) return
+    ;(async () => {
+      try {
+        const chains = await axios.get(`${appUrl}/census/airstack/blockchains`)
+        const { blockchains } = chains.data
+        setBlockchains(blockchains.sort())
+      } catch (e) {
+        console.error('error fetching blockchains:', e)
+      } finally {
+        setLoaded(true)
+      }
+    })()
+  }, [bloaded, blockchains])
+
+  // reset address fields when censusType changes
+  useEffect(() => {
+    if (censusType === 'erc20' || censusType === 'nft') {
+      // Remove all fields initially
+      setValue('addresses', [])
+      // Add one field by default
+      for (let i = 0; i < 1; i++) {
+        appendAddress({ address: '', blockchain: 'base' })
+      }
+    }
+  }, [censusType, appendAddress, removeAddress])
 
   const checkElection = async (pid: string) => {
     try {
@@ -109,10 +162,10 @@ const Form: React.FC = (props: FlexProps) => {
     }
   }
 
-  const checkCensus = async (pid: string, setStatus: Dispatch<SetStateAction<string | null>>) => {
+  const checkCensus = async (pid: string, setStatus: Dispatch<SetStateAction<string | null>>): CensusResponse => {
     const checkRes = await axios.get(`${appUrl}/census/check/${pid}`)
     if (checkRes.status === 200) {
-      return checkRes.data
+      return checkRes.data as CensusResponse
     }
     if (checkRes.data.progress) {
       setStatus(`Creating census... ${checkRes.data.progress}%`)
@@ -147,6 +200,14 @@ const Form: React.FC = (props: FlexProps) => {
             election.census = census
             break
           }
+          case 'nft':
+          case 'erc20':
+            const tcensus = await axios.post(`${appUrl}/census/airstack/${data.censusType}`, {
+              tokens: data.addresses,
+            })
+            const census = await checkCensus(tcensus.data.censusId, setStatus)
+            election.census = census
+            break
           case 'followers': {
             const fcensus = await axios.post(`${appUrl}/census/followers/${profile.fid}`, { profile })
             const census = await checkCensus(fcensus.data.censusId, setStatus)
@@ -291,9 +352,57 @@ const Form: React.FC = (props: FlexProps) => {
                         <Radio value='channel'>⛩ Channel gated</Radio>
                         <Radio value='followers'>❤️ My followers and me</Radio>
                         <Radio value='custom'>🦄 Token based via CSV</Radio>
+                        <Radio value='nft'>
+                          <Icon as={Airstack} /> NFT based via airstack
+                        </Radio>
+                        <Radio value='erc20'>
+                          <Icon as={Airstack} /> ERC20 based via airstack
+                        </Radio>
                       </Stack>
                     </RadioGroup>
                   </FormControl>
+                  {['erc20', 'nft'].includes(censusType) &&
+                    addressFields.map((field, index) => (
+                      <FormControl key={field.id}>
+                        <FormLabel>
+                          {censusType.toUpperCase()} address {index + 1}
+                        </FormLabel>
+                        <Flex>
+                          <Select
+                            {...register(`addresses.${index}.blockchain`, { required })}
+                            defaultValue='ethereum'
+                            w='auto'
+                          >
+                            {blockchains.map((blockchain, key) => (
+                              <option value={blockchain} key={key}>
+                                {ucfirst(blockchain)}
+                              </option>
+                            ))}
+                          </Select>
+                          <InputGroup>
+                            <Input
+                              placeholder='Smart contract address'
+                              {...register(`addresses.${index}.address`, { required })}
+                            />
+                            {(censusType === 'nft' || (censusType === 'erc20' && index > 0)) && (
+                              <InputRightElement>
+                                <IconButton
+                                  aria-label='Remove address'
+                                  icon={<BiTrash />}
+                                  onClick={() => removeAddress(index)}
+                                  size='sm'
+                                />
+                              </InputRightElement>
+                            )}
+                          </InputGroup>
+                        </Flex>
+                      </FormControl>
+                    ))}
+                  {censusType === 'nft' && addressFields.length < 3 && (
+                    <Button variant='ghost' colorScheme='purple' onClick={() => appendAddress({ address: '' })}>
+                      Add address
+                    </Button>
+                  )}
                   {censusType === 'channel' && (
                     <FormControl isDisabled={loading} isRequired isInvalid={!!errors.channel}>
                       <FormLabel htmlFor='channel'>Channel slug (URL identifier)</FormLabel>
@@ -425,3 +534,5 @@ const Form: React.FC = (props: FlexProps) => {
 export default Form
 
 const cleanChannel = (channel: string) => channel.replace(/.*channel\//, '')
+
+const ucfirst = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
