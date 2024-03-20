@@ -71,7 +71,7 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 		return fmt.Errorf("could not marshal response: %v", err)
 	}
 	log.Infow("authentication completed", "username", resp.Username, "fid", resp.Fid)
-	v.addAuthTokenFunc(resp.Fid, resp.AuthToken)
+	v.addAuthTokenFunc(resp.Fid, token.String())
 	return ctx.Send(data, apirest.HTTPstatusOK)
 }
 
