@@ -7,7 +7,6 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Checkbox,
   Flex,
   FlexProps,
   FormControl,
@@ -32,12 +31,13 @@ import {
   VStack,
 } from '@chakra-ui/react'
 import { SignInButton } from '@farcaster/auth-kit'
-import axios from 'axios'
+import axios, { AxiosResponse } from 'axios'
 import React, { SetStateAction, useEffect, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import Airstack from '../assets/airstack.svg?react'
 import { useLogin } from '../useLogin'
+import { cleanChannel, ucfirst } from '../util/strings'
 import { Done } from './Done'
 import logo from '/poweredby.svg'
 
@@ -55,6 +55,10 @@ interface FormValues {
   addresses?: Address[]
   channel?: string
   notify?: boolean
+}
+
+interface CID {
+  censusId: string
 }
 
 interface CensusResponse {
@@ -104,6 +108,9 @@ const Form: React.FC = (props: FlexProps) => {
     name: 'addresses',
   })
   const censusType = watch('censusType')
+  const notify = watch('notify')
+
+  const notifyAllowed = ['custom', 'nft', 'erc20']
 
   // reset shortened when no pid received
   useEffect(() => {
@@ -114,7 +121,7 @@ const Form: React.FC = (props: FlexProps) => {
 
   // reset notify field when censusType changes
   useEffect(() => {
-    if (censusType !== 'custom') {
+    if (!notifyAllowed.includes(censusType)) {
       resetField('notify')
     }
   }, [censusType])
@@ -129,7 +136,7 @@ const Form: React.FC = (props: FlexProps) => {
       } catch (e) {
         console.error('error fetching blockchains:', e)
       } finally {
-        setLoaded(true)
+        setBloaded(true)
       }
     })()
   }, [bloaded, blockchains])
@@ -187,31 +194,26 @@ const Form: React.FC = (props: FlexProps) => {
         question: data.question,
         duration: Number(data.duration),
         options: data.choices.map((c) => c.choice),
-        notifyUsers: true,
+        notifyUsers: false,
       }
 
       setStatus('Creating census...')
       try {
+        let call: Promise<AxiosResponse<CID, any>>
         switch (data.censusType) {
           case 'channel': {
             const channel = cleanChannel(data.channel)
-            const ccensus = await axios.post(`${appUrl}/census/channel-gated/${channel}`)
-            const census = await checkCensus(ccensus.data.censusId, setStatus)
-            election.census = census
+            call = axios.post(`${appUrl}/census/channel-gated/${channel}`)
             break
           }
           case 'nft':
           case 'erc20':
-            const tcensus = await axios.post(`${appUrl}/census/airstack/${data.censusType}`, {
+            call = axios.post(`${appUrl}/census/airstack/${data.censusType}`, {
               tokens: data.addresses,
             })
-            const census = await checkCensus(tcensus.data.censusId, setStatus)
-            election.census = census
             break
           case 'followers': {
-            const fcensus = await axios.post(`${appUrl}/census/followers/${profile.fid}`, { profile })
-            const census = await checkCensus(fcensus.data.censusId, setStatus)
-            election.census = census
+            call = axios.post(`${appUrl}/census/followers/${profile.fid}`, { profile })
             break
           }
           case 'custom': {
@@ -220,19 +222,32 @@ const Form: React.FC = (props: FlexProps) => {
               Array.from(data.csv).flatMap((file) => [file, lineBreak]),
               { type: 'text/csv' }
             )
-            const csv = await axios.post(`${appUrl}/census/csv`, contents)
-            const census = await checkCensus(csv.data.censusId, setStatus)
-            setCensusRecords(census.fromTotalAddresses)
-            setUsernames(census.usernames)
-            census.size = census.usernames.length
-            election.census = census
-            election.notifyUsers = data.notify || false
+            call = axios.post(`${appUrl}/census/csv`, contents)
             break
           }
           case 'farcaster':
             break
           default:
             throw new Error('specified census type does not exist')
+        }
+
+        if (data.censusType !== 'farcaster') {
+          let cid: string
+          await call.then(({ data: { censusId } }) => {
+            cid = censusId
+          })
+          const census = await checkCensus(cid, setStatus)
+          if (census.usernames && census.usernames.length) {
+            setUsernames(census.usernames)
+          }
+          if (census.fromTotalAddresses) {
+            setCensusRecords(census.fromTotalAddresses)
+          }
+          if (data.censusType === 'custom') {
+            census.size = census.usernames.length
+          }
+
+          election.census = census
         }
       } catch (e) {
         console.error('there was an error creating the census:', e)
@@ -249,6 +264,8 @@ const Form: React.FC = (props: FlexProps) => {
 
       setStatus('Storing poll in blockchain...')
       const res = await axios.post(`${appUrl}/create`, election)
+
+      // this is a piece of 💩 made by GPT and I should rewrite it anytime soon
       const intervalId = window.setInterval(async () => {
         const success = await checkElection(res.data.replace('\n', ''))
         if (success) {
@@ -276,12 +293,11 @@ const Form: React.FC = (props: FlexProps) => {
 
   return (
     <Flex flexDir='column' alignItems='center' {...props}>
-      <Card maxW={{ base: '100%', md: 400, lg: 500 }}>
+      <Card w={{ base: '100%', md: 400, lg: 500 }}>
         <CardHeader align='center'>
           <Heading as='h1' size='2xl'>
             farcaster.vote
           </Heading>
-          <Image src={logo} alt='powered by vocdoni' mb={4} width='50%' />
           <Heading as='h2' size='lg' textAlign='center'>
             Create a framed poll
           </Heading>
@@ -384,7 +400,7 @@ const Form: React.FC = (props: FlexProps) => {
                               placeholder='Smart contract address'
                               {...register(`addresses.${index}.address`, { required })}
                             />
-                            {(censusType === 'nft' || (censusType === 'erc20' && index > 0)) && (
+                            {addressFields.length > 1 && (
                               <InputRightElement>
                                 <IconButton
                                   aria-label='Remove address'
@@ -429,54 +445,49 @@ const Form: React.FC = (props: FlexProps) => {
                     </FormControl>
                   )}
                   {censusType === 'custom' && (
-                    <>
-                      <FormControl isDisabled={loading}>
-                        <Checkbox {...register('notify')}>Notify farcaster users</Checkbox>
-                      </FormControl>
-                      <FormControl isDisabled={loading} isRequired>
-                        <FormLabel htmlFor='csv'>CSV files</FormLabel>
-                        <Input
-                          id='csv'
-                          placeholder='Upload CSV'
-                          type='file'
-                          multiple
-                          accept='text/csv,application/csv,.csv'
-                          {...register('csv', {
-                            required: {
-                              value: true,
-                              message: 'This field is required',
-                            },
-                          })}
-                        />
-                        {errors.csv ? (
-                          <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
-                        ) : (
-                          <FormHelperText>
-                            <Alert status='info'>
-                              <AlertDescription>
-                                The CSV files <strong>must include Ethereum addresses and their balances</strong> from
-                                any network. You can build your own at:
-                                <UnorderedList>
-                                  <ListItem>
-                                    <Link target='_blank' href='https://holders.at' variant='primary'>
-                                      holders.at
-                                    </Link>{' '}
-                                    for NFTs
-                                  </ListItem>
-                                  <ListItem>
-                                    <Link target='_blank' href='https://collectors.poap.xyz' variant='primary'>
-                                      collectors.poap.xyz
-                                    </Link>{' '}
-                                    for POAPs
-                                  </ListItem>
-                                </UnorderedList>
-                                <strong>If an address appears multiple times, its balances will be aggregated.</strong>
-                              </AlertDescription>
-                            </Alert>
-                          </FormHelperText>
-                        )}
-                      </FormControl>
-                    </>
+                    <FormControl isDisabled={loading} isRequired>
+                      <FormLabel htmlFor='csv'>CSV files</FormLabel>
+                      <Input
+                        id='csv'
+                        placeholder='Upload CSV'
+                        type='file'
+                        multiple
+                        accept='text/csv,application/csv,.csv'
+                        {...register('csv', {
+                          required: {
+                            value: true,
+                            message: 'This field is required',
+                          },
+                        })}
+                      />
+                      {errors.csv ? (
+                        <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
+                      ) : (
+                        <FormHelperText>
+                          <Alert status='info'>
+                            <AlertDescription>
+                              The CSV files <strong>must include Ethereum addresses and their balances</strong> from any
+                              network. You can build your own at:
+                              <UnorderedList>
+                                <ListItem>
+                                  <Link target='_blank' href='https://holders.at' variant='primary'>
+                                    holders.at
+                                  </Link>{' '}
+                                  for NFTs
+                                </ListItem>
+                                <ListItem>
+                                  <Link target='_blank' href='https://collectors.poap.xyz' variant='primary'>
+                                    collectors.poap.xyz
+                                  </Link>{' '}
+                                  for POAPs
+                                </ListItem>
+                              </UnorderedList>
+                              <strong>If an address appears multiple times, its balances will be aggregated.</strong>
+                            </AlertDescription>
+                          </Alert>
+                        </FormHelperText>
+                      )}
+                    </FormControl>
                   )}
                   <FormControl isDisabled={loading} isInvalid={!!errors.duration}>
                     <FormLabel htmlFor='duration'>Duration (Optional)</FormLabel>
@@ -498,6 +509,14 @@ const Form: React.FC = (props: FlexProps) => {
                     </Alert>
                   )}
 
+                  {notify && usernames.length > 1000 && (
+                    <Alert status='warning'>
+                      <AlertIcon />
+                      <AlertDescription>
+                        Selected census contains more than 1,000 farcaster users. Won't be notifying them.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   {isAuthenticated ? (
                     <>
                       <Button type='submit' colorScheme='purple' isLoading={loading} loadingText={status}>
@@ -522,9 +541,9 @@ const Form: React.FC = (props: FlexProps) => {
           </FormProvider>
         </CardBody>
       </Card>
-      <Text mt={3} fontSize='.8em' textAlign='center'>
-        <Link href='https://warpcast.com/vocdoni' target='_blank'>
-          By @vocdoni
+      <Text mt={4} fontSize='.8em' textAlign='center'>
+        <Link href='https://warpcast.com/vocdoni' target='_blank' display='flex' justifyContent='center'>
+          <Image src={logo} alt='powered by vocdoni' width='50%' />
         </Link>
       </Text>
     </Flex>
@@ -532,7 +551,3 @@ const Form: React.FC = (props: FlexProps) => {
 }
 
 export default Form
-
-const cleanChannel = (channel: string) => channel.replace(/.*channel\//, '')
-
-const ucfirst = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)

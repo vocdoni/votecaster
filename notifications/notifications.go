@@ -23,6 +23,15 @@ The user %s created a new poll!
 Cast your vote to make a difference 👇`
 )
 
+// notificationThread is the parent cast to reply to when sending a notification
+// and avoid spamming the account feed. https://warpcast.com/vocdoni/0xfd847188
+var notificationThread = &farcasterapi.APIMessage{
+	Hash:   "0xfd8471884f3aaf3528d33ba8ae59f57904124d27",
+	Author: 7548,
+}
+
+// NotificationManager is a manager that listens for new notifications registered
+// in the database and sends them to the users via the farcaster API.
 type NotificationManager struct {
 	ctx            context.Context
 	cancel         context.CancelFunc
@@ -31,6 +40,8 @@ type NotificationManager struct {
 	listenCoolDown time.Duration
 }
 
+// New creates a new NotificationManager instance with the given context, database
+// and farcaster API. It also sets the listen cool down duration.
 func New(ctx context.Context, db *mongo.MongoStorage, api farcasterapi.API, listenCoolDown time.Duration) *NotificationManager {
 	ctx, cancel := context.WithCancel(ctx)
 	return &NotificationManager{
@@ -42,6 +53,10 @@ func New(ctx context.Context, db *mongo.MongoStorage, api farcasterapi.API, list
 	}
 }
 
+// Start starts the notification manager and listens for new notifications in the
+// database to send them to the users. It uses a cool down duration to avoid
+// spamming the farcaster API. It runs in the background and send notifications
+// in parallel.
 func (nm *NotificationManager) Start() {
 	go func() {
 		for {
@@ -63,10 +78,14 @@ func (nm *NotificationManager) Start() {
 	}()
 }
 
+// Stop stops the notification manager and cancels the context.
 func (nm *NotificationManager) Stop() {
 	nm.cancel()
 }
 
+// sendNotifications sends the given notifications to the users via the farcaster
+// API and removes them from the database. It uses a semaphore to limit the number
+// of concurrent goroutines and a waitgroup to wait for all of them to finish.
 func (nm *NotificationManager) sendNotifications(notifications []mongo.Notification) error {
 	// create channels and waitgroup, the semaphore is used to limit the number
 	// of concurrent goroutines and the error channel is used to return any
@@ -84,7 +103,7 @@ func (nm *NotificationManager) sendNotifications(notifications []mongo.Notificat
 			defer func() { <-sem }()
 			// send notification and remove it from the database
 			msg := fmt.Sprintf(NotificationMessage, n.Username, n.AuthorUsername)
-			if err := nm.api.Publish(nm.ctx, msg, []uint64{n.UserID}, n.FrameUrl); err != nil {
+			if err := nm.api.Reply(nm.ctx, notificationThread, msg, []uint64{n.UserID}, n.FrameUrl); err != nil {
 				errCh <- fmt.Errorf("error sending notification: %s", err)
 				return
 			}

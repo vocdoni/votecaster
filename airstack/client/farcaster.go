@@ -26,7 +26,7 @@ func (c *Client) farcasterUsersWithAssociatedAddresses(
 	defer cancel()
 	r := 0
 	var err error
-	resp := &gql.GetFarcasterUsersWithAssociatedAddressesResponse{}
+	var resp *gql.GetFarcasterUsersWithAssociatedAddressesResponse
 	for r < maxAPIRetries {
 		resp, err = gql.GetFarcasterUsersWithAssociatedAddresses(cctx, c.Client, limit, cursor)
 		if err != nil {
@@ -71,7 +71,7 @@ func (c *Client) farcasterUsersByChannel(
 	defer cancel()
 	r := 0
 	var err error
-	resp := &gql.GetFarcasterUsersByChannelResponse{}
+	var resp *gql.GetFarcasterUsersByChannelResponse
 	for r < maxAPIRetries {
 		resp, err = gql.GetFarcasterUsersByChannel(cctx, c.Client, channelName, limit, cursor)
 		if err != nil {
