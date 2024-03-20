@@ -14,7 +14,6 @@
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@farcaster/auth-kit": "^0.2.0",
-    "axios": "^1.6.7",
     "buffer": "^6.0.3",
     "framer-motion": "^11.0.3",
     "localforage": "^1.10.0",

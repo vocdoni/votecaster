@@ -1,17 +1,18 @@
 import { Box, BoxProps, Link, Stack, Text } from '@chakra-ui/react'
-import axios from 'axios'
 import { useEffect, useState } from 'react'
+import { useAuth } from './Auth/useAuth'
 
 const appUrl = import.meta.env.APP_URL
 
 export const TopTenPolls = (props: BoxProps) => {
+  const { bfetch } = useAuth()
   const [polls, setPolls] = useState([])
 
   useEffect(() => {
     ;(async () => {
       try {
-        const response = await axios.get(`${appUrl}/rankings/pollsByVotes`)
-        const { polls } = response.data
+        const response = await bfetch(`${appUrl}/rankings/pollsByVotes`)
+        const { polls } = await response.json()
         if (polls && polls.length) {
           setPolls(polls)
         }
