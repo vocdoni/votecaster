@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -52,19 +51,22 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 	}
 	resp, err := c.(*farcasterauth.Client).CheckStatus()
 	if err != nil {
-		if errors.Is(err, farcasterauth.ErrAuthenticationPending) {
-			return ctx.Send(nil, apirest.HTTPstatusNoContent)
-		}
-		authChannels.Delete(nonce)
-		return fmt.Errorf("could not verify channel: %v", err)
+		return ctx.Send(nil, apirest.HTTPstatusNoContent)
 	}
 	defer authChannels.Delete(nonce)
 	token, err := uuid.NewRandom()
 	if err != nil {
 		return fmt.Errorf("could not generate token: %v", err)
 	}
-	resp.AuthToken = token.String()
-	data, err := json.Marshal(resp)
+
+	resp.State = ""
+	resp.Nonce = ""
+	resp.Message = ""
+	resp.Signature = ""
+	data, err := json.Marshal(map[string]any{
+		"profile":   resp,
+		"authToken": token.String(),
+	})
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)
 	}

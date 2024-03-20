@@ -48,8 +48,8 @@ type ChannelResponse struct {
 
 // StatusResponse holds the response data for checking the channel's status.
 type StatusResponse struct {
-	State         string   `json:"state"`
-	Nonce         string   `json:"nonce"`
+	State         string   `json:"state,omitempty"`
+	Nonce         string   `json:"nonce,omitempty"`
 	Message       string   `json:"message,omitempty"`
 	Signature     string   `json:"signature,omitempty"`
 	Fid           uint64   `json:"fid,omitempty"`
