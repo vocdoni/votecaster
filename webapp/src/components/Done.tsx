@@ -51,7 +51,11 @@ export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords, shor
       <Image src={`${appUrl}/preview/${pid}`} alt='poll preview' />
       <Button
         colorScheme='purple'
-        rightIcon={<FarcasterLogo fill='white' height='20' />}
+        rightIcon={
+          <Icon height={24} mt='px'>
+            <FarcasterLogo fill='white' />
+          </Icon>
+        }
         onClick={() => cast(shortened ?? pollUrl(pid))}
       >
         Cast it!
