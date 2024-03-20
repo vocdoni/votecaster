@@ -98,8 +98,8 @@ export const SignInButton = () => {
                 fontWeight='normal'
                 colorScheme='purple'
                 onClick={() => (window.location.href = url)}
+                leftIcon={<IoPhonePortraitOutline />}
               >
-                <IoPhonePortraitOutline />
                 I'm using my phone →
               </Button>
             )}
