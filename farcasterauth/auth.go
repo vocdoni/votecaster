@@ -59,7 +59,6 @@ type StatusResponse struct {
 	PfpUrl        string   `json:"pfpUrl,omitempty"`
 	Custody       string   `json:"custody,omitempty"`
 	Verifications []string `json:"verifications,omitempty"`
-	AuthToken     string   `json:"authToken,omitempty"`
 }
 
 // CreateChannel initiates the authentication process by creating a new channel.
