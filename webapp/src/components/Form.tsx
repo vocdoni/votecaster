@@ -211,11 +211,14 @@ const Form: React.FC = (props: FlexProps) => {
           case 'erc20':
             call = bfetch(`${appUrl}/census/airstack/${data.censusType}`, {
               method: 'POST',
-              body: { tokens: data.addresses },
+              body: JSON.stringify({ tokens: data.addresses }),
             })
             break
           case 'followers': {
-            call = bfetch(`${appUrl}/census/followers/${profile.fid}`, { method: 'POST', body: { profile } })
+            call = bfetch(`${appUrl}/census/followers/${profile.fid}`, {
+              method: 'POST',
+              body: JSON.stringify({ profile }),
+            })
             break
           }
           case 'custom': {
@@ -265,12 +268,12 @@ const Form: React.FC = (props: FlexProps) => {
       setStatus('Storing poll in blockchain...')
       const res = await bfetch(`${appUrl}/create`, {
         method: 'POST',
-        body: election,
+        body: JSON.stringify(election),
       })
+      const id = (await res.text()).replace('\n', '')
 
       // this is a piece of 💩 made by GPT and I should rewrite it anytime soon
       const intervalId = window.setInterval(async () => {
-        const id = (await res.text()).replace('\n', '')
         const success = await checkElection(id)
         if (success) {
           clearInterval(intervalId)
