@@ -448,12 +448,12 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/blockchains", http.MethodGet, "private", handler.censusBlockchainsAirstack); err != nil {
+		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/blockchains", http.MethodGet, "public", handler.censusBlockchainsAirstack); err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/create/check/{electionID}", http.MethodGet, "private", handler.checkElection); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/create/check/{electionID}", http.MethodGet, "public", handler.checkElection); err != nil {
 		log.Fatal(err)
 	}
 
