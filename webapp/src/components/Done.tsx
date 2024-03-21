@@ -1,8 +1,9 @@
 import { Box, Button, Code, Icon, IconButton, Image, Link, Text, useClipboard } from '@chakra-ui/react'
 import { Dispatch, SetStateAction, useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
-import { FaArchway, FaCheck, FaDownload, FaRegCopy } from 'react-icons/fa6'
+import { FaCheck, FaDownload, FaRegCopy } from 'react-icons/fa6'
 import { CsvGenerator } from '../generator'
+import { FarcasterLogo } from './FarcasterLogo'
 
 const appUrl = import.meta.env.APP_URL
 const pollUrl = (pid: string) => `${appUrl}/${pid}`
@@ -48,7 +49,15 @@ export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords, shor
         />
       </Box>
       <Image src={`${appUrl}/preview/${pid}`} alt='poll preview' />
-      <Button colorScheme='purple' rightIcon={<FaArchway />} onClick={() => cast(shortened ?? pollUrl(pid))}>
+      <Button
+        colorScheme='purple'
+        rightIcon={
+          <Icon height={24} mt='px'>
+            <FarcasterLogo fill='white' />
+          </Icon>
+        }
+        onClick={() => cast(shortened ?? pollUrl(pid))}
+      >
         Cast it!
       </Button>
       <Box fontSize='xs' align='right'>

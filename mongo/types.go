@@ -48,6 +48,13 @@ type VotersOfElection struct {
 	Voters     []uint64 `json:"voters" bson:"voters"`
 }
 
+// Authentication represents the authentication data for a user.
+type Authentication struct {
+	UserID     uint64    `json:"userId" bson:"_id"`
+	AuthTokens []string  `json:"authTokens" bson:"authTokens"`
+	UpdatedAt  time.Time `json:"updatedAt" bson:"updatedAt"`
+}
+
 // NotificationType represents the type of notification to be sent to a user.
 type NotificationType int
 

@@ -39,6 +39,7 @@ type vocdoniHandler struct {
 	airstack      *airstack.Airstack
 
 	censusCreationMap sync.Map
+	addAuthTokenFunc  func(uint64, string)
 }
 
 func NewVocdoniHandler(
@@ -100,6 +101,11 @@ func NewVocdoniHandler(
 	db.AddElectionCallback(vh.election)
 	go vh.finalizeElectionsAtBackround(ctx)
 	return vh, ensureAccountExist(cli)
+}
+
+// AddAuthTokenFunc sets the function to add an authentication token to the farcaster API.
+func (v *vocdoniHandler) AddAuthTokenFunc(f func(uint64, string)) {
+	v.addAuthTokenFunc = f
 }
 
 func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {

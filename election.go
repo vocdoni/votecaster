@@ -50,6 +50,18 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		return fmt.Errorf("failed to unmarshal election request: %w", err)
 	}
 
+	// For debug purposes, log the user creating the election
+	fid, err := v.db.UserFromAuthToken(msg.AuthToken)
+	if err != nil {
+		log.Errorf("failed to get user from auth token %s: %v", msg.AuthToken, err)
+	} else {
+		user, err := v.db.User(fid)
+		if err != nil {
+			return fmt.Errorf("failed to get user from database: %w", err)
+		}
+		log.Infow("user creating election", "username", user.Username, "fid", fid)
+	}
+
 	// use the request census or use the one hardcoded for all farcaster users
 	census := req.Census
 	if census == nil {

@@ -19,15 +19,22 @@ import (
 	"go.vocdoni.io/dvote/types"
 )
 
+const (
+	authenticationExpirationNoActivitySeconds = 15 * 24 * 60 * 60 // 15 days
+)
+
 // MongoStorage uses an external MongoDB service for stoting the user data and election details.
 type MongoStorage struct {
-	users         *mongo.Collection
-	elections     *mongo.Collection
-	results       *mongo.Collection
-	voters        *mongo.Collection
-	notifications *mongo.Collection
-	keysLock      sync.RWMutex
-	election      funcGetElection
+	client   *mongo.Client
+	election funcGetElection
+	keysLock sync.RWMutex
+
+	users           *mongo.Collection
+	elections       *mongo.Collection
+	results         *mongo.Collection
+	voters          *mongo.Collection
+	authentications *mongo.Collection
+	notifications   *mongo.Collection
 }
 
 type Options struct {
@@ -85,10 +92,12 @@ func New(url, database string) (*MongoStorage, error) {
 		return nil, fmt.Errorf("cannot connect to mongodb: %w", err)
 	}
 
+	ms.client = client
 	ms.users = client.Database(database).Collection("users")
 	ms.elections = client.Database(database).Collection("elections")
 	ms.results = client.Database(database).Collection("results")
 	ms.voters = client.Database(database).Collection("voters")
+	ms.authentications = client.Database(database).Collection("authentications")
 	ms.notifications = client.Database(database).Collection("notifications")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
@@ -127,6 +136,25 @@ func (ms *MongoStorage) createIndexes() error {
 	// Create both indexes
 	_, err := ms.users.Indexes().CreateMany(ctx, []mongo.IndexModel{addressesIndexModel, signersIndexModel})
 	if err != nil {
+		return err
+	}
+
+	// Create index for authentication collection
+	authIndexModel := mongo.IndexModel{
+		Keys: bson.M{"authTokens": 1},
+	}
+	if _, err := ms.authentications.Indexes().CreateOne(ctx, authIndexModel); err != nil {
+		return err
+	}
+
+	// Create the TTL index for the 'createdAt' field in the authentications collection.
+	// With this index, the auth entries will be automatically deleted after N days of no activity.
+	ttlIndexModel := mongo.IndexModel{
+		Keys:    bson.M{"updatedAt": 1}, // Index on the updatedAt field
+		Options: options.Index().SetExpireAfterSeconds(authenticationExpirationNoActivitySeconds),
+	}
+
+	if _, err := ms.authentications.Indexes().CreateOne(ctx, ttlIndexModel); err != nil {
 		return err
 	}
 

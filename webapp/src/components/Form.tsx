@@ -30,14 +30,13 @@ import {
   UnorderedList,
   VStack,
 } from '@chakra-ui/react'
-import { SignInButton } from '@farcaster/auth-kit'
-import axios, { AxiosResponse } from 'axios'
 import React, { SetStateAction, useEffect, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import Airstack from '../assets/airstack.svg?react'
-import { useLogin } from '../useLogin'
 import { cleanChannel, ucfirst } from '../util/strings'
+import { SignInButton } from './Auth/SignInButton'
+import { useAuth } from './Auth/useAuth'
 import { Done } from './Done'
 import logo from '/poweredby.svg'
 
@@ -89,7 +88,7 @@ const Form: React.FC = (props: FlexProps) => {
     control,
     name: 'choices',
   })
-  const { isAuthenticated, profile, logout } = useLogin()
+  const { isAuthenticated, profile, logout, bfetch } = useAuth()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [shortened, setShortened] = useState<string | null>(null)
@@ -130,8 +129,8 @@ const Form: React.FC = (props: FlexProps) => {
     if (blockchains.length || bloaded) return
     ;(async () => {
       try {
-        const chains = await axios.get(`${appUrl}/census/airstack/blockchains`)
-        const { blockchains } = chains.data
+        const chains = await bfetch(`${appUrl}/census/airstack/blockchains`)
+        const { blockchains } = await chains.json()
         setBlockchains(blockchains.sort())
       } catch (e) {
         console.error('error fetching blockchains:', e)
@@ -155,11 +154,12 @@ const Form: React.FC = (props: FlexProps) => {
 
   const checkElection = async (pid: string) => {
     try {
-      const checkRes = await axios.get(`${appUrl}/create/check/${pid}`)
-      if (checkRes.status === 200) {
+      const res = await bfetch(`${appUrl}/create/check/${pid}`)
+      if (res.status === 200) {
         setPid(pid)
-        if (checkRes.data.url) {
-          setShortened(checkRes.data.url)
+        const { url } = await res.json()
+        if (url) {
+          setShortened(url)
         }
         return true
       }
@@ -170,12 +170,13 @@ const Form: React.FC = (props: FlexProps) => {
   }
 
   const checkCensus = async (pid: string, setStatus: Dispatch<SetStateAction<string | null>>): CensusResponse => {
-    const checkRes = await axios.get(`${appUrl}/census/check/${pid}`)
-    if (checkRes.status === 200) {
-      return checkRes.data as CensusResponse
+    const res = await bfetch(`${appUrl}/census/check/${pid}`)
+    if (res.status === 200) {
+      return (await res.json()) as CensusResponse
     }
-    if (checkRes.data.progress) {
-      setStatus(`Creating census... ${checkRes.data.progress}%`)
+    const data = await res.json()
+    if (data.progress) {
+      setStatus(`Creating census... ${data.progress}%`)
     }
     // wait 3 seconds between requests
     await new Promise((resolve) => setTimeout(resolve, 3000))
@@ -199,21 +200,25 @@ const Form: React.FC = (props: FlexProps) => {
 
       setStatus('Creating census...')
       try {
-        let call: Promise<AxiosResponse<CID, any>>
+        let call: Promise<Response>
         switch (data.censusType) {
           case 'channel': {
             const channel = cleanChannel(data.channel)
-            call = axios.post(`${appUrl}/census/channel-gated/${channel}`)
+            call = bfetch(`${appUrl}/census/channel-gated/${channel}`, { method: 'POST' })
             break
           }
           case 'nft':
           case 'erc20':
-            call = axios.post(`${appUrl}/census/airstack/${data.censusType}`, {
-              tokens: data.addresses,
+            call = bfetch(`${appUrl}/census/airstack/${data.censusType}`, {
+              method: 'POST',
+              body: JSON.stringify({ tokens: data.addresses }),
             })
             break
           case 'followers': {
-            call = axios.post(`${appUrl}/census/followers/${profile.fid}`, { profile })
+            call = bfetch(`${appUrl}/census/followers/${profile.fid}`, {
+              method: 'POST',
+              body: JSON.stringify({ profile }),
+            })
             break
           }
           case 'custom': {
@@ -222,7 +227,7 @@ const Form: React.FC = (props: FlexProps) => {
               Array.from(data.csv).flatMap((file) => [file, lineBreak]),
               { type: 'text/csv' }
             )
-            call = axios.post(`${appUrl}/census/csv`, contents)
+            call = bfetch(`${appUrl}/census/csv`, { body: contents })
             break
           }
           case 'farcaster':
@@ -232,11 +237,9 @@ const Form: React.FC = (props: FlexProps) => {
         }
 
         if (data.censusType !== 'farcaster') {
-          let cid: string
-          await call.then(({ data: { censusId } }) => {
-            cid = censusId
-          })
-          const census = await checkCensus(cid, setStatus)
+          const res = await call
+          const { censusId } = (await res.json()) as CID
+          const census = await checkCensus(censusId, setStatus)
           if (census.usernames && census.usernames.length) {
             setUsernames(census.usernames)
           }
@@ -263,11 +266,15 @@ const Form: React.FC = (props: FlexProps) => {
       }
 
       setStatus('Storing poll in blockchain...')
-      const res = await axios.post(`${appUrl}/create`, election)
+      const res = await bfetch(`${appUrl}/create`, {
+        method: 'POST',
+        body: JSON.stringify(election),
+      })
+      const id = (await res.text()).replace('\n', '')
 
       // this is a piece of 💩 made by GPT and I should rewrite it anytime soon
       const intervalId = window.setInterval(async () => {
-        const success = await checkElection(res.data.replace('\n', ''))
+        const success = await checkElection(id)
         if (success) {
           clearInterval(intervalId)
           setLoading(false)
@@ -430,7 +437,7 @@ const Form: React.FC = (props: FlexProps) => {
                           validate: async (val) => {
                             val = cleanChannel(val)
                             try {
-                              const res = await axios.get(`${appUrl}/census/channel-gated/${val}/exists`)
+                              const res = await bfetch(`${appUrl}/census/channel-gated/${val}/exists`)
                               if (res.status === 200) {
                                 return true
                               }

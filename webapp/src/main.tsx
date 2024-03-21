@@ -1,9 +1,9 @@
 import { ChakraProvider } from '@chakra-ui/react'
-import { AuthKitProvider } from '@farcaster/auth-kit'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { App } from './components/App'
+import { AuthProvider } from './components/Auth/AuthContext'
 import { Layout } from './components/Layout'
 import { Voters } from './components/Voters'
 import { theme } from './theme'
@@ -29,9 +29,9 @@ const rootElement = document.getElementById('root')
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <ChakraProvider theme={theme}>
-      <AuthKitProvider>
+      <AuthProvider>
         <RouterProvider router={router} />
-      </AuthKitProvider>
+      </AuthProvider>
     </ChakraProvider>
   </React.StrictMode>
 )
