@@ -21,17 +21,17 @@ type UserData struct {
 func calculateReputation(user *UserData) uint32 {
 	reputation := 0.0
 
-	// Calculate FollowersCount score (up to 20 points, max 50000 followers)
-	reputation += float64(user.FollowersCount) / 2500
+	// Calculate FollowersCount score (up to 10 points, max 20000 followers)
+	reputation += float64(user.FollowersCount) / 2000
 
 	// Calculate ElectionsCreated score (up to 10 points, max 100 elections)
 	reputation += float64(user.ElectionsCreated) / 10
 
-	// Calculate CastedVotes score (up to 20 points, max 200 votes)
-	reputation += float64(user.CastedVotes) / 10
+	// Calculate CastedVotes score (up to 30 points, max 120 votes)
+	reputation += float64(user.CastedVotes) / 4
 
-	// Calculate VotesCastedOnCreatedElections score (up to 50 points, max 3000 votes)
-	reputation += float64(user.VotesCastedOnCreatedElections) / 60
+	// Calculate VotesCastedOnCreatedElections score (up to 50 points, max 1000 votes)
+	reputation += float64(user.VotesCastedOnCreatedElections) / 20
 
 	// Ensure the reputation does not exceed 100
 	if reputation > 100 {
