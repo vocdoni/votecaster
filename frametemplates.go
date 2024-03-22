@@ -166,3 +166,23 @@ var frameError = header + `
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
 ` + body
+
+var frameNotifications = header + `
+    <meta property="fc:frame" content="vNext" />
+    <meta property="fc:frame:image" content="{image}" />
+    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta property="fc:frame:post_url" content="{server}/notifications/set" />
+    <meta property="fc:frame:button:1" content="✅ Yes" />
+    <meta property="fc:frame:button:2" content="❌ No" />
+    <meta property="fc:frame:button:3" content="🗳️ farcaster.vote" />
+    <meta property="fc:frame:button:3:action" content="link" />
+    <meta property="fc:frame:button:3:target" content="{server}" />
+` + body
+
+var frameNotificationsResponse = header + `
+    <meta property="fc:frame" content="vNext" />
+    <meta property="fc:frame:image" content="{image}" />
+    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta property="fc:frame:post_url" content="{server}/notifications" />
+    <meta property="fc:frame:button:1" content="Back" />
+` + body

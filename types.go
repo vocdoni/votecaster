@@ -27,10 +27,12 @@ type ElectionCreateRequest struct {
 
 // ElectionDescription defines the parameters for a new election.
 type ElectionDescription struct {
-	Question  string        `json:"question"`
-	Options   []string      `json:"options"`
-	Duration  time.Duration `json:"duration"`
-	Overwrite bool          `json:"overwrite"`
+	Question          string        `json:"question"`
+	Options           []string      `json:"options"`
+	Duration          time.Duration `json:"duration"`
+	Overwrite         bool          `json:"overwrite"`
+	UsersCount        uint32        `json:"usersCount"`
+	UsersCountInitial uint32        `json:"usersCountInitial"`
 }
 
 // CensusToken defines the parameters for a census token

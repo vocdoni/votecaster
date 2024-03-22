@@ -467,6 +467,15 @@ func main() {
 	if err := uAPI.Endpoint.RegisterMethod("/images/{id}.png", http.MethodGet, "public", handler.imagesHandler); err != nil {
 		log.Fatal(err)
 	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/notifications", http.MethodGet, "public", handler.notificationsHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/notifications/set", http.MethodPost, "public", handler.notificationsResponseHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	// if a bot FID is provided, start the bot background process
 	if botFid > 0 {
 		var botAPI farcasterapi.API

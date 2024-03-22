@@ -22,6 +22,10 @@ const (
 	BackgroundNotElegible  = "notelegible.png"
 	BackgroundNotFound     = "notfound.png"
 
+	BackgroundNotificationsAccepted = "notifications-accepted.png"
+	BackgroundNotificationsDenied   = "notifications-denied.png"
+	BackgroundNotifications         = "notifications.png"
+
 	BackgroundsDir    = "images/"
 	ImageGeneratorURL = "https://img.frame.vote"
 
@@ -58,6 +62,9 @@ func init() {
 	backgroundFrames[BackgroundAlreadyVoted] = loadImage(BackgroundAlreadyVoted)
 	backgroundFrames[BackgroundNotElegible] = loadImage(BackgroundNotElegible)
 	backgroundFrames[BackgroundNotFound] = loadImage(BackgroundNotFound)
+	backgroundFrames[BackgroundNotificationsAccepted] = loadImage(BackgroundNotificationsAccepted)
+	backgroundFrames[BackgroundNotificationsDenied] = loadImage(BackgroundNotificationsDenied)
+	backgroundFrames[BackgroundNotifications] = loadImage(BackgroundNotifications)
 
 	var err error
 	imagesLRU, err = lru.New[string, []byte](2048)
@@ -215,6 +222,21 @@ func NotElegibleImage() string {
 // NotFoundImage creates a static image to be displayed when an election is not found.
 func NotFoundImage() string {
 	return AddImageToCache(backgroundFrames[BackgroundNotFound])
+}
+
+// NotificationsAcceptedImage creates a static image to be displayed when notifications are accepted.
+func NotificationsAcceptedImage() string {
+	return AddImageToCache(backgroundFrames[BackgroundNotificationsAccepted])
+}
+
+// NotificationsDeniedImage creates a static image to be displayed when notifications are denied.
+func NotificationsDeniedImage() string {
+	return AddImageToCache(backgroundFrames[BackgroundNotificationsDenied])
+}
+
+// NotificationsImage creates a static image to be displayed when notifications are requested.
+func NotificationsImage() string {
+	return AddImageToCache(backgroundFrames[BackgroundNotifications])
 }
 
 // makeRequest handles the communication with the API.

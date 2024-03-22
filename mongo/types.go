@@ -40,12 +40,14 @@ type UserAccessProfile struct {
 
 // Election represents an election and its details owned by a user.
 type Election struct {
-	ElectionID   string    `json:"electionId" bson:"_id"`
-	UserID       uint64    `json:"userId" bson:"userId"`
-	CastedVotes  uint64    `json:"castedVotes" bson:"castedVotes"`
-	LastVoteTime time.Time `json:"lastVoteTime" bson:"lastVoteTime"`
-	CreatedTime  time.Time `json:"createdTime" bson:"createdTime"`
-	Source       string    `json:"source" bson:"source"`
+	ElectionID            string    `json:"electionId" bson:"_id"`
+	UserID                uint64    `json:"userId" bson:"userId"`
+	CastedVotes           uint64    `json:"castedVotes" bson:"castedVotes"`
+	LastVoteTime          time.Time `json:"lastVoteTime" bson:"lastVoteTime"`
+	CreatedTime           time.Time `json:"createdTime" bson:"createdTime"`
+	Source                string    `json:"source" bson:"source"`
+	FarcasterUserCount    uint32    `json:"farcasterUserCount" bson:"farcasterUserCount"`
+	InitialAddressesCount uint32    `json:"initialAddressesCount" bson:"initialAddressesCount"`
 }
 
 // Results represents the final results of an election.
