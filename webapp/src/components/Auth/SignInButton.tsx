@@ -48,7 +48,14 @@ export const SignInButton = () => {
 
     if (res.status === 200) {
       const rjson = await res.json()
-      login(rjson.profile, rjson.authToken)
+      login({
+        bearer: rjson.authToken,
+        profile: rjson.profile,
+        reputation: {
+          reputation: rjson.reputation,
+          data: rjson.reputationData,
+        },
+      })
       return true
     }
     if (res.status !== 204) {
