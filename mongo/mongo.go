@@ -29,12 +29,13 @@ type MongoStorage struct {
 	election funcGetElection
 	keysLock sync.RWMutex
 
-	users           *mongo.Collection
-	elections       *mongo.Collection
-	results         *mongo.Collection
-	voters          *mongo.Collection
-	authentications *mongo.Collection
-	notifications   *mongo.Collection
+	users              *mongo.Collection
+	elections          *mongo.Collection
+	results            *mongo.Collection
+	voters             *mongo.Collection
+	authentications    *mongo.Collection
+	notifications      *mongo.Collection
+	userAccessProfiles *mongo.Collection
 }
 
 type Options struct {
@@ -99,6 +100,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.voters = client.Database(database).Collection("voters")
 	ms.authentications = client.Database(database).Collection("authentications")
 	ms.notifications = client.Database(database).Collection("notifications")
+	ms.userAccessProfiles = client.Database(database).Collection("userAccessProfiles")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
 	// else, just createIndexes

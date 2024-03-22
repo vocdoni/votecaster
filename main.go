@@ -447,7 +447,6 @@ func main() {
 		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/erc20", http.MethodPost, "private", handler.censusTokenERC20Airstack); err != nil {
 			log.Fatal(err)
 		}
-
 		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/blockchains", http.MethodGet, "public", handler.censusBlockchainsAirstack); err != nil {
 			log.Fatal(err)
 		}

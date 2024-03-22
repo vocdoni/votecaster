@@ -135,7 +135,8 @@ func (d *FarcasterDiscover) updateUser(fid uint64) error {
 	if err != nil {
 		return fmt.Errorf("failed to get user profile: %w", err)
 	}
-	if profile.Result.User.Fid != fid || profile.Result.User.Username == "" || profile.Result.Extras.CustodyAddress == "" {
+	if profile.Result.User.Fid != fid || profile.Result.User.Username == "" ||
+		profile.Result.Extras.CustodyAddress == "" || profile.Result.User.FollowerCount < 0 {
 		d.invalid.Store(fid, true)
 		return nil
 	}
@@ -167,6 +168,8 @@ func (d *FarcasterDiscover) updateUser(fid uint64) error {
 		Addresses:      addresses,
 		CustodyAddress: profile.Result.Extras.CustodyAddress,
 		Signers:        signers,
+		Followers:      uint64(profile.Result.User.FollowerCount),
+		LastUpdated:    time.Now(),
 	}); err != nil {
 		log.Warnw("failed to update user profile", "error", err)
 	}

@@ -17,13 +17,25 @@ type Users struct {
 
 // User represents a farcaster user.
 type User struct {
-	UserID         uint64   `json:"userID,omitempty" bson:"_id"`
-	ElectionCount  uint64   `json:"electionCount" bson:"electionCount"`
-	CastedVotes    uint64   `json:"castedVotes" bson:"castedVotes"`
-	Username       string   `json:"username" bson:"username"`
-	CustodyAddress string   `json:"custodyAddress" bson:"custodyAddress"`
-	Addresses      []string `json:"addresses" bson:"addresses"`
-	Signers        []string `json:"signers" bson:"signers"`
+	UserID         uint64    `json:"userID,omitempty" bson:"_id"`
+	ElectionCount  uint64    `json:"electionCount" bson:"electionCount"`
+	CastedVotes    uint64    `json:"castedVotes" bson:"castedVotes"`
+	Username       string    `json:"username" bson:"username"`
+	CustodyAddress string    `json:"custodyAddress" bson:"custodyAddress"`
+	Addresses      []string  `json:"addresses" bson:"addresses"`
+	Signers        []string  `json:"signers" bson:"signers"`
+	Followers      uint64    `json:"followers" bson:"followers"`
+	LastUpdated    time.Time `json:"lastUpdated" bson:"lastUpdated"`
+}
+
+// UserAccessProfile holds the user's access profile data, used by our backend to determine the user's access level.
+// It also holds the notification status.
+type UserAccessProfile struct {
+	UserID                 uint64 `json:"userID,omitempty" bson:"_id"`
+	NotificationsAccepted  bool   `json:"notificationsAccepted" bson:"notificationsAccepted"`
+	NotificationsRequested bool   `json:"notificationsRequested" bson:"notificationsRequested"`
+	Reputation             uint32 `json:"reputation" bson:"reputation"`
+	AccessLevel            uint32 `json:"accessLevel" bson:"accessLevel"`
 }
 
 // Election represents an election and its details owned by a user.

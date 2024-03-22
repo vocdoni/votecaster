@@ -103,6 +103,30 @@ Note that this endpoint can only by called once (then it is removed and 404 will
 curl -X GET "http://localhost:8888/auth/123e4567"
 ```
 
+```json
+{
+    "authToken": "17c512b4-d55c-a2fe-144a-8fad0daa357c",
+    "profile": {
+        "fid": 237855,
+        "username": "foo",
+        "displayName": "bar 🎩 ⛓️‍💥",
+        "bio": "I do stuff",
+        "pfpUrl": "https://i.imgur.com/jFrkJ0KO.gif",
+        "custody": "0xabcde....",
+        "verifications": [
+            "0xabcde..."
+        ]
+    },
+    "reputation": 12,
+    "reputationData": {
+        "followersCount": 200,
+        "electionsCreated": 20,
+        "castedVotes": 54,
+        "participationAchievement": 114
+    }
+}
+```
+
 #### 3. Check Authentication Token
 
 Every time a user access the web application it is expected to check this endpoint. 
@@ -122,4 +146,16 @@ This action will update the expiration date.
 
 ```sh
 curl -X GET "http://example.com/auth/check" -H "authorization: Bearer {your_auth_token}"
+```
+
+```json
+{
+    "reputation": 12,
+    "reputationData": {
+        "followersCount": 200,
+        "electionsCreated": 20,
+        "castedVotes": 54,
+        "participationAchievement": 114
+    }
+}
 ```

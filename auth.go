@@ -59,19 +59,31 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 		return fmt.Errorf("could not generate token: %v", err)
 	}
 
+	// Get and update the user's reputation
+	reputation, reputationData, err := v.db.UpdateAndGetReputationForUser(resp.Fid)
+	if err != nil {
+		return fmt.Errorf("could not update reputation: %v", err)
+	}
+
+	// Remote unnecessary fields
 	resp.State = ""
 	resp.Nonce = ""
 	resp.Message = ""
 	resp.Signature = ""
+
+	// Marshal the response
 	data, err := json.Marshal(map[string]any{
-		"profile":   resp,
-		"authToken": token.String(),
+		"profile":        resp,
+		"authToken":      token.String(),
+		"reputation":     reputation,
+		"reputationData": reputationData,
 	})
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)
 	}
-	log.Infow("authentication completed", "username", resp.Username, "fid", resp.Fid)
 	v.addAuthTokenFunc(resp.Fid, token.String())
+
+	log.Infow("authentication completed", "username", resp.Username, "fid", resp.Fid, "reputation")
 	return ctx.Send(data, apirest.HTTPstatusOK)
 }
 
@@ -81,10 +93,25 @@ func (v *vocdoniHandler) authCheckHandler(msg *apirest.APIdata, ctx *httprouter.
 	if token == "" {
 		return fmt.Errorf("missing auth token header")
 	}
-	_, err := v.db.UpdateActivityAndGetData(token)
+	auth, err := v.db.UpdateActivityAndGetData(token)
 	if err != nil {
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
 	}
 
-	return ctx.Send(nil, apirest.HTTPstatusOK)
+	// Get and update the user's reputation
+	reputation, reputationData, err := v.db.UpdateAndGetReputationForUser(auth.UserID)
+	if err != nil {
+		return fmt.Errorf("could not update reputation: %v", err)
+	}
+
+	// Marshal the response
+	data, err := json.Marshal(map[string]any{
+		"reputation":     reputation,
+		"reputationData": reputationData,
+	})
+	if err != nil {
+		return fmt.Errorf("could not marshal response: %v", err)
+	}
+	log.Infow("authentication check completed, updated reputation", "fid", auth.UserID, "reputation", reputation)
+	return ctx.Send(data, apirest.HTTPstatusOK)
 }
