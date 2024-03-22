@@ -36,6 +36,7 @@ type UserAccessProfile struct {
 	NotificationsRequested bool   `json:"notificationsRequested" bson:"notificationsRequested"`
 	Reputation             uint32 `json:"reputation" bson:"reputation"`
 	AccessLevel            uint32 `json:"accessLevel" bson:"accessLevel"`
+	WhiteListed            bool   `json:"whiteListed" bson:"whiteListed"`
 }
 
 // Election represents an election and its details owned by a user.

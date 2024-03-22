@@ -45,6 +45,11 @@ func (ms *MongoStorage) SetNotificationsRequestedForUser(userID uint64, requeste
 	return ms.updateUserAccessProfile(userID, bson.M{"$set": bson.M{"notificationsRequested": requested}})
 }
 
+// SetWhiteListedForUser updates the white listed status for a given user ID.
+func (ms *MongoStorage) SetWhiteListedForUser(userID uint64, whiteListed bool) error {
+	return ms.updateUserAccessProfile(userID, bson.M{"$set": bson.M{"whiteListed": whiteListed}})
+}
+
 // updateUserAccessProfile is a helper function to update fields in the UserAccessProfile document.
 func (ms *MongoStorage) updateUserAccessProfile(userID uint64, update bson.M) error {
 	ms.keysLock.Lock()

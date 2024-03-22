@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -228,5 +229,17 @@ func (v *vocdoniHandler) importDB(msg *apirest.APIdata, ctx *httprouter.HTTPCont
 			log.Errorf("failed to import database: %v", err)
 		}
 	}()
+	return ctx.Send(nil, http.StatusOK)
+}
+
+// whitelistHandler is a handler to whitelist a user.
+func (v *vocdoniHandler) whitelistHandler(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	fid, err := strconv.ParseUint(ctx.URLParam("fid"), 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to parse fid: %w", err)
+	}
+	if err := v.db.SetWhiteListedForUser(fid, true); err != nil {
+		return fmt.Errorf("failed to get whitelist: %w", err)
+	}
 	return ctx.Send(nil, http.StatusOK)
 }
