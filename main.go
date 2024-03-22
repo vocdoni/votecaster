@@ -476,6 +476,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/notifications", http.MethodPost, "public", handler.notificationsHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/notifications/set", http.MethodPost, "public", handler.notificationsResponseHandler); err != nil {
 		log.Fatal(err)
 	}
