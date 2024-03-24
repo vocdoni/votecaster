@@ -228,7 +228,7 @@ const Form: React.FC = (props: FlexProps) => {
               Array.from(data.csv).flatMap((file) => [file, lineBreak]),
               { type: 'text/csv' }
             )
-            call = bfetch(`${appUrl}/census/csv`, { body: contents })
+            call = bfetch(`${appUrl}/census/csv`, { method: 'POST', body: contents })
             break
           }
           case 'farcaster':
