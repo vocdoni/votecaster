@@ -88,6 +88,7 @@ type Notification struct {
 	AuthorUsername string           `json:"authorUsername" bson:"authorUsername"`
 	ElectionID     string           `json:"electionId" bson:"electionId"`
 	FrameUrl       string           `json:"frameUrl" bson:"frameUrl"`
+	Deadline       time.Time        `json:"deadline" bson:"deadline"`
 }
 
 // Collection is a dataset containing several users, elections and results (used for dump and import).
