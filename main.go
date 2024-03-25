@@ -78,6 +78,7 @@ func main() {
 	flag.String("airstackBlockchains", "ethereum,base,zora,polygon", "Supported Airstack networks")
 	flag.Int("airstackMaxHolders", 10000, "The maximum number of holders to be retrieved from the Airstack API")
 	flag.String("airstackSupportAPIEndpoint", "", "Airstack support API endpoint")
+	flag.String("airstackTokenWhitelist", "", "Airstack token whitelist")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -127,6 +128,7 @@ func main() {
 	airstackBlockchains := viper.GetString("airstackBlockchains")
 	airstackMaxHolders := uint32(viper.GetInt("airstackMaxHolders"))
 	airstackSupportAPIEndpoint := viper.GetString("airstackSupportAPIEndpoint")
+	airstackTokenWhitelist := viper.GetString("airstackTokenWhitelist")
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()
@@ -166,6 +168,9 @@ func main() {
 		"airstackAPIEndpoint", airstackEndpoint,
 		"airstackAPIKey", airstackKey,
 		"airstackBlockchains", airstackBlockchains,
+		"airstackMaxHolders", airstackMaxHolders,
+		"airstackSupportAPIEndpoint", airstackSupportAPIEndpoint,
+		"airstackTokenWhitelist", airstackTokenWhitelist,
 	)
 
 	// Start the pprof http endpoints
@@ -240,6 +245,7 @@ func main() {
 			airstackKey,
 			airstackSupportAPIEndpoint,
 			strings.Split(airstackBlockchains, ","),
+			strings.Split(airstackTokenWhitelist, ","),
 			airstackMaxHolders)
 		if err != nil {
 			log.Fatal(err)
