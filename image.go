@@ -38,7 +38,11 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 			if err != nil {
 				return errorImageResponse(ctx, fmt.Errorf("id not found... click results"))
 			}
-			id, err := imageframe.ResultsImage(election)
+			electiondb, err := v.db.Election(electionID)
+			if err != nil {
+				return errorImageResponse(ctx, fmt.Errorf("id not found... click results"))
+			}
+			id, err := imageframe.ResultsImage(election, electiondb.CensusERC20TokenDecimals)
 			if err != nil {
 				return errorImageResponse(ctx, fmt.Errorf("failed to build results: %w", err))
 			}

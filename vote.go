@@ -141,9 +141,14 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 					log.Warnw("failed to fetch election", "error", err)
 					break
 				}
+				electiondb, err := v.db.Election(electionIDbytes)
+				if err != nil {
+					log.Warnw("failed to fetch election", "error", err)
+					break
+				}
 				evicted := v.electionLRU.Add(electionID, election)
 				log.Debugw("updated election cache after vote", "electionID", electionID, "evicted", evicted)
-				resultsPNGfile(election)
+				resultsPNGfile(election, electiondb.CensusERC20TokenDecimals)
 				break
 			}
 		}

@@ -82,6 +82,7 @@ type CensusInfo struct {
 	Size               uint64         `json:"size"`
 	Usernames          []string       `json:"usernames,omitempty"`
 	FromTotalAddresses uint32         `json:"fromTotalAddresses,omitempty"`
+	TokenDecimals      uint32         `json:"tokenDecimals,omitempty"`
 
 	Error    string          `json:"-"`
 	Progress uint32          `json:"-"` // Progress of the census creation process (0-100)
@@ -112,7 +113,7 @@ type FarcasterParticipant struct {
 
 // CreateCensus creates a new census from a list of participants.
 func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipant,
-	censusType FrameCensusType, progress chan int,
+	censusType FrameCensusType, meta int, progress chan int,
 ) (*CensusInfo, error) {
 	censusList := api.CensusParticipants{}
 	for _, p := range participants {
@@ -173,10 +174,11 @@ func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipan
 		return nil, err
 	}
 	return &CensusInfo{
-		Root: root,
-		Url:  url,
-		Size: size,
-		Type: censusType,
+		Root:          root,
+		Url:           url,
+		Size:          size,
+		Type:          censusType,
+		TokenDecimals: uint32(meta),
 	}, nil
 }
 
@@ -203,7 +205,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		}
 		var ci *CensusInfo
 		v.trackStepProgress(censusID, 2, 2, func(progress chan int) {
-			ci, err = CreateCensus(v.cli, participants, FrameCensusTypeCSV, progress)
+			ci, err = CreateCensus(v.cli, participants, FrameCensusTypeCSV, 0, progress)
 		})
 		if err != nil {
 			log.Errorw(err, "failed to create census")
@@ -317,7 +319,7 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 		// create the census from the participants
 		var censusInfo *CensusInfo
 		v.trackStepProgress(censusID, 3, 3, func(progress chan int) {
-			censusInfo, err = CreateCensus(v.cli, participants, FrameCensusTypeChannelGated, progress)
+			censusInfo, err = CreateCensus(v.cli, participants, FrameCensusTypeChannelGated, 0, progress)
 		})
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
@@ -387,7 +389,7 @@ func (v *vocdoniHandler) censusFollowers(msg *apirest.APIdata, ctx *httprouter.H
 		// create the census from the participants
 		var censusInfo *CensusInfo
 		v.trackStepProgress(censusID, 2, 2, func(progress chan int) {
-			censusInfo, err = CreateCensus(v.cli, participants, FrameCensusTypeChannelGated, progress)
+			censusInfo, err = CreateCensus(v.cli, participants, FrameCensusTypeChannelGated, 0, progress)
 		})
 		if err != nil {
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
@@ -472,21 +474,21 @@ func (v *vocdoniHandler) censusTokenNFTAirstack(msg *apirest.APIdata, ctx *httpr
 		return fmt.Errorf("invalid number of NFT tokens, bounds between 1 and 3")
 	}
 	// check valid tokens
-	if err := v.checkTokens(req.Tokens); err != nil {
+	if _, err := v.checkTokens(req.Tokens); err != nil {
 		return err
 	}
 
-	data, err := v.censusTokenAirstack(req.Tokens, NFTtype)
+	data, err := v.censusTokenAirstack(req.Tokens, NFTtype, 0)
 	if err != nil {
 		return fmt.Errorf("cannot create nft census: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) error {
+func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) (int, error) {
 	for _, token := range tokens {
 		if len(token.Address) == 0 {
-			return fmt.Errorf("invalid token information: %v", token)
+			return 0, fmt.Errorf("invalid token information: %v", token)
 		}
 		ok := false
 		for _, bk := range v.airstack.Blockchains() {
@@ -495,16 +497,20 @@ func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) error {
 			}
 		}
 		if !ok {
-			return fmt.Errorf("invalid blockchain for token %s provided", token.Address)
+			return 0, fmt.Errorf("invalid blockchain for token %s provided", token.Address)
 		}
 		// check max holders
 		if holders, err := v.airstack.NumHoldersByTokenAnkrAPI(token.Address, token.Blockchain); err != nil {
-			return fmt.Errorf("cannot get holders for token %s: %w", token.Address, err)
+			return 0, fmt.Errorf("cannot get holders for token %s: %w", token.Address, err)
 		} else if holders > v.airstack.MaxHolders() {
-			return fmt.Errorf("token %s has too many holders: %d, maximum allowed is %d", token.Address, holders, v.airstack.MaxHolders())
+			return 0, fmt.Errorf("token %s has too many holders: %d, maximum allowed is %d", token.Address, holders, v.airstack.MaxHolders())
 		}
 	}
-	return nil
+	td, err := v.airstack.TokenDecimalsByTokenAnkrAPI("", "")
+	if err != nil {
+		return 0, fmt.Errorf("cannot get token decimals")
+	}
+	return td, nil
 }
 
 func (v *vocdoniHandler) censusTokenERC20Airstack(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -516,18 +522,19 @@ func (v *vocdoniHandler) censusTokenERC20Airstack(msg *apirest.APIdata, ctx *htt
 		return fmt.Errorf("invalid number of ERC20 tokens, must be %d", MAXERC20Tokens)
 	}
 	// check valid token
-	if err := v.checkTokens(req.Tokens); err != nil {
+	td, err := v.checkTokens(req.Tokens)
+	if err != nil {
 		return err
 	}
 
-	data, err := v.censusTokenAirstack(req.Tokens, ERC20type)
+	data, err := v.censusTokenAirstack(req.Tokens, ERC20type, td)
 	if err != nil {
 		return fmt.Errorf("cannot create erc20 census: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType int) ([]byte, error) {
+func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, tokenDecimals int) ([]byte, error) {
 	if v.airstack == nil {
 		return nil, fmt.Errorf("airstack service not available")
 	}
@@ -563,9 +570,9 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType in
 		var ci *CensusInfo
 		v.trackStepProgress(censusID, 3, 3, func(progress chan int) {
 			if tokenType == ERC20type {
-				ci, err = CreateCensus(v.cli, participants, FrameCensusTypeERC20, progress)
+				ci, err = CreateCensus(v.cli, participants, FrameCensusTypeERC20, tokenDecimals, progress)
 			} else if tokenType == NFTtype {
-				ci, err = CreateCensus(v.cli, participants, FrameCensusTypeNFT, progress)
+				ci, err = CreateCensus(v.cli, participants, FrameCensusTypeNFT, 0, progress)
 			}
 		})
 		if err != nil {
