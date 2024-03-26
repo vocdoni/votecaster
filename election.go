@@ -324,7 +324,7 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 		if err != nil {
 			return fmt.Errorf("failed to create election: %w", err)
 		}
-		if err := v.saveElectionAndProfile(election, profile, source, desc.UsersCount, desc.UsersCountInitial); err != nil {
+		if err := v.saveElectionAndProfile(election, profile, source, desc.UsersCount, desc.UsersCountInitial, census.TokenDecimals); err != nil {
 			return fmt.Errorf("failed to save election and profile: %w", err)
 		}
 		if notify {
@@ -358,11 +358,11 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 	election *api.Election,
 	profile *FarcasterProfile,
 	source string,
-	usersCount, usersCountInitial uint32,
+	usersCount, usersCountInitial, tokenDecimals uint32,
 ) error {
 	// add the election to the LRU cache and the database
 	v.electionLRU.Add(election.ElectionID.String(), election)
-	if err := v.db.AddElection(election.ElectionID, profile.FID, source, usersCount, usersCountInitial); err != nil {
+	if err := v.db.AddElection(election.ElectionID, profile.FID, source, usersCount, usersCountInitial, tokenDecimals); err != nil {
 		return fmt.Errorf("failed to add election to database: %w", err)
 	}
 	u, err := v.db.User(profile.FID)
@@ -436,8 +436,13 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 					log.Errorw(err, "failed to get election")
 					continue
 				}
+				electionMeta, err := v.db.Election(electionIDbytes)
+				if err != nil {
+					log.Errorw(err, "failed to get election")
+					continue
+				}
 				if election.FinalResults {
-					png, err := imageframe.ResultsImage(election)
+					png, err := imageframe.ResultsImage(election, electionMeta.CensusERC20TokenDecimals)
 					if err != nil {
 						log.Errorw(err, "failed to generate results image")
 						continue

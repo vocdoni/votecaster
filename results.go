@@ -60,13 +60,18 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if election.Results == nil || len(election.Results) == 0 {
 		return errorImageResponse(ctx, fmt.Errorf("election results not ready"))
 	}
+
+	electiondb, err := v.db.Election(electionIDbytes)
+	if err != nil {
+		return errorImageResponse(ctx, fmt.Errorf("failed to fetch election: %w", err))
+	}
 	// Update LRU cached election
 	evicted := v.electionLRU.Add(electionID, election)
 	log.Debugw("updated election cache", "electionID", electionID, "evicted", evicted)
 
 	// if final results, create the static PNG image with the results
 	if election.FinalResults {
-		id, err := imageframe.ResultsImage(election)
+		id, err := imageframe.ResultsImage(election, electiondb.CensusERC20TokenDecimals)
 		if err != nil {
 			return fmt.Errorf("failed to create image: %w", err)
 		}
@@ -87,17 +92,17 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	}
 
 	// if not final results, create the dynamic PNG image with the results
-	response := strings.ReplaceAll(frame(frameResults), "{image}", resultsPNGfile(election))
+	response := strings.ReplaceAll(frame(frameResults), "{image}", resultsPNGfile(election, electiondb.CensusERC20TokenDecimals))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 
-func resultsPNGfile(election *api.Election) string {
+func resultsPNGfile(election *api.Election, tokenDecimals uint32) string {
 	resultsPNGgenerationMutex.Lock()
 	defer resultsPNGgenerationMutex.Unlock()
-	id, err := imageframe.ResultsImage(election)
+	id, err := imageframe.ResultsImage(election, tokenDecimals)
 	if err != nil {
 		log.Warnw("failed to create results image", "error", err)
 		return imageLink(imageframe.NotFoundImage())

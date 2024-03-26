@@ -39,6 +39,11 @@ func (a *Airstack) MaxHolders() uint32 {
 	return a.maxHolders
 }
 
+func (a *Airstack) TokenDecimalsByTokenAnkrAPI(tokenAddress, blockchain string) (int, error) {
+	// TODO
+	return 18, nil
+}
+
 func (a *Airstack) NumHoldersByTokenAnkrAPI(tokenAddress, blockchain string) (uint32, error) {
 	if a.supportAPIEndpoint == "" {
 		log.Warnf("No support API endpoint provided, skipping token holder count retrieval")

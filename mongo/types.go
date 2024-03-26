@@ -41,6 +41,7 @@ type UserAccessProfile struct {
 
 // Election represents an election and its details owned by a user.
 type Election struct {
+	ElectionMeta
 	ElectionID            string    `json:"electionId" bson:"_id"`
 	UserID                uint64    `json:"userId" bson:"userId"`
 	CastedVotes           uint64    `json:"castedVotes" bson:"castedVotes"`
@@ -49,6 +50,14 @@ type Election struct {
 	Source                string    `json:"source" bson:"source"`
 	FarcasterUserCount    uint32    `json:"farcasterUserCount" bson:"farcasterUserCount"`
 	InitialAddressesCount uint32    `json:"initialAddressesCount" bson:"initialAddressesCount"`
+}
+
+// ElectionMeta stores non related election information that is useful
+// for certain types of frame interactions
+type ElectionMeta struct {
+	// CensusERC20TokenDecimals is the number of decimals that a certain ERC20 token, that was used
+	// for creating the census of the election, has.
+	CensusERC20TokenDecimals uint32 `json:"censusERC20TokenDecimals" bson:"censusERC20TokenDecimals"`
 }
 
 // Results represents the final results of an election.

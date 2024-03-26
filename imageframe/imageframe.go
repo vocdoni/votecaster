@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/big"
 	"net/http"
 	"os"
 	"path"
@@ -166,7 +168,7 @@ func QuestionImage(election *api.Election) (string, error) {
 }
 
 // ResultsImage creates an image showing the results of a poll.
-func ResultsImage(election *api.Election) (string, error) {
+func ResultsImage(election *api.Election, censusTokenDecimals uint32) (string, error) {
 	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
 		return "", fmt.Errorf("election has no questions")
 	}
@@ -180,7 +182,17 @@ func ResultsImage(election *api.Election) (string, error) {
 	results := []string{}
 	for _, option := range election.Metadata.Questions[0].Choices {
 		choices = append(choices, option.Title["default"])
-		results = append(results, election.Results[0][option.Value].MathBigInt().String())
+		value := ""
+		if censusTokenDecimals > 0 {
+			resultsValueFloat := new(big.Float).Quo(
+				new(big.Float).SetInt(election.Results[0][option.Value].MathBigInt()),
+				new(big.Float).SetInt(big.NewInt(int64(math.Pow(10, float64(censusTokenDecimals))))),
+			)
+			value = fmt.Sprintf("%.2f", resultsValueFloat)
+		} else {
+			value = election.Results[0][option.Value].MathBigInt().String()
+		}
+		results = append(results, value)
 	}
 
 	requestData := ImageRequest{
