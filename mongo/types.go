@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"fmt"
-	"math/big"
 	"time"
 )
 
@@ -55,13 +54,13 @@ type Election struct {
 
 // Census stores the census of an election ready to be used for voting on farcaster.
 type Census struct {
-	CensusID           string              `json:"censusId" bson:"_id"`
-	Root               string              `json:"root" bson:"root"`
-	ElectionID         string              `json:"electionId" bson:"electionId"`
-	TokenDecimals      uint32              `json:"tokenDecimals" bson:"tokenDecimals"`
-	Participants       map[string]*big.Int `json:"participants" bson:"participants"`
-	FromTotalAddresses uint32              `json:"fromTotalAddresses" bson:"fromTotalAddresses"`
-	CreatedBy          uint64              `json:"createdBy" bson:"createdBy"`
+	CensusID           string            `json:"censusId" bson:"_id"`
+	Root               string            `json:"root" bson:"root"`
+	ElectionID         string            `json:"electionId" bson:"electionId"`
+	TokenDecimals      uint32            `json:"tokenDecimals" bson:"tokenDecimals"`
+	Participants       map[string]string `json:"participants" bson:"participants"`
+	FromTotalAddresses uint32            `json:"fromTotalAddresses" bson:"fromTotalAddresses"`
+	CreatedBy          uint64            `json:"createdBy" bson:"createdBy"`
 }
 
 // ElectionMeta stores non related election information that is useful

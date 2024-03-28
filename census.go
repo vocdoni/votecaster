@@ -254,9 +254,16 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			return
 		}
 		// since each participant can have multiple signers, we need to get the unique usernames
-		uniqueParticipantsMap := make(map[string]*big.Int)
+		uniqueParticipantsMap := make(map[string]string)
 		for _, p := range participants {
-			uniqueParticipantsMap[p.Username] = p.Weight
+			if _, ok := uniqueParticipantsMap[p.Username]; ok {
+				// if the username is already in the map, skip
+				continue
+			}
+			if p.Weight == nil {
+				p.Weight = big.NewInt(1)
+			}
+			uniqueParticipantsMap[p.Username] = p.Weight.String()
 		}
 		uniqueParticipants := []string{}
 		for k := range uniqueParticipantsMap {
@@ -655,9 +662,16 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 		}
 
 		// since each participant can have multiple signers, we need to get the unique usernames
-		uniqueParticipantsMap := make(map[string]*big.Int)
+		uniqueParticipantsMap := make(map[string]string)
 		for _, p := range participants {
-			uniqueParticipantsMap[p.Username] = p.Weight
+			if _, ok := uniqueParticipantsMap[p.Username]; ok {
+				// if the username is already in the map, skip
+				continue
+			}
+			if p.Weight == nil {
+				p.Weight = big.NewInt(1)
+			}
+			uniqueParticipantsMap[p.Username] = p.Weight.String()
 		}
 		uniqueParticipants := []string{}
 		for k := range uniqueParticipantsMap {
