@@ -104,6 +104,23 @@ func (ms *MongoStorage) CensusFromRoot(root types.HexBytes) (*Census, error) {
 	return &census, nil
 }
 
+// CensusFromRoot retrieves a Census document by its root.
+func (ms *MongoStorage) CensusFromElection(electionID types.HexBytes) (*Census, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var census Census
+	err := ms.census.FindOne(ctx, bson.M{"electionId": electionID.String()}).Decode(&census)
+	if err != nil {
+		return nil, fmt.Errorf("cannot find Census with electionID: %w", err)
+	}
+
+	return &census, nil
+}
+
 // SetElectionIdForCensusRoot updates the ElectionID for a given census document by its root.
 // If the root is not found, it returns nil, indicating no error occurred.
 func (ms *MongoStorage) SetElectionIdForCensusRoot(root, electionID types.HexBytes) error {

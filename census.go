@@ -182,13 +182,30 @@ func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipan
 	}, nil
 }
 
-// censusFromDatabase retrieves a census from the database by its root.
-func (v *vocdoniHandler) censusFromDatabaseByRoot(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	censusID, err := hex.DecodeString(ctx.URLParam("root"))
+// censusFromDatabaseByElectionID retrieves a census from the database by its election ID.
+func (v *vocdoniHandler) censusFromDatabaseByElectionID(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	eID, err := hex.DecodeString(ctx.URLParam("electionID"))
 	if err != nil {
 		return err
 	}
-	census, err := v.db.CensusFromRoot(censusID)
+	census, err := v.db.CensusFromElection(eID)
+	if err != nil {
+		return ctx.Send(nil, http.StatusNotFound)
+	}
+	data, err := json.Marshal(census)
+	if err != nil {
+		return err
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
+// censusFromDatabaseByRoot retrieves a census from the database by its root.
+func (v *vocdoniHandler) censusFromDatabaseByRoot(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	root, err := hex.DecodeString(ctx.URLParam("root"))
+	if err != nil {
+		return err
+	}
+	census, err := v.db.CensusFromRoot(root)
 	if err != nil {
 		return ctx.Send(nil, http.StatusNotFound)
 	}

@@ -423,7 +423,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/census/{root}", http.MethodGet, "public", handler.censusFromDatabaseByRoot); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/census/{electionID}", http.MethodGet, "public", handler.censusFromDatabaseByElectionID); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/root/{root}", http.MethodGet, "public", handler.censusFromDatabaseByRoot); err != nil {
 		log.Fatal(err)
 	}
 

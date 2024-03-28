@@ -122,7 +122,7 @@ func New(url, database string) (*MongoStorage, error) {
 }
 
 func (ms *MongoStorage) createIndexes() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	// Index model for the 'addresses' field
@@ -163,12 +163,23 @@ func (ms *MongoStorage) createIndexes() error {
 	}
 
 	// Create index for Census Root
-	mod := mongo.IndexModel{
-		Keys: bson.M{"root": 1},
+	rootIndexModel := mongo.IndexModel{
+		Keys:    bson.M{"root": 1}, // 1 for ascending order
+		Options: options.Index().SetUnique(false),
 	}
 
-	if _, err = ms.census.Indexes().CreateOne(ctx, mod); err != nil {
+	if _, err := ms.census.Indexes().CreateOne(ctx, rootIndexModel); err != nil {
 		return fmt.Errorf("failed to create index on root field: %w", err)
+	}
+
+	// Create index for Census ElectionID
+	electionIDIndexModel := mongo.IndexModel{
+		Keys:    bson.M{"electionId": 1}, // 1 for ascending order
+		Options: options.Index().SetUnique(true),
+	}
+
+	if _, err := ms.census.Indexes().CreateOne(ctx, electionIDIndexModel); err != nil {
+		return fmt.Errorf("failed to create index on electionId field: %w", err)
 	}
 
 	return nil
