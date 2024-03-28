@@ -83,6 +83,14 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
+
+	// set the electionID for the census root previously stored on the database (if any).
+	if req.Census != nil && req.Census.Root != nil {
+		if err := v.db.SetElectionIdForCensusRoot(req.Census.Root, electionID); err != nil {
+			log.Errorw(err, fmt.Sprintf("failed to set electionID for census root %s", req.Census.Root))
+		}
+	}
+
 	ctx.SetResponseContentType("application/json")
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)
 }

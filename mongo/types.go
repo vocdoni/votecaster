@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 )
 
@@ -50,6 +51,17 @@ type Election struct {
 	Source                string    `json:"source" bson:"source"`
 	FarcasterUserCount    uint32    `json:"farcasterUserCount" bson:"farcasterUserCount"`
 	InitialAddressesCount uint32    `json:"initialAddressesCount" bson:"initialAddressesCount"`
+}
+
+// Census stores the census of an election ready to be used for voting on farcaster.
+type Census struct {
+	CensusID           string              `json:"censusId" bson:"_id"`
+	Root               string              `json:"root" bson:"root"`
+	ElectionID         string              `json:"electionId" bson:"electionId"`
+	TokenDecimals      uint32              `json:"tokenDecimals" bson:"tokenDecimals"`
+	Participants       map[string]*big.Int `json:"participants" bson:"participants"`
+	FromTotalAddresses uint32              `json:"fromTotalAddresses" bson:"fromTotalAddresses"`
+	CreatedBy          uint64              `json:"createdBy" bson:"createdBy"`
 }
 
 // ElectionMeta stores non related election information that is useful
@@ -105,6 +117,7 @@ type Collection struct {
 	ElectionCollection
 	ResultsCollection
 	VotersOfElectionCollection
+	CensusCollection
 }
 
 // UserCollection is a dataset containing several users (used for dump and import).
@@ -115,6 +128,11 @@ type UserCollection struct {
 // ElectionCollection is a dataset containing several elections (used for dump and import).
 type ElectionCollection struct {
 	Elections []Election `json:"elections" bson:"elections"`
+}
+
+// CensusCollection is a dataset containing several censuses (used for dump and import).
+type CensusCollection struct {
+	Censuses []Census `json:"censuses" bson:"censuses"`
 }
 
 // ResultsCollection is a dataset containing several election results (used for dump and import).

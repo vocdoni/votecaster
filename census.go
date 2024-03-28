@@ -182,6 +182,23 @@ func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipan
 	}, nil
 }
 
+// censusFromDatabase retrieves a census from the database by its root.
+func (v *vocdoniHandler) censusFromDatabaseByRoot(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	censusID, err := hex.DecodeString(ctx.URLParam("root"))
+	if err != nil {
+		return err
+	}
+	census, err := v.db.CensusFromRoot(censusID)
+	if err != nil {
+		return ctx.Send(nil, http.StatusNotFound)
+	}
+	data, err := json.Marshal(census)
+	if err != nil {
+		return err
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
 // censusCSV creates a new census from a CSV file containing Ethereum addresses and weights.
 // It builds the census async and returns the census ID.
 func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -190,6 +207,13 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		return err
 	}
 	v.censusCreationMap.Store(censusID.String(), CensusInfo{})
+	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
+	if err != nil {
+		return fmt.Errorf("cannot get user from auth token: %w", err)
+	}
+	if err := v.db.AddCensus(censusID, userFID); err != nil {
+		return fmt.Errorf("cannot add census to database: %w", err)
+	}
 	totalCSVaddresses := uint32(0)
 	go func() {
 		startTime := time.Now()
@@ -213,9 +237,9 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			return
 		}
 		// since each participant can have multiple signers, we need to get the unique usernames
-		uniqueParticipantsMap := make(map[string]struct{})
+		uniqueParticipantsMap := make(map[string]*big.Int)
 		for _, p := range participants {
-			uniqueParticipantsMap[p.Username] = struct{}{}
+			uniqueParticipantsMap[p.Username] = p.Weight
 		}
 		uniqueParticipants := []string{}
 		for k := range uniqueParticipantsMap {
@@ -228,7 +252,14 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			"size", len(ci.Usernames),
 			"duration", time.Since(startTime),
 			"fromTotalAddresses", totalCSVaddresses)
+
+		// store the census info in the map
 		v.censusCreationMap.Store(censusID.String(), *ci)
+
+		// add participants to the census in the database
+		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, 0); err != nil {
+			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
+		}
 	}()
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
 	if err != nil {
@@ -415,8 +446,13 @@ func (v *vocdoniHandler) censusFollowers(msg *apirest.APIdata, ctx *httprouter.H
 // censusQueueInfo returns the status of the census creation process.
 // Returns 204 if the census is not yet ready or not found.
 func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	censusID := ctx.URLParam("censusID")
-	iCensusInfo, ok := v.censusCreationMap.Load(censusID)
+	var censusID types.HexBytes
+	var err error
+	censusID, err = hex.DecodeString(ctx.URLParam("censusID"))
+	if err != nil {
+		return err
+	}
+	iCensusInfo, ok := v.censusCreationMap.Load(censusID.String())
 	if !ok {
 		return ctx.Send(nil, http.StatusNotFound)
 	}
@@ -438,6 +474,9 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 			return err
 		}
 		return ctx.Send(data, http.StatusAccepted)
+	}
+	if err = v.db.SetRootForCensus(censusID, censusInfo.Root); err != nil {
+		return fmt.Errorf("cannot set root for census: %w", err)
 	}
 	data, err := json.Marshal(censusInfo)
 	if err != nil {
@@ -473,12 +512,19 @@ func (v *vocdoniHandler) censusTokenNFTAirstack(msg *apirest.APIdata, ctx *httpr
 	if len(req.Tokens) > MAXNFTTokens || len(req.Tokens) == 0 {
 		return fmt.Errorf("invalid number of NFT tokens, bounds between 1 and 3")
 	}
+
+	// extract userFID from auth token
+	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
+	if err != nil {
+		return fmt.Errorf("cannot get user from auth token: %w", err)
+	}
+
 	// check valid tokens
 	if _, err := v.checkTokens(req.Tokens); err != nil {
 		return err
 	}
 
-	data, err := v.censusTokenAirstack(req.Tokens, NFTtype, 0)
+	data, err := v.censusTokenAirstack(req.Tokens, NFTtype, 0, userFID)
 	if err != nil {
 		return fmt.Errorf("cannot create nft census: %w", err)
 	}
@@ -521,20 +567,27 @@ func (v *vocdoniHandler) censusTokenERC20Airstack(msg *apirest.APIdata, ctx *htt
 	if len(req.Tokens) != MAXERC20Tokens {
 		return fmt.Errorf("invalid number of ERC20 tokens, must be %d", MAXERC20Tokens)
 	}
+
+	// extract userFID from auth token
+	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
+	if err != nil {
+		return fmt.Errorf("cannot get user from auth token: %w", err)
+	}
+
 	// check valid token
 	td, err := v.checkTokens(req.Tokens)
 	if err != nil {
 		return err
 	}
 
-	data, err := v.censusTokenAirstack(req.Tokens, ERC20type, td)
+	data, err := v.censusTokenAirstack(req.Tokens, ERC20type, td, userFID)
 	if err != nil {
 		return fmt.Errorf("cannot create erc20 census: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, tokenDecimals int) ([]byte, error) {
+func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, tokenDecimals int, createdByFID uint64) ([]byte, error) {
 	if v.airstack == nil {
 		return nil, fmt.Errorf("airstack service not available")
 	}
@@ -542,11 +595,14 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 	if err != nil {
 		return nil, err
 	}
+	if err := v.db.AddCensus(censusID, createdByFID); err != nil {
+		return nil, fmt.Errorf("cannot add census to database: %w", err)
+	}
 	v.censusCreationMap.Store(censusID.String(), CensusInfo{})
 	totalAddresses := uint32(0)
 	go func() {
 		startTime := time.Now()
-		log.Debugw("building NFT based census", "censusID", censusID)
+		log.Debugw("building Airstack based census", "censusID", censusID)
 		// get holders for each token
 		var holders [][]string
 		v.trackStepProgress(censusID, 1, 3, func(progress chan int) {
@@ -582,9 +638,9 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 		}
 
 		// since each participant can have multiple signers, we need to get the unique usernames
-		uniqueParticipantsMap := make(map[string]struct{})
+		uniqueParticipantsMap := make(map[string]*big.Int)
 		for _, p := range participants {
-			uniqueParticipantsMap[p.Username] = struct{}{}
+			uniqueParticipantsMap[p.Username] = p.Weight
 		}
 		uniqueParticipants := []string{}
 		for k := range uniqueParticipantsMap {
@@ -592,14 +648,19 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 		}
 		ci.Usernames = uniqueParticipants
 		ci.FromTotalAddresses = totalAddresses
-		log.Infow("census created from NFT",
+		log.Infow("census created from Airstack",
 			"censusID", censusID.String(),
 			"size", len(ci.Usernames),
 			"duration", time.Since(startTime),
 			"totalAddresses", totalAddresses,
 			"participants", len(ci.Usernames),
 		)
+		// store the census info in the memory map
 		v.censusCreationMap.Store(censusID.String(), *ci)
+		// add participants to the census in the database
+		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, uint32(tokenDecimals)); err != nil {
+			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
+		}
 	}()
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
 	if err != nil {

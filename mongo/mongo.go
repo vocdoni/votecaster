@@ -31,6 +31,7 @@ type MongoStorage struct {
 
 	users              *mongo.Collection
 	elections          *mongo.Collection
+	census             *mongo.Collection
 	results            *mongo.Collection
 	voters             *mongo.Collection
 	authentications    *mongo.Collection
@@ -96,6 +97,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.client = client
 	ms.users = client.Database(database).Collection("users")
 	ms.elections = client.Database(database).Collection("elections")
+	ms.census = client.Database(database).Collection("census")
 	ms.results = client.Database(database).Collection("results")
 	ms.voters = client.Database(database).Collection("voters")
 	ms.authentications = client.Database(database).Collection("authentications")
@@ -158,6 +160,15 @@ func (ms *MongoStorage) createIndexes() error {
 
 	if _, err := ms.authentications.Indexes().CreateOne(ctx, ttlIndexModel); err != nil {
 		return err
+	}
+
+	// Create index for Census Root
+	mod := mongo.IndexModel{
+		Keys: bson.M{"root": 1},
+	}
+
+	if _, err = ms.census.Indexes().CreateOne(ctx, mod); err != nil {
+		return fmt.Errorf("failed to create index on root field: %w", err)
 	}
 
 	return nil
@@ -261,7 +272,23 @@ func (ms *MongoStorage) String() string {
 		votersOfElection.VotersOfElection = append(votersOfElection.VotersOfElection, voter)
 	}
 
-	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection})
+	ctx8, cancel8 := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel8()
+	var censuses CensusCollection
+	cur, err = ms.census.Find(ctx8, bson.D{{}})
+	if err != nil {
+		log.Warn(err)
+	}
+	for cur.Next(ctx8) {
+		var census Census
+		err := cur.Decode(&census)
+		if err != nil {
+			log.Warn(err)
+		}
+		censuses.Censuses = append(censuses.Censuses, census)
+	}
+
+	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -328,6 +355,18 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		_, err := ms.voters.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
 			log.Warnw("Error upserting votersOfElection", "err", err, "election", voter.ElectionID)
+		}
+	}
+
+	// Upsert Censuses
+	log.Infow("importing censuses", "count", len(collection.Censuses))
+	for _, census := range collection.Censuses {
+		filter := bson.M{"_id": census.CensusID}
+		update := bson.M{"$set": census}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.census.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting census", "err", err, "census", census.CensusID)
 		}
 	}
 
