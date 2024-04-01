@@ -526,7 +526,15 @@ func main() {
 		defer voteBot.Stop()
 		log.Info("bot started")
 		// start notification manager
-		notificationManager := notifications.New(mainCtx, db, botAPI, notifications.DefaultListenCoolDown)
+		notificationManager, err := notifications.New(mainCtx, &notifications.NotifificationManagerConfig{
+			DB:                   db,
+			API:                  botAPI,
+			NotificationDeadline: 4 * time.Hour,
+			FrameURL:             serverURL + "/notifications",
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
 		notificationManager.Start()
 		defer notificationManager.Stop()
 	}

@@ -35,6 +35,16 @@ func (ms *MongoStorage) AddNotifications(nType NotificationType, electionID stri
 	return res.InsertedID.(int64), nil
 }
 
+// SetNotificationDeadline sets the deadline for the notification with the
+// specified ID. If an error occurs, it returns the error.
+func (ms *MongoStorage) SetNotificationDeadline(notificationID int64, deadline time.Time) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := ms.notifications.UpdateOne(ctx, bson.M{"_id": notificationID},
+		bson.M{"$set": bson.M{"deadline": deadline}})
+	return err
+}
+
 // LastNotifications returns the registered notifications in the database ordered
 // by the _id field in descending order and limited to the specified number of
 // results. If an error occurs, it returns the error.

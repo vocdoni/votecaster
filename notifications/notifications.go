@@ -12,9 +12,15 @@ import (
 )
 
 const (
-	DefaultListenCoolDown = 30 * time.Second
-	DefaultSendCoolDown   = 500 * time.Millisecond
-	NotificationMessage   = `👋 Hey @%s!
+	DefaultListenCoolDown       = 30 * time.Second
+	DefaultSendCoolDown         = 500 * time.Millisecond
+	DefaultNotificationDeadline = 24 * time.Hour
+	DefaultPermissionMessage    = `👋 Hey @%s! 
+
+I'm the farcaster.vote bot. You're included in a poll census created by someone else, but I won't bother you again if you prefer not to receive notifications.
+
+Please let me know if you want to be notified or not! 🤖👍`
+	DefaultNotificationMessage = `👋 Hey @%s!
 
 The user %s created a new poll!
 
@@ -30,27 +36,83 @@ var notificationThread = &farcasterapi.APIMessage{
 	Author: 7548,
 }
 
+type NotifificationManagerConfig struct {
+	DB                   *mongo.MongoStorage
+	API                  farcasterapi.API
+	ListenCoolDown       time.Duration
+	DefaultSendCoolDown  time.Duration
+	NotificationDeadline time.Duration
+	PermissionMessage    string
+	NotificationMessage  string
+	FrameURL             string
+}
+
 // NotificationManager is a manager that listens for new notifications registered
 // in the database and sends them to the users via the farcaster API.
 type NotificationManager struct {
-	ctx            context.Context
-	cancel         context.CancelFunc
-	db             *mongo.MongoStorage
-	api            farcasterapi.API
-	listenCoolDown time.Duration
+	ctx                  context.Context
+	cancel               context.CancelFunc
+	db                   *mongo.MongoStorage
+	api                  farcasterapi.API
+	listenCoolDown       time.Duration
+	sendCoolDown         time.Duration
+	notificationDeadline time.Duration
+	permissionMsg        string
+	notificationMsg      string
+	frameURL             string
+}
+
+// check method checks the configuration required values and sets default values
+// for optional configuration values if not provided. It returns nil if the
+// configuration is correct and error if not.
+func (conf *NotifificationManagerConfig) check() error {
+	// check required configuration values
+	if conf.DB == nil {
+		return fmt.Errorf("database is required")
+	}
+	if conf.API == nil {
+		return fmt.Errorf("farcaster API is required")
+	}
+	if conf.FrameURL == "" {
+		return fmt.Errorf("frame URL is required")
+	}
+	// check optional configuration values and set default values if not provided
+	if conf.ListenCoolDown == 0 {
+		conf.ListenCoolDown = DefaultListenCoolDown
+	}
+	if conf.DefaultSendCoolDown == 0 {
+		conf.DefaultSendCoolDown = DefaultSendCoolDown
+	}
+	if conf.NotificationDeadline == 0 {
+		conf.NotificationDeadline = DefaultNotificationDeadline
+	}
+	if conf.PermissionMessage == "" {
+		conf.PermissionMessage = DefaultPermissionMessage
+	}
+	if conf.NotificationMessage == "" {
+		conf.NotificationMessage = DefaultNotificationMessage
+	}
+	return nil
 }
 
 // New creates a new NotificationManager instance with the given context, database
 // and farcaster API. It also sets the listen cool down duration.
-func New(ctx context.Context, db *mongo.MongoStorage, api farcasterapi.API, listenCoolDown time.Duration) *NotificationManager {
+func New(ctx context.Context, config *NotifificationManagerConfig) (*NotificationManager, error) {
+	if err := config.check(); err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	return &NotificationManager{
-		ctx:            ctx,
-		cancel:         cancel,
-		db:             db,
-		api:            api,
-		listenCoolDown: listenCoolDown,
-	}
+		ctx:             ctx,
+		cancel:          cancel,
+		db:              config.DB,
+		api:             config.API,
+		listenCoolDown:  config.ListenCoolDown,
+		sendCoolDown:    config.DefaultSendCoolDown,
+		permissionMsg:   config.PermissionMessage,
+		notificationMsg: config.NotificationMessage,
+		frameURL:        config.FrameURL,
+	}, nil
 }
 
 // Start starts the notification manager and listens for new notifications in the
@@ -70,7 +132,7 @@ func (nm *NotificationManager) Start() {
 					continue
 				}
 				log.Infow("notifications found", "count", len(notifications))
-				if err := nm.sendNotifications(notifications); err != nil {
+				if err := nm.handleNotifications(notifications); err != nil {
 					log.Errorf("error sending notifications: %s", err)
 				}
 			}
@@ -83,10 +145,13 @@ func (nm *NotificationManager) Stop() {
 	nm.cancel()
 }
 
-// sendNotifications sends the given notifications to the users via the farcaster
-// API and removes them from the database. It uses a semaphore to limit the number
-// of concurrent goroutines and a waitgroup to wait for all of them to finish.
-func (nm *NotificationManager) sendNotifications(notifications []mongo.Notification) error {
+// handleNotifications sends the notifications to the users and removes them
+// from the database. It uses a semaphore to limit the number of concurrent
+// goroutines and an error channel to return any error found. It checks if the
+// user to notify has accepted the notifications, if not, requests the
+// permission. It also purges the notifications that have not been accepted
+// after its deadline.
+func (nm *NotificationManager) handleNotifications(notifications []mongo.Notification) error {
 	// create channels and waitgroup, the semaphore is used to limit the number
 	// of concurrent goroutines and the error channel is used to return any
 	// error found
@@ -101,8 +166,32 @@ func (nm *NotificationManager) sendNotifications(notifications []mongo.Notificat
 		go func(n mongo.Notification) {
 			defer wg.Done()
 			defer func() { <-sem }()
+			allowed, err := nm.checkOrReqPermission(n.UserID, n.Username, n.ID)
+			if err != nil {
+				errCh <- fmt.Errorf("error checking or requesting permission: %s", err)
+				return
+			}
+			// if the user has not accepted the notifications, check if the deadline
+			// has been reached and remove the notification if so, or continue to the
+			// next notification
+			if !allowed {
+				// if the user has not accepted the notifications yet, the
+				// notification have non zero deadline, if that deadline is
+				// reached, and the notification is not accepted, the
+				// notification must be removed from the database. If the
+				// deadline is zero, the notification permission has been
+				// denied, and the notification must be removed
+				if time.Now().After(n.Deadline) {
+					log.Debugw("notification deadline reached, purging...", "notification", n.ID)
+					if err := nm.db.RemoveNotification(n.ID); err != nil {
+						errCh <- fmt.Errorf("error deleting notification: %s", err)
+					}
+				}
+				return
+			}
 			// send notification and remove it from the database
-			msg := fmt.Sprintf(NotificationMessage, n.Username, n.AuthorUsername)
+			log.Debugw("permission granted, sending and removing notification...", "notification", n.ID)
+			msg := fmt.Sprintf(nm.notificationMsg, n.Username, n.AuthorUsername)
 			if err := nm.api.Reply(nm.ctx, notificationThread, msg, []uint64{n.UserID}, n.FrameUrl); err != nil {
 				errCh <- fmt.Errorf("error sending notification: %s", err)
 				return
@@ -112,8 +201,6 @@ func (nm *NotificationManager) sendNotifications(notifications []mongo.Notificat
 				return
 			}
 		}(n)
-
-		time.Sleep(DefaultSendCoolDown)
 	}
 	// wait for all goroutines to finish and close channels
 	go func() {
@@ -125,6 +212,46 @@ func (nm *NotificationManager) sendNotifications(notifications []mongo.Notificat
 	for err := range errCh {
 		return err
 	}
-	// return nil if no error is found
 	return nil
+}
+
+// checkOrReqPermission checks if the user has accepted the notifications, if not,
+// it sends a notification request with the permission message and the frame URL.
+// It also updates the access profile with the notification requested status. If
+// the user has not accepted the notifications, it returns false, otherwise, it
+// returns true. If an error occurs, it returns the error.
+func (nm *NotificationManager) checkOrReqPermission(userID uint64,
+	username string, notificationID int64,
+) (bool, error) {
+	profile, err := nm.db.UserAccessProfile(userID)
+	if err != nil {
+		return false, err
+	}
+	// if the user has requested notifications, return the accepted status
+	if profile.NotificationsRequested {
+		log.Debugw("notifications requested",
+			"user", userID,
+			"granted", profile.NotificationsAccepted)
+		return profile.NotificationsAccepted, nil
+	}
+	log.Debugw("notifications not requested, requesting...", "user", userID)
+	// if the user has not been requested for notifications yet, send the
+	// notification request with the permission message and the frame URL
+	msg := fmt.Sprintf(nm.permissionMsg, username)
+	if err := nm.api.Publish(nm.ctx, msg, []uint64{userID}, nm.frameURL); err != nil {
+		return false, fmt.Errorf("error sending notification request: %s", err)
+	}
+	// the notification is updated including a deadline to accept the
+	// notification request, if that deadline is reached, and the
+	// notification is not accepted, the notification must be removed from the
+	// database
+	deadline := time.Now().Add(nm.notificationDeadline)
+	if nm.db.SetNotificationDeadline(notificationID, deadline); err != nil {
+		return false, fmt.Errorf("error setting notification deadline: %s", err)
+	}
+	// update the access profile with the notification requested status
+	if err := nm.db.SetNotificationsRequestedForUser(userID, true); err != nil {
+		return false, fmt.Errorf("error setting user notification requested: %s", err)
+	}
+	return false, nil
 }
