@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // UserAccessProfile retrieves the access profile for a given user ID.
@@ -51,6 +52,7 @@ func (ms *MongoStorage) SetWhiteListedForUser(userID uint64, whiteListed bool) e
 }
 
 // updateUserAccessProfile is a helper function to update fields in the UserAccessProfile document.
+// It now performs an upsert, creating the document if it doesn't already exist.
 func (ms *MongoStorage) updateUserAccessProfile(userID uint64, update bson.M) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
@@ -58,6 +60,7 @@ func (ms *MongoStorage) updateUserAccessProfile(userID uint64, update bson.M) er
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := ms.userAccessProfiles.UpdateOne(ctx, bson.M{"_id": userID}, update)
+	opts := options.Update().SetUpsert(true)
+	_, err := ms.userAccessProfiles.UpdateOne(ctx, bson.M{"_id": userID}, update, opts)
 	return err
 }

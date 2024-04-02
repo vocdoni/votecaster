@@ -65,7 +65,7 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 		return fmt.Errorf("could not update reputation: %v", err)
 	}
 
-	// Remote unnecessary fields
+	// Remove unnecessary fields
 	resp.State = ""
 	resp.Nonce = ""
 	resp.Message = ""

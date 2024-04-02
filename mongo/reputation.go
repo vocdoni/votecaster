@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -46,7 +47,17 @@ func (ms *MongoStorage) UpdateAndGetReputationForUser(userID uint64) (uint32, *U
 	// Fetch the user data
 	user, err := ms.User(userID)
 	if err != nil {
-		return 0, nil, ErrUserUnknown
+		if errors.Is(err, ErrUserUnknown) {
+			// If the user is not found, create a new user with blank data
+			if err := ms.AddUser(userID, "", []string{}, []string{}, "", 0); err != nil {
+				return 0, nil, fmt.Errorf("error adding user: %w", err)
+			}
+			if err := ms.SetReputationForUser(userID, 0); err != nil {
+				return 0, nil, fmt.Errorf("error setting user reputation: %w", err)
+			}
+			return 0, &UserData{}, nil
+		}
+		return 0, nil, fmt.Errorf("error fetching user: %w", err)
 	}
 
 	// Fetch the total votes cast on elections created by the user
