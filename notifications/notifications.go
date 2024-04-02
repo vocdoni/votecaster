@@ -50,16 +50,15 @@ type NotifificationManagerConfig struct {
 // NotificationManager is a manager that listens for new notifications registered
 // in the database and sends them to the users via the farcaster API.
 type NotificationManager struct {
-	ctx                  context.Context
-	cancel               context.CancelFunc
-	db                   *mongo.MongoStorage
-	api                  farcasterapi.API
-	listenCoolDown       time.Duration
-	sendCoolDown         time.Duration
-	notificationDeadline time.Duration
-	permissionMsg        string
-	notificationMsg      string
-	frameURL             string
+	ctx             context.Context
+	cancel          context.CancelFunc
+	db              *mongo.MongoStorage
+	api             farcasterapi.API
+	listenCoolDown  time.Duration
+	sendCoolDown    time.Duration
+	permissionMsg   string
+	notificationMsg string
+	frameURL        string
 }
 
 // check method checks the configuration required values and sets default values
@@ -166,7 +165,7 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 		go func(n mongo.Notification) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			allowed, err := nm.checkOrReqPermission(n.UserID, n.Username, n.ID)
+			allowed, err := nm.checkOrReqPermission(n.UserID, n.Username)
 			if err != nil {
 				errCh <- fmt.Errorf("error checking or requesting permission: %s", err)
 				return
@@ -220,9 +219,7 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 // It also updates the access profile with the notification requested status. If
 // the user has not accepted the notifications, it returns false, otherwise, it
 // returns true. If an error occurs, it returns the error.
-func (nm *NotificationManager) checkOrReqPermission(userID uint64,
-	username string, notificationID int64,
-) (bool, error) {
+func (nm *NotificationManager) checkOrReqPermission(userID uint64, username string) (bool, error) {
 	profile, err := nm.db.UserAccessProfile(userID)
 	if err != nil {
 		return false, err
@@ -240,14 +237,6 @@ func (nm *NotificationManager) checkOrReqPermission(userID uint64,
 	msg := fmt.Sprintf(nm.permissionMsg, username)
 	if err := nm.api.Publish(nm.ctx, msg, []uint64{userID}, nm.frameURL); err != nil {
 		return false, fmt.Errorf("error sending notification request: %s", err)
-	}
-	// the notification is updated including a deadline to accept the
-	// notification request, if that deadline is reached, and the
-	// notification is not accepted, the notification must be removed from the
-	// database
-	deadline := time.Now().Add(nm.notificationDeadline)
-	if nm.db.SetNotificationDeadline(notificationID, deadline); err != nil {
-		return false, fmt.Errorf("error setting notification deadline: %s", err)
 	}
 	// update the access profile with the notification requested status
 	if err := nm.db.SetNotificationsRequestedForUser(userID, true); err != nil {
