@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vocdoni/vote-frame/features"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
 	"github.com/vocdoni/vote-frame/shortener"
@@ -49,8 +50,9 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return fmt.Errorf("failed to unmarshal election request: %w", err)
 	}
-
-	// For debug purposes, log the user creating the election
+	// Get the user from the database to log the user creating the election and
+	// check if the user has the required reputation to differents features.
+	var accessProfile *mongo.UserAccessProfile
 	fid, err := v.db.UserFromAuthToken(msg.AuthToken)
 	if err != nil {
 		log.Errorf("failed to get user from auth token %s: %v", msg.AuthToken, err)
@@ -59,15 +61,24 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		if err != nil {
 			return fmt.Errorf("failed to get user from database: %w", err)
 		}
+		accessProfile, err = v.db.UserAccessProfile(fid)
+		if err != nil {
+			return fmt.Errorf("failed to get user access profile: %w", err)
+		}
+		// log the user creating the election for debugging purposes
 		log.Infow("user creating election", "username", user.Username, "fid", fid)
 	}
-
+	// check if the user has enough reputation to notify voters
+	if req.NotifyUsers && features.IsAllowed(features.NOTIFY_USERS, accessProfile.Reputation) {
+		return fmt.Errorf("user does not have enough reputation to notify voters")
+	}
 	// use the request census or use the one hardcoded for all farcaster users
 	census := req.Census
 	if census == nil {
 		census = v.defaultCensus
 	}
-
+	// if no duration is provided, set it to 24 hours, otherwise, set it to the
+	// provided duration in hours unless it is greater than the maximum allowed
 	if req.Duration == 0 {
 		req.Duration = time.Hour * 24
 	} else {
@@ -76,21 +87,22 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 			return fmt.Errorf("election duration too long")
 		}
 	}
+	// create the election description
 	req.ElectionDescription.UsersCount = uint32(len(census.Usernames))
 	req.ElectionDescription.UsersCountInitial = uint32(census.FromTotalAddresses)
+	// create the election and save it in the database
 	electionID, err := v.createAndSaveElectionAndProfile(&req.ElectionDescription, census,
 		req.Profile, false, req.NotifyUsers, ElectionSourceWebApp)
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
-
 	// set the electionID for the census root previously stored on the database (if any).
 	if req.Census != nil && req.Census.Root != nil {
 		if err := v.db.SetElectionIdForCensusRoot(req.Census.Root, electionID); err != nil {
 			log.Errorw(err, fmt.Sprintf("failed to set electionID for census root %s", req.Census.Root))
 		}
 	}
-
+	// return the electionID
 	ctx.SetResponseContentType("application/json")
 	return ctx.Send([]byte(electionID.String()), http.StatusOK)
 }

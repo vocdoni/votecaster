@@ -26,6 +26,7 @@ import {
   RadioGroup,
   Select,
   Stack,
+  Switch,
   Text,
   UnorderedList,
   VStack,
@@ -196,7 +197,7 @@ const Form: React.FC = (props: FlexProps) => {
         question: data.question,
         duration: Number(data.duration),
         options: data.choices.map((c) => c.choice),
-        notifyUsers: false,
+        notifyUsers: data.notify || false,
       }
 
       setStatus('Creating census...')
@@ -385,6 +386,13 @@ const Form: React.FC = (props: FlexProps) => {
                       </Stack>
                     </RadioGroup>
                   </FormControl>
+                  {notifyAllowed.includes(censusType) && (
+                    <FormControl isDisabled={loading}>
+                      <Switch {...register('notify')} lineHeight={6}>
+                        Notify farcaster users via cast (only for censuses &lt; 1k)
+                      </Switch>
+                    </FormControl>
+                  )}
                   {['erc20', 'nft'].includes(censusType) &&
                     addressFields.map((field, index) => (
                       <FormControl key={field.id}>
