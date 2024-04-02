@@ -69,7 +69,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		log.Infow("user creating election", "username", user.Username, "fid", fid)
 	}
 	// check if the user has enough reputation to notify voters
-	if req.NotifyUsers && features.IsAllowed(features.NOTIFY_USERS, accessProfile.Reputation) {
+	if req.NotifyUsers && !features.IsAllowed(features.NOTIFY_USERS, accessProfile.Reputation) {
 		return fmt.Errorf("user does not have enough reputation to notify voters")
 	}
 	// use the request census or use the one hardcoded for all farcaster users

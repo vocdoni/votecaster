@@ -51,7 +51,8 @@ func (f Feature) Description() string {
 	return featuresDescription[f]
 }
 
-// IsAllowed returns true if the feature is allowed based on the user reputation.
-func IsAllowed(f Feature, threshold uint32) bool {
-	return threshold >= reputationThresholdsByFeature[f]
+// IsAllowed returns true if the feature is allowed based on the user reputation
+// provided.
+func IsAllowed(f Feature, userReputation uint32) bool {
+	return userReputation >= reputationThresholdsByFeature[f]
 }
