@@ -175,7 +175,7 @@ func (ms *MongoStorage) createIndexes() error {
 	// Create index for Census ElectionID
 	electionIDIndexModel := mongo.IndexModel{
 		Keys:    bson.M{"electionId": 1}, // 1 for ascending order
-		Options: options.Index().SetUnique(true),
+		Options: options.Index().SetUnique(false),
 	}
 
 	if _, err := ms.census.Indexes().CreateOne(ctx, electionIDIndexModel); err != nil {
