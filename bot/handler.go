@@ -54,6 +54,9 @@ func (b *Bot) MuteRequestHandler(ctx context.Context, msg *farcasterapi.APIMessa
 	if !msg.IsMention {
 		return nil, nil, false, nil
 	}
+	if msg.Parent == nil {
+		return nil, nil, false, nil
+	}
 	// check if the content of the cast is a mute request, if it is
 	if strings.TrimSpace(msg.Content) != muteRequestContent {
 		return nil, nil, false, nil
