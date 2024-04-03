@@ -17,7 +17,7 @@ const (
 // reputationThresholdsByFeature is a map that contains the reputation
 // thresholds for each feature.
 var reputationThresholdsByFeature = map[Feature]uint32{
-	NOTIFY_USERS: 5,
+	NOTIFY_USERS: 15,
 }
 
 // featuresStr is a map that contains the string representation of each feature.
@@ -55,4 +55,9 @@ func (f Feature) Description() string {
 // provided.
 func IsAllowed(f Feature, userReputation uint32) bool {
 	return userReputation >= reputationThresholdsByFeature[f]
+}
+
+// SetReputation sets the reputation threshold for the feature provided.
+func SetReputation(f Feature, reputation uint32) {
+	reputationThresholdsByFeature[f] = reputation
 }

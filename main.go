@@ -21,6 +21,7 @@ import (
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/hub"
 	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
+	"github.com/vocdoni/vote-frame/features"
 	"github.com/vocdoni/vote-frame/mongo"
 	"github.com/vocdoni/vote-frame/notifications"
 	urlapi "go.vocdoni.io/dvote/api"
@@ -79,6 +80,9 @@ func main() {
 	flag.Int("airstackMaxHolders", 10000, "The maximum number of holders to be retrieved from the Airstack API")
 	flag.String("airstackSupportAPIEndpoint", "", "Airstack support API endpoint")
 
+	// Limited features flags
+	flag.Int32("featureNotificationReputation", 15, "Reputation threshold to enable the notification feature")
+
 	// Parse the command line flags
 	flag.Parse()
 
@@ -127,6 +131,14 @@ func main() {
 	airstackBlockchains := viper.GetString("airstackBlockchains")
 	airstackMaxHolders := uint32(viper.GetInt("airstackMaxHolders"))
 	airstackSupportAPIEndpoint := viper.GetString("airstackSupportAPIEndpoint")
+
+	// limited features vars
+	featureNotificationReputation := uint32(viper.GetInt32("featureNotificationReputation"))
+
+	// overwrite features thesholds
+	if featureNotificationReputation > 0 {
+		features.SetReputation(features.NOTIFY_USERS, featureNotificationReputation)
+	}
 
 	if adminToken == "" {
 		adminToken = uuid.New().String()

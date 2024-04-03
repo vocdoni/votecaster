@@ -70,7 +70,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	}
 	// check if the user has enough reputation to notify voters
 	if req.NotifyUsers && !features.IsAllowed(features.NOTIFY_USERS, accessProfile.Reputation) {
-		return fmt.Errorf("user does not have enough reputation to notify voters")
+		return ctx.Send([]byte("user does not have enough reputation to notify voters"), http.StatusBadRequest)
 	}
 	// use the request census or use the one hardcoded for all farcaster users
 	census := req.Census
@@ -351,7 +351,7 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 			if len(census.Usernames) > MaxUsersToNotify {
 				return fmt.Errorf("census too large to notify users but election has been created successfully")
 			}
-			// set the notification deadline to 10 minutes before the election 
+			// set the notification deadline to 10 minutes before the election
 			// ends if the election ends in less than 3 hours, otherwise, set it
 			// to 3 hours before the election ends.
 			expiration := election.EndDate
