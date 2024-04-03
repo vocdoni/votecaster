@@ -19,12 +19,14 @@ import (
 const (
 	// endpoints
 	ENDPOINT_CAST_BY_MENTION       = "castsByMention?fid=%d"
+	ENDPOINT_GET_CAST              = "castById?fid=%d&hash=%s"
 	ENDPOINT_SUBMIT_MESSAGE        = "submitMessage"
 	ENDPOINT_USERNAME_PROOFS       = "userNameProofsByFid?fid=%d"
 	ENDPOINT_USER_FOLLOWERs        = "linksByTargetFid?target_fid=%d"
 	ENDPOINT_VERIFICATIONS         = "verificationsByFid?fid=%d"
 	ENDPOINT_IDREGISTRY_BY_ADDRESS = "onChainIdRegistryEventByAddress?address=%s"
 	// timeouts
+	getCastTimeout          = 10 * time.Second
 	getCastByMentionTimeout = 15 * time.Second
 	submitMessageTimeout    = 5 * time.Minute
 	userdataTimeout         = 15 * time.Second
@@ -138,12 +140,19 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 					embeds = append(embeds, e.Url)
 				}
 			}
+			var parent *farcasterapi.ParentAPIMessage = nil
+			if m.Data.CastAddBody.ParentCast != nil {
+				parent = &farcasterapi.ParentAPIMessage{
+					FID:  m.Data.CastAddBody.ParentCast.FID,
+					Hash: m.Data.CastAddBody.ParentCast.Hash,
+				}
+			}
 			messages = append(messages, &farcasterapi.APIMessage{
 				IsMention: true,
 				Content:   content,
 				Author:    m.Data.From,
 				Hash:      m.HexHash,
-				ParentURL: m.Data.CastAddBody.ParentURL,
+				Parent:    parent,
 				Embeds:    embeds,
 			})
 			if m.Data.Timestamp > lastTimestamp {
@@ -157,6 +166,73 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 	}
 	// return the filtered messages and the last timestamp
 	return messages, lastTimestamp + farcasterEpoch, nil
+}
+
+func (h *Hub) GetCast(ctx context.Context, fid uint64, hash string) (*farcasterapi.APIMessage, error) {
+	log.Infow("getting cast", "fid", fid, "hash", hash)
+	// create a new context with a timeout
+	internalCtx, cancel := context.WithTimeout(ctx, getCastTimeout)
+	defer cancel()
+	// compose endpoint uri
+	uri := fmt.Sprintf(ENDPOINT_GET_CAST, fid, hash)
+	// prepare the request to get the cast from the API
+	req, err := h.newRequest(internalCtx, http.MethodGet, uri, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %s", err)
+	}
+	// download the cast from the API and check for errors
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading cast: %s", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error downloading cast: %s", res.Status)
+	}
+	// read the response body
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %s", err)
+	}
+	// decode the cast from the body
+	msg := &hubMessage{}
+	if err := json.Unmarshal(body, msg); err != nil {
+		return nil, fmt.Errorf("error unmarshalling cast: %s", err)
+	}
+	// check if the message is a cast add
+	if msg.Data.Type != MESSAGE_TYPE_CAST_ADD || msg.Data.CastAddBody == nil {
+		return nil, fmt.Errorf("no valid cast")
+	}
+	// compose the content of the message
+	content, err := h.composeCastContent(msg.Data.CastAddBody)
+	if err != nil {
+		log.Error(err)
+	}
+	// parse the embeds of the message to be included
+	embeds := []string{}
+	if len(msg.Data.CastAddBody.Embeds) > 0 {
+		for _, e := range msg.Data.CastAddBody.Embeds {
+			embeds = append(embeds, e.Url)
+		}
+	}
+	// check if the message has a parent
+	var parent *farcasterapi.ParentAPIMessage = nil
+	if msg.Data.CastAddBody.ParentCast != nil {
+		parent = &farcasterapi.ParentAPIMessage{
+			FID:  msg.Data.CastAddBody.ParentCast.FID,
+			Hash: msg.Data.CastAddBody.ParentCast.Hash,
+		}
+	}
+	// compose the api message
+	message := &farcasterapi.APIMessage{
+		IsMention: true,
+		Content:   content,
+		Author:    msg.Data.From,
+		Hash:      msg.HexHash,
+		Parent:    parent,
+		Embeds:    embeds,
+	}
+	return message, nil
 }
 
 func (h *Hub) Publish(ctx context.Context, content string, mentionFIDs []uint64, embeds ...string) error {

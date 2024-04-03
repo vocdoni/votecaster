@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/vocdoni/vote-frame/bot/poll"
@@ -47,14 +48,14 @@ func (b *Bot) PollMessageHandler(ctx context.Context, msg *farcasterapi.APIMessa
 	return userdata, poll, true, nil
 }
 
-func (b *Bot) MuteRequestHandler(ctx context.Context, msg *farcasterapi.APIMessage) (*farcasterapi.Userdata, *farcasterapi.Userdata, bool, error) {
+func (b *Bot) MuteRequestHandler(ctx context.Context, msg *farcasterapi.APIMessage) (*farcasterapi.Userdata, *farcasterapi.APIMessage, bool, error) {
 	// when a new cast is received, check if it is a mention and if
 	// it is not, continue to the next cast
 	if !msg.IsMention {
 		return nil, nil, false, nil
 	}
 	// check if the content of the cast is a mute request, if it is
-	if msg.Content != muteRequestContent {
+	if strings.TrimSpace(msg.Content) != muteRequestContent {
 		return nil, nil, false, nil
 	}
 	// get the user data such as username, custody address and verification
@@ -63,8 +64,12 @@ func (b *Bot) MuteRequestHandler(ctx context.Context, msg *farcasterapi.APIMessa
 	if err != nil {
 		return nil, nil, true, errors.Join(ErrGettingUserData, err)
 	}
-	// TODO: get election creator user
-	return userdata, nil, true, nil
+	// get the parent message to recover the poll
+	parentMsg, err := b.api.GetCast(ctx, msg.Parent.FID, msg.Parent.Hash)
+	if err != nil {
+		return nil, nil, true, errors.Join(ErrGettingParentCast, err)
+	}
+	return userdata, parentMsg, true, nil
 }
 
 func (b *Bot) ReplyWithPollURL(ctx context.Context, msg *farcasterapi.APIMessage, pollURL string) error {

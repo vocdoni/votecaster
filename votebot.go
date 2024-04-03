@@ -4,20 +4,22 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/vocdoni/vote-frame/bot"
 	"github.com/vocdoni/vote-frame/bot/poll"
-	"github.com/vocdoni/vote-frame/farcasterapi"
+	fapi "github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
 	"github.com/vocdoni/vote-frame/shortener"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
+	"go.vocdoni.io/dvote/types"
 )
 
 // initBot helper function initializes the bot and starts listening for new polls
 // to create elections
-func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
+func initBot(ctx context.Context, handler *vocdoniHandler, api fapi.API,
 	defaultCensus *CensusInfo,
 ) (*bot.Bot, error) {
 	voteBot, err := bot.New(bot.BotConfig{
@@ -47,13 +49,15 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 					continue
 				}
 				// check if the message is a mute request and mute the user
-				user, userToMute, isMuteRequest, err := voteBot.MuteRequestHandler(ctx, msg)
+				user, parentMsg, isMuteRequest, err := voteBot.MuteRequestHandler(ctx, msg)
 				if err == nil && isMuteRequest {
 					log.Infow("mute request received, muting user...",
 						"userdata", user,
 						"msg-hash", msg.Hash,
-						"muted-userdata", userToMute)
-					// handle mute request
+						"parent-msg", parentMsg)
+					if err := mutePollCreator(handler, user, parentMsg); err != nil {
+						log.Errorf("error muting user: %s", err)
+					}
 					continue
 				}
 			}
@@ -66,7 +70,7 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 // URL to the user replying to the message with the poll frame. If something
 // goes wrong it returns an error.
 func pollToCast(ctx context.Context, handler *vocdoniHandler, poll *poll.Poll,
-	user *farcasterapi.Userdata, msg *farcasterapi.APIMessage, voteBot *bot.Bot,
+	user *fapi.Userdata, msg *fapi.APIMessage, voteBot *bot.Bot,
 	defaultCensus *CensusInfo,
 ) error {
 	description := &ElectionDescription{
@@ -102,6 +106,35 @@ func pollToCast(ctx context.Context, handler *vocdoniHandler, poll *poll.Poll,
 		"frame-url", frameUrl,
 		"author", msg.Author,
 		"msg-hash", msg.Hash)
+	return nil
+}
+
+// mutePollCreator helper function mutes the poll creator user from notifications.
+// It extracts the election ID from the parent message embeds (expecting that
+// the election URL is included as a frame) and mutes the user that created the
+// election for the given user. If something goes wrong it returns an error.
+func mutePollCreator(handler *vocdoniHandler, user *fapi.Userdata, parent *fapi.APIMessage) error {
+	var electionID string
+	for _, embed := range parent.Embeds {
+		if strings.HasPrefix(embed, serverURL) {
+			// get the election ID from the embed URL in the parent message
+			// removing the server URL prefix, including the slash separator
+			electionID = strings.TrimPrefix(embed, serverURL+"/")
+			break
+		}
+	}
+	if electionID == "" {
+		return fmt.Errorf("election not found in embeds")
+	}
+	// get election from the database
+	election, err := handler.db.Election(types.HexStringToHexBytes(electionID))
+	if err != nil {
+		return fmt.Errorf("error getting election from the database: %w", err)
+	}
+	if err := handler.db.AddNotificationMutedUser(user.FID, election.UserID); err != nil {
+		return fmt.Errorf("error muting user: %w", err)
+	}
+	log.Infow("user muted", "from", user.FID, "muted", election.UserID)
 	return nil
 }
 

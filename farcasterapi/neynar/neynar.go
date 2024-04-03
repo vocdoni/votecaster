@@ -30,6 +30,7 @@ const (
 	// endpoints
 	neynarGetUsernameEndpoint = NeynarAPIEndpoint + "/v1/farcaster/user?fid=%d"
 	neynarGetCastsEndpoint    = NeynarAPIEndpoint + "/v1/farcaster/mentions-and-replies?fid=%d&limit=150&cursor=%s"
+	neynarGetCastEndpoint     = NeynarAPIEndpoint + "/v2/farcaster/cast?identifier=%s&type=hash"
 	neynarReplyEndpoint       = NeynarAPIEndpoint + "/v2/farcaster/cast"
 	neynarUserByEthAddresses  = NeynarAPIEndpoint + "/v2/farcaster/user/bulk-by-address?addresses=%s"
 	neynarUserFollowers       = NeynarAPIEndpoint + "/v1/farcaster/followers?fid=%d&limit=150&cursor=%s"
@@ -131,6 +132,26 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 	n.newCasts = make(map[uint64]*farcasterapi.APIMessage)
 	n.newCastsMtx.Unlock()
 	return messages, lastTimestamp, nil
+}
+
+func (n *NeynarAPI) GetCast(ctx context.Context, _ uint64, hash string) (*farcasterapi.APIMessage, error) {
+	msgResponse := &castResponseV2{}
+	url := fmt.Sprintf(neynarGetCastEndpoint, hash)
+	body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request to get the cast: %w", err)
+	}
+	if err := json.Unmarshal(body, msgResponse); err != nil {
+		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
+	}
+	if msgResponse.Data == nil {
+		return nil, farcasterapi.ErrNoDataFound
+	}
+	message, err := n.parseCastData(msgResponse.Data)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing cast data: %w", err)
+	}
+	return message, nil
 }
 
 func (n *NeynarAPI) Publish(ctx context.Context, content string, _ []uint64, embeds ...string) error {
@@ -402,14 +423,18 @@ func (n *NeynarAPI) ChannelExists(channelID string) (bool, error) {
 
 func (n *NeynarAPI) WebhookHandler(body []byte) error {
 	// decode the request body
-	castWebhookReq := &castWebhookRequest{}
+	castWebhookReq := &castsWebhookRequest{}
 	if err := json.Unmarshal(body, castWebhookReq); err != nil {
 		return fmt.Errorf("error unmarshalling request body: %s", err.Error())
 	}
 	// check if the req type is a not created cast or data type is not cast and
 	// skip if so
-	if castWebhookReq.Type != neynarCastCreatedType || castWebhookReq.Data.Object != neynarCastType {
+	if castWebhookReq.Type != neynarCastCreatedType {
 		return nil
+	}
+	message, err := n.parseCastData(castWebhookReq.Data)
+	if err != nil {
+		return fmt.Errorf("error parsing cast data: %w", err)
 	}
 	// parse timestamp
 	parsedTimestamp, err := time.Parse(timeLayout, castWebhookReq.Data.Timestamp)
@@ -417,34 +442,48 @@ func (n *NeynarAPI) WebhookHandler(body []byte) error {
 		return fmt.Errorf("error parsing timestamp: %s", err.Error())
 	}
 	notificationTimestamp := uint64(parsedTimestamp.Unix())
-	// check if the cast is a mention and skip if not
-	mention := fmt.Sprintf("@%s", n.username)
-	if !strings.HasPrefix(castWebhookReq.Data.Text, mention) {
-		return nil
-	}
-	// parse the text to remove the bot username and add mention to the
-	// list
-	text := strings.TrimSpace(strings.TrimPrefix(castWebhookReq.Data.Text, mention))
-	// parse the embeds from the cast to be included
-	embeds := []string{}
-	if len(castWebhookReq.Data.Embeds) > 0 {
-		for _, embed := range castWebhookReq.Data.Embeds {
-			embeds = append(embeds, embed.Url)
-		}
-	}
-	message := &farcasterapi.APIMessage{
-		IsMention: true,
-		Author:    castWebhookReq.Data.Author.Fid,
-		Content:   text,
-		Hash:      castWebhookReq.Data.Hash,
-		ParentURL: castWebhookReq.Data.ParentURL,
-		Embeds:    embeds,
-	}
 	// add the new mention to the list
 	n.newCastsMtx.Lock()
 	n.newCasts[notificationTimestamp] = message
 	n.newCastsMtx.Unlock()
 	return nil
+}
+
+func (n *NeynarAPI) parseCastData(data *castWebhookData) (*farcasterapi.APIMessage, error) {
+	// check if the req type is a not created cast or data type is not cast and
+	// skip if so
+	if data.Object != neynarCastType {
+		return nil, fmt.Errorf("invalid object type: %s (%s expected)", data.Object, neynarCastType)
+	}
+	// check if the cast is a mention and skip if not
+	mentionNeedle := fmt.Sprintf("@%s", n.username)
+	isMention := !strings.HasPrefix(data.Text, mentionNeedle)
+	// remove the username of the bot if it is a mention
+	if isMention {
+		data.Text = strings.TrimSpace(strings.TrimPrefix(data.Text, mentionNeedle))
+	}
+	// compose the message with the basic data
+	message := &farcasterapi.APIMessage{
+		IsMention: isMention,
+		Author:    data.Author.Fid,
+		Content:   data.Text,
+		Hash:      data.Hash,
+	}
+	// include the parent parent cast info if it exists
+	if data.ParentAuthor != nil {
+		message.Parent = &farcasterapi.ParentAPIMessage{
+			FID:  data.ParentAuthor.FID,
+			Hash: data.ParentHash,
+		}
+	}
+	// parse the embeds and include them in the message
+	if len(data.Embeds) > 0 {
+		message.Embeds = []string{}
+		for _, embed := range data.Embeds {
+			message.Embeds = append(message.Embeds, embed.Url)
+		}
+	}
+	return message, nil
 }
 
 func (n *NeynarAPI) request(url, method string, body []byte, timeout time.Duration) ([]byte, error) {
