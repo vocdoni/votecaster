@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
@@ -126,8 +127,12 @@ func mutePollCreator(handler *vocdoniHandler, user *fapi.Userdata, parent *fapi.
 	if electionID == "" {
 		return fmt.Errorf("election not found in embeds")
 	}
-	// get election from the database
-	election, err := handler.db.Election(types.HexStringToHexBytes(electionID))
+	// get election from the database decoding the election ID from string
+	bElectionID, err := hex.DecodeString(electionID)
+	if err != nil {
+		return fmt.Errorf("error decoding election ID: %w", err)
+	}
+	election, err := handler.db.Election(types.HexBytes(bElectionID))
 	if err != nil {
 		return fmt.Errorf("error getting election from the database: %w", err)
 	}
