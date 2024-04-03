@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -63,4 +64,44 @@ func (ms *MongoStorage) updateUserAccessProfile(userID uint64, update bson.M) er
 	opts := options.Update().SetUpsert(true)
 	_, err := ms.userAccessProfiles.UpdateOne(ctx, bson.M{"_id": userID}, update, opts)
 	return err
+}
+
+// AddNotificationMutedUser adds a user ID to the owner user's list of muted notifications users.
+func (ms *MongoStorage) AddNotificationMutedUser(ownerUserID, mutedUserID uint64) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	update := bson.M{"$addToSet": bson.M{"notificationsMutedUsers": mutedUserID}}
+	_, err := ms.userAccessProfiles.UpdateOne(ctx, bson.M{"_id": ownerUserID}, update, options.Update().SetUpsert(true))
+	if err != nil {
+		return fmt.Errorf("error adding muted user to notifications: %w", err)
+	}
+
+	return nil
+}
+
+// IsUserNotificationMuted checks if a user's notifications are muted by the owner user.
+func (ms *MongoStorage) IsUserNotificationMuted(ownerUserID, mutedUserID uint64) (bool, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var profile UserAccessProfile
+	err := ms.userAccessProfiles.FindOne(ctx, bson.M{"_id": ownerUserID}).Decode(&profile)
+	if err != nil {
+		return false, ErrUserUnknown
+	}
+
+	for _, userID := range profile.NotificationsMutedUsers {
+		if userID == mutedUserID {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

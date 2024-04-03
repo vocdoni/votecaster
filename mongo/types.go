@@ -31,12 +31,13 @@ type User struct {
 // UserAccessProfile holds the user's access profile data, used by our backend to determine the user's access level.
 // It also holds the notification status.
 type UserAccessProfile struct {
-	UserID                 uint64 `json:"userID,omitempty" bson:"_id"`
-	NotificationsAccepted  bool   `json:"notificationsAccepted" bson:"notificationsAccepted"`
-	NotificationsRequested bool   `json:"notificationsRequested" bson:"notificationsRequested"`
-	Reputation             uint32 `json:"reputation" bson:"reputation"`
-	AccessLevel            uint32 `json:"accessLevel" bson:"accessLevel"`
-	WhiteListed            bool   `json:"whiteListed" bson:"whiteListed"`
+	UserID                  uint64   `json:"userID,omitempty" bson:"_id"`
+	NotificationsAccepted   bool     `json:"notificationsAccepted" bson:"notificationsAccepted"`
+	NotificationsRequested  bool     `json:"notificationsRequested" bson:"notificationsRequested"`
+	Reputation              uint32   `json:"reputation" bson:"reputation"`
+	AccessLevel             uint32   `json:"accessLevel" bson:"accessLevel"`
+	WhiteListed             bool     `json:"whiteListed" bson:"whiteListed"`
+	NotificationsMutedUsers []uint64 `json:"notificationsMutedUsers" bson:"notificationsMutedUsers"`
 }
 
 // Election represents an election and its details owned by a user.
