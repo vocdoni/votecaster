@@ -351,8 +351,17 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 			if len(census.Usernames) > MaxUsersToNotify {
 				return fmt.Errorf("census too large to notify users but election has been created successfully")
 			}
+			// set the notification deadline to 10 minutes before the election 
+			// ends if the election ends in less than 3 hours, otherwise, set it
+			// to 3 hours before the election ends.
+			expiration := election.EndDate
+			if time.Until(expiration) < time.Hour*3 {
+				expiration = expiration.Add(-time.Minute * 10)
+			} else {
+				expiration = expiration.Add(-time.Hour * 3)
+			}
 			frameURL := fmt.Sprintf("%s/%x", serverURL, electionID)
-			if err := v.createNotifications(electionID, profile, census, frameURL); err != nil {
+			if err := v.createNotifications(electionID, profile, census, frameURL, expiration); err != nil {
 				return fmt.Errorf("failed to create notifications: %w", err)
 			}
 		}
@@ -406,7 +415,7 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 
 // createNotifications creates a notification for each user in the census.
 func (v *vocdoniHandler) createNotifications(election types.HexBytes, profile *FarcasterProfile,
-	census *CensusInfo, frameURL string,
+	census *CensusInfo, frameURL string, deadline time.Time,
 ) error {
 	log.Debugw("creating notifications", "electionID", election.String(), "census", census, "frameURL", frameURL)
 	for _, username := range census.Usernames {
@@ -418,9 +427,9 @@ func (v *vocdoniHandler) createNotifications(election types.HexBytes, profile *F
 			}
 			return fmt.Errorf("failed to get user: %w", err)
 		}
-
 		if _, err := v.db.AddNotifications(mongo.NotificationTypeNewElection, election.String(),
-			user.UserID, profile.FID, username, profile.DisplayName, frameURL); err != nil {
+			user.UserID, profile.FID, username, profile.DisplayName, frameURL, deadline,
+		); err != nil {
 			return fmt.Errorf("failed to add notification: %w", err)
 		}
 	}
