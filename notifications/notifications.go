@@ -188,6 +188,24 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 				}
 				return
 			}
+			// check if the receiver has muted the creator of the notification
+			isCreatorMuted, err := nm.db.IsUserNotificationMuted(n.UserID, n.AuthorID)
+			if err != nil {
+				errCh <- fmt.Errorf("error checking if user is muted: %s", err)
+				return
+			}
+			// if the creator is muted by the receiver, remove the notification
+			// from the database
+			if isCreatorMuted {
+				log.Debugw("creator muted by notification receiver, purging notification...",
+					"notification", n.ID,
+					"receiver", n.UserID,
+					"creator", n.AuthorID)
+				if err := nm.db.RemoveNotification(n.ID); err != nil {
+					errCh <- fmt.Errorf("error deleting notification: %s", err)
+				}
+				return
+			}
 			// send notification and remove it from the database
 			log.Debugw("permission granted, sending and removing notification...", "notification", n.ID)
 			msg := fmt.Sprintf(nm.notificationMsg, n.Username, n.AuthorUsername)

@@ -14,4 +14,7 @@ var (
 	// ErrReplyingToCast is returned when there is an error replying to a cast
 	// during the reply with poll URL function.
 	ErrReplyingToCast = fmt.Errorf("error replying to cast")
+	// ErrGettingParentCast is returned when there is an error getting the parent
+	// cast during the mute notifications message handler.
+	ErrGettingParentCast = fmt.Errorf("error getting parent cast")
 )

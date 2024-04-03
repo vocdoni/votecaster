@@ -1,10 +1,21 @@
 package hub
 
+type hubCastEmbeds struct {
+	Url string `json:"url"`
+}
+
+type hubParentCast struct {
+	FID  uint64 `json:"fid"`
+	Hash string `json:"hash"`
+}
+
 type hubCastAddBody struct {
-	Text              string   `json:"text"`
-	ParentURL         string   `json:"parentUrl"`
-	Mentions          []uint64 `json:"mentions"`
-	MentionsPositions []uint64 `json:"mentionsPositions"`
+	Text              string           `json:"text"`
+	ParentURL         string           `json:"parentUrl"`
+	Mentions          []uint64         `json:"mentions"`
+	MentionsPositions []uint64         `json:"mentionsPositions"`
+	Embeds            []*hubCastEmbeds `json:"embeds"`
+	ParentCast        *hubParentCast   `json:"parentCastId"`
 }
 
 type hubMessageData struct {

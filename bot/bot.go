@@ -13,6 +13,10 @@ import (
 // defaultCoolDown is the default time to wait between casts
 const defaultCoolDown = time.Second * 10
 
+// muteRequestContent is the content of a cast that requests to mute a user that
+// created a poll and wants to avoid notifications from that user.
+const muteRequestContent = "mute"
+
 // BotConfig is the configuration definition for the bot, it includes the API
 // instance and the cool down time between casts (default is 10 seconds)
 type BotConfig struct {

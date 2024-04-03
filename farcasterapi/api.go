@@ -24,6 +24,9 @@ type API interface {
 	// returns the messages in a slice of APIMessage, the last timestamp and an
 	// error if something goes wrong
 	LastMentions(ctx context.Context, timestamp uint64) ([]*APIMessage, uint64, error)
+	// GetCast retrieves the cast with the given fid and hash, it returns the
+	// message in an APIMessage struct and an error if something goes wrong.
+	GetCast(ctx context.Context, fid uint64, hash string) (*APIMessage, error)
 	// Publish publishes a new cast with the given content, it returns an error
 	// if something goes wrong. It receives a slice of fids to mention that will
 	// be used to complete the content with the mentions. The fids must be
@@ -58,13 +61,25 @@ type API interface {
 	ChannelExists(channelID string) (bool, error)
 }
 
+// ParentAPIMessage is a struct that represents the parent message of an
+// APIMessage that does not includes the parent message itself, but only the
+// fid of the author and hash as reference of the parent message.
+type ParentAPIMessage struct {
+	FID  uint64
+	Hash string
+}
+
+// APIMessage is a struct that represents a message in the farcaster API.
 type APIMessage struct {
 	IsMention bool
 	Content   string
 	Author    uint64
 	Hash      string
+	Parent    *ParentAPIMessage
+	Embeds    []string
 }
 
+// Userdata is a struct that represents the user data in the farcaster API.
 type Userdata struct {
 	FID                    uint64
 	Username               string

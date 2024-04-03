@@ -64,17 +64,29 @@ type userdataV2Result struct {
 	NextCursor *cursor       `json:"next"`
 }
 
-type castWebhookData struct {
-	Object    string      `json:"object"`
-	Hash      string      `json:"hash"`
-	Text      string      `json:"text"`
-	Timestamp string      `json:"timestamp"`
-	Author    *userdataV2 `json:"author"`
+type parentCastAuthor struct {
+	FID uint64 `json:"fid"`
 }
 
-type castWebhookRequest struct {
+type castWebhookData struct {
+	Object       string            `json:"object"`
+	Hash         string            `json:"hash"`
+	Text         string            `json:"text"`
+	Timestamp    string            `json:"timestamp"`
+	Author       *userdataV2       `json:"author"`
+	ParentURL    string            `json:"parent_url"`
+	ParentHash   string            `json:"parentHash"`
+	Embeds       []*castEmbed      `json:"embeds"`
+	ParentAuthor *parentCastAuthor `json:"parentAuthor"`
+}
+
+type castsWebhookRequest struct {
 	Type string           `json:"type"`
 	Data *castWebhookData `json:"data"`
+}
+
+type castResponseV2 struct {
+	Data *castWebhookData `json:"cast"`
 }
 
 // ---
