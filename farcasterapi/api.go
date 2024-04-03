@@ -63,6 +63,8 @@ type APIMessage struct {
 	Content   string
 	Author    uint64
 	Hash      string
+	ParentURL string
+	Embeds    []string
 }
 
 type Userdata struct {

@@ -65,11 +65,13 @@ type userdataV2Result struct {
 }
 
 type castWebhookData struct {
-	Object    string      `json:"object"`
-	Hash      string      `json:"hash"`
-	Text      string      `json:"text"`
-	Timestamp string      `json:"timestamp"`
-	Author    *userdataV2 `json:"author"`
+	Object    string       `json:"object"`
+	Hash      string       `json:"hash"`
+	Text      string       `json:"text"`
+	Timestamp string       `json:"timestamp"`
+	Author    *userdataV2  `json:"author"`
+	ParentURL string       `json:"parent_url"`
+	Embeds    []*castEmbed `json:"embeds"`
 }
 
 type castWebhookRequest struct {

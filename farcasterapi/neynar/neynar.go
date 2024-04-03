@@ -425,11 +425,20 @@ func (n *NeynarAPI) WebhookHandler(body []byte) error {
 	// parse the text to remove the bot username and add mention to the
 	// list
 	text := strings.TrimSpace(strings.TrimPrefix(castWebhookReq.Data.Text, mention))
+	// parse the embeds from the cast to be included
+	embeds := []string{}
+	if len(castWebhookReq.Data.Embeds) > 0 {
+		for _, embed := range castWebhookReq.Data.Embeds {
+			embeds = append(embeds, embed.Url)
+		}
+	}
 	message := &farcasterapi.APIMessage{
 		IsMention: true,
 		Author:    castWebhookReq.Data.Author.Fid,
 		Content:   text,
 		Hash:      castWebhookReq.Data.Hash,
+		ParentURL: castWebhookReq.Data.ParentURL,
+		Embeds:    embeds,
 	}
 	// add the new mention to the list
 	n.newCastsMtx.Lock()

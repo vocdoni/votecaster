@@ -131,11 +131,20 @@ func (h *Hub) LastMentions(ctx context.Context, timestamp uint64) ([]*farcastera
 			if err != nil {
 				log.Error(err)
 			}
+			// parse the embeds of the message to be included
+			embeds := []string{}
+			if len(m.Data.CastAddBody.Embeds) > 0 {
+				for _, e := range m.Data.CastAddBody.Embeds {
+					embeds = append(embeds, e.Url)
+				}
+			}
 			messages = append(messages, &farcasterapi.APIMessage{
 				IsMention: true,
 				Content:   content,
 				Author:    m.Data.From,
 				Hash:      m.HexHash,
+				ParentURL: m.Data.CastAddBody.ParentURL,
+				Embeds:    embeds,
 			})
 			if m.Data.Timestamp > lastTimestamp {
 				lastTimestamp = m.Data.Timestamp

@@ -20,11 +20,15 @@ Now copy the URL, paste the Frame into a cast and share it with others!
 
 👇`
 
-func (b *Bot) PollMessageHandler(ctx context.Context, msg *farcasterapi.APIMessage, maxDuration time.Duration) (*farcasterapi.Userdata, *poll.Poll, error) {
+// PollMessageHandler is a function that handles a new cast and checks if it is a
+// poll, if it is, it parses the poll and returns the user data and the poll. If
+// it is not a poll, it returns false. It returns an error if something goes
+// wrong, including when message parsing fails.
+func (b *Bot) PollMessageHandler(ctx context.Context, msg *farcasterapi.APIMessage, maxDuration time.Duration) (*farcasterapi.Userdata, *poll.Poll, bool, error) {
 	// when a new cast is received, check if it is a mention and if
 	// it is not, continue to the next cast
 	if !msg.IsMention {
-		return nil, nil, nil
+		return nil, nil, false, nil
 	}
 	// try to parse the message as a poll, if it fails continue to
 	// the next cast
@@ -32,15 +36,35 @@ func (b *Bot) PollMessageHandler(ctx context.Context, msg *farcasterapi.APIMessa
 	pollConf.DefaultDuration = maxDuration
 	poll, err := poll.ParseString(msg.Content, pollConf)
 	if err != nil {
-		return nil, nil, errors.Join(ErrParsingPoll, err)
+		return nil, nil, false, errors.Join(ErrParsingPoll, err)
 	}
 	// get the user data such as username, custody address and
 	// verification addresses to create the election frame
 	userdata, err := b.api.UserDataByFID(ctx, msg.Author)
 	if err != nil {
-		return nil, nil, errors.Join(ErrGettingUserData, err)
+		return nil, nil, true, errors.Join(ErrGettingUserData, err)
 	}
-	return userdata, poll, nil
+	return userdata, poll, true, nil
+}
+
+func (b *Bot) MuteRequestHandler(ctx context.Context, msg *farcasterapi.APIMessage) (*farcasterapi.Userdata, *farcasterapi.Userdata, bool, error) {
+	// when a new cast is received, check if it is a mention and if
+	// it is not, continue to the next cast
+	if !msg.IsMention {
+		return nil, nil, false, nil
+	}
+	// check if the content of the cast is a mute request, if it is
+	if msg.Content != muteRequestContent {
+		return nil, nil, false, nil
+	}
+	// get the user data such as username, custody address and verification
+	// addresses of the user that wants to mute the creator of the poll
+	userdata, err := b.api.UserDataByFID(ctx, msg.Author)
+	if err != nil {
+		return nil, nil, true, errors.Join(ErrGettingUserData, err)
+	}
+	// TODO: get election creator user
+	return userdata, nil, true, nil
 }
 
 func (b *Bot) ReplyWithPollURL(ctx context.Context, msg *farcasterapi.APIMessage, pollURL string) error {

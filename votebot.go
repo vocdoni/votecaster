@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/vocdoni/vote-frame/bot"
+	"github.com/vocdoni/vote-frame/bot/poll"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
 	"github.com/vocdoni/vote-frame/shortener"
@@ -33,54 +34,75 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api farcasterapi.API,
 			case <-ctx.Done():
 				return
 			case msg := <-voteBot.Messages:
-				user, poll, err := voteBot.PollMessageHandler(ctx, msg, maxElectionDuration)
-				if err != nil {
-					log.Errorf("error handling poll message: %s", err)
+				// check if the message is a poll and create an election
+				user, poll, isPool, err := voteBot.PollMessageHandler(ctx, msg, maxElectionDuration)
+				if err == nil && isPool {
+					log.Infow("new poll received, creating election...",
+						"poll", poll,
+						"userdata", user,
+						"msg-hash", msg.Hash)
+					if err := pollToCast(ctx, handler, poll, user, msg, voteBot, defaultCensus); err != nil {
+						log.Errorf("error creating election: %s", err)
+					}
 					continue
 				}
-				log.Infow("new poll received, creating election...",
-					"poll", poll,
-					"userdata", user,
-					"msg-hash", msg.Hash)
-				description := &ElectionDescription{
-					Question:  poll.Question,
-					Options:   poll.Options,
-					Duration:  poll.Duration,
-					Overwrite: false,
-				}
-				profile := &FarcasterProfile{
-					FID:           user.FID,
-					Username:      user.Username,
-					Custody:       user.CustodyAddress,
-					Verifications: user.VerificationsAddresses,
-				}
-				electionID, err := handler.createAndSaveElectionAndProfile(description,
-					defaultCensus, profile, true, false, ElectionSourceBot)
-				if err != nil {
-					log.Errorf("error creating election: %s", err)
+				// check if the message is a mute request and mute the user
+				user, userToMute, isMuteRequest, err := voteBot.MuteRequestHandler(ctx, msg)
+				if err == nil && isMuteRequest {
+					log.Infow("mute request received, muting user...",
+						"userdata", user,
+						"msg-hash", msg.Hash,
+						"muted-userdata", userToMute)
+					// handle mute request
 					continue
 				}
-				log.Infow("election created",
-					"electionID", electionID,
-					"poll", poll)
-				frameUrl := fmt.Sprintf("%s/%s", serverURL, electionID.String())
-				shortenedUrl, err := shortener.ShortURL(ctx, frameUrl)
-				if err != nil {
-					// if shortening fails, use the original url
-					shortenedUrl = frameUrl
-				}
-				if err := voteBot.ReplyWithPollURL(ctx, msg, shortenedUrl); err != nil {
-					log.Errorf("error replying to poll: %s", err)
-					continue
-				}
-				log.Infow("poll reply sent",
-					"frame-url", frameUrl,
-					"author", msg.Author,
-					"msg-hash", msg.Hash)
 			}
 		}
 	}()
 	return voteBot, nil
+}
+
+// pollToCast helper function creates an election from a poll and sends the poll
+// URL to the user replying to the message with the poll frame. If something
+// goes wrong it returns an error.
+func pollToCast(ctx context.Context, handler *vocdoniHandler, poll *poll.Poll,
+	user *farcasterapi.Userdata, msg *farcasterapi.APIMessage, voteBot *bot.Bot,
+	defaultCensus *CensusInfo,
+) error {
+	description := &ElectionDescription{
+		Question:  poll.Question,
+		Options:   poll.Options,
+		Duration:  poll.Duration,
+		Overwrite: false,
+	}
+	profile := &FarcasterProfile{
+		FID:           user.FID,
+		Username:      user.Username,
+		Custody:       user.CustodyAddress,
+		Verifications: user.VerificationsAddresses,
+	}
+	electionID, err := handler.createAndSaveElectionAndProfile(description,
+		defaultCensus, profile, true, false, ElectionSourceBot)
+	if err != nil {
+		return fmt.Errorf("error creating election: %w", err)
+	}
+	log.Infow("election created",
+		"electionID", electionID,
+		"poll", poll)
+	frameUrl := fmt.Sprintf("%s/%s", serverURL, electionID.String())
+	shortenedUrl, err := shortener.ShortURL(ctx, frameUrl)
+	if err != nil {
+		// if shortening fails, use the original url
+		shortenedUrl = frameUrl
+	}
+	if err := voteBot.ReplyWithPollURL(ctx, msg, shortenedUrl); err != nil {
+		return fmt.Errorf("error replying to poll: %s", err)
+	}
+	log.Infow("poll reply sent",
+		"frame-url", frameUrl,
+		"author", msg.Author,
+		"msg-hash", msg.Hash)
+	return nil
 }
 
 // neynarWebhook helper function returns a function that handles neynar webhooks.
