@@ -236,6 +236,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		startTime := time.Now()
 		log.Debugw("building census from csv", "censusID", censusID)
 		var participants []*FarcasterParticipant
+		var err error
 		v.trackStepProgress(censusID, 1, 2, func(progress chan int) {
 			participants, totalCSVaddresses, err = v.farcasterCensusFromEthereumCSV(msg.Data, progress)
 		})
@@ -573,6 +574,10 @@ func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) (int, error) {
 		if holders, err := v.airstack.NumHoldersByTokenAnkrAPI(token.Address, token.Blockchain); err != nil {
 			return 0, fmt.Errorf("cannot get holders for token %s: %w", token.Address, err)
 		} else if holders > v.airstack.MaxHolders() {
+			// check whitelist
+			if _, ok := v.airstack.TokenWhitelist()[token.Address]; ok {
+				continue
+			}
 			return 0, fmt.Errorf("token %s has too many holders: %d, maximum allowed is %d", token.Address, holders, v.airstack.MaxHolders())
 		}
 	}
@@ -629,6 +634,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 		log.Debugw("building Airstack based census", "censusID", censusID)
 		// get holders for each token
 		var holders [][]string
+		var err error
 		v.trackStepProgress(censusID, 1, 3, func(progress chan int) {
 			holders, err = v.getTokenHoldersFromAirstack(tokens, censusID, progress)
 		})

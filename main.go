@@ -79,6 +79,7 @@ func main() {
 	flag.String("airstackBlockchains", "ethereum,base,zora,polygon", "Supported Airstack networks")
 	flag.Int("airstackMaxHolders", 10000, "The maximum number of holders to be retrieved from the Airstack API")
 	flag.String("airstackSupportAPIEndpoint", "", "Airstack support API endpoint")
+	flag.String("airstackTokenWhitelist", "", "Airstack token whitelist")
 
 	// Limited features flags
 	flag.Int32("featureNotificationReputation", 15, "Reputation threshold to enable the notification feature")
@@ -131,6 +132,7 @@ func main() {
 	airstackBlockchains := viper.GetString("airstackBlockchains")
 	airstackMaxHolders := uint32(viper.GetInt("airstackMaxHolders"))
 	airstackSupportAPIEndpoint := viper.GetString("airstackSupportAPIEndpoint")
+	airstackTokenWhitelist := viper.GetString("airstackTokenWhitelist")
 
 	// limited features vars
 	featureNotificationReputation := uint32(viper.GetInt32("featureNotificationReputation"))
@@ -178,6 +180,9 @@ func main() {
 		"airstackAPIEndpoint", airstackEndpoint,
 		"airstackAPIKey", airstackKey,
 		"airstackBlockchains", airstackBlockchains,
+		"airstackMaxHolders", airstackMaxHolders,
+		"airstackSupportAPIEndpoint", airstackSupportAPIEndpoint,
+		"airstackTokenWhitelist", airstackTokenWhitelist,
 	)
 
 	// Start the pprof http endpoints
@@ -252,6 +257,7 @@ func main() {
 			airstackKey,
 			airstackSupportAPIEndpoint,
 			strings.Split(airstackBlockchains, ","),
+			strings.Split(airstackTokenWhitelist, ","),
 			airstackMaxHolders)
 		if err != nil {
 			log.Fatal(err)

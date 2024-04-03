@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	ac "github.com/vocdoni/vote-frame/airstack/client"
 	"go.vocdoni.io/dvote/log"
 )
@@ -17,24 +18,45 @@ import (
 // Airstack wraps all the required artifacts for interacting with the Airstack API
 type Airstack struct {
 	*ac.Client
-	maxHolders         uint32 // maxHolders is the maximum number of holders to be retrieved from the Airstack API
-	supportAPIEndpoint string // supportAPI is the URL of the support API
+	maxHolders         uint32          // maxHolders is the maximum number of holders to be retrieved from the Airstack API
+	supportAPIEndpoint string          // supportAPI is the URL of the support API
+	tokenWhitelist     map[string]bool // whitelist of tokens to be considered for avoiding some checks
 }
 
 // NewAirstack creates a new Airstack artifact with a reference to a MongoDB and an Airstack client that
 // enables to make predefined queries to the Airstack GraphQL API.
-func NewAirstack(ctx context.Context, endpoint, apiKey, supportAPI string, supportedBlockchains []string, maxHolders uint32) (*Airstack, error) {
+func NewAirstack(
+	ctx context.Context,
+	endpoint,
+	apiKey,
+	supportAPI string,
+	supportedBlockchains,
+	tokenWhitelist []string,
+	maxHolders uint32) (*Airstack, error) {
 	client, err := ac.NewClient(ctx, endpoint, apiKey, supportedBlockchains)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Airstack: %w", err)
+	}
+	whitelist := make(map[string]bool)
+	for _, token := range tokenWhitelist {
+		if len(token) < common.AddressLength {
+			continue
+		}
+		if !common.IsHexAddress(token) {
+			log.Warnf("invalid token address, skipping: %s", token)
+			continue
+		}
+		whitelist[token] = true
 	}
 	return &Airstack{
 		Client:             client,
 		maxHolders:         maxHolders,
 		supportAPIEndpoint: supportAPI,
+		tokenWhitelist:     whitelist,
 	}, nil
 }
 
+// MaxHolders returns the maximum number of holders allowed to be retrieved from the Airstack API
 func (a *Airstack) MaxHolders() uint32 {
 	return a.maxHolders
 }
@@ -42,6 +64,11 @@ func (a *Airstack) MaxHolders() uint32 {
 func (a *Airstack) TokenDecimalsByTokenAnkrAPI(tokenAddress, blockchain string) (int, error) {
 	// TODO
 	return 18, nil
+}
+
+// TokenWhitelist returns the list of tokens to be considered for avoiding some checks
+func (a *Airstack) TokenWhitelist() map[string]bool {
+	return a.tokenWhitelist
 }
 
 func (a *Airstack) NumHoldersByTokenAnkrAPI(tokenAddress, blockchain string) (uint32, error) {
