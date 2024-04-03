@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -167,6 +168,13 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 			defer func() { <-sem }()
 			allowed, err := nm.checkOrReqPermission(n.UserID, n.Username)
 			if err != nil {
+				if errors.Is(err, mongo.ErrUserUnknown) {
+					log.Debugw("user not found", "user", n.UserID)
+					if err := nm.db.RemoveNotification(n.ID); err != nil {
+						errCh <- fmt.Errorf("error deleting notification: %s", err)
+					}
+					return
+				}
 				errCh <- fmt.Errorf("error checking or requesting permission: %s", err)
 				return
 			}
