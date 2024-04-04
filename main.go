@@ -39,7 +39,7 @@ var (
 func main() {
 	flag.String("server", serverURL, "The full URL of the server (http or https)")
 	flag.Bool("tlsDomain", false, "Should a TLS certificate be fetched from letsencrypt for the domain? (requires port 443)")
-	flag.String("tlsDirCert", "", "The directory to use to store the TLS certificate")
+	flag.String("tlsDirCert", "./tlscert", "The directory to use to store the TLS certificate")
 	flag.String("listenHost", "0.0.0.0", "The host to listen on")
 	flag.Int("listenPort", 8888, "The port to listen on")
 	flag.String("dataDir", "", "The directory to use for the data")
@@ -507,6 +507,10 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/notifications/set", http.MethodPost, "public", handler.notificationsResponseHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/notifications/filter", http.MethodPost, "public", handler.notificationsFilterByUserHandler); err != nil {
 		log.Fatal(err)
 	}
 

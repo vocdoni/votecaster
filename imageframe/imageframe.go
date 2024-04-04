@@ -27,6 +27,7 @@ const (
 	BackgroundNotificationsAccepted = "notifications-accepted.png"
 	BackgroundNotificationsDenied   = "notifications-denied.png"
 	BackgroundNotifications         = "notifications.png"
+	BackgroundNotificationsError    = "notifications-error.png"
 
 	BackgroundsDir    = "images/"
 	ImageGeneratorURL = "https://img.frame.vote"
@@ -67,6 +68,7 @@ func init() {
 	backgroundFrames[BackgroundNotificationsAccepted] = loadImage(BackgroundNotificationsAccepted)
 	backgroundFrames[BackgroundNotificationsDenied] = loadImage(BackgroundNotificationsDenied)
 	backgroundFrames[BackgroundNotifications] = loadImage(BackgroundNotifications)
+	backgroundFrames[BackgroundNotificationsError] = loadImage(BackgroundNotificationsError)
 
 	var err error
 	imagesLRU, err = lru.New[string, []byte](2048)
@@ -249,6 +251,11 @@ func NotificationsDeniedImage() string {
 // NotificationsImage creates a static image to be displayed when notifications are requested.
 func NotificationsImage() string {
 	return AddImageToCache(backgroundFrames[BackgroundNotifications])
+}
+
+// NotificationsErrorImage creates a static image to be displayed when there is an error with notifications.
+func NotificationsErrorImage() string {
+	return AddImageToCache(backgroundFrames[BackgroundNotificationsError])
 }
 
 // makeRequest handles the communication with the API.

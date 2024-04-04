@@ -83,6 +83,23 @@ func (ms *MongoStorage) AddNotificationMutedUser(ownerUserID, mutedUserID uint64
 	return nil
 }
 
+// DelNotificationMutedUser removes a user ID from the owner user's list of muted notifications users.
+func (ms *MongoStorage) DelNotificationMutedUser(ownerUserID, unmutedUserID uint64) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	update := bson.M{"$pull": bson.M{"notificationsMutedUsers": unmutedUserID}}
+	_, err := ms.userAccessProfiles.UpdateOne(ctx, bson.M{"_id": ownerUserID}, update)
+	if err != nil {
+		return fmt.Errorf("error removing muted user from notifications: %w", err)
+	}
+
+	return nil
+}
+
 // IsUserNotificationMuted checks if a user's notifications are muted by the owner user.
 func (ms *MongoStorage) IsUserNotificationMuted(ownerUserID, mutedUserID uint64) (bool, error) {
 	ms.keysLock.RLock()
@@ -104,4 +121,21 @@ func (ms *MongoStorage) IsUserNotificationMuted(ownerUserID, mutedUserID uint64)
 	}
 
 	return false, nil
+}
+
+// ListNotificationMutedUsers returns a list of user IDs muted by the owner user.
+func (ms *MongoStorage) ListNotificationMutedUsers(ownerUserID uint64) ([]uint64, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var profile UserAccessProfile
+	err := ms.userAccessProfiles.FindOne(ctx, bson.M{"_id": ownerUserID}).Decode(&profile)
+	if err != nil {
+		return nil, ErrUserUnknown
+	}
+
+	return profile.NotificationsMutedUsers, nil
 }
