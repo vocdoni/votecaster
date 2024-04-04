@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/vocdoni/vote-frame/farcasterapi"
@@ -29,6 +30,7 @@ type BotConfig struct {
 // cast timestamp to retrieve new casts from that point, ensuring no cast is
 // missed or duplicated
 type Bot struct {
+	UserData *farcasterapi.Userdata
 	api      farcasterapi.API
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -46,12 +48,20 @@ func New(config BotConfig) (*Bot, error) {
 	if config.CoolDown == 0 {
 		config.CoolDown = defaultCoolDown
 	}
-	return &Bot{
+	bot := &Bot{
 		api:      config.API,
 		coolDown: config.CoolDown,
 		lastCast: uint64(time.Now().Unix()),
 		Messages: make(chan *farcasterapi.APIMessage),
-	}, nil
+	}
+	// retrieve the bot user data from the API
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	var err error
+	if bot.UserData, err = bot.api.UserDataByFID(ctx, bot.api.FID()); err != nil {
+		return nil, fmt.Errorf("error retrieving bot user data: %w", err)
+	}
+	return bot, nil
 }
 
 // Start function starts the bot, it listens for new casts and sends them to the

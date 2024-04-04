@@ -18,6 +18,8 @@ type API interface {
 	// SetFarcasterUser sets the farcaster user with the given fid and signer
 	// (UUID or privKey).
 	SetFarcasterUser(fid uint64, signer string) error
+	// FID returns the fid of the farcaster user set in the API
+	FID() uint64
 	// Stop stops the API
 	Stop() error
 	// LastMentions retrieves the last mentions from the given timestamp, it

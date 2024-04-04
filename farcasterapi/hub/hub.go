@@ -21,7 +21,8 @@ const (
 	ENDPOINT_CAST_BY_MENTION       = "castsByMention?fid=%d"
 	ENDPOINT_GET_CAST              = "castById?fid=%d&hash=%s"
 	ENDPOINT_SUBMIT_MESSAGE        = "submitMessage"
-	ENDPOINT_USERNAME_PROOFS       = "userNameProofsByFid?fid=%d"
+	ENDPOINT_USERDATA              = "userDataByFid?fid=%d"
+	ENDPOINT_CUSTODY_ADDRESS       = "userNameProofsByFid?fid=%d"
 	ENDPOINT_USER_FOLLOWERs        = "linksByTargetFid?target_fid=%d"
 	ENDPOINT_VERIFICATIONS         = "verificationsByFid?fid=%d"
 	ENDPOINT_IDREGISTRY_BY_ADDRESS = "onChainIdRegistryEventByAddress?address=%s"
@@ -36,6 +37,9 @@ const (
 	MESSAGE_TYPE_USERPROOF    = "USERNAME_TYPE_FNAME"
 	MESSAGE_TYPE_VERIFICATION = "MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS"
 	MESSAGE_TYPE_LINK         = "MESSAGE_TYPE_LINK_ADD"
+	MESSAGE_TYPE_USERDATA_ADD = "MESSAGE_TYPE_USER_DATA_ADD"
+	// user data types
+	USERDATA_TYPE_USERNAME = "USER_DATA_TYPE_USERNAME"
 	// other constants
 	farcasterEpoch uint64 = 1609459200 // January 1, 2021 UTC
 )
@@ -75,6 +79,11 @@ func (h *Hub) SetFarcasterUser(fid uint64, signerPrivKey string) error {
 	}
 	h.fid = fid
 	return nil
+}
+
+// FID returns the fid of the farcaster user set in the API.
+func (h *Hub) FID() uint64 {
+	return h.fid
 }
 
 // Stop stops the API Hub. It does nothing.
@@ -328,33 +337,62 @@ func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.User
 	// create a intenal context with a timeout
 	internalCtx, cancel := context.WithTimeout(ctx, userdataTimeout)
 	defer cancel()
-	// prepare the request to get username and custody address from the API
-	usernameReq, err := h.newRequest(internalCtx, http.MethodGet, fmt.Sprintf(ENDPOINT_USERNAME_PROOFS, fid), nil)
+	// prepare request to get the username
+	userdataReq, err := h.newRequest(internalCtx, http.MethodGet, fmt.Sprintf(ENDPOINT_USERDATA, fid), nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating user data request: %w", err)
 	}
 	// download the user data from the API and check for errors
-	usernameRes, err := http.DefaultClient.Do(usernameReq)
+	userdataRes, err := http.DefaultClient.Do(userdataReq)
 	if err != nil {
 		return nil, fmt.Errorf("error downloading user data: %w", err)
 	}
-	if usernameRes.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error downloading user data: %s", usernameRes.Status)
+	defer userdataRes.Body.Close()
+	userdataBody, err := io.ReadAll(userdataRes.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading user data response body: %w", err)
+	}
+	userdata := &hubUserdataResponse{}
+	if err := json.Unmarshal(userdataBody, userdata); err != nil {
+		return nil, fmt.Errorf("error decoding user data: %w", err)
+	}
+	username := ""
+	lastUsername := uint64(0)
+	for _, msg := range userdata.Messages {
+		isUsername := msg.Data != nil && msg.Data.Type == MESSAGE_TYPE_USERDATA_ADD &&
+			msg.Data.Body != nil && msg.Data.Body.Type == USERDATA_TYPE_USERNAME
+		if isUsername && msg.Data.Timestamp > lastUsername {
+			username = msg.Data.Body.Value
+			lastUsername = msg.Data.Timestamp
+		}
+	}
+	// prepare the request to get the custody address from the API
+	custodyAddressReq, err := h.newRequest(internalCtx, http.MethodGet, fmt.Sprintf(ENDPOINT_CUSTODY_ADDRESS, fid), nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating custody address request: %w", err)
+	}
+	// download the custody address from the API and check for errors
+	custodyAddressRes, err := http.DefaultClient.Do(custodyAddressReq)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading custody address: %w", err)
+	}
+	if custodyAddressRes.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error downloading custody address: %s", custodyAddressRes.Status)
 	}
 	// read the response body
-	usernameBody, err := io.ReadAll(usernameRes.Body)
+	custodyAddressBody, err := io.ReadAll(custodyAddressRes.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading user data response body: %w", err)
 	}
 	// unmarshal the json
-	userdata := &userdataResponse{}
-	if err := json.Unmarshal(usernameBody, userdata); err != nil {
+	custodyAddress := &custodyAddressResponse{}
+	if err := json.Unmarshal(custodyAddressBody, custodyAddress); err != nil {
 		return nil, fmt.Errorf("error unmarshalling user data: %w", err)
 	}
 	// get the latest proof
-	currentUserdata := &usernameProofs{}
+	lastProof := &usernameProofs{}
 	lastUserdataTimestamp := uint64(0)
-	for _, proof := range userdata.Proofs {
+	for _, proof := range custodyAddress.Proofs {
 		// discard proofs that are not of the type we are looking for and
 		// that are not from the user we are looking for
 		if proof.Type != MESSAGE_TYPE_USERPROOF || proof.FID != fid {
@@ -362,7 +400,7 @@ func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.User
 		}
 		// update the latest proof
 		if proof.Timestamp > lastUserdataTimestamp {
-			currentUserdata = proof
+			lastProof = proof
 			lastUserdataTimestamp = proof.Timestamp
 		}
 	}
@@ -408,8 +446,8 @@ func (h *Hub) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.User
 	}
 	return &farcasterapi.Userdata{
 		FID:                    fid,
-		Username:               currentUserdata.Username,
-		CustodyAddress:         currentUserdata.CustodyAddress,
+		Username:               username,
+		CustodyAddress:         lastProof.CustodyAddress,
 		VerificationsAddresses: verifications,
 		Signers:                signers,
 	}, nil
