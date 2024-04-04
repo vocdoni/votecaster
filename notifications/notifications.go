@@ -113,15 +113,16 @@ func New(ctx context.Context, config *NotifificationManagerConfig) (*Notificatio
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	return &NotificationManager{
-		ctx:             ctx,
-		cancel:          cancel,
-		db:              config.DB,
-		api:             config.API,
-		listenCoolDown:  config.ListenCoolDown,
-		sendCoolDown:    config.DefaultSendCoolDown,
-		permissionMsg:   config.PermissionMessage,
-		notificationMsg: config.NotificationMessage,
-		frameURL:        config.FrameURL,
+		ctx:                   ctx,
+		cancel:                cancel,
+		db:                    config.DB,
+		api:                   config.API,
+		listenCoolDown:        config.ListenCoolDown,
+		sendCoolDown:          config.DefaultSendCoolDown,
+		permissionMsg:         config.PermissionMessage,
+		notificationMsg:       config.NotificationMessage,
+		customNotificationMsg: config.CustomNotificationMessage,
+		frameURL:              config.FrameURL,
 	}, nil
 }
 
@@ -241,7 +242,7 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 			var mentions []uint64
 			if n.CustomText == "" {
 				// default message
-				msg = fmt.Sprintf(nm.notificationMsg, n.Username, n.AuthorUsername, n.AuthorUsername, userdata.Username)
+				msg = fmt.Sprintf(nm.notificationMsg, n.Username, n.AuthorUsername, userdata.Username)
 				mentions = []uint64{n.UserID, userdata.FID}
 			} else {
 				// message with custom text
