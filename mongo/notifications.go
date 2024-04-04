@@ -9,7 +9,8 @@ import (
 )
 
 func (ms *MongoStorage) AddNotifications(nType NotificationType, electionID string,
-	userID, authorID uint64, username, authorUsername, frameURL string, deadline time.Time,
+	userID, authorID uint64, username, authorUsername, frameURL, customText string,
+	deadline time.Time,
 ) (int64, error) {
 	// create random id for the notification
 	src := rand.NewSource(time.Now().UnixNano())
@@ -25,6 +26,7 @@ func (ms *MongoStorage) AddNotifications(nType NotificationType, electionID stri
 		AuthorID:       authorID,
 		AuthorUsername: authorUsername,
 		FrameUrl:       frameURL,
+		CustomText:     customText,
 		Deadline:       deadline,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

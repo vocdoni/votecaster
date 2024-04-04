@@ -28,6 +28,7 @@ import {
   Stack,
   Switch,
   Text,
+  Textarea,
   UnorderedList,
   VStack,
 } from '@chakra-ui/react'
@@ -56,6 +57,7 @@ interface FormValues {
   addresses?: Address[]
   channel?: string
   notify?: boolean
+  notificationText?: string
 }
 
 interface CID {
@@ -124,9 +126,11 @@ const Form: React.FC = (props: FlexProps) => {
   useEffect(() => {
     if (!notifyAllowed.includes(censusType)) {
       resetField('notify')
+      resetField('notificationText')
     }
   }, [censusType])
 
+  // fetch blockchains info (for airstack selector)
   useEffect(() => {
     if (blockchains.length || bloaded) return
     ;(async () => {
@@ -198,6 +202,10 @@ const Form: React.FC = (props: FlexProps) => {
         duration: Number(data.duration),
         options: data.choices.map((c) => c.choice),
         notifyUsers: data.notify || false,
+      }
+
+      if (data.notificationText?.length) {
+        election.notificationText = data.notificationText
       }
 
       setStatus('Creating census...')
@@ -391,6 +399,16 @@ const Form: React.FC = (props: FlexProps) => {
                       <Switch {...register('notify')} lineHeight={6}>
                         Notify farcaster users via cast (only for censuses &lt; 1k)
                       </Switch>
+                    </FormControl>
+                  )}
+                  {notify && (
+                    <FormControl isDisabled={loading}>
+                      <FormLabel>Custom notification text</FormLabel>
+                      <Textarea
+                        placeholder='Additional text when notifying users (optional)'
+                        maxLength={200}
+                        {...register('notificationText')}
+                      />
                     </FormControl>
                   )}
                   {['erc20', 'nft'].includes(censusType) &&

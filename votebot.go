@@ -87,7 +87,7 @@ func pollToCast(ctx context.Context, handler *vocdoniHandler, poll *poll.Poll,
 		Verifications: user.VerificationsAddresses,
 	}
 	electionID, err := handler.createAndSaveElectionAndProfile(description,
-		defaultCensus, profile, true, false, ElectionSourceBot)
+		defaultCensus, profile, true, false, "", ElectionSourceBot)
 	if err != nil {
 		return fmt.Errorf("error creating election: %w", err)
 	}

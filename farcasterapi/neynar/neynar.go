@@ -110,6 +110,11 @@ func (n *NeynarAPI) SetFarcasterUser(fid uint64, signer string) error {
 	return nil
 }
 
+// FID method returns the fid of the farcaster user set in the API.
+func (n *NeynarAPI) FID() uint64 {
+	return n.fid
+}
+
 func (n *NeynarAPI) Stop() error {
 	return nil
 }

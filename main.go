@@ -542,7 +542,9 @@ func main() {
 			log.Fatal(err)
 		}
 		defer voteBot.Stop()
-		log.Info("bot started")
+		log.Infow("bot started",
+			"fid", voteBot.UserData.FID,
+			"username", voteBot.UserData.Username)
 		// start notification manager
 		notificationManager, err := notifications.New(mainCtx, &notifications.NotifificationManagerConfig{
 			DB:                   db,

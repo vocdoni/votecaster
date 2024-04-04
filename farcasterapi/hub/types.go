@@ -42,7 +42,7 @@ type usernameProofs struct {
 	Timestamp      uint64 `json:"timestamp"`
 }
 
-type userdataResponse struct {
+type custodyAddressResponse struct {
 	Proofs []*usernameProofs `json:"proofs"`
 }
 
@@ -62,4 +62,26 @@ type verificationMessage struct {
 
 type verificationsResponse struct {
 	Messages []*verificationMessage `json:"messages"`
+}
+
+type hubUserDataBody struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+type hubUserData struct {
+	Type      string           `json:"type"`
+	FID       uint64           `json:"fid"`
+	Timestamp uint64           `json:"timestamp"`
+	Body      *hubUserDataBody `json:"userDataBody"`
+}
+
+type hubUserDataMessage struct {
+	Data   *hubUserData `json:"data"`
+	Hash   string       `json:"hash"`
+	Signer string       `json:"signer"`
+}
+
+type hubUserdataResponse struct {
+	Messages []*hubUserDataMessage `json:"messages"`
 }

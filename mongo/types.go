@@ -109,6 +109,7 @@ type Notification struct {
 	AuthorUsername string           `json:"authorUsername" bson:"authorUsername"`
 	ElectionID     string           `json:"electionId" bson:"electionId"`
 	FrameUrl       string           `json:"frameUrl" bson:"frameUrl"`
+	CustomText     string           `json:"customText" bson:"customText"`
 	Deadline       time.Time        `json:"deadline" bson:"deadline"`
 }
 
