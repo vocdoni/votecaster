@@ -148,8 +148,13 @@ func (h *Hub) decomposeContent(content string, mentionFids []uint64) (*hubCastAd
 	// get the positions of the mentions in the content
 	usernamePositions := mentionRgx.FindAllStringIndex(content, -1)
 	mentionsPositions := make([]uint64, len(mentionFids))
-	for i := range usernames {
+	removedChars := 0
+	for i, username := range usernames {
 		mentionsPositions[i] = uint64(usernamePositions[i][0])
+		if i > 0 {
+			mentionsPositions[i] -= uint64(removedChars)
+		}
+		removedChars += len(username)
 	}
 	// remove mentions from the content
 	content = mentionRgx.ReplaceAllString(content, "")

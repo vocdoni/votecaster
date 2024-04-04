@@ -16,20 +16,23 @@ const (
 	DefaultListenCoolDown       = 30 * time.Second
 	DefaultSendCoolDown         = 500 * time.Millisecond
 	DefaultNotificationDeadline = 24 * time.Hour
-	DefaultPermissionMessage    = `👋 Hey @%s! 
+	DefaultPermissionMessage    = `👋 Hey @%s ! 
 
-I'm the farcaster.vote bot. You're included in a poll census created by %s, but I won't bother you again if you prefer not to receive notifications.
+I'm the alert bot for Farcaster.vote, the governance platform for Farcaster communities!
 
-Please let me know if you want to be notified or not! 🤖👍`
-	DefaultNotificationMessage = `👋 Hey @%s!
+You're receiving this notification because a community you're part of created a new poll.
 
-The user %s created a new poll!
+We'd love to notify you about new polls where you can vote. Please let us know your preference in the frame. (You can turn off the notifications at any time)`
+	DefaultNotificationMessage = `👋 Hey @%s !
 
-🗳 And you're eligible to vote!
+%s created a new poll 🗳 and you're eligible to vote!
 
-Cast your vote to make a difference 👇.
+To stop receiving notifications for new polls from %s, reply '@%s mute' to this cast.`
+	DefaultCustomNotificationMessage = `👋 Hey @%s !
 
-(to mute this user reply to this message with: @%s mute)`
+%s created a new poll 🗳 and you're eligible to vote!
+
+%s`
 )
 
 // notificationThread is the parent cast to reply to when sending a notification
@@ -40,28 +43,30 @@ var notificationThread = &farcasterapi.APIMessage{
 }
 
 type NotifificationManagerConfig struct {
-	DB                   *mongo.MongoStorage
-	API                  farcasterapi.API
-	ListenCoolDown       time.Duration
-	DefaultSendCoolDown  time.Duration
-	NotificationDeadline time.Duration
-	PermissionMessage    string
-	NotificationMessage  string
-	FrameURL             string
+	DB                        *mongo.MongoStorage
+	API                       farcasterapi.API
+	ListenCoolDown            time.Duration
+	DefaultSendCoolDown       time.Duration
+	NotificationDeadline      time.Duration
+	PermissionMessage         string
+	NotificationMessage       string
+	CustomNotificationMessage string
+	FrameURL                  string
 }
 
 // NotificationManager is a manager that listens for new notifications registered
 // in the database and sends them to the users via the farcaster API.
 type NotificationManager struct {
-	ctx             context.Context
-	cancel          context.CancelFunc
-	db              *mongo.MongoStorage
-	api             farcasterapi.API
-	listenCoolDown  time.Duration
-	sendCoolDown    time.Duration
-	permissionMsg   string
-	notificationMsg string
-	frameURL        string
+	ctx                   context.Context
+	cancel                context.CancelFunc
+	db                    *mongo.MongoStorage
+	api                   farcasterapi.API
+	listenCoolDown        time.Duration
+	sendCoolDown          time.Duration
+	permissionMsg         string
+	notificationMsg       string
+	customNotificationMsg string
+	frameURL              string
 }
 
 // check method checks the configuration required values and sets default values
@@ -93,6 +98,9 @@ func (conf *NotifificationManagerConfig) check() error {
 	}
 	if conf.NotificationMessage == "" {
 		conf.NotificationMessage = DefaultNotificationMessage
+	}
+	if conf.CustomNotificationMessage == "" {
+		conf.CustomNotificationMessage = DefaultCustomNotificationMessage
 	}
 	return nil
 }
@@ -227,8 +235,21 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 			log.Infof("%+v", userdata)
 			// send notification and remove it from the database
 			log.Debugw("permission granted, sending and removing notification...", "notification", n.ID)
-			msg := fmt.Sprintf(nm.notificationMsg, n.Username, n.AuthorUsername, userdata.Username)
-			if err := nm.api.Reply(nm.ctx, notificationThread, msg, []uint64{n.UserID}, n.FrameUrl); err != nil {
+			// compose the notification message and mentions using the default
+			// template or the custom template if the custom text is not empty
+			var msg string
+			var mentions []uint64
+			if n.CustomText == "" {
+				// default message
+				msg = fmt.Sprintf(nm.notificationMsg, n.Username, n.AuthorUsername, n.AuthorUsername, userdata.Username)
+				mentions = []uint64{n.UserID, userdata.FID}
+			} else {
+				// message with custom text
+				msg = fmt.Sprintf(nm.customNotificationMsg, n.Username, n.AuthorUsername, n.CustomText)
+				mentions = []uint64{n.UserID}
+			}
+			// send the notification and remove it from the database
+			if err := nm.api.Reply(nm.ctx, notificationThread, msg, mentions, n.FrameUrl); err != nil {
 				errCh <- fmt.Errorf("error sending notification: %s", err)
 				return
 			}
