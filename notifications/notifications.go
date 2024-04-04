@@ -18,11 +18,9 @@ const (
 	DefaultNotificationDeadline = 24 * time.Hour
 	DefaultPermissionMessage    = `👋 Hey @%s ! 
 
-I'm the alert bot for Farcaster.vote, the governance platform for Farcaster communities!
+I'm the alert bot for Farcaster.vote, where community decisions are made. You're getting this because a community you're in has a new poll. 
 
-You're receiving this notification because a community you're part of created a new poll.
-
-We'd love to notify you about new polls where you can vote. Please let us know your preference in the frame. (You can turn off the notifications at any time)`
+Let us know if you want to be alerted about new polls, you can turn off notifications anytime.`
 	DefaultNotificationMessage = `👋 Hey @%s !
 
 %s created a new poll 🗳 and you're eligible to vote!
