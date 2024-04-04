@@ -299,7 +299,7 @@ func (nm *NotificationManager) checkOrReqPermission(userID uint64, username, aut
 	log.Debugw("notifications not requested, requesting...", "user", userID)
 	// if the user has not been requested for notifications yet, send the
 	// notification request with the permission message and the frame URL
-	msg := fmt.Sprintf(nm.permissionMsg, username, authorUsername)
+	msg := fmt.Sprintf(nm.permissionMsg, username)
 	if err := nm.api.Publish(nm.ctx, msg, []uint64{userID}, nm.frameURL); err != nil {
 		return false, fmt.Errorf("error sending notification request: %s", err)
 	}
