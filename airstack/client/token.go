@@ -13,7 +13,7 @@ import (
 
 // TokenDetails wraps useful information about a token
 type TokenDetails struct {
-	Decimals    int8
+	Decimals    int
 	Name        string
 	Symbol      string
 	TotalSupply *big.Int
@@ -43,7 +43,7 @@ func (c *Client) TokenDetails(
 		totalSupply := new(big.Int)
 		totalSupply.SetString(resp.Token.TotalSupply, 10)
 		return &TokenDetails{
-			Decimals:    int8(resp.Token.Decimals),
+			Decimals:    resp.Token.Decimals,
 			Name:        resp.Token.Name,
 			Symbol:      resp.Token.Symbol,
 			TotalSupply: totalSupply,
