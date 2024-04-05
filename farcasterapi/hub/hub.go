@@ -246,6 +246,10 @@ func (h *Hub) GetCast(ctx context.Context, fid uint64, hash string) (*farcastera
 
 func (h *Hub) Publish(ctx context.Context, content string, mentionFIDs []uint64, embeds ...string) error {
 	log.Infow("publishing cast", "msg", content, "embeds", embeds, "mentions", mentionFIDs)
+	// check if the content is too long
+	if len([]byte(content)) > farcasterapi.MaxCastBytes {
+		return fmt.Errorf("content is too long")
+	}
 	// create the cast add body
 	castBody, err := h.newAddCastBody(content, mentionFIDs, embeds...)
 	if err != nil {
@@ -283,9 +287,13 @@ func (h *Hub) Publish(ctx context.Context, content string, mentionFIDs []uint64,
 // given content.
 func (h *Hub) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessage,
 	content string, mentionFIDs []uint64, embeds ...string) error {
-	log.Infow("replying to cast", "msg", content)
+	log.Infow("replying to cast", "msg", content, "embeds", embeds)
 	if targetMsg == nil {
 		return fmt.Errorf("invalid target message")
+	}
+	// check if the content is too long
+	if len([]byte(content)) > farcasterapi.MaxCastBytes {
+		return fmt.Errorf("content is too long")
 	}
 	castAdd, err := h.newAddCastBody(content, mentionFIDs, embeds...)
 	if err != nil {
