@@ -30,7 +30,9 @@ To stop receiving notifications for new polls from %s, reply '@%s mute' to this 
 
 %s created a new poll 🗳 and you're eligible to vote!
 
-%s`
+%s
+
+(reply @%s mute to ignore future %s polls)`
 )
 
 // notificationThread is the parent cast to reply to when sending a notification
@@ -175,7 +177,7 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 		go func(n mongo.Notification) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			allowed, err := nm.checkOrReqPermission(n.UserID, n.Username, n.AuthorUsername)
+			allowed, err := nm.checkOrReqPermission(n.UserID, n.Username)
 			if err != nil {
 				if errors.Is(err, mongo.ErrUserUnknown) {
 					log.Debugw("user not found", "user", n.UserID)
@@ -244,8 +246,8 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 				mentions = []uint64{n.UserID, userdata.FID}
 			} else {
 				// message with custom text
-				msg = fmt.Sprintf(nm.customNotificationMsg, n.Username, n.AuthorUsername, n.CustomText)
-				mentions = []uint64{n.UserID}
+				msg = fmt.Sprintf(nm.customNotificationMsg, n.Username, n.AuthorUsername, n.CustomText, userdata.Username, n.AuthorUsername)
+				mentions = []uint64{n.UserID, userdata.FID}
 			}
 			// send the notification and remove it from the database
 			if err := nm.api.Reply(nm.ctx, notificationThread, msg, mentions, n.FrameUrl); err != nil {
@@ -276,7 +278,7 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 // It also updates the access profile with the notification requested status. If
 // the user has not accepted the notifications, it returns false, otherwise, it
 // returns true. If an error occurs, it returns the error.
-func (nm *NotificationManager) checkOrReqPermission(userID uint64, username, authorUsername string) (bool, error) {
+func (nm *NotificationManager) checkOrReqPermission(userID uint64, username string) (bool, error) {
 	alreadyRequested := false
 
 	profile, err := nm.db.UserAccessProfile(userID)
