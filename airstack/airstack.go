@@ -61,9 +61,12 @@ func (a *Airstack) MaxHolders() uint32 {
 	return a.maxHolders
 }
 
-func (a *Airstack) TokenDecimalsByTokenAnkrAPI(tokenAddress, blockchain string) (int, error) {
-	// TODO
-	return 18, nil
+func (a *Airstack) TokenDecimalsByToken(tokenAddress, blockchain string) (int, error) {
+	td, err := a.TokenDetails(common.HexToAddress(tokenAddress), blockchain)
+	if err != nil {
+		return 0, fmt.Errorf("error getting token details: %w", err)
+	}
+	return td.Decimals, nil
 }
 
 // TokenWhitelist returns the list of tokens to be considered for avoiding some checks

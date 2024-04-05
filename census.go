@@ -581,7 +581,7 @@ func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) (int, error) {
 			return 0, fmt.Errorf("token %s has too many holders: %d, maximum allowed is %d", token.Address, holders, v.airstack.MaxHolders())
 		}
 	}
-	td, err := v.airstack.TokenDecimalsByTokenAnkrAPI("", "")
+	td, err := v.airstack.TokenDecimalsByToken("", "")
 	if err != nil {
 		return 0, fmt.Errorf("cannot get token decimals")
 	}
