@@ -5,6 +5,9 @@ import (
 	"fmt"
 )
 
+// MaxCastBytes is the maximum number of bytes that a cast can have.
+const MaxCastBytes = 350
+
 var (
 	// ErrNoDataFound is returned when there is no data found.
 	ErrNoDataFound = fmt.Errorf("no data found")

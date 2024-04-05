@@ -32,7 +32,7 @@ To stop receiving notifications for new polls from %s, reply '@%s mute' to this 
 
 %s
 
-(reply @%s mute to ignore future %s polls)`
+(reply '@%s mute' to ignore future %s polls)`
 )
 
 // notificationThread is the parent cast to reply to when sending a notification
@@ -233,7 +233,6 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 				errCh <- fmt.Errorf("error retrieving bot user data: %s", err)
 				return
 			}
-			log.Infof("%+v", userdata)
 			// send notification and remove it from the database
 			log.Debugw("permission granted, sending and removing notification...", "notification", n.ID)
 			// compose the notification message and mentions using the default

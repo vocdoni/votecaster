@@ -405,8 +405,8 @@ const Form: React.FC = (props: FlexProps) => {
                     <FormControl isDisabled={loading}>
                       <FormLabel>Custom notification text</FormLabel>
                       <Textarea
-                        placeholder='Additional text when notifying users (optional)'
-                        maxLength={200}
+                        placeholder='Additional text when notifying users (optional, max 150 characters)'
+                        maxLength={150}
                         {...register('notificationText')}
                       />
                     </FormControl>

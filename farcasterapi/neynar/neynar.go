@@ -163,6 +163,10 @@ func (n *NeynarAPI) Publish(ctx context.Context, content string, _ []uint64, emb
 	if n.fid == 0 {
 		return fmt.Errorf("farcaster user not set")
 	}
+	// check if the content is too long
+	if len([]byte(content)) > farcasterapi.MaxCastBytes {
+		return fmt.Errorf("content is too long")
+	}
 	castEmbeds := []*castEmbed{}
 	if len(embeds) > 0 {
 		for _, embed := range embeds {
@@ -188,6 +192,10 @@ func (n *NeynarAPI) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessag
 	content string, _ []uint64, embeds ...string) error {
 	if n.fid == 0 {
 		return fmt.Errorf("farcaster user not set")
+	}
+	// check if the content is too long
+	if len([]byte(content)) > farcasterapi.MaxCastBytes {
+		return fmt.Errorf("content is too long")
 	}
 	castEmbeds := []*castEmbed{}
 	if len(embeds) > 0 {
