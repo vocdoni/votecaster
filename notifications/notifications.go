@@ -290,9 +290,6 @@ func (nm *NotificationManager) checkOrReqPermission(userID uint64, username stri
 	}
 	// if the user has requested notifications, return the accepted status
 	if alreadyRequested {
-		log.Debugw("notifications requested",
-			"user", userID,
-			"granted", profile.NotificationsAccepted)
 		return profile.NotificationsAccepted, nil
 	}
 	log.Debugw("notifications not requested, requesting...", "user", userID)

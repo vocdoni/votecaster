@@ -3,15 +3,18 @@ package main
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/vocdoni/vote-frame/imageframe"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
+	"go.vocdoni.io/dvote/types"
 )
 
 func (v *vocdoniHandler) notificationsHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -167,4 +170,33 @@ func (v *vocdoniHandler) notificationsSendHandler(_ *apirest.APIdata, ctx *httpr
 		return fmt.Errorf("failed to marshal usernames: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
+}
+
+// createNotifications creates a notification for each user in the census.
+func (v *vocdoniHandler) createNotifications(election types.HexBytes, ownerFID uint64, ownerName string,
+	usernames []string, frameURL, customText string, deadline time.Time,
+) error {
+	log.Infow("enqueue notifications",
+		"owner", ownerName,
+		"electionID", election.String(),
+		"userCount", len(usernames),
+		"frameURL", frameURL,
+	)
+	for _, username := range usernames {
+		user, err := v.db.UserByUsername(username)
+		if err != nil {
+			if errors.Is(err, mongo.ErrUserUnknown) {
+				log.Warnw("user not found", "username", username)
+				continue
+			}
+			return fmt.Errorf("failed to get user: %w", err)
+		}
+		if _, err := v.db.AddNotifications(mongo.NotificationTypeNewElection, election.String(),
+			user.UserID, ownerFID, username, ownerName, frameURL, customText, deadline,
+		); err != nil {
+			return fmt.Errorf("failed to add notification: %w", err)
+		}
+	}
+	return nil
+
 }

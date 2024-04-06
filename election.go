@@ -422,30 +422,6 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 	return nil
 }
 
-// createNotifications creates a notification for each user in the census.
-func (v *vocdoniHandler) createNotifications(election types.HexBytes, ownerFID uint64, ownerName string,
-	usernames []string, frameURL, customText string, deadline time.Time,
-) error {
-	log.Debugw("creating notifications", "electionID", election.String(), "userCount", len(usernames), "frameURL", frameURL)
-	for _, username := range usernames {
-		user, err := v.db.UserByUsername(username)
-		if err != nil {
-			if errors.Is(err, mongo.ErrUserUnknown) {
-				log.Warnw("user not found", "username", username)
-				continue
-			}
-			return fmt.Errorf("failed to get user: %w", err)
-		}
-		if _, err := v.db.AddNotifications(mongo.NotificationTypeNewElection, election.String(),
-			user.UserID, ownerFID, username, ownerName, frameURL, customText, deadline,
-		); err != nil {
-			return fmt.Errorf("failed to add notification: %w", err)
-		}
-	}
-	return nil
-
-}
-
 // finalizeElectionsAtBackround checks for elections without results and finalizes them.
 // Stores the final results as a static PNG image in the database. It must run in the background.
 func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
