@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/vocdoni/vote-frame/imageframe"
 	"go.vocdoni.io/dvote/httprouter"
@@ -110,4 +112,59 @@ func (v *vocdoniHandler) notificationsFilterByUserHandler(msg *apirest.APIdata, 
 
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
+}
+
+// notificationsForceSendHandler enqueue the notifications for the given election and its users.
+// The election should be already created and the census stored in the database.
+// Returns the list of usernames that will receive the notifications.
+func (v *vocdoniHandler) notificationsSendHandler(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode election ID: %w", err)
+	}
+
+	election, err := v.cli.Election(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to get election: %w", err)
+	}
+
+	census, err := v.db.CensusFromElection(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to get census: %w", err)
+	}
+
+	userProfile, err := v.db.User(census.CreatedBy)
+	if err != nil {
+		return fmt.Errorf("failed to get user profile: %w", err)
+	}
+
+	expiration := election.EndDate
+	if time.Until(expiration) < time.Hour*3 {
+		expiration = expiration.Add(-time.Minute * 10)
+	} else {
+		expiration = expiration.Add(-time.Hour * 3)
+	}
+
+	usernames := []string{}
+	for participant := range census.Participants {
+		usernames = append(usernames, participant)
+	}
+
+	if err := v.createNotifications(
+		electionID,
+		census.CreatedBy,
+		userProfile.Username,
+		usernames,
+		fmt.Sprintf("%s/%x", serverURL, electionID),
+		"",
+		expiration,
+	); err != nil {
+		return fmt.Errorf("failed to create notifications: %w", err)
+	}
+
+	data, err := json.Marshal(usernames)
+	if err != nil {
+		return fmt.Errorf("failed to marshal usernames: %w", err)
+	}
+	return ctx.Send(data, http.StatusOK)
 }

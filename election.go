@@ -362,7 +362,15 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 				expiration = expiration.Add(-time.Hour * 3)
 			}
 			frameURL := fmt.Sprintf("%s/%x", serverURL, electionID)
-			if err := v.createNotifications(electionID, profile, census, frameURL, customText, expiration); err != nil {
+			if err := v.createNotifications(
+				electionID,
+				profile.FID,
+				profile.DisplayName,
+				census.Usernames,
+				frameURL,
+				customText,
+				expiration,
+			); err != nil {
 				return fmt.Errorf("failed to create notifications: %w", err)
 			}
 		}
@@ -415,11 +423,11 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 }
 
 // createNotifications creates a notification for each user in the census.
-func (v *vocdoniHandler) createNotifications(election types.HexBytes, profile *FarcasterProfile,
-	census *CensusInfo, frameURL, customText string, deadline time.Time,
+func (v *vocdoniHandler) createNotifications(election types.HexBytes, ownerFID uint64, ownerName string,
+	usernames []string, frameURL, customText string, deadline time.Time,
 ) error {
-	log.Debugw("creating notifications", "electionID", election.String(), "census", census, "frameURL", frameURL)
-	for _, username := range census.Usernames {
+	log.Debugw("creating notifications", "electionID", election.String(), "userCount", len(usernames), "frameURL", frameURL)
+	for _, username := range usernames {
 		user, err := v.db.UserByUsername(username)
 		if err != nil {
 			if errors.Is(err, mongo.ErrUserUnknown) {
@@ -429,7 +437,7 @@ func (v *vocdoniHandler) createNotifications(election types.HexBytes, profile *F
 			return fmt.Errorf("failed to get user: %w", err)
 		}
 		if _, err := v.db.AddNotifications(mongo.NotificationTypeNewElection, election.String(),
-			user.UserID, profile.FID, username, profile.DisplayName, frameURL, customText, deadline,
+			user.UserID, ownerFID, username, ownerName, frameURL, customText, deadline,
 		); err != nil {
 			return fmt.Errorf("failed to add notification: %w", err)
 		}
