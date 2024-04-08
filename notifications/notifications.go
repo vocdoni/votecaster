@@ -38,8 +38,8 @@ To stop receiving notifications for new polls from %s, reply '@%s mute' to this 
 // notificationThread is the parent cast to reply to when sending a notification
 // and avoid spamming the account feed. https://warpcast.com/vocdoni/0xfd847188
 var notificationThread = &farcasterapi.APIMessage{
-	Hash:   "0xfd8471884f3aaf3528d33ba8ae59f57904124d27",
-	Author: 7548,
+	Hash:   "0x06ab704ab9c363cd9f3041132dd978f3c20f602a",
+	Author: 398983,
 }
 
 type NotifificationManagerConfig struct {
