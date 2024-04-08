@@ -241,7 +241,7 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 			var mentions []uint64
 			if n.CustomText == "" {
 				// default message
-				msg = fmt.Sprintf(nm.notificationMsg, n.Username, n.AuthorUsername, userdata.Username)
+				msg = fmt.Sprintf(nm.notificationMsg, n.Username, n.AuthorUsername, n.AuthorUsername, userdata.Username)
 				mentions = []uint64{n.UserID, userdata.FID}
 			} else {
 				// message with custom text
