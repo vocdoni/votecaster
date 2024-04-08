@@ -28,6 +28,28 @@ func (ms *MongoStorage) AddElection(electionID types.HexBytes, userFID uint64, s
 	return ms.addElection(&election)
 }
 
+// ElectionsByUser returns all the elections created by the user with the FID
+// provided
+func (ms *MongoStorage) ElectionsByUser(userFID uint64) ([]Election, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cursor, err := ms.elections.Find(ctx, bson.M{"userId": userFID})
+	if err != nil {
+		log.Warn(err)
+		return nil, ErrElectionUnknown
+	}
+	defer cursor.Close(ctx)
+	var elections []Election
+	if err := cursor.All(ctx, &elections); err != nil {
+		log.Warn(err)
+		return nil, ErrElectionUnknown
+	}
+	return elections, nil
+}
+
 func (ms *MongoStorage) addElection(election *Election) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
