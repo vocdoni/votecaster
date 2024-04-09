@@ -7,6 +7,7 @@ import { Layout } from './components/Layout'
 import { About } from './pages/About'
 import { App } from './pages/App'
 import { Leaderboards } from './pages/Leaderboards'
+import { Profile } from './pages/Profile'
 import { Voters } from './pages/Voters'
 import { theme } from './theme'
 
@@ -26,6 +27,10 @@ const router = createHashRouter([
       {
         path: '/leaderboards',
         element: <Leaderboards />,
+      },
+      {
+        path: '/profile',
+        element: <Profile />,
       },
       {
         path: '/poll/:pid',
