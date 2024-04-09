@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -30,7 +31,7 @@ func (ms *MongoStorage) AddElection(electionID types.HexBytes, userFID uint64, s
 
 // ElectionsByUser returns all the elections created by the user with the FID
 // provided
-func (ms *MongoStorage) ElectionsByUser(userFID uint64) ([]Election, error) {
+func (ms *MongoStorage) ElectionsByUser(userFID uint64) ([]ElectionRanking, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -42,10 +43,39 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64) ([]Election, error) {
 		return nil, ErrElectionUnknown
 	}
 	defer cursor.Close(ctx)
-	var elections []Election
-	if err := cursor.All(ctx, &elections); err != nil {
-		log.Warn(err)
-		return nil, ErrElectionUnknown
+	elections := []ElectionRanking{}
+	for cursor.Next(ctx) {
+		election := Election{}
+		if err := cursor.Decode(&election); err != nil {
+			log.Warn(err)
+			continue
+		}
+		bElectionID, err := hex.DecodeString(election.ElectionID)
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+		info, err := ms.election(bElectionID)
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+		if info == nil || info.Metadata == nil || info.Metadata.Title == nil {
+			log.Warn("no title found in election metadata")
+			continue
+		}
+		user, err := ms.getUserData(election.UserID)
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+		elections = append(elections, ElectionRanking{
+			ElectionID:        election.ElectionID,
+			Title:             info.Metadata.Title["default"],
+			VoteCount:         election.CastedVotes,
+			CreatedByFID:      election.UserID,
+			CreatedByUsername: user.Username,
+		})
 	}
 	return elections, nil
 }

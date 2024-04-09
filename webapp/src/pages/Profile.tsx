@@ -1,4 +1,4 @@
-import { Spinner, VStack } from '@chakra-ui/react'
+import { Avatar, Box, Link, Spinner, Text, VStack } from '@chakra-ui/react'
 import { useQuery } from 'react-query'
 import { ReputationCard } from '../components/Auth/Reputation'
 import { useAuth } from '../components/Auth/useAuth'
