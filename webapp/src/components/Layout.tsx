@@ -2,6 +2,8 @@ import { Avatar, Box, Button, Flex, Heading, HStack, Icon, IconButton, Stack, us
 import { GiHamburgerMenu } from 'react-icons/gi'
 import { IoClose } from 'react-icons/io5'
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { ReputationProgress } from './Auth/Reputation'
+import { useAuth } from './Auth/useAuth'
 
 const MenuButton = ({ to, children }) => {
   const location = useLocation()
@@ -52,6 +54,7 @@ const links = [
 
 export const Navbar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const { isAuthenticated, profile } = useAuth()
 
   return (
     <Box px={{ base: 3 }}>
@@ -73,12 +76,12 @@ export const Navbar = () => {
           </HStack>
         </HStack>
         <Flex alignItems={'center'}>
-          <Avatar
-            size={'sm'}
-            src={
-              'https://images.unsplash.com/photo-1493666438817-866a91353ca9?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9'
-            }
-          />
+          {isAuthenticated && (
+            <Link to='/profile'>
+              <ReputationProgress mr={3} size='32px' />
+              <Avatar size={'sm'} src={profile?.pfpUrl} />
+            </Link>
+          )}
         </Flex>
       </Flex>
 
