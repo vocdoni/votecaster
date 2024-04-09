@@ -46,6 +46,9 @@ dmitri.shuralyov.com/html/belt v0.0.0-20180602232347-f7d459c86be0/go.mod h1:JLBr
 dmitri.shuralyov.com/service/change v0.0.0-20181023043359-a85b471d5412/go.mod h1:a1inKt/atXimZ4Mv927x+r7UpyzRUf4emIoiiSC2TN4=
 dmitri.shuralyov.com/state v0.0.0-20180228185332-28bcc343414c/go.mod h1:0PRwlb0D6DFvNNtx+9ybjezNCa8XF0xaYcETyp6rHWU=
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
+git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFNuPos7vHmWXfszqImLppbc0wEhh6JBfJIUgw=
+git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9 h1:Ahny8Ud1LjVMMAlt8utUFKhhxJtwBAualvsbc/Sk7cE=
+git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9/go.mod h1:BVJwbDfVjCjoFiKrhkei6NdGcZYpkDkdyCdg1ukytRA=
 github.com/766b/chi-prometheus v0.0.0-20211217152057-87afa9aa2ca8 h1:hK1G69lDhhrGqJbRA5i1rmT2KI/W77MSdr7hEGHqWdQ=
 github.com/766b/chi-prometheus v0.0.0-20211217152057-87afa9aa2ca8/go.mod h1:X/LhbmoBoRu8TxoGIOIraVNhfz3hhikJoaelrOuhdPY=
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
@@ -1545,6 +1548,8 @@ github.com/vektah/gqlparser/v2 v2.5.1 h1:ZGu+bquAY23jsxDRcYpWjttRZrUz07LbiY77gUO
 github.com/vektah/gqlparser/v2 v2.5.1/go.mod h1:mPgqFBu/woKTVYWyNk8cO3kh4S/f4aRFZrvOnp3hmCs=
 github.com/viant/assertly v0.4.8/go.mod h1:aGifi++jvCrUaklKEKT0BU95igDNaqkvz+49uaYMPRU=
 github.com/viant/toolbox v0.24.0/go.mod h1:OxMCG57V0PXuIP2HNQrtJf2CjqdmbrOx5EkMILuUhzM=
+github.com/vocdoni/census3 v0.1.4-0.20240409153009-cb9df91453c7 h1:DJr/cvnV3QfErKhblAYihdmbrLqRcJl2bgENE6xysNA=
+github.com/vocdoni/census3 v0.1.4-0.20240409153009-cb9df91453c7/go.mod h1:Ml5LlJQLbbd5GYttVCKu4kN2mjvrdLSxXfjoc/okNRY=
 github.com/vocdoni/storage-proofs-eth-go v0.1.6 h1:mF6VNGudgCjjgjxs5Z2GGMM2tS79+xFBWcr7BnPuhAY=
 github.com/vocdoni/storage-proofs-eth-go v0.1.6/go.mod h1:aoD9pKg8kDFQ5I6b3obGPTwjC+DsaW2h4wt2UQEjQrg=
 github.com/wangjia184/sortedset v0.0.0-20160527075905-f5d03557ba30/go.mod h1:YkocrP2K2tcw938x9gCOmT5G5eCD6jsTz0SZuyAqwIE=

@@ -17,6 +17,7 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/vocdoni/vote-frame/airstack"
+	"github.com/vocdoni/vote-frame/census3"
 	"github.com/vocdoni/vote-frame/discover"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/hub"
@@ -81,6 +82,10 @@ func main() {
 	flag.String("airstackSupportAPIEndpoint", "", "Airstack support API endpoint")
 	flag.String("airstackTokenWhitelist", "", "Airstack token whitelist")
 
+	// Census3 flags
+	flag.String("census3APIEndpoint", "https://census3.vocdoni.net", "The Census3 API endpoint to use")
+	flag.String("census3APIToken", "", "The Census3 API token to use")
+
 	// Limited features flags
 	flag.Int32("featureNotificationReputation", 15, "Reputation threshold to enable the notification feature")
 
@@ -133,6 +138,10 @@ func main() {
 	airstackMaxHolders := uint32(viper.GetInt("airstackMaxHolders"))
 	airstackSupportAPIEndpoint := viper.GetString("airstackSupportAPIEndpoint")
 	airstackTokenWhitelist := viper.GetString("airstackTokenWhitelist")
+
+	// census3 vars
+	census3APIEndpoint := viper.GetString("census3APIEndpoint")
+	census3APIToken := viper.GetString("census3APIToken")
 
 	// limited features vars
 	featureNotificationReputation := uint32(viper.GetInt32("featureNotificationReputation"))
@@ -264,9 +273,29 @@ func main() {
 		}
 	}
 
+	// Create Census3 client
+	var c3 *census3.Client
+	if census3APIEndpoint != "" {
+		c3, err = census3.NewClient(census3APIEndpoint, census3APIToken)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)
-	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as)
+	handler, err := NewVocdoniHandler(
+		apiEndpoint,
+		vocdoniPrivKey,
+		censusInfo,
+		webAppDir,
+		db,
+		mainCtx,
+		neynarcli,
+		&apiTokenUUID,
+		as,
+		c3,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

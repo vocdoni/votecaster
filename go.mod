@@ -10,6 +10,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
+	github.com/vocdoni/census3 v0.1.4-0.20240409153009-cb9df91453c7
 	github.com/zeebo/blake3 v0.2.3
 	go.mongodb.org/mongo-driver v1.14.0
 	go.vocdoni.io/dvote v1.10.2-0.20240313095944-f5790a5af0ed
@@ -21,6 +22,7 @@ require (
 require (
 	bazil.org/fuse v0.0.0-20200407214033-5883e5a4b512 // indirect
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2 // indirect
+	git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9 // indirect
 	github.com/766b/chi-prometheus v0.0.0-20211217152057-87afa9aa2ca8 // indirect
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
