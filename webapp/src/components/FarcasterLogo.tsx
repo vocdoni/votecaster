@@ -1,5 +1,5 @@
 export const FarcasterLogo = ({ height, fill }: { height: number; fill: 'purple' | 'white' }) => {
-  const width = height * 1.1
+  const width = height * 1.1 || 22
 
   return (
     <svg xmlns='http://www.w3.org/2000/svg' width={width} height={height} fill='none'>

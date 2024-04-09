@@ -3,6 +3,7 @@ import { GiHamburgerMenu } from 'react-icons/gi'
 import { IoClose } from 'react-icons/io5'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { ReputationProgress } from './Auth/Reputation'
+import { SignInButton } from './Auth/SignInButton'
 import { useAuth } from './Auth/useAuth'
 
 const MenuButton = ({ to, children }) => {
@@ -30,7 +31,7 @@ export const Layout = () => {
   return (
     <>
       <Navbar />
-      <Flex minH='100vh' flexDir='column' justifyContent='center' alignItems='center' p={{ base: 0, sm: 5, xl: 10 }}>
+      <Flex flexDir='column' justifyContent='center' alignItems='center' p={{ base: 0, sm: 5, xl: 10 }}>
         <Outlet />
       </Flex>
     </>
@@ -76,11 +77,13 @@ export const Navbar = () => {
           </HStack>
         </HStack>
         <Flex alignItems={'center'}>
-          {isAuthenticated && (
+          {isAuthenticated ? (
             <Link to='/profile'>
               <ReputationProgress mr={3} size='32px' />
               <Avatar size={'sm'} src={profile?.pfpUrl} />
             </Link>
+          ) : (
+            <SignInButton size='sm' />
           )}
         </Flex>
       </Flex>

@@ -1,52 +1,23 @@
 import { ChakraProvider } from '@chakra-ui/react'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { createHashRouter, RouterProvider } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from 'react-query'
+import { RouterProvider } from 'react-router-dom'
 import { AuthProvider } from './components/Auth/AuthContext'
-import { Layout } from './components/Layout'
-import { About } from './pages/About'
-import { App } from './pages/App'
-import { Leaderboards } from './pages/Leaderboards'
-import { Profile } from './pages/Profile'
-import { Voters } from './pages/Voters'
+import router from './router'
 import { theme } from './theme'
 
-const router = createHashRouter([
-  {
-    path: '/',
-    element: <Layout />,
-    children: [
-      {
-        path: '/',
-        element: <App />,
-      },
-      {
-        path: '/about',
-        element: <About />,
-      },
-      {
-        path: '/leaderboards',
-        element: <Leaderboards />,
-      },
-      {
-        path: '/profile',
-        element: <Profile />,
-      },
-      {
-        path: '/poll/:pid',
-        element: <Voters />,
-      },
-    ],
-  },
-])
+const queryClient = new QueryClient()
 
 const rootElement = document.getElementById('root')
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <ChakraProvider theme={theme}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </QueryClientProvider>
     </ChakraProvider>
   </React.StrictMode>
 )

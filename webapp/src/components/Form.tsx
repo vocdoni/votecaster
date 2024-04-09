@@ -310,7 +310,7 @@ const Form: React.FC = (props: FlexProps) => {
 
   return (
     <Flex flexDir='column' alignItems='center' {...props}>
-      <Card w={{ base: '100%', md: 400, lg: 500 }}>
+      <Card w='100%'>
         <CardHeader align='center'>
           <Heading as='h1' size='2xl'>
             farcaster.vote
@@ -566,7 +566,7 @@ const Form: React.FC = (props: FlexProps) => {
                     </>
                   ) : (
                     <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>
-                      <SignInButton />
+                      <SignInButton size='lg' />
                       to create a poll
                     </Box>
                   )}
