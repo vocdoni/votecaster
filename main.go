@@ -522,6 +522,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/profile/muted-users", http.MethodPost, "public", handler.muteUserHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/profile/muted-users/{username}", http.MethodDelete, "public", handler.unmuteUserHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	// if a bot FID is provided, start the bot background process
 	if botFid > 0 {
 		var botAPI farcasterapi.API
