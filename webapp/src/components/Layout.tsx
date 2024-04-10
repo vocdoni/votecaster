@@ -30,10 +30,11 @@ const MenuButton = ({ to, children }) => {
       variant='ghost'
       colorScheme='blackAlpha'
       color={isActive ? 'gray.600' : 'gray.500'}
-      bgColor={isActive ? 'purple.200' : 'transparent'}
+      borderBottom={isActive ? '2px solid' : 'none'}
+      borderColor={isActive ? 'purple.200' : 'transparent'}
       _hover={{ bg: 'purple.200' }}
       size='sm'
-      borderRadius='md'
+      borderRadius='0'
     >
       {children}
     </Button>
