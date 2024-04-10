@@ -1,10 +1,23 @@
-import { Avatar, Box, Button, Flex, Heading, HStack, Icon, IconButton, Stack, useDisclosure } from '@chakra-ui/react'
+import {
+  Avatar,
+  Box,
+  Button,
+  Flex,
+  Heading,
+  HStack,
+  Icon,
+  IconButton,
+  Image,
+  Stack,
+  useDisclosure,
+} from '@chakra-ui/react'
 import { GiHamburgerMenu } from 'react-icons/gi'
 import { IoClose } from 'react-icons/io5'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { ReputationProgress } from './Auth/Reputation'
 import { SignInButton } from './Auth/SignInButton'
 import { useAuth } from './Auth/useAuth'
+import logo from '/poweredby.svg'
 
 const MenuButton = ({ to, children }) => {
   const location = useLocation()
@@ -16,8 +29,8 @@ const MenuButton = ({ to, children }) => {
       to={to}
       variant='ghost'
       colorScheme='blackAlpha'
-      color='white'
-      bgColor={isActive ? 'purple.600' : 'purple.300'}
+      color={isActive ? 'gray.600' : 'gray.500'}
+      bgColor={isActive ? 'purple.200' : 'transparent'}
       _hover={{ bg: 'purple.200' }}
       size='sm'
       borderRadius='md'
@@ -31,8 +44,18 @@ export const Layout = () => {
   return (
     <>
       <Navbar />
-      <Flex flexDir='column' justifyContent='center' alignItems='center' p={{ base: 0, sm: 5, xl: 10 }}>
+      <Flex flexDir='column' justifyContent='center' alignItems='center' p={{ base: 0, sm: 5, xl: 10 }} mx='auto'>
         <Outlet />
+        <Flex
+          as={Link}
+          mt={4}
+          fontSize='.8em'
+          justifyContent='center'
+          to='https://warpcast.com/vocdoni'
+          target='_blank'
+        >
+          <Image src={logo} alt='powered by vocdoni' width='50%' />
+        </Flex>
       </Flex>
     </>
   )

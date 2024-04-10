@@ -1,3 +1,6 @@
+import { Profile } from '../components/Auth/useAuthProvider'
+import { Poll } from '../components/Top'
+
 export const fetchUserPolls = (bfetch, profile) => async (): Promise<Poll[]> => {
   const response = await bfetch(`${import.meta.env.APP_URL}/profile`)
   const { polls } = (await response.json()) as { polls: Poll[] }

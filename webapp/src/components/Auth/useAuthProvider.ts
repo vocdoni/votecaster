@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { appUrl } from '../../util/constants'
 
-type Profile = {
+export type Profile = {
   fid: number
   username: string
   displayName: string
