@@ -16,7 +16,6 @@ import {
   Heading,
   Icon,
   IconButton,
-  Image,
   Input,
   InputGroup,
   InputRightElement,
@@ -27,7 +26,6 @@ import {
   Select,
   Stack,
   Switch,
-  Text,
   Textarea,
   UnorderedList,
   VStack,
@@ -41,7 +39,6 @@ import { ReputationCard } from './Auth/Reputation'
 import { SignInButton } from './Auth/SignInButton'
 import { useAuth } from './Auth/useAuth'
 import { Done } from './Done'
-import logo from '/poweredby.svg'
 
 interface Address {
   address: string
@@ -309,12 +306,9 @@ const Form: React.FC = (props: FlexProps) => {
   }
 
   return (
-    <Flex flexDir='column' alignItems='center' {...props}>
-      <Card w={{ base: '100%', md: 400, lg: 500 }}>
+    <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 500 }} {...props}>
+      <Card w='100%'>
         <CardHeader align='center'>
-          <Heading as='h1' size='2xl'>
-            farcaster.vote
-          </Heading>
           <Heading as='h2' size='lg' textAlign='center'>
             Create a framed poll
           </Heading>
@@ -566,7 +560,7 @@ const Form: React.FC = (props: FlexProps) => {
                     </>
                   ) : (
                     <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>
-                      <SignInButton />
+                      <SignInButton size='lg' />
                       to create a poll
                     </Box>
                   )}
@@ -576,11 +570,6 @@ const Form: React.FC = (props: FlexProps) => {
           </FormProvider>
         </CardBody>
       </Card>
-      <Text mt={4} fontSize='.8em' textAlign='center'>
-        <Link href='https://warpcast.com/vocdoni' target='_blank' display='flex' justifyContent='center'>
-          <Image src={logo} alt='powered by vocdoni' width='50%' />
-        </Link>
-      </Text>
     </Flex>
   )
 }

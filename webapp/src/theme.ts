@@ -5,6 +5,13 @@ export const theme = extendTheme({
     heading: '"Inter", sans-serif',
     body: '"Inter", sans-serif',
   },
+  styles: {
+    global: {
+      body: {
+        bg: 'purple.50',
+      },
+    },
+  },
   components: {
     Link: defineStyleConfig({
       baseStyle: {

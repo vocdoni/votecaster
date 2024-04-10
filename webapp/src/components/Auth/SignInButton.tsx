@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  ButtonProps,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -21,7 +22,7 @@ import { FarcasterLogo } from '../FarcasterLogo'
 import '@farcaster/auth-kit/styles.css'
 import { useAuth } from './useAuth'
 
-export const SignInButton = () => {
+export const SignInButton = (props: ButtonProps) => {
   const { login } = useAuth()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [url, setUrl] = useState<string | null>(null)
@@ -84,7 +85,7 @@ export const SignInButton = () => {
 
   return (
     <>
-      <Button p={6} colorScheme='purple' leftIcon={<FarcasterLogo height='20' fill='white' />} onClick={onOpen}>
+      <Button colorScheme='purple' leftIcon={<FarcasterLogo height='20' fill='white' />} {...props} onClick={onOpen}>
         Sign in
       </Button>
       <Modal isOpen={isOpen} onClose={onClose} isCentered size='xs'>

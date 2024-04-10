@@ -124,7 +124,7 @@ func (ms *MongoStorage) IsUserNotificationMuted(ownerUserID, mutedUserID uint64)
 }
 
 // ListNotificationMutedUsers returns a list of user IDs muted by the owner user.
-func (ms *MongoStorage) ListNotificationMutedUsers(ownerUserID uint64) ([]uint64, error) {
+func (ms *MongoStorage) ListNotificationMutedUsers(ownerUserID uint64) ([]*User, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -136,6 +136,18 @@ func (ms *MongoStorage) ListNotificationMutedUsers(ownerUserID uint64) ([]uint64
 	if err != nil {
 		return nil, ErrUserUnknown
 	}
+	// Get the user data for each muted user
+	var users []*User
+	for _, userID := range profile.NotificationsMutedUsers {
+		user, err := ms.getUserData(userID)
+		if err != nil {
+			// if something goes wrong, add an unknown user to the list with the
+			// muted user ID
+			users = append(users, &User{UserID: userID, Username: "Unknown"})
+			continue
+		}
+		users = append(users, user)
+	}
 
-	return profile.NotificationsMutedUsers, nil
+	return users, nil
 }

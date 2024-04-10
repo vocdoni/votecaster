@@ -2,6 +2,7 @@ import {
   Box,
   CircularProgress,
   CircularProgressLabel,
+  CircularProgressProps,
   Flex,
   Icon,
   IconButton,
@@ -22,9 +23,19 @@ import { FaHeart, FaInfo, FaRegFaceGrinStars } from 'react-icons/fa6'
 import { ImStatsDots } from 'react-icons/im'
 import { MdOutlineHowToVote } from 'react-icons/md'
 import { SlPencil } from 'react-icons/sl'
-import type { Reputation } from './useAuthProvider'
+import { useAuth } from './useAuth'
 
-export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
+export const ReputationProgress = (props: CircularProgressProps) => {
+  const { reputation } = useAuth()
+  return (
+    <CircularProgress value={reputation.reputation} max={100} color='purple.600' thickness='12px' {...props}>
+      <CircularProgressLabel>{reputation.reputation}%</CircularProgressLabel>
+    </CircularProgress>
+  )
+}
+
+export const ReputationCard = () => {
+  const { reputation } = useAuth()
   const bg = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
   const boxShadow = useColorModeValue('0px 4px 6px rgba(0, 0, 0, 0.1)', '0px 4px 6px rgba(0, 0, 0, 0.3)')
   const isMobile = useBreakpointValue({ base: true, md: false })
@@ -52,9 +63,7 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
               </StatLabel>
               <StatNumber fontSize='2xl'>{reputation.reputation}</StatNumber>
             </Stat>
-            <CircularProgress value={reputation.reputation} max={100} color='purple.600' thickness='12px' mr={3}>
-              <CircularProgressLabel>{reputation.reputation}%</CircularProgressLabel>
-            </CircularProgress>
+            <ReputationProgress />
           </Flex>
           {isMobile && (
             <PopoverTrigger>
