@@ -1,4 +1,8 @@
-import { Poll } from '../components/Top'
+export type Poll = {
+  title: string
+  createdByUsername: string
+  voteCount: number
+}
 
 export const fetchPollsByVotes = (bfetch) => async (): Promise<Poll[]> => {
   const response = await bfetch(`${import.meta.env.APP_URL}/rankings/pollsByVotes`)
