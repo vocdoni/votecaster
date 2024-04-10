@@ -88,6 +88,7 @@ type APIMessage struct {
 type Userdata struct {
 	FID                    uint64
 	Username               string
+	Displayname            string
 	CustodyAddress         string
 	VerificationsAddresses []string
 	Signers                []string

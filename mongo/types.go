@@ -21,6 +21,7 @@ type User struct {
 	ElectionCount  uint64    `json:"electionCount" bson:"electionCount"`
 	CastedVotes    uint64    `json:"castedVotes" bson:"castedVotes"`
 	Username       string    `json:"username" bson:"username"`
+	Displayname    string    `json:"displayname" bson:"displayname"`
 	CustodyAddress string    `json:"custodyAddress" bson:"custodyAddress"`
 	Addresses      []string  `json:"addresses" bson:"addresses"`
 	Signers        []string  `json:"signers" bson:"signers"`
@@ -51,6 +52,7 @@ type Election struct {
 	Source                string    `json:"source" bson:"source"`
 	FarcasterUserCount    uint32    `json:"farcasterUserCount" bson:"farcasterUserCount"`
 	InitialAddressesCount uint32    `json:"initialAddressesCount" bson:"initialAddressesCount"`
+	Question              string    `json:"question" bson:"question"`
 }
 
 // Census stores the census of an election ready to be used for voting on farcaster.
@@ -149,16 +151,18 @@ type VotersOfElectionCollection struct {
 
 // UserRanking is a user ranking entry.
 type UserRanking struct {
-	FID      uint64 `json:"fid" bson:"fid"`
-	Username string `json:"username" bson:"username"`
-	Count    uint64 `json:"count" bson:"count"`
+	FID         uint64 `json:"fid" bson:"fid"`
+	Username    string `json:"username" bson:"username"`
+	Displayname string `json:"displayname" bson:"displayname"`
+	Count       uint64 `json:"count" bson:"count"`
 }
 
 // ElectionRanking is an election ranking entry.
 type ElectionRanking struct {
-	ElectionID        string `json:"electionId" bson:"_id"`
-	VoteCount         uint64 `json:"voteCount" bson:"voteCount"`
-	CreatedByFID      uint64 `json:"createdByFID" bson:"createdByFID"`
-	CreatedByUsername string `json:"createdByUsername" bson:"createdByUsername"`
-	Title             string `json:"title" bson:"title"`
+	ElectionID           string `json:"electionId" bson:"_id"`
+	VoteCount            uint64 `json:"voteCount" bson:"voteCount"`
+	CreatedByFID         uint64 `json:"createdByFID" bson:"createdByFID"`
+	CreatedByUsername    string `json:"createdByUsername" bson:"createdByUsername"`
+	CreatedByDisplayname string `json:"createdByDisplayname" bson:"createdByDisplayname"`
+	Title                string `json:"title" bson:"title"`
 }

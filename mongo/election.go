@@ -11,7 +11,12 @@ import (
 	"go.vocdoni.io/dvote/types"
 )
 
-func (ms *MongoStorage) AddElection(electionID types.HexBytes, userFID uint64, source string, usersCount, usersCountInitial, tokenDecimals uint32) error {
+func (ms *MongoStorage) AddElection(
+	electionID types.HexBytes,
+	userFID uint64,
+	source string,
+	question string,
+	usersCount, usersCountInitial, tokenDecimals uint32) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
@@ -22,8 +27,10 @@ func (ms *MongoStorage) AddElection(electionID types.HexBytes, userFID uint64, s
 		Source:                source,
 		FarcasterUserCount:    usersCount,
 		InitialAddressesCount: usersCountInitial,
+		ElectionMeta: ElectionMeta{
+			CensusERC20TokenDecimals: tokenDecimals,
+		},
 	}
-	election.CensusERC20TokenDecimals = tokenDecimals
 	log.Infow("added new election", "electionID", electionID.String(), "userID", userFID)
 	return ms.addElection(&election)
 }

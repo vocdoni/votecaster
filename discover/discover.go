@@ -163,6 +163,7 @@ func (d *FarcasterDiscover) updateUser(fid uint64) error {
 	if err := d.db.UpdateUser(&mongo.User{
 		UserID:         profile.Result.User.Fid,
 		Username:       profile.Result.User.Username,
+		Displayname:    profile.Result.User.DisplayName,
 		CastedVotes:    castedVotes,
 		ElectionCount:  electionCount,
 		Addresses:      addresses,

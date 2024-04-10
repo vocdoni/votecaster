@@ -1045,6 +1045,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 				if err := v.db.AddUser(
 					userData.FID,
 					userData.Username,
+					userData.Displayname,
 					userData.VerificationsAddresses,
 					userData.Signers,
 					userData.CustodyAddress,

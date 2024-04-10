@@ -15,7 +15,7 @@ func (ms *MongoStorage) UsersByElectionNumber() ([]UserRanking, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
-	limit := int64(32)
+	limit := int64(10)
 	opts := options.FindOptions{Limit: &limit}
 	opts.SetSort(bson.M{"electionCount": -1})
 	opts.SetProjection(bson.M{"_id": true, "username": true, "electionCount": true})
@@ -35,9 +35,10 @@ func (ms *MongoStorage) UsersByElectionNumber() ([]UserRanking, error) {
 			log.Warn(err)
 		}
 		ranking = append(ranking, UserRanking{
-			FID:      user.UserID,
-			Username: user.Username,
-			Count:    user.ElectionCount,
+			FID:         user.UserID,
+			Username:    user.Username,
+			Displayname: user.Displayname,
+			Count:       user.ElectionCount,
 		})
 	}
 	return ranking, nil
@@ -48,7 +49,7 @@ func (ms *MongoStorage) UsersByVoteNumber() ([]UserRanking, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
-	limit := int64(32)
+	limit := int64(10)
 	opts := options.FindOptions{Limit: &limit}
 	opts.SetSort(bson.M{"castedVotes": -1})
 	opts.SetProjection(bson.M{"_id": true, "username": true, "castedVotes": true})
@@ -68,9 +69,10 @@ func (ms *MongoStorage) UsersByVoteNumber() ([]UserRanking, error) {
 			log.Warn(err)
 		}
 		ranking = append(ranking, UserRanking{
-			FID:      user.UserID,
-			Username: user.Username,
-			Count:    user.CastedVotes,
+			FID:         user.UserID,
+			Username:    user.Username,
+			Displayname: user.Displayname,
+			Count:       user.CastedVotes,
 		})
 	}
 	return ranking, nil
@@ -81,7 +83,7 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
-	limit := int64(12)
+	limit := int64(10)
 	opts := options.FindOptions{Limit: &limit}
 	opts.SetSort(bson.M{"castedVotes": -1})
 	opts.SetProjection(bson.M{"_id": true, "castedVotes": true, "userId": true})
@@ -109,13 +111,16 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 			continue
 		}
 
-		title := ""
-		electionInfo, err := ms.election(eID)
-		if err != nil {
-			log.Warn(err)
-		} else {
-			if electionInfo != nil && electionInfo.Metadata != nil {
-				title = electionInfo.Metadata.Title["default"]
+		title := election.Question
+		if title == "" {
+			// if election question is not stored in the database, try to get it from the API
+			electionInfo, err := ms.election(eID)
+			if err != nil {
+				log.Warn(err)
+			} else {
+				if electionInfo != nil && electionInfo.Metadata != nil {
+					title = electionInfo.Metadata.Title["default"]
+				}
 			}
 		}
 
@@ -128,11 +133,12 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 		}
 
 		ranking = append(ranking, ElectionRanking{
-			ElectionID:        election.ElectionID,
-			VoteCount:         election.CastedVotes,
-			CreatedByFID:      election.UserID,
-			Title:             title,
-			CreatedByUsername: username,
+			ElectionID:           election.ElectionID,
+			VoteCount:            election.CastedVotes,
+			CreatedByFID:         election.UserID,
+			CreatedByDisplayname: user.Displayname,
+			Title:                title,
+			CreatedByUsername:    username,
 		})
 
 	}

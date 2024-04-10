@@ -49,7 +49,7 @@ func (ms *MongoStorage) UpdateAndGetReputationForUser(userID uint64) (uint32, *U
 	if err != nil {
 		if errors.Is(err, ErrUserUnknown) {
 			// If the user is not found, create a new user with blank data
-			if err := ms.AddUser(userID, "", []string{}, []string{}, "", 0); err != nil {
+			if err := ms.AddUser(userID, "", "", []string{}, []string{}, "", 0); err != nil {
 				return 0, nil, fmt.Errorf("error adding user: %w", err)
 			}
 			if err := ms.SetReputationForUser(userID, 0); err != nil {
