@@ -1,10 +1,11 @@
-import { Avatar, Box, Link, Text, VStack } from '@chakra-ui/react'
+import { Grid, GridItem, Show, Spacer } from '@chakra-ui/react'
 import { useQuery } from 'react-query'
 import { ReputationCard } from '../components/Auth/Reputation'
 import { useAuth } from '../components/Auth/useAuth'
 import { Check } from '../components/Check'
-import { Poll, TopPolls } from '../components/Top'
-import { fetchMutedUsers, fetchUserPolls } from '../queries/profile'
+import { MutedUsersList } from '../components/MutedUsersList'
+import { Poll, UserPolls } from '../components/Top'
+import { fetchUserPolls } from '../queries/profile'
 
 export const Profile = () => {
   const { bfetch, profile } = useAuth()
@@ -16,32 +17,28 @@ export const Profile = () => {
   }
 
   return (
-    <VStack direction='column' spacing={4}>
-      <ReputationCard />
-      <TopPolls polls={data || []} title='Your created polls' w='100%' />
-      <MutedUsersList />
-    </VStack>
-  )
-}
-
-const MutedUsersList: React.FC = () => {
-  const { bfetch } = useAuth()
-  const { data, error, isLoading } = useQuery<Profile[], Error>('mutedUsers', fetchMutedUsers(bfetch))
-
-  if (isLoading || error) {
-    return <Check isLoading={isLoading} error={error} />
-  }
-
-  return (
-    <VStack spacing={4}>
-      {data?.map((user) => (
-        <Box key={user.fid} padding='4' boxShadow='lg' borderRadius='md'>
-          <Link href={`https://warpcast.com/${user.username}`} isExternal>
-            <Avatar src={user.pfpUrl} name={user.username} />
-            <Text mt='2'>{user.username}</Text>
-          </Link>
-        </Box>
-      ))}
-    </VStack>
+    <Grid
+      templateColumns={{ base: '1fr', md: '1fr 400px' }} // Stacks on mobile, side by side on wider screens
+      templateRows={{ base: 'repeat(3, auto)', md: 'auto 1fr' }} // Creates enough rows for the content on mobile
+      gap={4}
+      templateAreas={{ base: `"reputation" "muted" "polls"`, md: `"polls reputation" "polls muted"` }}
+    >
+      <GridItem gridArea='reputation'>
+        <ReputationCard />
+        <Show above='md'>
+          <Spacer h={4} />
+          <MutedUsersList />
+        </Show>
+      </GridItem>
+      <GridItem gridArea='polls'>
+        <UserPolls polls={data || []} title='Your created polls' w='100%' />
+      </GridItem>
+      {/* MutedUsersList will now only appear here in the mobile view, since in md+ it's in the same GridItem as ReputationCard */}
+      <Show below='md'>
+        <GridItem gridArea='muted'>
+          <MutedUsersList />
+        </GridItem>
+      </Show>
+    </Grid>
   )
 }

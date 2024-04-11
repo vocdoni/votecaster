@@ -1,10 +1,10 @@
-import { Box, Button, Heading, Image, Link, SimpleGrid, useBreakpointValue } from '@chakra-ui/react'
+import { Box, Button, Heading, Image, Link, SimpleGrid, Spinner, useBreakpointValue } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import { FaDownload } from 'react-icons/fa6'
 import { useParams } from 'react-router-dom'
 import { CsvGenerator } from '../generator'
 
-export const Voters = () => {
+export const Poll = () => {
   const { pid } = useParams()
   const [voters, setVoters] = useState([])
   const [loaded, setLoaded] = useState<boolean>(false)
@@ -43,10 +43,10 @@ export const Voters = () => {
   }, [voters])
 
   return (
-    <Box w={{ base: 'full', lg: '50%' }}>
-      <Image src={`${import.meta.env.APP_URL}/preview/${pid}`} mb={10} />
+    <Box w={{ base: 'full', lg: '50%' }} textAlign='center'>
+      <Image src={`${import.meta.env.APP_URL}/preview/${pid}`} mb={10} fallback={<Spinner />} />
       {voters.length > 0 && (
-        <Box pt={5} px={{ base: 5, sm: 0 }} borderTop='1px solid gray'>
+        <Box pt={5} px={{ base: 5, sm: 0 }} borderTop='1px solid gray' textAlign='initial'>
           <Heading display='flex' justifyContent='space-between'>
             Voters
             <Link href={usersfile.url} download={'voters-list.csv'}>
