@@ -45,7 +45,14 @@ export const Layout = () => {
   return (
     <>
       <Navbar />
-      <Flex flexDir='column' justifyContent='center' alignItems='center' p={{ base: 0, sm: 5, xl: 10 }} mx='auto'>
+      <Flex
+        flexDir='column'
+        justifyContent='center'
+        alignItems='center'
+        p={{ base: 0, sm: 5, xl: 10 }}
+        mx='auto'
+        maxW='1980px'
+      >
         <Outlet />
         <Flex
           as={Link}
