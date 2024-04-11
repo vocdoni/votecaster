@@ -1,10 +1,10 @@
-import { Grid, GridItem, Spacer } from '@chakra-ui/react'
+import { Grid, GridItem, Show, Spacer } from '@chakra-ui/react'
 import { useQuery } from 'react-query'
 import { ReputationCard } from '../components/Auth/Reputation'
 import { useAuth } from '../components/Auth/useAuth'
 import { Check } from '../components/Check'
 import { MutedUsersList } from '../components/MutedUsersList'
-import { Poll, TopPolls } from '../components/Top'
+import { Poll, UserPolls } from '../components/Top'
 import { fetchUserPolls } from '../queries/profile'
 
 export const Profile = () => {
@@ -25,16 +25,20 @@ export const Profile = () => {
     >
       <GridItem gridArea='reputation'>
         <ReputationCard />
-        <Spacer h={5} />
-        <MutedUsersList display={{ base: 'none', md: 'flex' }} />
+        <Show above='md'>
+          <Spacer h={4} />
+          <MutedUsersList />
+        </Show>
       </GridItem>
       <GridItem gridArea='polls'>
-        <TopPolls polls={data || []} title='Your created polls' w='100%' />
+        <UserPolls polls={data || []} title='Your created polls' w='100%' />
       </GridItem>
       {/* MutedUsersList will now only appear here in the mobile view, since in md+ it's in the same GridItem as ReputationCard */}
-      <GridItem gridArea='muted' display={{ base: 'flex', md: 'none' }}>
-        <MutedUsersList />
-      </GridItem>
+      <Show below='md'>
+        <GridItem gridArea='muted'>
+          <MutedUsersList />
+        </GridItem>
+      </Show>
     </Grid>
   )
 }

@@ -2,34 +2,63 @@ import {
   Avatar,
   Box,
   Button,
+  FormControl,
+  FormErrorMessage,
+  Heading,
   HStack,
-  Icon,
   IconButton,
   Input,
   Link,
   Spacer,
   StackProps,
-  Text,
   VStack,
 } from '@chakra-ui/react'
-import { FaSquarePlus, FaTrash } from 'react-icons/fa6'
+import { useForm } from 'react-hook-form'
+import { FaTrash } from 'react-icons/fa6'
 import { useQuery } from 'react-query'
 import { fetchMutedUsers } from '../queries/profile'
+import { appUrl } from '../util/constants'
 import { useAuth } from './Auth/useAuth'
 import { Check } from './Check'
 
 export const MutedUsersList: React.FC = (props: StackProps) => {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    trigger,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      username: '',
+    },
+  })
   const { bfetch } = useAuth()
-  const { data, error, isLoading } = useQuery<Profile[], Error>('mutedUsers', fetchMutedUsers(bfetch))
+  const { data, error, isLoading, refetch } = useQuery<Profile[], Error>('mutedUsers', fetchMutedUsers(bfetch))
 
-  // Function to handle the unmute action
-  const handleUnmute = (username: string) => {
-    // Implement unmute logic here
+  const handleUnmute = async (username: string) => {
+    try {
+      await bfetch(`${appUrl}/profile/mutedUsers/${username}`, { method: 'DELETE' }).then(refetch)
+    } catch (e: any) {
+      console.error('could not unmute user', e)
+    }
   }
 
-  // Function to handle adding a new muted user
-  const handleAddMutedUser = (username: string) => {
-    // Implement add muted user logic here
+  const onSubmit = async (data) => {
+    try {
+      await bfetch(`${appUrl}/profile/mutedUsers`, {
+        method: 'POST',
+        body: JSON.stringify({ username: data.username }),
+      }).then(refetch)
+      reset({ username: '' }) // Reset only the username field
+    } catch (e: any) {
+      if ('message' in e) {
+        console.log('error received as message:', e.message)
+        setError('username', { message: e.message })
+      }
+      console.error('could not add muted user', e)
+    }
   }
 
   if (isLoading || error) {
@@ -37,31 +66,59 @@ export const MutedUsersList: React.FC = (props: StackProps) => {
   }
 
   return (
-    <VStack spacing={4} align='stretch' w='full' {...props}>
-      {data?.map((user) => (
-        <HStack key={user.fid} spacing={4} p={4} bg='white' boxShadow='md' borderRadius='md' align='center'>
-          <Avatar src={user.pfpUrl} name={user.username} />
-          <Link href={`https://warpcast.com/${user.username}`} isExternal color='purple.500'>
-            <Text fontWeight='medium'>{user.username}</Text>
-          </Link>
-          <Spacer />
-          <IconButton
-            aria-label={`Unmute ${user.username}`}
-            icon={<Icon as={FaTrash} />}
-            onClick={() => handleUnmute(user.username)}
-            colorScheme='purple'
-            size='sm'
-          />
-        </HStack>
-      ))}
-      <Box p={4} boxShadow='md' borderRadius='md' bg='purple.50'>
-        <HStack>
-          <Input placeholder='Add a user to mute' />
-          <Button colorScheme='purple' leftIcon={<Icon as={FaSquarePlus} />} onClick={handleAddMutedUser}>
-            Add
-          </Button>
-        </HStack>
-      </Box>
-    </VStack>
+    <Box borderRadius='md' p={4} bg='purple.100'>
+      <Heading fontSize='xl' mb={4} fontWeight='600' color='purple.800'>
+        Muted users
+      </Heading>
+      <VStack spacing={4} align='stretch'>
+        {data ? (
+          data?.map((user) => (
+            <HStack
+              key={user.userID}
+              spacing={4}
+              p={4}
+              bg='white'
+              borderRadius='md'
+              align='center'
+              border='1px'
+              boxShadow='sm'
+              borderColor='purple.200'
+            >
+              <Avatar src={user.pfpUrl} name={user.username} size='sm' />
+              <Link href={`https://warpcast.com/${user.username}`} isExternal fontWeight='medium' color='purple.500'>
+                {user.username}
+              </Link>
+              <Spacer />
+              <IconButton
+                aria-label={`Unmute ${user.username}`}
+                icon={<FaTrash />}
+                onClick={() => handleUnmute(user.username)}
+                colorScheme='purple'
+                title={`Unmute "${user.username}"`}
+                size='sm'
+              />
+            </HStack>
+          ))
+        ) : (
+          <p>No muted users yet</p>
+        )}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Box borderRadius='md' p={4} bg='purple.50'>
+            <HStack spacing={4}>
+              <FormControl isInvalid={!!errors.username}>
+                <Input
+                  placeholder='user to be muted'
+                  {...register('username', { required: 'This field is required' })}
+                />
+                <FormErrorMessage>{errors.username?.message?.toString()}</FormErrorMessage>
+              </FormControl>
+              <Button type='submit' colorScheme='purple' flexGrow={1}>
+                Mute
+              </Button>
+            </HStack>
+          </Box>
+        </form>
+      </VStack>
+    </Box>
   )
 }

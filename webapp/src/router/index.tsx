@@ -3,8 +3,8 @@ import { Layout } from '../components/Layout'
 import { About } from '../pages/About'
 import { App } from '../pages/App'
 import { Leaderboards } from '../pages/Leaderboards'
+import { Poll } from '../pages/Poll'
 import { Profile } from '../pages/Profile'
-import { Voters } from '../pages/Voters'
 import ProtectedRoute from './ProtectedRoute'
 
 const router = createHashRouter([
@@ -26,7 +26,7 @@ const router = createHashRouter([
       },
       {
         path: '/poll/:pid',
-        element: <Voters />,
+        element: <Poll />,
       },
       {
         element: <ProtectedRoute />,

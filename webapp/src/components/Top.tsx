@@ -1,6 +1,7 @@
 import { Box, BoxProps, Link, Stack, Tag, Text } from '@chakra-ui/react'
 import { PropsWithChildren } from 'react'
 import { useQuery } from 'react-query'
+import { Link as RouterLink } from 'react-router-dom'
 import { fetchPollsByVotes, fetchTopCreators, fetchTopVoters, Poll, UserRanking } from '../queries/tops'
 import { useAuth } from './Auth/useAuth'
 import { Check } from './Check'
@@ -65,6 +66,36 @@ export const TopPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: stri
           <TopCard>
             <Text color='purple.500' fontWeight='medium' maxW='80%'>
               {poll.title} — by {poll.createdByUsername}
+            </Text>
+            <Text color='gray.500' alignSelf={{ base: 'start', sm: 'end' }}>
+              {poll.voteCount} votes
+            </Text>
+          </TopCard>
+        </Link>
+      ))}
+    </Stack>
+  </Box>
+)
+
+export const UserPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: string } & BoxProps) => (
+  <Box bg={'purple.100'} p={5} borderRadius='lg' boxShadow='md' {...rest}>
+    <Text fontSize='xl' mb={4} fontWeight='600' color='purple.800'>
+      {title || 'Top Polls'}
+    </Text>
+    <Stack spacing={3}>
+      {polls.map((poll, index) => (
+        <Link
+          key={index}
+          as={RouterLink}
+          to={`/poll/${poll.electionId}`}
+          _hover={{
+            textDecoration: 'none',
+          }}
+          style={{ textDecoration: 'none' }}
+        >
+          <TopCard>
+            <Text color='purple.500' fontWeight='medium' maxW='80%'>
+              {poll.title}
             </Text>
             <Text color='gray.500' alignSelf={{ base: 'start', sm: 'end' }}>
               {poll.voteCount} votes
