@@ -384,6 +384,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/rankings/lastElections", http.MethodGet, "public", handler.lastElectionsHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	// Register the API methods
 	if err := uAPI.Endpoint.RegisterMethod("/router/{electionID}", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 		electionID := ctx.URLParam("electionID")

@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
+	"go.vocdoni.io/dvote/log"
 )
 
 func (v *vocdoniHandler) rankingByElectionsCreated(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -43,6 +45,54 @@ func (v *vocdoniHandler) rankingOfElections(msg *apirest.APIdata, ctx *httproute
 	elections, err := v.db.ElectionsByVoteNumber()
 	if err != nil {
 		return fmt.Errorf("failed to get ranking: %w", err)
+	}
+	jresponse, err := json.Marshal(map[string]any{
+		"polls": elections,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.SetResponseContentType("application/json")
+	return ctx.Send(jresponse, http.StatusOK)
+}
+
+func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	dbElections, err := v.db.LastCreatedElections(10)
+	if err != nil {
+		return fmt.Errorf("failed to get last elections: %w", err)
+	}
+
+	type Election struct {
+		CreatedTime  time.Time `json:"createdTime"`
+		ElectionID   string    `json:"electionId"`
+		LastVoteTime time.Time `json:"lastVoteTime"`
+		Question     string    `json:"question"`
+		CastedVotes  uint64    `json:"castedVotes"`
+		Username     string    `json:"username"`
+		Displayname  string    `json:"displayname"`
+	}
+
+	var elections []*Election
+
+	for i := range dbElections {
+		var username, displayname string
+		user, err := v.db.User(dbElections[i].UserID)
+		if err != nil {
+			log.Warnw("failed to fetch user", "error", err)
+			username = "unknown"
+		} else {
+			username = user.Username
+			displayname = user.Displayname
+		}
+		elections = append(elections, &Election{
+			dbElections[i].CreatedTime,
+			dbElections[i].ElectionID,
+			dbElections[i].LastVoteTime,
+			dbElections[i].Question,
+			dbElections[i].CastedVotes,
+			username,
+			displayname,
+		})
 	}
 	jresponse, err := json.Marshal(map[string]any{
 		"polls": elections,

@@ -182,6 +182,16 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on electionId field: %w", err)
 	}
 
+	// Create index for election creation time
+	electionCreationIndexModel := mongo.IndexModel{
+		Keys: bson.D{{Key: "createdTime", Value: -1}}, // -1 for descending order
+	}
+
+	_, err = ms.elections.Indexes().CreateOne(ctx, electionCreationIndexModel)
+	if err != nil {
+		return fmt.Errorf("failed to create index on createdTime: %w", err)
+	}
+
 	return nil
 }
 
