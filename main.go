@@ -522,11 +522,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/profile/muted-users", http.MethodPost, "public", handler.muteUserHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/profile/mutedUsers", http.MethodPost, "private", handler.muteUserHandler); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/profile/muted-users/{username}", http.MethodDelete, "public", handler.unmuteUserHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/profile/mutedUsers/{username}", http.MethodDelete, "private", handler.unmuteUserHandler); err != nil {
 		log.Fatal(err)
 	}
 
