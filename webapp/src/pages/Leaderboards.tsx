@@ -1,15 +1,15 @@
 import { Grid, GridItem } from '@chakra-ui/react'
-import { TopCreators, TopTenPolls, TopVoters } from '../components/Top'
+import { LatestPolls, TopCreators, TopTenPolls, TopVoters } from '../components/Top'
 
 export const Leaderboards = () => (
   <Grid
     gap={3}
     templateAreas={{
-      base: '"creators" "voters" "polls"',
-      sm: '"creators voters" "polls polls"',
-      lg: '"creators voters polls"',
+      base: '"creators" "voters" "polls" "latest"',
+      sm: '"creators voters" "polls latest"',
+      xl: '"creators voters polls latest"',
     }}
-    templateColumns={{ base: 'full', sm: '50%', lg: 'auto auto 50%' }}
+    templateColumns={{ base: 'full', sm: '50%', xl: 'auto auto 30% 30%' }}
     w='full'
   >
     <GridItem area='polls'>
@@ -20,6 +20,9 @@ export const Leaderboards = () => (
     </GridItem>
     <GridItem area='voters'>
       <TopVoters w='full' />
+    </GridItem>
+    <GridItem area='latest'>
+      <LatestPolls w='full' />
     </GridItem>
   </Grid>
 )

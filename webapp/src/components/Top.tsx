@@ -2,7 +2,14 @@ import { Box, BoxProps, Link, Stack, Tag, Text } from '@chakra-ui/react'
 import { PropsWithChildren } from 'react'
 import { useQuery } from 'react-query'
 import { Link as RouterLink } from 'react-router-dom'
-import { fetchPollsByVotes, fetchTopCreators, fetchTopVoters, Poll, UserRanking } from '../queries/tops'
+import {
+  fetchLatestPolls,
+  fetchPollsByVotes,
+  fetchTopCreators,
+  fetchTopVoters,
+  Poll,
+  UserRanking,
+} from '../queries/tops'
 import { useAuth } from './Auth/useAuth'
 import { Check } from './Check'
 
@@ -19,6 +26,19 @@ export const TopTenPolls = (props: BoxProps) => {
   if (!data || !data.length) return null
 
   return <TopPolls polls={data} title='Top 10 polls (by votes)' {...props} />
+}
+
+export const LatestPolls = (props: BoxProps) => {
+  const { bfetch } = useAuth()
+  const { data, error, isLoading } = useQuery<Poll[], Error>('latestPolls', fetchLatestPolls(bfetch))
+
+  if (isLoading || error) {
+    return <Check isLoading={isLoading} error={error} />
+  }
+
+  if (!data || !data.length) return null
+
+  return <TopPolls polls={data} title='Latest polls' {...props} />
 }
 
 export const TopCreators = (props: BoxProps) => {
@@ -64,8 +84,8 @@ export const TopPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: stri
           style={{ textDecoration: 'none' }}
         >
           <TopCard>
-            <Text color='purple.500' fontWeight='medium' maxW='80%'>
-              {poll.title} — by {poll.createdByUsername}
+            <Text color='purple.500' fontWeight='medium'>
+              {poll.title} — by {poll.createdByDisplayname || poll.createdByUsername}
             </Text>
             <Text color='gray.500' alignSelf={{ base: 'start', sm: 'end' }}>
               {poll.voteCount} votes

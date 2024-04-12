@@ -19,6 +19,7 @@ import { useQuery } from 'react-query'
 import { fetchMutedUsers } from '../queries/profile'
 import { appUrl } from '../util/constants'
 import { useAuth } from './Auth/useAuth'
+import { Profile } from './Auth/useAuthProvider'
 import { Check } from './Check'
 
 export const MutedUsersList: React.FC = (props: StackProps) => {
@@ -74,7 +75,7 @@ export const MutedUsersList: React.FC = (props: StackProps) => {
         {data ? (
           data?.map((user) => (
             <HStack
-              key={user.userID}
+              key={user.fid}
               spacing={4}
               p={4}
               bg='white'
