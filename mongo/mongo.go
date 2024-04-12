@@ -143,6 +143,17 @@ func (ms *MongoStorage) createIndexes() error {
 		return err
 	}
 
+	// Create an index model for the 'castedVotes' field on users (ranking)
+	userCastedVotesIndexModel := mongo.IndexModel{
+		Keys:    bson.M{"castedVotes": -1}, // -1 for descending order
+		Options: options.Index().SetName("castedVotesIndex"),
+	}
+
+	_, err = ms.users.Indexes().CreateOne(ctx, userCastedVotesIndexModel)
+	if err != nil {
+		return err
+	}
+
 	// Create index for authentication collection
 	authIndexModel := mongo.IndexModel{
 		Keys: bson.M{"authTokens": 1},
@@ -182,7 +193,7 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on electionId field: %w", err)
 	}
 
-	// Create index for election creation time
+	// Create index for election creation time (ranking)
 	electionCreationIndexModel := mongo.IndexModel{
 		Keys: bson.D{{Key: "createdTime", Value: -1}}, // -1 for descending order
 	}
@@ -190,6 +201,17 @@ func (ms *MongoStorage) createIndexes() error {
 	_, err = ms.elections.Indexes().CreateOne(ctx, electionCreationIndexModel)
 	if err != nil {
 		return fmt.Errorf("failed to create index on createdTime: %w", err)
+	}
+
+	// Create an index model for the 'castedVotes' field on election (ranking)
+	electionCastedVotesIndexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "castedVotes", Value: -1}}, // -1 for descending order
+		Options: options.Index().SetName("castedVotesIndex"),
+	}
+
+	_, err = ms.elections.Indexes().CreateOne(ctx, electionCastedVotesIndexModel)
+	if err != nil {
+		return fmt.Errorf("failed to create index on castedVotes for elections: %w", err)
 	}
 
 	return nil
