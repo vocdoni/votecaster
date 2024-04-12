@@ -21,8 +21,8 @@ const (
 	farcasterV2APIuser          = "https://client.warpcast.com/v2/user?fid=%d"
 	farcasterV2APIverifications = "https://client.warpcast.com/v2/verifications?fid=%d&limit=100"
 	farcasterV2APIrecentUsers   = "https://api.warpcast.com/v2/recent-users?filter=off&limit=%d"
-	Throttle                    = 1 * time.Second
-	updatedUsersByIteration     = 100
+	Throttle                    = 200 * time.Millisecond
+	updatedUsersByIteration     = 200
 	protocolEthereum            = "ethereum"
 	userAgent                   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
 )

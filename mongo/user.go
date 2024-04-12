@@ -229,7 +229,7 @@ func (ms *MongoStorage) updateUser(user *User) error {
 	if err != nil {
 		return fmt.Errorf("failed to create update document: %w", err)
 	}
-	log.Debugw("update user", "updateDoc", updateDoc)
+
 	opts := options.Update().SetUpsert(true) // Ensures the document is created if it does not exist
 	_, err = ms.users.UpdateOne(ctx, bson.M{"_id": user.UserID}, updateDoc, opts)
 	if err != nil {

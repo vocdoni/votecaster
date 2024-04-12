@@ -120,9 +120,6 @@ func (ms *MongoStorage) getElection(electionID types.HexBytes) (*Election, error
 
 // updateElection makes a conditional update on the election, updating only non-zero fields
 func (ms *MongoStorage) updateElection(election *Election) error {
-	ms.keysLock.Lock()
-	defer ms.keysLock.Unlock()
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
