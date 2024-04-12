@@ -174,6 +174,10 @@ func (d *FarcasterDiscover) updateUser(fid uint64) error {
 	}); err != nil {
 		log.Warnw("failed to update user profile", "error", err)
 	}
+	// updates also the reputation
+	if _, _, err := d.db.UpdateAndGetReputationForUser(fid); err != nil {
+		log.Warnw("failed to update user reputation", "error", err)
+	}
 	return nil
 }
 
