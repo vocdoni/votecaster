@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -114,6 +115,7 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 		title := election.Question
 		if title == "" {
 			// if election question is not stored in the database, try to get it from the API
+			// THIS CODE CAN BE REMOVE AT SOME POINT, WHEN DB IS POPULATED
 			electionInfo, err := ms.election(eID)
 			if err != nil {
 				log.Warn(err)
@@ -143,4 +145,55 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 
 	}
 	return ranking, nil
+}
+
+// LastCreatedElections returns the last created elections.
+func (ms *MongoStorage) LastCreatedElections(count int) ([]*Election, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Find the last N created elections, ordered by CreatedTime descending
+	opts := options.Find().SetSort(bson.D{{Key: "createdTime", Value: -1}}).SetLimit(int64(count))
+	cursor, err := ms.elections.Find(ctx, bson.D{}, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve elections: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var elections []*Election
+	for cursor.Next(ctx) {
+		var election Election
+		if err := cursor.Decode(&election); err != nil {
+			return nil, fmt.Errorf("failed to decode election: %w", err)
+		}
+
+		// if election question is not stored in the database, try to get it from the API
+		// THIS CODE CAN BE REMOVE AT SOME POINT, WHEN DB IS POPULATED
+		if election.Question == "" {
+			eID, err := hex.DecodeString(election.ElectionID)
+			if err != nil {
+				log.Warn(err)
+				continue
+			}
+			electionInfo, err := ms.election(eID)
+			if err != nil {
+				log.Warn(err)
+			} else {
+				if electionInfo != nil && electionInfo.Metadata != nil {
+					election.Question = electionInfo.Metadata.Title["default"]
+				}
+			}
+		}
+
+		elections = append(elections, &election)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
+	return elections, nil
 }

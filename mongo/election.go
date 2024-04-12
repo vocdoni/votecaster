@@ -146,35 +146,3 @@ func (ms *MongoStorage) updateElection(election *Election) error {
 	}
 	return nil
 }
-
-// LastCreatedElections returns the last created elections.
-func (ms *MongoStorage) LastCreatedElections(count int) ([]*Election, error) {
-	ms.keysLock.RLock()
-	defer ms.keysLock.RUnlock()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Find the last N created elections, ordered by CreatedTime descending
-	opts := options.Find().SetSort(bson.D{{Key: "createdTime", Value: -1}}).SetLimit(int64(count))
-	cursor, err := ms.elections.Find(ctx, bson.D{}, opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve elections: %w", err)
-	}
-	defer cursor.Close(ctx)
-
-	var elections []*Election
-	for cursor.Next(ctx) {
-		var election Election
-		if err := cursor.Decode(&election); err != nil {
-			return nil, fmt.Errorf("failed to decode election: %w", err)
-		}
-		elections = append(elections, &election)
-	}
-
-	if err := cursor.Err(); err != nil {
-		return nil, fmt.Errorf("cursor error: %w", err)
-	}
-
-	return elections, nil
-}
