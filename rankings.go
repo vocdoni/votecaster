@@ -118,3 +118,18 @@ func (v *vocdoniHandler) rankingByReputation(_ *apirest.APIdata, ctx *httprouter
 	ctx.SetResponseContentType("application/json")
 	return ctx.Send(jresponse, http.StatusOK)
 }
+
+func (v *vocdoniHandler) usersByVotesPollsRatio(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	users, err := v.db.UsersByPollsVotesRatio()
+	if err != nil {
+		return fmt.Errorf("failed to get ranking: %w", err)
+	}
+	jresponse, err := json.Marshal(map[string]any{
+		"users": users,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.SetResponseContentType("application/json")
+	return ctx.Send(jresponse, http.StatusOK)
+}

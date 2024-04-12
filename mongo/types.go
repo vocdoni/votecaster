@@ -154,10 +154,10 @@ type VotersOfElectionCollection struct {
 
 // UserRanking is a user ranking entry.
 type UserRanking struct {
-	FID         uint64 `json:"fid" bson:"fid"`
-	Username    string `json:"username" bson:"username"`
-	Displayname string `json:"displayname" bson:"displayname"`
-	Count       uint64 `json:"count" bson:"count"`
+	FID         uint64  `json:"fid" bson:"fid"`
+	Username    string  `json:"username" bson:"username"`
+	Displayname string  `json:"displayname" bson:"displayname"`
+	Count       float64 `json:"count" bson:"count"`
 }
 
 // ElectionRanking is an election ranking entry.
