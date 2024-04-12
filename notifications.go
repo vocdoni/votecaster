@@ -23,7 +23,6 @@ func (v *vocdoniHandler) notificationsHandler(msg *apirest.APIdata, ctx *httprou
 
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
-
 }
 
 func (v *vocdoniHandler) notificationsResponseHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -198,5 +197,4 @@ func (v *vocdoniHandler) createNotifications(election types.HexBytes, ownerFID u
 		}
 	}
 	return nil
-
 }

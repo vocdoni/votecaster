@@ -286,7 +286,8 @@ func (h *Hub) Publish(ctx context.Context, content string, mentionFIDs []uint64,
 // Reply method sends a reply to the given targetFid and targetHash with the
 // given content.
 func (h *Hub) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessage,
-	content string, mentionFIDs []uint64, embeds ...string) error {
+	content string, mentionFIDs []uint64, embeds ...string,
+) error {
 	log.Infow("replying to cast", "msg", content, "embeds", embeds)
 	if targetMsg == nil {
 		return fmt.Errorf("invalid target message")
