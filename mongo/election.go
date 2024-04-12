@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -69,9 +70,26 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 			log.Warn(err)
 			continue
 		}
+
+		// Fall back to the election title if no question is stored in the database
+		question := election.Question
+		if question == "" {
+			eid, err := hex.DecodeString(election.ElectionID)
+			if err != nil {
+				log.Warnf("invalid election ID: %v", err)
+				continue
+			}
+			e, err := ms.election(eid)
+			if err != nil {
+				log.Warnf("failed to get election: %v", err)
+				continue
+			}
+			question = e.Metadata.Title["default"]
+		}
+
 		elections = append(elections, ElectionRanking{
 			ElectionID:           election.ElectionID,
-			Title:                election.Question,
+			Title:                question,
 			VoteCount:            election.CastedVotes,
 			CreatedByFID:         election.UserID,
 			CreatedByUsername:    user.Username,
