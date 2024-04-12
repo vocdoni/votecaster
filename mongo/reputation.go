@@ -10,6 +10,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const (
+	maxFollowersReputation = 10
+	maxElectionsReputation = 10
+	maxVotesReputation     = 30
+	maxCastedReputation    = 50
+	maxReputation          = 100
+)
+
 // UserData holds the user's data for calculating reputation.
 type UserData struct {
 	FollowersCount                uint64 `json:"followersCount"`
@@ -21,24 +29,34 @@ type UserData struct {
 // calculateReputation calculates the user's reputation based on predefined criteria.
 func calculateReputation(user *UserData) uint32 {
 	reputation := 0.0
-
 	// Calculate FollowersCount score (up to 10 points, max 20000 followers)
-	reputation += float64(user.FollowersCount) / 2000
-
-	// Calculate ElectionsCreated score (up to 10 points, max 100 elections)
-	reputation += float64(user.ElectionsCreated) / 10
-
-	// Calculate CastedVotes score (up to 30 points, max 120 votes)
-	reputation += float64(user.CastedVotes) / 4
-
-	// Calculate VotesCastedOnCreatedElections score (up to 50 points, max 1000 votes)
-	reputation += float64(user.VotesCastedOnCreatedElections) / 20
-
-	// Ensure the reputation does not exceed 100
-	if reputation > 100 {
-		reputation = 100
+	if followersRep := float64(user.FollowersCount) / 2000; followersRep <= maxFollowersReputation {
+		reputation += followersRep
+	} else {
+		reputation += maxFollowersReputation
 	}
-
+	// Calculate ElectionsCreated score (up to 10 points, max 100 elections)
+	if electionsRep := float64(user.ElectionsCreated) / 10; electionsRep <= maxElectionsReputation {
+		reputation += electionsRep
+	} else {
+		reputation += maxElectionsReputation
+	}
+	// Calculate CastedVotes score (up to 30 points, max 120 votes)
+	if votesRep := float64(user.CastedVotes) / 4; votesRep <= maxVotesReputation {
+		reputation += votesRep
+	} else {
+		reputation += maxVotesReputation
+	}
+	// Calculate VotesCastedOnCreatedElections score (up to 50 points, max 1000 votes)
+	if castedRep := float64(user.VotesCastedOnCreatedElections) / 20; castedRep <= maxCastedReputation {
+		reputation += castedRep
+	} else {
+		reputation += maxCastedReputation
+	}
+	// Ensure the reputation does not exceed 100
+	if reputation > maxReputation {
+		reputation = maxReputation
+	}
 	return uint32(reputation)
 }
 
