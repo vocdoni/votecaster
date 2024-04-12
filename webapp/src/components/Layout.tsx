@@ -69,6 +69,12 @@ export const Layout = () => {
   )
 }
 
+type NavbarLink = {
+  name: string
+  to: string
+  private?: boolean
+}
+
 const links = [
   {
     name: 'App',
@@ -81,6 +87,11 @@ const links = [
   {
     name: 'Leaderboards',
     to: '/leaderboards',
+  },
+  {
+    name: 'Profile',
+    to: '/profile',
+    private: true,
   },
 ]
 
@@ -100,11 +111,7 @@ export const Navbar = () => {
         <HStack spacing={8} alignItems={'center'}>
           <Heading fontSize='2xl'>farcaster.vote</Heading>
           <HStack as={'nav'} spacing={4} display={{ base: 'none', md: 'flex' }}>
-            {links.map((link, key) => (
-              <MenuButton key={key} to={link.to}>
-                {link.name}
-              </MenuButton>
-            ))}
+            <NavbarMenuLinks />
           </HStack>
         </HStack>
         <Flex alignItems={'center'}>
@@ -122,14 +129,22 @@ export const Navbar = () => {
       {isOpen && (
         <Box pb={4} display={{ md: 'none' }}>
           <Stack as={'nav'} spacing={4}>
-            {links.map((link, key) => (
-              <MenuButton key={key} to={link.to}>
-                {link.name}
-              </MenuButton>
-            ))}
+            <NavbarMenuLinks />
           </Stack>
         </Box>
       )}
     </Box>
   )
+}
+
+const NavbarMenuLinks = () => {
+  const { isAuthenticated } = useAuth()
+  return links.map((link, key) => {
+    if (link.private && !isAuthenticated) return null
+    return (
+      <MenuButton key={key} to={link.to}>
+        {link.name}
+      </MenuButton>
+    )
+  })
 }
