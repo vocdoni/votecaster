@@ -2,7 +2,10 @@ package mongo
 
 import (
 	"fmt"
+	"reflect"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var (
@@ -165,4 +168,47 @@ type ElectionRanking struct {
 	CreatedByUsername    string `json:"createdByUsername" bson:"createdByUsername"`
 	CreatedByDisplayname string `json:"createdByDisplayname" bson:"createdByDisplayname"`
 	Title                string `json:"title" bson:"title"`
+}
+
+// dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.
+// It uses reflection to iterate over the struct fields and create the update document.
+// The struct fields must have a bson tag to be included in the update document.
+// The _id field is skipped.
+func dynamicUpdateDocument(item interface{}, alwaysUpdateTags []string) (bson.M, error) {
+	val := reflect.ValueOf(item)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if !val.IsValid() || val.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("input must be a valid struct")
+	}
+
+	update := bson.M{}
+	typ := val.Type()
+
+	// Create a map for quick lookup
+	alwaysUpdateMap := make(map[string]bool, len(alwaysUpdateTags))
+	for _, tag := range alwaysUpdateTags {
+		alwaysUpdateMap[tag] = true
+	}
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		if !field.CanInterface() {
+			continue
+		}
+		fieldType := typ.Field(i)
+		tag := fieldType.Tag.Get("bson")
+		if tag == "" || tag == "-" {
+			continue
+		}
+
+		// Check if the field should always be updated or is not the zero value
+		_, alwaysUpdate := alwaysUpdateMap[tag]
+		if alwaysUpdate || !reflect.DeepEqual(field.Interface(), reflect.Zero(field.Type()).Interface()) {
+			update[tag] = field.Interface()
+		}
+	}
+
+	return bson.M{"$set": update}, nil
 }

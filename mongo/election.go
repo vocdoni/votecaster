@@ -28,11 +28,12 @@ func (ms *MongoStorage) AddElection(
 		Source:                source,
 		FarcasterUserCount:    usersCount,
 		InitialAddressesCount: usersCountInitial,
+		Question:              question,
 		ElectionMeta: ElectionMeta{
 			CensusERC20TokenDecimals: tokenDecimals,
 		},
 	}
-	log.Infow("added new election", "electionID", electionID.String(), "userID", userFID)
+	log.Infow("added new election", "electionID", electionID.String(), "userID", userFID, "question", question)
 	return ms.addElection(&election)
 }
 
@@ -117,16 +118,23 @@ func (ms *MongoStorage) getElection(electionID types.HexBytes) (*Election, error
 	return &election, nil
 }
 
-// updateElection makes a upsert on the election
+// updateElection makes a conditional update on the election, updating only non-zero fields
 func (ms *MongoStorage) updateElection(election *Election) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	opts := options.ReplaceOptions{}
-	opts.Upsert = new(bool)
-	*opts.Upsert = true
-	_, err := ms.elections.ReplaceOne(ctx, bson.M{"_id": election.ElectionID}, election, &opts)
+
+	updateDoc, err := dynamicUpdateDocument(election, nil)
 	if err != nil {
-		return fmt.Errorf("cannot update object: %w", err)
+		return fmt.Errorf("failed to create update document: %w", err)
+	}
+	log.Debugw("update election", "updateDoc", updateDoc)
+	opts := options.Update().SetUpsert(true) // Ensures the document is created if it does not exist
+	_, err = ms.elections.UpdateOne(ctx, bson.M{"_id": election.ElectionID}, updateDoc, opts)
+	if err != nil {
+		return fmt.Errorf("cannot update election: %w", err)
 	}
 	return nil
 }

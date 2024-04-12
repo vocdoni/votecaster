@@ -220,16 +220,20 @@ func (ms *MongoStorage) getUserData(userID uint64) (*User, error) {
 	return &user, nil
 }
 
-// updateUser makes a upsert on the user
+// updateUser makes a conditional update on the user, updating only non-zero fields
 func (ms *MongoStorage) updateUser(user *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	opts := options.ReplaceOptions{}
-	opts.Upsert = new(bool)
-	*opts.Upsert = true
-	_, err := ms.users.ReplaceOne(ctx, bson.M{"_id": user.UserID}, user, &opts)
+
+	updateDoc, err := dynamicUpdateDocument(user, nil)
 	if err != nil {
-		return fmt.Errorf("cannot update object: %w", err)
+		return fmt.Errorf("failed to create update document: %w", err)
+	}
+	log.Debugw("update user", "updateDoc", updateDoc)
+	opts := options.Update().SetUpsert(true) // Ensures the document is created if it does not exist
+	_, err = ms.users.UpdateOne(ctx, bson.M{"_id": user.UserID}, updateDoc, opts)
+	if err != nil {
+		return fmt.Errorf("cannot update user: %w", err)
 	}
 	return nil
 }

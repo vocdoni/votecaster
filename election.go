@@ -407,7 +407,7 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 		election.ElectionID,
 		profile.FID,
 		source,
-		election.Metadata.Questions[0].Title["default"],
+		election.Metadata.Title["default"],
 		usersCount,
 		usersCountInitial,
 		tokenDecimals); err != nil {
@@ -425,6 +425,7 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 	}
 	u.Addresses = profile.Verifications
 	u.Username = profile.Username
+	u.Displayname = profile.DisplayName
 	u.ElectionCount++
 	if err := v.db.UpdateUser(u); err != nil {
 		return fmt.Errorf("failed to update user in database: %w", err)
