@@ -522,7 +522,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/profile", http.MethodGet, "public", handler.profileHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/profile", http.MethodGet, "private", handler.profileHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/profile/fid/{fid}", http.MethodGet, "public", handler.profilePublicHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/profile/user/{userHandle}", http.MethodGet, "public", handler.profilePublicHandler); err != nil {
 		log.Fatal(err)
 	}
 

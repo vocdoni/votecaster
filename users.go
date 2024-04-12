@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
@@ -20,6 +21,11 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
 	}
 
+	user, err := v.db.User(auth.UserID)
+	if err != nil {
+		return ctx.Send([]byte("user not found"), apirest.HTTPstatusNotFound)
+	}
+
 	// Get and update the user's reputation
 	reputation, reputationData, err := v.db.UpdateAndGetReputationForUser(auth.UserID)
 	if err != nil {
@@ -28,7 +34,7 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 
 	// Get the elections created by the user. If the user is not found, it
 	// continues with an empty list.
-	userElections, err := v.db.ElectionsByUser(auth.UserID)
+	userElections, err := v.db.ElectionsByUser(auth.UserID, 16)
 	if err != nil && !errors.Is(err, mongo.ErrElectionUnknown) {
 		return fmt.Errorf("could not get user elections: %v", err)
 	}
@@ -42,6 +48,7 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
+		"user":           user,
 		"reputation":     reputation,
 		"reputationData": reputationData,
 		"polls":          userElections,
@@ -127,4 +134,65 @@ func (v *vocdoniHandler) unmuteUserHandler(msg *apirest.APIdata, ctx *httprouter
 		return ctx.Send([]byte("could not mute user"), apirest.HTTPstatusInternalErr)
 	}
 	return ctx.Send([]byte("Ok"), apirest.HTTPstatusOK)
+}
+
+func (v *vocdoniHandler) profilePublicHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	var user *mongo.User
+	var err error
+
+	// Get the user by username if provided
+	if handle := ctx.URLParam("userHandle"); handle != "" {
+		user, err = v.db.UserByUsername(handle)
+		if err != nil {
+			return ctx.Send([]byte("user not found"), apirest.HTTPstatusNotFound)
+		}
+	}
+
+	// Else get the user by FID
+	if user == nil {
+		if ctx.URLParam("fid") == "" {
+			return ctx.Send([]byte("missing user handle or fid"), apirest.HTTPstatusBadRequest)
+		}
+		fid, err := strconv.ParseUint(ctx.URLParam("fid"), 10, 64)
+		if err != nil {
+			return ctx.Send([]byte("invalid fid"), apirest.HTTPstatusBadRequest)
+		}
+		user, err = v.db.User(fid)
+		if err != nil {
+			return ctx.Send([]byte("user not found"), apirest.HTTPstatusNotFound)
+		}
+	}
+
+	// Get and update the user's reputation
+	reputation, reputationData, err := v.db.UpdateAndGetReputationForUser(user.UserID)
+	if err != nil {
+		return fmt.Errorf("could not update reputation: %v", err)
+	}
+
+	// Get the elections created by the user. If the user is not found, it
+	// continues with an empty list.
+	userElections, err := v.db.ElectionsByUser(user.UserID, 16)
+	if err != nil && !errors.Is(err, mongo.ErrElectionUnknown) {
+		return fmt.Errorf("could not get user elections: %v", err)
+	}
+
+	// Get muted users by current user. If the user is not found, it continues
+	// with an empty list.
+	mutedUsers, err := v.db.ListNotificationMutedUsers(user.UserID)
+	if err != nil && !errors.Is(err, mongo.ErrUserUnknown) {
+		return fmt.Errorf("could not get muted users: %v", err)
+	}
+
+	// Marshal the response
+	data, err := json.Marshal(map[string]any{
+		"user":           user,
+		"reputation":     reputation,
+		"reputationData": reputationData,
+		"polls":          userElections,
+		"mutedUsers":     mutedUsers,
+	})
+	if err != nil {
+		return fmt.Errorf("could not marshal response: %v", err)
+	}
+	return ctx.Send(data, apirest.HTTPstatusOK)
 }

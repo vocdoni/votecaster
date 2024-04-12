@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -38,51 +37,45 @@ func (ms *MongoStorage) AddElection(
 }
 
 // ElectionsByUser returns all the elections created by the user with the FID
-// provided
-func (ms *MongoStorage) ElectionsByUser(userFID uint64) ([]ElectionRanking, error) {
+// provided, sorted by CreatedTime in descending order.
+func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]ElectionRanking, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	cursor, err := ms.elections.Find(ctx, bson.M{"userId": userFID})
+
+	// Specify the sorting order for the query
+	opts := options.Find().SetSort(bson.D{{Key: "createdTime", Value: -1}}).SetLimit(count)
+
+	cursor, err := ms.elections.Find(ctx, bson.M{"userId": userFID}, opts)
 	if err != nil {
 		log.Warn(err)
 		return nil, ErrElectionUnknown
 	}
 	defer cursor.Close(ctx)
-	elections := []ElectionRanking{}
+
+	var elections []ElectionRanking
 	for cursor.Next(ctx) {
-		election := Election{}
+		var election Election
 		if err := cursor.Decode(&election); err != nil {
 			log.Warn(err)
 			continue
 		}
-		bElectionID, err := hex.DecodeString(election.ElectionID)
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-		info, err := ms.election(bElectionID)
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-		if info == nil || info.Metadata == nil || info.Metadata.Title == nil {
-			log.Warn("no title found in election metadata")
-			continue
-		}
+
+		// This assumes that user data fetching and any other business logic are correctly handled
 		user, err := ms.getUserData(election.UserID)
 		if err != nil {
 			log.Warn(err)
 			continue
 		}
 		elections = append(elections, ElectionRanking{
-			ElectionID:        election.ElectionID,
-			Title:             info.Metadata.Title["default"],
-			VoteCount:         election.CastedVotes,
-			CreatedByFID:      election.UserID,
-			CreatedByUsername: user.Username,
+			ElectionID:           election.ElectionID,
+			Title:                election.Question,
+			VoteCount:            election.CastedVotes,
+			CreatedByFID:         election.UserID,
+			CreatedByUsername:    user.Username,
+			CreatedByDisplayname: user.Displayname,
 		})
 	}
 	return elections, nil
