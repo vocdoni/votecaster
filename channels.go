@@ -22,7 +22,6 @@ func (v *vocdoniHandler) channelHandler(msg *apirest.APIdata, ctx *httprouter.HT
 		}
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
 	}
-	log.Info(ch)
 	res, err := json.Marshal(map[string]interface{}{
 		"id":            ch.ID,
 		"name":          ch.Name,
@@ -47,7 +46,6 @@ func (v *vocdoniHandler) findChannelHandler(msg *apirest.APIdata, ctx *httproute
 		log.Errorw(err, "failed to list channels")
 		return ctx.Send([]byte("error getting list of channels"), http.StatusInternalServerError)
 	}
-
 	res := map[string][]map[string]interface{}{"channels": {}}
 	for _, ch := range channels {
 		res["channels"] = append(res["channels"], map[string]interface{}{
