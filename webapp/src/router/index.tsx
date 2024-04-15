@@ -2,6 +2,7 @@ import { createHashRouter } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { About } from '../pages/About'
 import { App } from '../pages/App'
+import { Communities } from '../pages/Communities'
 import { Leaderboards } from '../pages/Leaderboards'
 import { Poll } from '../pages/Poll'
 import { Profile } from '../pages/Profile'
@@ -34,6 +35,10 @@ const router = createHashRouter([
           {
             path: '/profile',
             element: <Profile />,
+          },
+          {
+            path: '/communities',
+            element: <Communities />,
           },
         ],
       },
