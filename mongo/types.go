@@ -180,10 +180,10 @@ type ElectionRanking struct {
 type Community struct {
 	ID            string   `json:"id" bson:"_id"`
 	Name          string   `json:"name" bson:"name"`
-	Admins        []uint64 `json:"owners" bson:"owners"`
 	Channel       string   `json:"channel" bson:"channel"`
 	DefaultCensus string   `json:"defaultCensus" bson:"defaultCensus"`
 	ImageURL      string   `json:"imageURL" bson:"imageURL"`
+	Admins        []uint64 `json:"owners" bson:"owners"`
 	Notifications bool     `json:"notifications" bson:"notifications"`
 }
 
