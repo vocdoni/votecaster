@@ -443,7 +443,7 @@ const Form: React.FC = (props: FlexProps) => {
                       </FormControl>
                     ))}
                   {censusType === 'nft' && addressFields.length < 3 && (
-                    <Button variant='ghost' colorScheme='purple' onClick={() => appendAddress({ address: '' })}>
+                    <Button variant='ghost' onClick={() => appendAddress({ address: '' })}>
                       Add address
                     </Button>
                   )}
@@ -547,7 +547,7 @@ const Form: React.FC = (props: FlexProps) => {
                   )}
                   {isAuthenticated ? (
                     <>
-                      <Button type='submit' colorScheme='purple' isLoading={loading} loadingText={status}>
+                      <Button type='submit' isLoading={loading} loadingText={status}>
                         Create
                       </Button>
                       <Box fontSize='xs' align='right'>

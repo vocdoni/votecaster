@@ -7,7 +7,7 @@ export const Meta = () => {
 
   return (
     <VStack spacing={4} w='full' alignItems='start'>
-      <Heading size='sm'>Create your community</Heading>
+      <Heading size='sm'>Create community</Heading>
       <FormControl isRequired>
         <FormLabel>Community name</FormLabel>
         <Input placeholder='Set a name for your community' {...register('communityName')} />

@@ -13,6 +13,11 @@ export const theme = extendTheme({
     },
   },
   components: {
+    Button: defineStyleConfig({
+      defaultProps: {
+        colorScheme: 'purple',
+      },
+    }),
     Link: defineStyleConfig({
       baseStyle: {
         _hover: {
