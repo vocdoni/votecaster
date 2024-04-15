@@ -125,6 +125,7 @@ type Collection struct {
 	ResultsCollection
 	VotersOfElectionCollection
 	CensusCollection
+	CommunitiesCollection
 }
 
 // UserCollection is a dataset containing several users (used for dump and import).
@@ -152,6 +153,11 @@ type VotersOfElectionCollection struct {
 	VotersOfElection []VotersOfElection `json:"votersOfElection" bson:"votersOfElection"`
 }
 
+// CommunitiesCollection is a dataset containing several communities (used for dump and import).
+type CommunitiesCollection struct {
+	Communities []Community `json:"communities" bson:"communities"`
+}
+
 // UserRanking is a user ranking entry.
 type UserRanking struct {
 	FID         uint64 `json:"fid" bson:"fid"`
@@ -168,6 +174,17 @@ type ElectionRanking struct {
 	CreatedByUsername    string `json:"createdByUsername" bson:"createdByUsername"`
 	CreatedByDisplayname string `json:"createdByDisplayname" bson:"createdByDisplayname"`
 	Title                string `json:"title" bson:"title"`
+}
+
+// Community represents a community entry.
+type Community struct {
+	ID            string   `json:"id" bson:"_id"`
+	Name          string   `json:"name" bson:"name"`
+	Admins        []uint64 `json:"owners" bson:"owners"`
+	Channel       string   `json:"channel" bson:"channel"`
+	DefaultCensus string   `json:"defaultCensus" bson:"defaultCensus"`
+	ImageURL      string   `json:"imageURL" bson:"imageURL"`
+	Notifications bool     `json:"notifications" bson:"notifications"`
 }
 
 // dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.
