@@ -100,11 +100,12 @@ type userBio struct {
 }
 
 type warpcastChannel struct {
-	ImageURL    string `json:"imageUrl"`
-	Followers   int    `json:"followerCount"`
+	ImageURL    string `json:"image_url"`
+	Followers   int    `json:"follower_count"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	ID          string `json:"key"`
+	ID          string `json:"id"`
+	URL         string `json:"url"`
 }
 
 type warpcastChannelResult struct {
@@ -113,6 +114,10 @@ type warpcastChannelResult struct {
 
 type warpcastChannelResponse struct {
 	Result *warpcastChannelResult `json:"result"`
+}
+
+type warpcastChannelsResult struct {
+	Channels []*warpcastChannel `json:"channels"`
 }
 
 // HUB API

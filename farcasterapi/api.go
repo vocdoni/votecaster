@@ -64,6 +64,9 @@ type API interface {
 	// given id exists. If something goes wrong checking the channel existence,
 	// it returns an error.
 	ChannelExists(channelID string) (bool, error)
+	// ListChannels method returns the list of public channels. If something
+	// goes wrong, it returns an error.
+	FindChannel(ctx context.Context, query string) ([]*Channel, error)
 }
 
 // ParentAPIMessage is a struct that represents the parent message of an
@@ -92,4 +95,14 @@ type Userdata struct {
 	CustodyAddress         string
 	VerificationsAddresses []string
 	Signers                []string
+}
+
+// Channel is a struct that represents a channel in the farcaster API.
+type Channel struct {
+	ID          string
+	Name        string
+	Description string
+	Followers   int
+	Image       string
+	URL         string
 }
