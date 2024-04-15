@@ -84,7 +84,10 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 				log.Warnf("failed to get election: %v", err)
 				continue
 			}
-			question = e.Metadata.Title["default"]
+			if e.Metadata == nil || e.Metadata.Title == nil {
+				log.Warnw("missing election title", "electionID", election.ElectionID)
+				continue
+			}
 		}
 
 		elections = append(elections, ElectionRanking{
