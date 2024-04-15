@@ -13,9 +13,9 @@ import {
   StackProps,
   VStack,
 } from '@chakra-ui/react'
+import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { FaTrash } from 'react-icons/fa6'
-import { useQuery } from 'react-query'
 import { fetchMutedUsers } from '../queries/profile'
 import { appUrl } from '../util/constants'
 import { useAuth } from './Auth/useAuth'
@@ -36,7 +36,10 @@ export const MutedUsersList: React.FC = (props: StackProps) => {
     },
   })
   const { bfetch } = useAuth()
-  const { data, error, isLoading, refetch } = useQuery<Profile[], Error>('mutedUsers', fetchMutedUsers(bfetch))
+  const { data, error, isLoading, refetch } = useQuery<Profile[], Error>({
+    queryKey: 'mutedUsers',
+    queryFn: fetchMutedUsers(bfetch),
+  })
 
   const handleUnmute = async (username: string) => {
     try {
@@ -60,10 +63,6 @@ export const MutedUsersList: React.FC = (props: StackProps) => {
       }
       console.error('could not add muted user', e)
     }
-  }
-
-  if (isLoading || error) {
-    return <Check isLoading={isLoading} error={error} />
   }
 
   return (
@@ -100,6 +99,8 @@ export const MutedUsersList: React.FC = (props: StackProps) => {
               />
             </HStack>
           ))
+        ) : isLoading || error ? (
+          <Check isLoading={isLoading} error={error} />
         ) : (
           <p>No muted users yet</p>
         )}

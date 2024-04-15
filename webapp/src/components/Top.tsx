@@ -1,6 +1,6 @@
 import { Box, BoxProps, Link, Stack, Tag, Text } from '@chakra-ui/react'
+import { useQuery } from '@tanstack/react-query'
 import { PropsWithChildren } from 'react'
-import { useQuery } from 'react-query'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   fetchLatestPolls,
@@ -17,7 +17,10 @@ const appUrl = import.meta.env.APP_URL
 
 export const TopTenPolls = (props: BoxProps) => {
   const { bfetch } = useAuth()
-  const { data, error, isLoading } = useQuery<Poll[], Error>('topTenPolls', fetchPollsByVotes(bfetch))
+  const { data, error, isLoading } = useQuery<Poll[], Error>({
+    queryKey: 'topTenPolls',
+    queryFn: fetchPollsByVotes(bfetch),
+  })
 
   if (isLoading || error) {
     return <Check isLoading={isLoading} error={error} />
@@ -30,7 +33,10 @@ export const TopTenPolls = (props: BoxProps) => {
 
 export const LatestPolls = (props: BoxProps) => {
   const { bfetch } = useAuth()
-  const { data, error, isLoading } = useQuery<Poll[], Error>('latestPolls', fetchLatestPolls(bfetch))
+  const { data, error, isLoading } = useQuery<Poll[], Error>({
+    queryKey: 'latestPolls',
+    queryFn: fetchLatestPolls(bfetch),
+  })
 
   if (isLoading || error) {
     return <Check isLoading={isLoading} error={error} />
@@ -43,7 +49,10 @@ export const LatestPolls = (props: BoxProps) => {
 
 export const TopCreators = (props: BoxProps) => {
   const { bfetch } = useAuth()
-  const { data, error, isLoading } = useQuery<Poll[], Error>('topCreators', fetchTopCreators(bfetch))
+  const { data, error, isLoading } = useQuery<Poll[], Error>({
+    queryKey: 'topCreators',
+    queryFn: fetchTopCreators(bfetch),
+  })
 
   if (isLoading || error) {
     return <Check isLoading={isLoading} error={error} />
@@ -56,7 +65,10 @@ export const TopCreators = (props: BoxProps) => {
 
 export const TopVoters = (props: BoxProps) => {
   const { bfetch } = useAuth()
-  const { data, error, isLoading } = useQuery<Poll[], Error>('topVoters', fetchTopVoters(bfetch))
+  const { data, error, isLoading } = useQuery<Poll[], Error>({
+    queryKey: 'topVoters',
+    queryFn: fetchTopVoters(bfetch),
+  })
 
   if (isLoading || error) {
     return <Check isLoading={isLoading} error={error} />

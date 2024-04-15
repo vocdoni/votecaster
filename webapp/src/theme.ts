@@ -26,5 +26,15 @@ export const theme = extendTheme({
         },
       },
     }),
+    Heading: defineStyleConfig({
+      baseStyle: {
+        fontWeight: 500,
+      },
+    }),
+    FormLabel: defineStyleConfig({
+      baseStyle: {
+        fontWeight: 500,
+      },
+    }),
   },
 })
