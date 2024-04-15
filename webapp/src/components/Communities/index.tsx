@@ -1,6 +1,7 @@
-import { Avatar, Box, Button, Heading, HStack, Link, SimpleGrid, Text, VStack } from '@chakra-ui/react'
+import { Box, Button, Heading, Link, SimpleGrid, Text, VStack } from '@chakra-ui/react'
 import { MdOutlineGroupAdd } from 'react-icons/md'
 import { Link as RouterLink } from 'react-router-dom'
+import { CommunityCard } from './Card'
 
 export const CommunitiesList = () => {
   return (
@@ -8,25 +9,7 @@ export const CommunitiesList = () => {
       <Heading size='md'>Communities</Heading>
       <SimpleGrid gap={4} w='full' alignItems='start' columns={{ base: 1, md: 2, lg: 4 }}>
         {[1, 2, 3, 4, 5, 6, 7, 8].map((i, k) => (
-          <Link
-            key={k}
-            as={RouterLink}
-            to={`/communities/${i}`}
-            w='full'
-            border='1px solid'
-            borderColor='gray.200'
-            borderRadius='md'
-            p={2}
-            boxShadow='sm'
-            borderRadius='lg'
-            bg='white'
-            _hover={{ boxShadow: 'none', bg: 'purple.100' }}
-          >
-            <HStack>
-              <Avatar src='https://i.imgur.com/Y3NHD20.jpg' />
-              <Text fontWeight='500'>Community {i}</Text>
-            </HStack>
-          </Link>
+          <CommunityCard name={`Community ${i}`} slug={i} key={k} pfpUrl='https://i.imgur.com/Y3NHD20.jpg' />
         ))}
       </SimpleGrid>
       <Box
