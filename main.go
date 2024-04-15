@@ -477,6 +477,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/census/exists/nft", http.MethodPost, "public", handler.checkNFTContractHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/exists/erc20", http.MethodPost, "public", handler.checkERC20ContractHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if as != nil { // if airstack activated
 		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/nft", http.MethodPost, "private", handler.censusTokenNFTAirstack); err != nil {
 			log.Fatal(err)

@@ -706,6 +706,15 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 	return data, nil
 }
 
+func (v *vocdoniHandler) checkERC20ContractHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// TODO: It should receive CheckCensusSource instance
+	return ctx.Send([]byte("ok"), http.StatusOK)
+}
+func (v *vocdoniHandler) checkNFTContractHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// TODO: It should receive CheckCensusSource instance
+	return ctx.Send([]byte("ok"), http.StatusOK)
+}
+
 // getTokenHoldersFromAirstack retuns a list of token holders ans their balances given a list of tokens
 // It fetches the information of the token holders by consuming the Airstack API
 func (v *vocdoniHandler) getTokenHoldersFromAirstack(

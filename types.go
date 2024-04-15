@@ -46,3 +46,10 @@ type CensusToken struct {
 type CensusTokensRequest struct {
 	Tokens []*CensusToken `json:"tokens"`
 }
+
+// CheckCensusSource defines the parameters to check if a source of a future
+// census is valid
+type CheckCensusSource struct {
+	Address    string `json:"address"`
+	Blockchain string `json:"blockchain"`
+}
