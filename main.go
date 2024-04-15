@@ -542,7 +542,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/channels", http.MethodGet, "public", handler.channelsHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/channels", http.MethodGet, "public", handler.findChannelHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/channels/{channelID}", http.MethodGet, "public", handler.channelHandler); err != nil {
 		log.Fatal(err)
 	}
 

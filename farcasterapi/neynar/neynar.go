@@ -7,6 +7,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -353,32 +354,48 @@ func (n *NeynarAPI) UserFollowers(ctx context.Context, fid uint64) ([]uint64, er
 	return userFIDs, nil
 }
 
+// Channel method returns the details of a channel given its channelID. If
+// something goes wrong it returns an error.
+func (n *NeynarAPI) Channel(ctx context.Context, channelID string) (*farcasterapi.Channel, error) {
+	// create request with the channel id provided
+	url := fmt.Sprintf(neynarChannelDataByID, channelID)
+	res, err := n.request(context.Background(), url, http.MethodGet, nil, defaultRequestTimeout)
+	if err != nil {
+		if strings.Contains(err.Error(), "404") {
+			return nil, farcasterapi.ErrChannelNotFound
+		}
+		return nil, fmt.Errorf("error getting channel from API: %w", err)
+	}
+	channelData := &warpcastChannelResult{}
+	if err := json.Unmarshal(res, channelData); err != nil {
+		return nil, fmt.Errorf("error decoding channel information: %w", err)
+	}
+	if channelData.Channel == nil {
+		return nil, fmt.Errorf("no data for this channel")
+	}
+	return &farcasterapi.Channel{
+		ID:          channelData.Channel.ID,
+		Name:        channelData.Channel.Name,
+		Description: channelData.Channel.Description,
+		Followers:   channelData.Channel.Followers,
+		Image:       channelData.Channel.ImageURL,
+		URL:         channelData.Channel.URL,
+	}, nil
+}
+
 // ChannelFIDs method returns the FIDs of the users that follow the channel with
 // the given id. If something goes wrong, it returns an error. It return an
 // specific error if the channel does not exist to be handled by the caller.
 func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress chan int) ([]uint64, error) {
 	// check if the channel exists
-	exists, err := n.ChannelExists(channelID)
+	channel, err := n.Channel(ctx, channelID)
 	if err != nil {
+		if errors.Is(err, farcasterapi.ErrChannelNotFound) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("error checking channel existence: %w", err)
 	}
-	if !exists {
-		return nil, farcasterapi.ErrChannelNotFound
-	}
-	// get the followers of the channel to update the progress
-	totalFollowers := 0
-	channelURL := fmt.Sprintf(warpcastChannelInfo, channelID)
-	body, err := n.request(ctx, channelURL, http.MethodGet, nil, defaultRequestTimeout)
-	if err != nil {
-		return nil, fmt.Errorf("error getting channel info from neynar: %w", err)
-	}
-	channelResponse := &warpcastChannelResponse{}
-	if err := json.Unmarshal(body, &channelResponse); err != nil {
-		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
-	}
-
-	totalFollowers = channelResponse.Result.Channel.Followers
-	if totalFollowers == 0 {
+	if channel.Followers == 0 {
 		return nil, fmt.Errorf("channel %s has no followers", channelID)
 	}
 	cursor := ""
@@ -405,9 +422,9 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress 
 		}
 		// update the progress calculating the percentage of the followers
 		// already processed
-		if progress != nil && totalFollowers > 0 {
+		if progress != nil && channel.Followers > 0 {
 			processedFollowers := len(userFIDs)
-			progress <- int(float64(processedFollowers) / float64(totalFollowers) * 100)
+			progress <- int(float64(processedFollowers) / float64(channel.Followers) * 100)
 		}
 		if usersResult.NextCursor == nil || usersResult.NextCursor.Cursor == "" {
 			break
@@ -423,14 +440,13 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress 
 // ChannelExists method returns a boolean indicating if the channel with the
 // given id exists. If something goes wrong checking the channel existence,
 // it returns an error.
-func (n *NeynarAPI) ChannelExists(channelID string) (bool, error) {
-	// create request with the channel id provided
-	url := fmt.Sprintf(neynarChannelDataByID, channelID)
-	if _, err := n.request(context.Background(), url, http.MethodGet, nil, defaultRequestTimeout); err != nil {
-		if strings.Contains(err.Error(), "404") {
+func (n *NeynarAPI) ChannelExists(ctx context.Context, channelID string) (bool, error) {
+	_, err := n.Channel(ctx, channelID)
+	if err != nil {
+		if errors.Is(err, farcasterapi.ErrChannelNotFound) {
 			return false, nil
 		}
-		return false, fmt.Errorf("error creating request: %w", err)
+		return false, fmt.Errorf("error checking channel existence: %w", err)
 	}
 	return true, nil
 }

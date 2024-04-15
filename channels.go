@@ -4,12 +4,40 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/vocdoni/vote-frame/farcasterapi"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
 )
 
-func (v *vocdoniHandler) channelsHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+func (v *vocdoniHandler) channelHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	channelID := ctx.URLParam("channelID")
+	if channelID == "" {
+		return ctx.Send([]byte("no channel id provided"), http.StatusBadRequest)
+	}
+	ch, err := v.fcapi.Channel(ctx.Request.Context(), channelID)
+	if err != nil {
+		if err == farcasterapi.ErrChannelNotFound {
+			return ctx.Send([]byte("channel not found"), http.StatusNotFound)
+		}
+		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+	}
+	log.Info(ch)
+	res, err := json.Marshal(map[string]interface{}{
+		"id":            ch.ID,
+		"name":          ch.Name,
+		"description":   ch.Description,
+		"followerCount": ch.Followers,
+		"image":         ch.Image,
+		"url":           ch.URL,
+	})
+	if err != nil {
+		return ctx.Send([]byte("error encoding channel details"), apirest.HTTPstatusInternalErr)
+	}
+	return ctx.Send(res, http.StatusOK)
+}
+
+func (v *vocdoniHandler) findChannelHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	query := ctx.Request.URL.Query().Get("q")
 	if query == "" {
 		return ctx.Send([]byte("query parameter not provided"), http.StatusBadRequest)

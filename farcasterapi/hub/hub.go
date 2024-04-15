@@ -510,13 +510,18 @@ func (h *Hub) UserFollowers(ctx context.Context, fid uint64) ([]uint64, error) {
 	return followersFids, nil
 }
 
+// Channel method is not supported by the Hub API. It returns an error.
+func (h *Hub) Channel(ctx context.Context, channelID string) (*farcasterapi.Channel, error) {
+	return nil, fmt.Errorf("hub api does not support channels yet")
+}
+
 // ChannelFIDs method is not supported by the Hub API. It returns an error.
 func (h *Hub) ChannelFIDs(ctx context.Context, channelID string, _ chan int) ([]uint64, error) {
 	return nil, fmt.Errorf("hub api does not support channels yet")
 }
 
 // ChannelExists method is not supported by the Hub API. It returns an error.
-func (h *Hub) ChannelExists(channelID string) (bool, error) {
+func (h *Hub) ChannelExists(ctx context.Context, channelID string) (bool, error) {
 	return false, fmt.Errorf("hub api does not support channels yet")
 }
 

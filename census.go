@@ -301,7 +301,7 @@ func (v *vocdoniHandler) censusChannelExists(_ *apirest.APIdata, ctx *httprouter
 	if channelID == "" {
 		return ctx.Send([]byte("channelID is required"), http.StatusBadRequest)
 	}
-	exists, err := v.fcapi.ChannelExists(channelID)
+	exists, err := v.fcapi.ChannelExists(ctx.Request.Context(), channelID)
 	if err != nil {
 		return err
 	}
@@ -327,7 +327,7 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 	}
 	// check if the channel exists, if not return a NotFound error. If something
 	// fails when checking the channel existence, return the error.
-	exists, err := v.fcapi.ChannelExists(channelID)
+	exists, err := v.fcapi.ChannelExists(ctx.Request.Context(), channelID)
 	if err != nil {
 		return err
 	}
