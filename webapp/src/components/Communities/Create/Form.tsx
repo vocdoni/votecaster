@@ -1,13 +1,13 @@
 import { Box, Heading, Text, useToast, VStack } from '@chakra-ui/react'
 import { MultiValue } from 'chakra-react-select'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
-import { CensusSelector } from './Census'
+import { CensusSelector } from './CensusSelector'
 import { Channels } from './Channels'
 import { Confirm } from './Confirm'
 import { Meta } from './Meta'
 
 export type CommunityFormValues = {
-  communityName: string
+  name: string
   admins: MultiValue<{ label: string; value: string }>
   logo: FileList
   channels: MultiValue<{ label: string; value: string }>
@@ -18,8 +18,8 @@ export const CommunitiesCreateForm = () => {
   const toast = useToast()
 
   const onSubmit: SubmitHandler<CommunityFormValues> = (data) => {
-    // Here you will handle the form submission, like sending data to your API
-    console.log(data)
+    console.log('received form data:', data)
+
     toast({
       title: 'Community created.',
       description: "We've created your community for you.",
