@@ -64,7 +64,6 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 			continue
 		}
 
-		// This assumes that user data fetching and any other business logic are correctly handled
 		user, err := ms.getUserData(election.UserID)
 		if err != nil {
 			log.Warn(err)
@@ -84,10 +83,11 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 				log.Warnf("failed to get election: %v", err)
 				continue
 			}
-			if e.Metadata == nil || e.Metadata.Title == nil {
-				log.Warnw("missing election title", "electionID", election.ElectionID)
+			if e == nil || e.Metadata == nil || e.Metadata.Title == nil {
+				log.Warnw("missing election question, from vocdoni API", "electionID", election.ElectionID)
 				continue
 			}
+			question = e.Metadata.Title["default"]
 		}
 
 		elections = append(elections, ElectionRanking{
