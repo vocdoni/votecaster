@@ -1,3 +1,5 @@
 import Form from '../components/Form'
 
-export const App = () => <Form />
+const App = () => <Form />
+
+export default App

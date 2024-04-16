@@ -25,6 +25,7 @@ import {
 import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
+import { Community } from '../queries/communities'
 import { cleanChannel } from '../util/strings'
 import { isErrorWithHTTPResponse, Profile } from '../util/types'
 import { ReputationCard } from './Auth/Reputation'
@@ -39,6 +40,7 @@ type FormValues = CensusFormValues & {
   duration?: number
   notify?: boolean
   notificationText?: string
+  community?: Community
 }
 
 type ElectionRequest = {
@@ -207,6 +209,18 @@ const Form: React.FC = (props: FlexProps) => {
               { type: 'text/csv' }
             )
             call = bfetch(`${appUrl}/census/csv`, { method: 'POST', body: contents })
+            break
+          }
+          case 'community': {
+            if (!data.community) {
+              throw new Error('community not received 🤔')
+            }
+            call = bfetch(`${appUrl}/census/community`, {
+              method: 'POST',
+              body: JSON.stringify({
+                communityID: data.community?.id,
+              }),
+            })
             break
           }
           case 'farcaster':

@@ -1,3 +1,5 @@
 import { CommunitiesList } from '../../components/Communities'
 
-export const Communities = () => <CommunitiesList />
+const Communities = () => <CommunitiesList />
+
+export default Communities

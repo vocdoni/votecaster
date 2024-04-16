@@ -67,7 +67,6 @@ export const MutedUsersList: React.FC = (props: BoxProps) => {
       reset({ username: '' }) // Reset only the username field
     } catch (e) {
       if (e instanceof Error) {
-        console.log('error received as message:', e.message)
         setError('username', { message: e.message })
       }
       console.error('could not add muted user', e)
