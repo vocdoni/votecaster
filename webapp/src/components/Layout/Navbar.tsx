@@ -13,7 +13,7 @@ type NavbarLink = {
   private?: boolean
 }
 
-const links = [
+const links: NavbarLink[] = [
   {
     name: 'App',
     to: '/',

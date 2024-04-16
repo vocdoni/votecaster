@@ -1,12 +1,15 @@
 type DataType = string | number
 
 export class CsvGenerator {
-  constructor(private headers: string[], private data: DataType[][]) {}
+  constructor(
+    private headers: string[],
+    private data: DataType[][]
+  ) {}
 
   public get url(): string {
     let binaryData = 'data:application/csv,'
 
-    for (let index in this.headers) {
+    for (const index in this.headers) {
       let separator = '%2C'
 
       if (parseInt(index) + 1 === this.headers.length) {
@@ -17,7 +20,7 @@ export class CsvGenerator {
     }
 
     for (let rowIndex = 0; rowIndex < this.data.length; ++rowIndex) {
-      let row = this.data[rowIndex]
+      const row = this.data[rowIndex]
 
       for (let fieldIndex = 0; fieldIndex < row.length; ++fieldIndex) {
         let separator = '%2C'

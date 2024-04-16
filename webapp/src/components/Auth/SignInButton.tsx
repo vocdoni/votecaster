@@ -23,11 +23,10 @@ import '@farcaster/auth-kit/styles.css'
 import { useAuth } from './useAuth'
 
 export const SignInButton = (props: ButtonProps) => {
-  const { login } = useAuth()
+  const { login, bearer } = useAuth()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [url, setUrl] = useState<string | null>(null)
   const [id, setId] = useState<string | null>(null)
-  const [bearer, setBearer] = useState<string | null>(null)
 
   // retrieve the QR url
   useEffect(() => {

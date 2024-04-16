@@ -22,7 +22,7 @@ export const Confirm = () => {
         <Text>1000 $DEGEN</Text>
       </Box>
       {isConnected ? (
-        <Button mt={4} colorScheme='blue' type='submit' leftIcon={<GiTopHat />} rightIcon={<MdOutlineRocketLaunch />}>
+        <Button mt={4} colorScheme='blue' type='submit' rightIcon={<GiTopHat />} leftIcon={<MdOutlineRocketLaunch />}>
           Deploy your community on Degenchain
         </Button>
       ) : (

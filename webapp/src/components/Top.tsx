@@ -13,12 +13,10 @@ import {
 import { useAuth } from './Auth/useAuth'
 import { Check } from './Check'
 
-const appUrl = import.meta.env.APP_URL
-
 export const TopTenPolls = (props: BoxProps) => {
   const { bfetch } = useAuth()
   const { data, error, isLoading } = useQuery<Poll[], Error>({
-    queryKey: 'topTenPolls',
+    queryKey: ['topTenPolls'],
     queryFn: fetchPollsByVotes(bfetch),
   })
 
@@ -34,7 +32,7 @@ export const TopTenPolls = (props: BoxProps) => {
 export const LatestPolls = (props: BoxProps) => {
   const { bfetch } = useAuth()
   const { data, error, isLoading } = useQuery<Poll[], Error>({
-    queryKey: 'latestPolls',
+    queryKey: ['latestPolls'],
     queryFn: fetchLatestPolls(bfetch),
   })
 
@@ -50,7 +48,7 @@ export const LatestPolls = (props: BoxProps) => {
 export const TopCreators = (props: BoxProps) => {
   const { bfetch } = useAuth()
   const { data, error, isLoading } = useQuery<Poll[], Error>({
-    queryKey: 'topCreators',
+    queryKey: ['topCreators'],
     queryFn: fetchTopCreators(bfetch),
   })
 
@@ -66,7 +64,7 @@ export const TopCreators = (props: BoxProps) => {
 export const TopVoters = (props: BoxProps) => {
   const { bfetch } = useAuth()
   const { data, error, isLoading } = useQuery<Poll[], Error>({
-    queryKey: 'topVoters',
+    queryKey: ['topVoters'],
     queryFn: fetchTopVoters(bfetch),
   })
 
