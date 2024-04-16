@@ -37,6 +37,7 @@ type MongoStorage struct {
 	authentications    *mongo.Collection
 	notifications      *mongo.Collection
 	userAccessProfiles *mongo.Collection
+	communitites       *mongo.Collection
 }
 
 type Options struct {
@@ -103,6 +104,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.authentications = client.Database(database).Collection("authentications")
 	ms.notifications = client.Database(database).Collection("notifications")
 	ms.userAccessProfiles = client.Database(database).Collection("userAccessProfiles")
+	ms.communitites = client.Database(database).Collection("communities")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
 	// else, just createIndexes
@@ -331,7 +333,23 @@ func (ms *MongoStorage) String() string {
 		censuses.Censuses = append(censuses.Censuses, census)
 	}
 
-	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses})
+	ctx9, cancel9 := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel9()
+	var communitites CommunitiesCollection
+	cur, err = ms.communitites.Find(ctx9, bson.D{{}})
+	if err != nil {
+		log.Warn(err)
+	}
+	for cur.Next(ctx8) {
+		var community Community
+		err := cur.Decode(&community)
+		if err != nil {
+			log.Warn(err)
+		}
+		communitites.Communities = append(communitites.Communities, community)
+	}
+
+	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communitites})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -410,6 +428,18 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		_, err := ms.census.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
 			log.Warnw("Error upserting census", "err", err, "census", census.CensusID)
+		}
+	}
+
+	// Upsert Communities
+	log.Infow("importing communitites", "count", len(collection.Communities))
+	for _, community := range collection.Communities {
+		filter := bson.M{"_id": community.ID}
+		update := bson.M{"$set": community}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.census.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting community", "err", err, "community", community.ID)
 		}
 	}
 

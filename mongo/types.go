@@ -125,6 +125,7 @@ type Collection struct {
 	ResultsCollection
 	VotersOfElectionCollection
 	CensusCollection
+	CommunitiesCollection
 }
 
 // UserCollection is a dataset containing several users (used for dump and import).
@@ -152,6 +153,11 @@ type VotersOfElectionCollection struct {
 	VotersOfElection []VotersOfElection `json:"votersOfElection" bson:"votersOfElection"`
 }
 
+// CommunitiesCollection is a dataset containing several communities (used for dump and import).
+type CommunitiesCollection struct {
+	Communities []Community `json:"communities" bson:"communities"`
+}
+
 // UserRanking is a user ranking entry.
 type UserRanking struct {
 	FID         uint64 `json:"fid" bson:"fid"`
@@ -168,6 +174,41 @@ type ElectionRanking struct {
 	CreatedByUsername    string `json:"createdByUsername" bson:"createdByUsername"`
 	CreatedByDisplayname string `json:"createdByDisplayname" bson:"createdByDisplayname"`
 	Title                string `json:"title" bson:"title"`
+}
+
+// Community represents a community entry.
+type Community struct {
+	ID            uint64          `json:"id" bson:"_id"`
+	Name          string          `json:"name" bson:"name"`
+	Channels      []string        `json:"channels" bson:"channels"`
+	Census        CommunityCensus `json:"census" bson:"census"`
+	ImageURL      string          `json:"imageURL" bson:"imageURL"`
+	Admins        []uint64        `json:"owners" bson:"owners"`
+	Notifications bool            `json:"notifications" bson:"notifications"`
+}
+
+const (
+	// TypeCommunityCensusChannel is the type for a community census that uses
+	// a channel as source.
+	TypeCommunityCensusChannel = "channel"
+	// TypeCommunityCensusERC20 is the type for a community census that uses
+	// ERC20 holders as source.
+	TypeCommunityCensusERC20 = "erc20"
+	// TypeCommunityCensusNFT is the type for a community census that uses
+	// NFT holders as source.
+	TypeCommunityCensusNFT = "nft"
+)
+
+type CommunityCensus struct {
+	Name      string               `json:"name" bson:"name"`
+	Type      string               `json:"type" bson:"type"`
+	Addresses []CommunityAddresses `json:"addresses" bson:"addresses"`
+	Channel   string               `json:"channel" bson:"channel"`
+}
+
+type CommunityAddresses struct {
+	Address    string `json:"address" bson:"address"`
+	Blockchain string `json:"blockchain" bson:"blockchain"`
 }
 
 // dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.
