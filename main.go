@@ -558,6 +558,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/communities", http.MethodGet, "public", handler.listCommunitiesHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodGet, "public", handler.getCommunityHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	// if a bot FID is provided, start the bot background process
 	if botFid > 0 {
 		var botAPI farcasterapi.API

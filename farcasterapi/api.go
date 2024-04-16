@@ -98,6 +98,8 @@ type Userdata struct {
 	CustodyAddress         string
 	VerificationsAddresses []string
 	Signers                []string
+	Avatar                 string
+	Bio                    string
 }
 
 // Channel is a struct that represents a channel in the farcaster API.

@@ -22,13 +22,13 @@ func (v *vocdoniHandler) channelHandler(msg *apirest.APIdata, ctx *httprouter.HT
 		}
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
 	}
-	res, err := json.Marshal(map[string]interface{}{
-		"id":            ch.ID,
-		"name":          ch.Name,
-		"description":   ch.Description,
-		"followerCount": ch.Followers,
-		"image":         ch.Image,
-		"url":           ch.URL,
+	res, err := json.Marshal(Channel{
+		ID:          ch.ID,
+		Name:        ch.Name,
+		Description: ch.Description,
+		Followers:   ch.Followers,
+		ImageURL:    ch.Image,
+		URL:         ch.URL,
 	})
 	if err != nil {
 		return ctx.Send([]byte("error encoding channel details"), apirest.HTTPstatusInternalErr)
@@ -46,15 +46,17 @@ func (v *vocdoniHandler) findChannelHandler(msg *apirest.APIdata, ctx *httproute
 		log.Errorw(err, "failed to list channels")
 		return ctx.Send([]byte("error getting list of channels"), http.StatusInternalServerError)
 	}
-	res := map[string][]map[string]interface{}{"channels": {}}
+	res := ChannelList{
+		Channels: []*Channel{},
+	}
 	for _, ch := range channels {
-		res["channels"] = append(res["channels"], map[string]interface{}{
-			"id":            ch.ID,
-			"name":          ch.Name,
-			"description":   ch.Description,
-			"followerCount": ch.Followers,
-			"image":         ch.Image,
-			"url":           ch.URL,
+		res.Channels = append(res.Channels, &Channel{
+			ID:          ch.ID,
+			Name:        ch.Name,
+			Description: ch.Description,
+			Followers:   ch.Followers,
+			ImageURL:    ch.Image,
+			URL:         ch.URL,
 		})
 	}
 	bRes, err := json.Marshal(res)

@@ -29,7 +29,7 @@ const (
 	WarpcastClientEndpoint = "https://client.warpcast.com/v2"
 
 	// endpoints
-	neynarGetUsernameEndpoint = NeynarAPIEndpoint + "/v1/farcaster/user?fid=%d"
+	neynarGetUsernameEndpoint = NeynarAPIEndpoint + "/v2/farcaster/user/bulk?fids=%d"
 	neynarGetCastsEndpoint    = NeynarAPIEndpoint + "/v1/farcaster/mentions-and-replies?fid=%d&limit=150&cursor=%s"
 	neynarGetCastEndpoint     = NeynarAPIEndpoint + "/v2/farcaster/cast?identifier=%s&type=hash"
 	neynarReplyEndpoint       = NeynarAPIEndpoint + "/v2/farcaster/cast"
@@ -231,22 +231,22 @@ func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterap
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 	// decode username
-	usernameResponse := &userdataV1Response{}
+	usernameResponse := &userdataV2Result{}
 	if err := json.Unmarshal(body, usernameResponse); err != nil {
 		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 	}
-
 	// get signers
 	signers, err := n.SignersFromFID(fid)
 	if err != nil {
 		return nil, fmt.Errorf("error getting signers: %w", err)
 	}
-
 	return &farcasterapi.Userdata{
 		FID:                    fid,
-		Username:               usernameResponse.Result.User.Username,
-		CustodyAddress:         usernameResponse.Result.User.CustodyAddress,
-		VerificationsAddresses: usernameResponse.Result.User.VerificationsAddresses,
+		Username:               usernameResponse.Users[0].Username,
+		CustodyAddress:         usernameResponse.Users[0].CustodyAddress,
+		VerificationsAddresses: usernameResponse.Users[0].VerifiedAddresses.EthAddresses,
+		Avatar:                 usernameResponse.Users[0].PfpUrl,
+		Bio:                    usernameResponse.Users[0].Profile.Bio.Text,
 		Signers:                signers,
 	}, nil
 }

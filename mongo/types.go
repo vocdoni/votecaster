@@ -178,13 +178,24 @@ type ElectionRanking struct {
 
 // Community represents a community entry.
 type Community struct {
-	ID            string   `json:"id" bson:"_id"`
-	Name          string   `json:"name" bson:"name"`
-	Channel       string   `json:"channel" bson:"channel"`
-	DefaultCensus string   `json:"defaultCensus" bson:"defaultCensus"`
-	ImageURL      string   `json:"imageURL" bson:"imageURL"`
-	Admins        []uint64 `json:"owners" bson:"owners"`
-	Notifications bool     `json:"notifications" bson:"notifications"`
+	ID            uint64          `json:"id" bson:"_id"`
+	Name          string          `json:"name" bson:"name"`
+	Channels      []string        `json:"channels" bson:"channels"`
+	Census        CommunityCensus `json:"census" bson:"census"`
+	ImageURL      string          `json:"imageURL" bson:"imageURL"`
+	Admins        []uint64        `json:"owners" bson:"owners"`
+	Notifications bool            `json:"notifications" bson:"notifications"`
+}
+
+type CommunityCensus struct {
+	Name      string               `json:"name" bson:"name"`
+	Type      string               `json:"type" bson:"type"`
+	Addresses []CommunityAddresses `json:"addresses" bson:"addresses"`
+}
+
+type CommunityAddresses struct {
+	Address    string `json:"address" bson:"address"`
+	Blockchain string `json:"blockchain" bson:"blockchain"`
 }
 
 // dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.
