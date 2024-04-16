@@ -677,7 +677,7 @@ func (v *vocdoniHandler) censusTokenNFTAirstack(msg *apirest.APIdata, ctx *httpr
 	}
 
 	// check valid tokens
-	if _, err := v.checkTokens(req.Tokens); err != nil {
+	if err := v.checkTokens(req.Tokens); err != nil {
 		return err
 	}
 
@@ -688,10 +688,10 @@ func (v *vocdoniHandler) censusTokenNFTAirstack(msg *apirest.APIdata, ctx *httpr
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) (int, error) {
+func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) error {
 	for _, token := range tokens {
 		if len(token.Address) == 0 {
-			return 0, fmt.Errorf("invalid token information: %v", token)
+			return fmt.Errorf("invalid token information: %v", token)
 		}
 		ok := false
 		for _, bk := range v.airstack.Blockchains() {
@@ -700,24 +700,20 @@ func (v *vocdoniHandler) checkTokens(tokens []*CensusToken) (int, error) {
 			}
 		}
 		if !ok {
-			return 0, fmt.Errorf("invalid blockchain for token %s provided", token.Address)
+			return fmt.Errorf("invalid blockchain for token %s provided", token.Address)
 		}
 		// check max holders
 		if holders, err := v.airstack.NumHoldersByTokenAnkrAPI(token.Address, token.Blockchain); err != nil {
-			return 0, fmt.Errorf("cannot get holders for token %s: %w", token.Address, err)
+			return fmt.Errorf("cannot get holders for token %s: %w", token.Address, err)
 		} else if holders > v.airstack.MaxHolders() {
 			// check whitelist
 			if _, ok := v.airstack.TokenWhitelist()[token.Address]; ok {
 				continue
 			}
-			return 0, fmt.Errorf("token %s has too many holders: %d, maximum allowed is %d", token.Address, holders, v.airstack.MaxHolders())
+			return fmt.Errorf("token %s has too many holders: %d, maximum allowed is %d", token.Address, holders, v.airstack.MaxHolders())
 		}
 	}
-	td, err := v.airstack.TokenDecimalsByToken("", "")
-	if err != nil {
-		return 0, fmt.Errorf("cannot get token decimals")
-	}
-	return td, nil
+	return nil
 }
 
 func (v *vocdoniHandler) censusTokenERC20Airstack(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -736,9 +732,14 @@ func (v *vocdoniHandler) censusTokenERC20Airstack(msg *apirest.APIdata, ctx *htt
 	}
 
 	// check valid token
-	td, err := v.checkTokens(req.Tokens)
-	if err != nil {
+	if err := v.checkTokens(req.Tokens); err != nil {
 		return err
+	}
+
+	// get token decimals
+	td, err := v.airstack.TokenDecimalsByToken(req.Tokens[0].Address, req.Tokens[0].Blockchain)
+	if err != nil {
+		return fmt.Errorf("cannot get token decimals")
 	}
 
 	data, err := v.censusTokenAirstack(req.Tokens, ERC20type, td, userFID)

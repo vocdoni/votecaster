@@ -64,7 +64,6 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 			continue
 		}
 
-		// This assumes that user data fetching and any other business logic are correctly handled
 		user, err := ms.getUserData(election.UserID)
 		if err != nil {
 			log.Warn(err)
@@ -82,6 +81,10 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 			e, err := ms.election(eid)
 			if err != nil {
 				log.Warnf("failed to get election: %v", err)
+				continue
+			}
+			if e == nil || e.Metadata == nil || e.Metadata.Title == nil {
+				log.Warnw("missing election question, from vocdoni API", "electionID", election.ElectionID)
 				continue
 			}
 			question = e.Metadata.Title["default"]
@@ -145,36 +148,4 @@ func (ms *MongoStorage) updateElection(election *Election) error {
 		return fmt.Errorf("cannot update election: %w", err)
 	}
 	return nil
-}
-
-// LastCreatedElections returns the last created elections.
-func (ms *MongoStorage) LastCreatedElections(count int) ([]*Election, error) {
-	ms.keysLock.RLock()
-	defer ms.keysLock.RUnlock()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Find the last N created elections, ordered by CreatedTime descending
-	opts := options.Find().SetSort(bson.D{{Key: "createdTime", Value: -1}}).SetLimit(int64(count))
-	cursor, err := ms.elections.Find(ctx, bson.D{}, opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve elections: %w", err)
-	}
-	defer cursor.Close(ctx)
-
-	var elections []*Election
-	for cursor.Next(ctx) {
-		var election Election
-		if err := cursor.Decode(&election); err != nil {
-			return nil, fmt.Errorf("failed to decode election: %w", err)
-		}
-		elections = append(elections, &election)
-	}
-
-	if err := cursor.Err(); err != nil {
-		return nil, fmt.Errorf("cursor error: %w", err)
-	}
-
-	return elections, nil
 }
