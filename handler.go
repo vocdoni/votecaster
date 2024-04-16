@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/vocdoni/vote-frame/airstack"
+	"github.com/vocdoni/vote-frame/census3"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
@@ -38,6 +39,7 @@ type vocdoniHandler struct {
 	electionLRU   *lru.Cache[string, *api.Election]
 	fcapi         farcasterapi.API
 	airstack      *airstack.Airstack
+	census3       *census3.Client
 
 	censusCreationMap sync.Map
 	addAuthTokenFunc  func(uint64, string)
@@ -53,6 +55,7 @@ func NewVocdoniHandler(
 	fcapi farcasterapi.API,
 	token *uuid.UUID,
 	airstack *airstack.Airstack,
+	census3 *census3.Client,
 ) (*vocdoniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
@@ -89,6 +92,7 @@ func NewVocdoniHandler(
 		db:            db,
 		fcapi:         fcapi,
 		airstack:      airstack,
+		census3:       census3,
 		electionLRU: func() *lru.Cache[string, *api.Election] {
 			lru, err := lru.New[string, *api.Election](100)
 			if err != nil {
