@@ -60,13 +60,35 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 				Verifications: user.VerificationsAddresses,
 			})
 		}
-		// get census addresses details
-		censusAddresses := []CensusAddress{}
-		for _, addr := range c.Census.Addresses {
-			censusAddresses = append(censusAddresses, CensusAddress{
-				Address:    addr.Address,
-				Blockchain: addr.Blockchain,
-			})
+		// get census channel or addresses based on the type
+		var censusChannel *Channel
+		var censusAddresses []*CensusAddress
+		if c.Census.Type == mongo.TypeCommunityCensusChannel {
+			channel, err := v.fcapi.Channel(ctx.Request.Context(), c.Census.Channel)
+			if err != nil {
+				if err == farcasterapi.ErrChannelNotFound {
+					return ctx.Send([]byte("Census channel not found"), http.StatusNotFound)
+				}
+				return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+			}
+			censusChannel = &Channel{
+				ID:          channel.ID,
+				Name:        channel.Name,
+				Description: channel.Description,
+				Followers:   channel.Followers,
+				ImageURL:    channel.Image,
+				URL:         channel.URL,
+			}
+		} else { // ERC20 or NFT census type
+			censusAddresses = []*CensusAddress{}
+			if len(c.Census.Addresses) > 0 {
+				for _, addr := range c.Census.Addresses {
+					censusAddresses = append(censusAddresses, &CensusAddress{
+						Address:    addr.Address,
+						Blockchain: addr.Blockchain,
+					})
+				}
+			}
 		}
 		// get channels details
 		channels := []*Channel{}
@@ -97,6 +119,7 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 			CensusName:      c.Census.Name,
 			CensusType:      c.Census.Type,
 			CensusAddresses: censusAddresses,
+			CensusChannel:   censusChannel,
 			Channels:        channels,
 		})
 	}
@@ -143,13 +166,35 @@ func (v *vocdoniHandler) getCommunityHandler(msg *apirest.APIdata, ctx *httprout
 			Verifications: user.VerificationsAddresses,
 		})
 	}
-	// get census addresses details
-	censusAddresses := []CensusAddress{}
-	for _, addr := range dbCommunity.Census.Addresses {
-		censusAddresses = append(censusAddresses, CensusAddress{
-			Address:    addr.Address,
-			Blockchain: addr.Blockchain,
-		})
+	// get census channel or addresses based on the type
+	var censusChannel *Channel
+	var censusAddresses []*CensusAddress
+	if dbCommunity.Census.Type == "channel" {
+		channel, err := v.fcapi.Channel(ctx.Request.Context(), dbCommunity.Census.Channel)
+		if err != nil {
+			if err == farcasterapi.ErrChannelNotFound {
+				return ctx.Send([]byte("Census channel not found"), http.StatusNotFound)
+			}
+			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+		}
+		censusChannel = &Channel{
+			ID:          channel.ID,
+			Name:        channel.Name,
+			Description: channel.Description,
+			Followers:   channel.Followers,
+			ImageURL:    channel.Image,
+			URL:         channel.URL,
+		}
+	} else if dbCommunity.Census.Type == "erc20" || dbCommunity.Census.Type == "nft" {
+		censusAddresses = []*CensusAddress{}
+		if len(dbCommunity.Census.Addresses) > 0 {
+			for _, addr := range dbCommunity.Census.Addresses {
+				censusAddresses = append(censusAddresses, &CensusAddress{
+					Address:    addr.Address,
+					Blockchain: addr.Blockchain,
+				})
+			}
+		}
 	}
 	// get channels details
 	channels := []*Channel{}
@@ -180,6 +225,7 @@ func (v *vocdoniHandler) getCommunityHandler(msg *apirest.APIdata, ctx *httprout
 		CensusName:      dbCommunity.Census.Name,
 		CensusType:      dbCommunity.Census.Type,
 		CensusAddresses: censusAddresses,
+		CensusChannel:   censusChannel,
 		Channels:        channels,
 	})
 	if err != nil {

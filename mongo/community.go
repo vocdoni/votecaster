@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -101,6 +102,12 @@ func (ms *MongoStorage) ListCommunitiesByAdminUsername(username string) ([]Commu
 }
 
 func (ms *MongoStorage) addCommunity(community *Community) error {
+	if community.Census.Type != TypeCommunityCensusChannel &&
+		community.Census.Type != TypeCommunityCensusERC20 &&
+		community.Census.Type != TypeCommunityCensusNFT {
+		return fmt.Errorf("invalid census type")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := ms.communitites.InsertOne(ctx, community)

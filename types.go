@@ -80,7 +80,8 @@ type Community struct {
 	Notifications   bool                `json:"notifications"`
 	CensusName      string              `json:"censusName"`
 	CensusType      string              `json:"censusType"`
-	CensusAddresses []CensusAddress     `json:"censusAddresses"`
+	CensusAddresses []*CensusAddress    `json:"censusAddresses,omitempty"`
+	CensusChannel   *Channel            `json:"censusChannel,omitempty"`
 	Channels        []*Channel          `json:"channels"`
 }
 

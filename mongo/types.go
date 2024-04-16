@@ -187,10 +187,23 @@ type Community struct {
 	Notifications bool            `json:"notifications" bson:"notifications"`
 }
 
+const (
+	// TypeCommunityCensusChannel is the type for a community census that uses
+	// a channel as source.
+	TypeCommunityCensusChannel = "channel"
+	// TypeCommunityCensusERC20 is the type for a community census that uses
+	// ERC20 holders as source.
+	TypeCommunityCensusERC20 = "erc20"
+	// TypeCommunityCensusNFT is the type for a community census that uses
+	// NFT holders as source.
+	TypeCommunityCensusNFT = "nft"
+)
+
 type CommunityCensus struct {
 	Name      string               `json:"name" bson:"name"`
 	Type      string               `json:"type" bson:"type"`
 	Addresses []CommunityAddresses `json:"addresses" bson:"addresses"`
+	Channel   string               `json:"channel" bson:"channel"`
 }
 
 type CommunityAddresses struct {
