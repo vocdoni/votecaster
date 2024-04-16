@@ -45,7 +45,7 @@ export type CensusFormValues = {
   csv?: File | undefined
 }
 
-const CensusTypeSelector = (props: FormControlProps) => {
+const CensusTypeSelector = ({ withCSV, ...props }: FormControlProps & { withCSV?: boolean }) => {
   const { bfetch } = useAuth()
   const {
     watch,
@@ -62,11 +62,10 @@ const CensusTypeSelector = (props: FormControlProps) => {
     control,
     name: 'addresses',
   })
-  const {
-    data: blockchains,
-    isLoading,
-    error,
-  } = useQuery({ queryKey: 'blockchains', queryFn: fetchAirstackBlockchains(bfetch) })
+  const { data: blockchains, isLoading } = useQuery({
+    queryKey: ['blockchains'],
+    queryFn: fetchAirstackBlockchains(bfetch),
+  })
 
   const censusType = watch('censusType')
 
@@ -86,10 +85,6 @@ const CensusTypeSelector = (props: FormControlProps) => {
     value: true,
     message: 'This field is required',
   }
-  const maxLength = {
-    value: 50,
-    message: 'Max length is 50 characters',
-  }
 
   return (
     <>
@@ -100,7 +95,7 @@ const CensusTypeSelector = (props: FormControlProps) => {
             <Radio value='farcaster'>🌐 All farcaster users</Radio>
             <Radio value='channel'>⛩ Channel gated</Radio>
             <Radio value='followers'>❤️ My followers and me</Radio>
-            <Radio value='custom'>🦄 Token based via CSV</Radio>
+            {withCSV && <Radio value='custom'>🦄 Token based via CSV</Radio>}
             <Radio value='nft'>
               <Icon as={Airstack} /> NFT based via airstack
             </Radio>
@@ -117,7 +112,12 @@ const CensusTypeSelector = (props: FormControlProps) => {
               {censusType.toUpperCase()} address {index + 1}
             </FormLabel>
             <Flex>
-              <Select {...register(`addresses.${index}.blockchain`, { required })} defaultValue='ethereum' w='auto'>
+              <Select
+                {...register(`addresses.${index}.blockchain`, { required })}
+                defaultValue='ethereum'
+                w='auto'
+                _loading={isLoading}
+              >
                 {blockchains.map((blockchain, key) => (
                   <option value={blockchain} key={key}>
                     {ucfirst(blockchain)}

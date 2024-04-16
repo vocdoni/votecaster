@@ -64,7 +64,6 @@ const Form: React.FC = (props: FlexProps) => {
     handleSubmit,
     formState: { errors },
     control,
-    setValue,
     watch,
     resetField,
   } = methods
@@ -80,16 +79,6 @@ const Form: React.FC = (props: FlexProps) => {
   const [usernames, setUsernames] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [censusRecords, setCensusRecords] = useState<number>(0)
-  const [blockchains, setBlockchains] = useState<string[]>([])
-  const [bloaded, setBloaded] = useState<boolean>(false)
-  const {
-    fields: addressFields,
-    append: appendAddress,
-    remove: removeAddress,
-  } = useFieldArray({
-    control,
-    name: 'addresses',
-  })
 
   const censusType = watch('censusType')
   const notify = watch('notify')
@@ -327,7 +316,7 @@ const Form: React.FC = (props: FlexProps) => {
                       Add Choice
                     </Button>
                   )}
-                  <CensusTypeSelector />
+                  <CensusTypeSelector withCSV isDisabled={loading} />
                   {notifyAllowed.includes(censusType) && (
                     <FormControl isDisabled={loading}>
                       <Switch {...register('notify')} lineHeight={6}>

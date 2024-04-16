@@ -1,17 +1,12 @@
 import { Box, Heading, Text, useToast, VStack } from '@chakra-ui/react'
-import { MultiValue } from 'chakra-react-select'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
+import { CensusFormValues } from '../../CensusTypeSelector'
 import { CensusSelector } from './CensusSelector'
 import { Channels } from './Channels'
 import { Confirm } from './Confirm'
-import { Meta } from './Meta'
+import { CommunityMetaFormValues, Meta } from './Meta'
 
-export type CommunityFormValues = {
-  name: string
-  admins: MultiValue<{ label: string; value: string }>
-  logo: FileList
-  channels: MultiValue<{ label: string; value: string }>
-}
+export type CommunityFormValues = CensusFormValues & CommunityMetaFormValues
 
 export const CommunitiesCreateForm = () => {
   const methods = useForm<CommunityFormValues>()

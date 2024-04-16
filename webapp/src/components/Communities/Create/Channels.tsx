@@ -1,33 +1,59 @@
-import { FormControl, FormLabel, Heading, Text } from '@chakra-ui/react'
-import { Select } from 'chakra-react-select'
-import { useFormContext } from 'react-hook-form'
-import { CommunityFormValues } from './Form'
+import { FormControl, FormErrorMessage, FormLabel, Heading, Text } from '@chakra-ui/react'
+import { AsyncSelect } from 'chakra-react-select'
+import { useState } from 'react'
+import { Controller, useFormContext } from 'react-hook-form'
+import { fetchChannelQuery } from '../../../queries/channels'
+import { useAuth } from '../../Auth/useAuth'
+
+export type ChannelsFormValues = {
+  channels: { label: string; value: string }[]
+}
 
 export const Channels = () => {
-  const { register } = useFormContext<CommunityFormValues>()
-
-  // Dummy API call logic
-  const fetchChannels = (inputValue: string) => {
-    // Here you would replace this with an actual API call to fetch channels
-    console.log(`Call API with: ${inputValue}`)
-    // Example: axios.get(`https://your-api/channels?search=${inputValue}`).then(...);
-  }
+  const {
+    formState: { errors },
+    setError,
+  } = useFormContext<ChannelsFormValues>()
+  const [loading, setLoading] = useState<boolean>(false)
+  const { bfetch } = useAuth()
 
   return (
-    <FormControl display='flex' flexDir='column' gap={4}>
+    <FormControl display='flex' flexDir='column' gap={4} isInvalid={!!errors.channels} isRequired>
       <Heading as={FormLabel} size='sm'>
         Add Farcaster Channels
       </Heading>
       <Text>Add the farcaster channels used by your community</Text>
-      <Select
-        isMulti
-        options={[]} // This should be dynamic based on API call
-        onInputChange={fetchChannels}
-        placeholder='Search'
-        closeMenuOnSelect={false}
-        size='sm'
-        {...register('channels')}
+      <Controller
+        name='channels'
+        render={({ field }) => (
+          <AsyncSelect
+            id='channels'
+            isMulti
+            size='sm'
+            isLoading={loading}
+            noOptionsMessage={() => 'No channels found'}
+            placeholder='Search and add channels'
+            {...field}
+            loadOptions={async (inputValue) => {
+              try {
+                setLoading(true)
+                return (await fetchChannelQuery(bfetch)(inputValue)).map((channel) => ({
+                  label: channel.name,
+                  value: channel.id,
+                }))
+              } catch (e) {
+                console.error('Could not fetch channels:', e)
+                if ('message' in e) {
+                  setError('channels', { message: e.message })
+                }
+              } finally {
+                setLoading(false)
+              }
+            }}
+          />
+        )}
       />
+      <FormErrorMessage>{errors.channels?.message?.toString()}</FormErrorMessage>
     </FormControl>
   )
 }

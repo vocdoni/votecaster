@@ -11,7 +11,7 @@ export const Profile = () => {
   const { bfetch, profile } = useAuth()
   // Utilizing React Query to fetch polls
   const { isLoading, error, data } = useQuery<Poll[], Error>({
-    queryKey: 'polls',
+    queryKey: ['polls'],
     queryFn: fetchUserPolls(bfetch, profile),
   })
 

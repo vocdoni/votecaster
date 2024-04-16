@@ -1,6 +1,7 @@
 import {
   Avatar,
   Box,
+  BoxProps,
   Button,
   FormControl,
   FormErrorMessage,
@@ -10,7 +11,6 @@ import {
   Input,
   Link,
   Spacer,
-  StackProps,
   VStack,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
@@ -22,13 +22,12 @@ import { useAuth } from './Auth/useAuth'
 import { Profile } from './Auth/useAuthProvider'
 import { Check } from './Check'
 
-export const MutedUsersList: React.FC = (props: StackProps) => {
+export const MutedUsersList: React.FC = (props: BoxProps) => {
   const {
     register,
     handleSubmit,
     reset,
     setError,
-    trigger,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -37,14 +36,14 @@ export const MutedUsersList: React.FC = (props: StackProps) => {
   })
   const { bfetch } = useAuth()
   const { data, error, isLoading, refetch } = useQuery<Profile[], Error>({
-    queryKey: 'mutedUsers',
+    queryKey: ['mutedUsers'],
     queryFn: fetchMutedUsers(bfetch),
   })
 
   const handleUnmute = async (username: string) => {
     try {
       await bfetch(`${appUrl}/profile/mutedUsers/${username}`, { method: 'DELETE' }).then(refetch)
-    } catch (e: any) {
+    } catch (e) {
       console.error('could not unmute user', e)
     }
   }
@@ -56,7 +55,7 @@ export const MutedUsersList: React.FC = (props: StackProps) => {
         body: JSON.stringify({ username: data.username }),
       }).then(refetch)
       reset({ username: '' }) // Reset only the username field
-    } catch (e: any) {
+    } catch (e) {
       if ('message' in e) {
         console.log('error received as message:', e.message)
         setError('username', { message: e.message })
@@ -66,7 +65,7 @@ export const MutedUsersList: React.FC = (props: StackProps) => {
   }
 
   return (
-    <Box borderRadius='md' p={4} bg='purple.100'>
+    <Box borderRadius='md' p={4} bg='purple.100' {...props}>
       <Heading fontSize='xl' mb={4} fontWeight='600' color='purple.800'>
         Muted users
       </Heading>
