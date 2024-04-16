@@ -22,10 +22,11 @@ import {
   Textarea,
   VStack,
 } from '@chakra-ui/react'
-import React, { SetStateAction, useEffect, useState } from 'react'
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { cleanChannel } from '../util/strings'
+import { isErrorWithHTTPResponse, Profile } from '../util/types'
 import { ReputationCard } from './Auth/Reputation'
 import { SignInButton } from './Auth/SignInButton'
 import { useAuth } from './Auth/useAuth'
@@ -40,6 +41,16 @@ type FormValues = CensusFormValues & {
   notificationText?: string
 }
 
+type ElectionRequest = {
+  profile: Profile
+  question: string
+  duration: number
+  options: string[]
+  notifyUsers: boolean
+  notificationText?: string
+  census?: CensusResponse
+}
+
 interface CID {
   censusId: string
 }
@@ -48,6 +59,11 @@ interface CensusResponse {
   root: string
   size: number
   uri: string
+}
+
+interface CensusResponseWithUsernames extends CensusResponse {
+  usernames: string[]
+  fromTotalAddresses: number
 }
 
 const appUrl = import.meta.env.APP_URL
@@ -71,7 +87,7 @@ const Form: React.FC = (props: FlexProps) => {
     control,
     name: 'choices',
   })
-  const { isAuthenticated, profile, reputation, logout, bfetch } = useAuth()
+  const { isAuthenticated, profile, logout, bfetch } = useAuth()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [shortened, setShortened] = useState<string | null>(null)
@@ -138,7 +154,11 @@ const Form: React.FC = (props: FlexProps) => {
     try {
       setLoading(true)
 
-      const election = {
+      if (!profile) {
+        throw new Error('user not authenticated')
+      }
+
+      const election: ElectionRequest = {
         profile,
         question: data.question,
         duration: Number(data.duration),
@@ -150,12 +170,16 @@ const Form: React.FC = (props: FlexProps) => {
         election.notificationText = data.notificationText
       }
 
+      if (!profile) {
+        throw new Error('user not authenticated')
+      }
+
       setStatus('Creating census...')
       try {
         let call: Promise<Response>
         switch (data.censusType) {
           case 'channel': {
-            const channel = cleanChannel(data.channel)
+            const channel = cleanChannel(data.channel as string)
             call = bfetch(`${appUrl}/census/channel-gated/${channel}`, { method: 'POST' })
             break
           }
@@ -176,7 +200,10 @@ const Form: React.FC = (props: FlexProps) => {
           case 'custom': {
             const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
             const contents = new Blob(
-              Array.from(data.csv).flatMap((file) => [file, lineBreak]),
+              Array.from(data.csv as unknown as Iterable<unknown>).flatMap((file: unknown) => [
+                file as BlobPart,
+                lineBreak,
+              ]),
               { type: 'text/csv' }
             )
             call = bfetch(`${appUrl}/census/csv`, { method: 'POST', body: contents })
@@ -191,7 +218,7 @@ const Form: React.FC = (props: FlexProps) => {
         if (data.censusType !== 'farcaster') {
           const res = await call
           const { censusId } = (await res.json()) as CID
-          const census = await checkCensus(censusId, setStatus)
+          const census = (await checkCensus(censusId, setStatus)) as CensusResponseWithUsernames
           if (census.usernames && census.usernames.length) {
             setUsernames(census.usernames)
           }
@@ -206,12 +233,10 @@ const Form: React.FC = (props: FlexProps) => {
         }
       } catch (e) {
         console.error('there was an error creating the census:', e)
-        if ('response' in e && 'data' in e.response) {
+        if (isErrorWithHTTPResponse(e) && e.response) {
           setError(e.response.data)
-        } else {
-          if ('message' in e) {
-            setError(e.message)
-          }
+        } else if (e instanceof Error) {
+          setError(e.message)
         }
         setLoading(false)
         return
@@ -234,7 +259,7 @@ const Form: React.FC = (props: FlexProps) => {
       }, 1000)
     } catch (e) {
       console.error('there was an error creating the election:', e)
-      if ('message' in e) {
+      if (e instanceof Error) {
         setError(e.message)
       }
       setLoading(false)
@@ -253,7 +278,7 @@ const Form: React.FC = (props: FlexProps) => {
   return (
     <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 500 }} {...props}>
       <Card w='100%'>
-        <CardHeader align='center'>
+        <CardHeader textAlign='center'>
           <Heading as='h2' size='lg' textAlign='center'>
             Create a framed poll
           </Heading>
@@ -316,7 +341,7 @@ const Form: React.FC = (props: FlexProps) => {
                       Add Choice
                     </Button>
                   )}
-                  <CensusTypeSelector withCSV isDisabled={loading} />
+                  <CensusTypeSelector complete isDisabled={loading} />
                   {notifyAllowed.includes(censusType) && (
                     <FormControl isDisabled={loading}>
                       <Switch {...register('notify')} lineHeight={6}>
@@ -368,13 +393,13 @@ const Form: React.FC = (props: FlexProps) => {
                       <Button type='submit' isLoading={loading} loadingText={status}>
                         Create
                       </Button>
-                      <Box fontSize='xs' align='right'>
+                      <Box fontSize='xs' textAlign='right'>
                         or{' '}
                         <Button variant='text' size='xs' p={0} onClick={logout} height='auto'>
                           logout
                         </Button>
                       </Box>
-                      <ReputationCard reputation={reputation} />
+                      <ReputationCard />
                     </>
                   ) : (
                     <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>

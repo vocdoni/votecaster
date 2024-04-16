@@ -27,6 +27,9 @@ import { useAuth } from './useAuth'
 
 export const ReputationProgress = (props: CircularProgressProps) => {
   const { reputation } = useAuth()
+
+  if (!reputation) return
+
   return (
     <CircularProgress value={reputation.reputation} max={100} color='purple.600' thickness='12px' {...props}>
       <CircularProgressLabel>{reputation.reputation}%</CircularProgressLabel>
@@ -67,7 +70,15 @@ export const ReputationCard = () => {
           </Flex>
           {isMobile && (
             <PopoverTrigger>
-              <IconButton icon={<Icon as={FaInfo} />} variant='text' color='white' pos='absolute' top={0} right={0} />
+              <IconButton
+                aria-label='Open info'
+                icon={<Icon as={FaInfo} />}
+                variant='text'
+                color='white'
+                pos='absolute'
+                top={0}
+                right={0}
+              />
             </PopoverTrigger>
           )}
           <SimpleGrid columns={2} spacing={3} mt={4}>

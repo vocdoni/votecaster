@@ -2,14 +2,8 @@ import { Box, BoxProps, Link, Stack, Tag, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { PropsWithChildren } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
-import {
-  fetchLatestPolls,
-  fetchPollsByVotes,
-  fetchTopCreators,
-  fetchTopVoters,
-  Poll,
-  UserRanking,
-} from '../queries/tops'
+import { fetchLatestPolls, fetchPollsByVotes, fetchTopCreators, fetchTopVoters, UserRanking } from '../queries/tops'
+import type { Poll } from '../util/types'
 import { useAuth } from './Auth/useAuth'
 import { Check } from './Check'
 
@@ -47,7 +41,7 @@ export const LatestPolls = (props: BoxProps) => {
 
 export const TopCreators = (props: BoxProps) => {
   const { bfetch } = useAuth()
-  const { data, error, isLoading } = useQuery<Poll[], Error>({
+  const { data, error, isLoading } = useQuery<UserRanking[], Error>({
     queryKey: ['topCreators'],
     queryFn: fetchTopCreators(bfetch),
   })
@@ -63,7 +57,7 @@ export const TopCreators = (props: BoxProps) => {
 
 export const TopVoters = (props: BoxProps) => {
   const { bfetch } = useAuth()
-  const { data, error, isLoading } = useQuery<Poll[], Error>({
+  const { data, error, isLoading } = useQuery<UserRanking[], Error>({
     queryKey: ['topVoters'],
     queryFn: fetchTopVoters(bfetch),
   })
