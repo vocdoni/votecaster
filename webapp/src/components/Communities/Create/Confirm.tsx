@@ -1,11 +1,11 @@
-import { Box, Button, Heading, Text } from '@chakra-ui/react'
+import { Box, Button, ButtonProps, Heading, Text } from '@chakra-ui/react'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { CiWallet } from 'react-icons/ci'
 import { GiTopHat } from 'react-icons/gi'
 import { MdOutlineRocketLaunch } from 'react-icons/md'
 import { useAccount } from 'wagmi'
 
-export const Confirm = () => {
+export const Confirm = (props: ButtonProps) => {
   const { isConnected } = useAccount()
   const { openConnectModal } = useConnectModal()
 
@@ -26,7 +26,7 @@ export const Confirm = () => {
           Deploy your community on Degenchain
         </Button>
       ) : (
-        <Button onClick={openConnectModal} colorScheme='blue' leftIcon={<CiWallet />}>
+        <Button onClick={openConnectModal} colorScheme='blue' leftIcon={<CiWallet />} {...props}>
           Connect wallet first
         </Button>
       )}

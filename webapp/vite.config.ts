@@ -14,6 +14,10 @@ export default defineConfig({
   },
   define: {
     'import.meta.env.APP_URL': JSON.stringify(process.env.APP_URL || ''),
+    'import.meta.env.DEGEN_CONTRACT_ADDRESS': JSON.stringify(process.env.DEGEN_CONTRACT_ADDRESS || ''),
+    'import.meta.env.RESULTS_CONTRACT_ADDRESS': JSON.stringify(
+      process.env.RESULTS_CONTRACT_ADDRESS || '0x1234567890123456789012345678901234567890'
+    ),
   },
   plugins: [
     svgr(),

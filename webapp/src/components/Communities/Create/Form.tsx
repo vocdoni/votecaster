@@ -1,27 +1,60 @@
-import { Box, Heading, Text, useToast, VStack } from '@chakra-ui/react'
+import { Alert, Box, Heading, Text, VStack } from '@chakra-ui/react'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
+import { useWriteContract } from 'wagmi'
+import { abi } from '../../../abi.json'
+import { degenContractAddress, electionResultsContract } from '../../../util/constants'
 import { CensusFormValues } from '../../CensusTypeSelector'
 import { CensusSelector } from './CensusSelector'
 import { Channels } from './Channels'
 import { Confirm } from './Confirm'
 import { CommunityMetaFormValues, Meta } from './Meta'
 
-export type CommunityFormValues = CensusFormValues & CommunityMetaFormValues
+export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusType'> &
+  CommunityMetaFormValues & {
+    channels: { label: string; value: string }[]
+  }
 
 export const CommunitiesCreateForm = () => {
   const methods = useForm<CommunityFormValues>()
-  const toast = useToast()
+  const { data: hash, isPending, writeContract, error } = useWriteContract()
 
-  const onSubmit: SubmitHandler<CommunityFormValues> = (data) => {
-    console.info('received form data:', data)
+  const onSubmit: SubmitHandler<CommunityFormValues> = async (data) => {
+    try {
+      console.info('received form data:', data)
 
-    toast({
-      title: 'Community created.',
-      description: "We've created your community for you.",
-      status: 'success',
-      duration: 9000,
-      isClosable: true,
-    })
+      const metadata = [data.name, data.logo, data.channels.map((chan) => chan.value) ?? '', 0]
+
+      const census = [
+        Number(data.censusType === 'nft'),
+        data.addresses?.map(({ blockchain, address }) => [blockchain, address]),
+      ]
+
+      console.log('mapped census:', census)
+
+      const guardians = data.admins.map((admin) => admin.value)
+      const createElectionPermission = 0
+
+      console.info('mapped for contract write:', [
+        metadata,
+        census,
+        guardians,
+        degenContractAddress,
+        createElectionPermission,
+      ])
+
+      writeContract({
+        address: degenContractAddress,
+        abi,
+        functionName: 'CreateCommunity',
+        args: [metadata, census, guardians, electionResultsContract, createElectionPermission],
+      })
+    } catch (e) {
+      console.error('could not create community:', e)
+    }
+  }
+
+  if (error) {
+    console.error('error creating community:', error)
   }
 
   return (
@@ -47,9 +80,10 @@ export const CommunitiesCreateForm = () => {
             </VStack>
           </Box>
           <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-            <Confirm />
+            <Confirm isLoading={isPending} />
           </Box>
         </Box>
+        {error && <Alert status='error'>{error.message}</Alert>}
       </FormProvider>
     </Box>
   )
