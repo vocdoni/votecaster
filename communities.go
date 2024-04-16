@@ -3,16 +3,35 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/vocdoni/vote-frame/farcasterapi"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 )
 
 func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	dbCommunities, err := v.db.ListCommunities()
-	if err != nil {
-		return ctx.Send([]byte("Error listing communities"), http.StatusInternalServerError)
+	urlQuery := ctx.Request.URL.Query()
+	var err error
+	var dbCommunities []mongo.Community
+	if byAdminFID := urlQuery.Get("byAdminFID"); byAdminFID != "" {
+		var adminFID int
+		adminFID, err = strconv.Atoi(byAdminFID)
+		if err != nil {
+			return ctx.Send([]byte("Invalid admin FID"), http.StatusBadRequest)
+		}
+		if dbCommunities, err = v.db.ListCommunitiesByAdminFID(uint64(adminFID)); err != nil {
+			return ctx.Send([]byte("Error listing communities"), http.StatusInternalServerError)
+		}
+	} else if byAdminUsername := urlQuery.Get("byAdminUsername"); byAdminUsername != "" {
+		if dbCommunities, err = v.db.ListCommunitiesByAdminUsername(byAdminUsername); err != nil {
+			return ctx.Send([]byte("Error listing communities"), http.StatusInternalServerError)
+		}
+	} else {
+		if dbCommunities, err = v.db.ListCommunities(); err != nil {
+			return ctx.Send([]byte("Error listing communities"), http.StatusInternalServerError)
+		}
 	}
 	if len(dbCommunities) == 0 {
 		return ctx.Send([]byte("No communities found"), http.StatusNotFound)
