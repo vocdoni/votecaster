@@ -574,7 +574,6 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 	if err != nil {
 		return fmt.Errorf("cannot get user from auth token: %w", err)
 	}
-
 	censusAddresses := []*CensusToken{}
 	for _, addr := range community.Census.Addresses {
 		censusAddresses = append(censusAddresses, &CensusToken{
@@ -583,8 +582,7 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 		})
 	}
 	// check valid token
-	td, err := v.checkTokens(censusAddresses)
-	if err != nil {
+	if err := v.checkTokens(censusAddresses); err != nil {
 		return err
 	}
 	// convert the census type to the correct type for the CreateCensus function
@@ -592,8 +590,19 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 	if community.Census.Type == mongo.TypeCommunityCensusNFT {
 		censusType = NFTtype
 	}
+	// get token decimals if the census type is ERC20
+	var tokenDecimals int
+	if censusType == ERC20type {
+		if len(censusAddresses) != 1 {
+			return fmt.Errorf("erc20 census must have only one token address")
+		}
+		tokenDecimals, err = v.airstack.TokenDecimalsByToken(censusAddresses[0].Address, censusAddresses[0].Blockchain)
+		if err != nil {
+			return fmt.Errorf("cannot get token decimals")
+		}
+	}
 	// create the census from the token holders
-	data, err := v.censusTokenAirstack(censusAddresses, censusType, td, userFID)
+	data, err := v.censusTokenAirstack(censusAddresses, censusType, tokenDecimals, userFID)
 	if err != nil {
 		return fmt.Errorf("cannot create erc20 census: %w", err)
 	}
