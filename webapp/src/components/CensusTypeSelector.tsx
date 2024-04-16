@@ -18,6 +18,7 @@ import {
   Radio,
   RadioGroup,
   Select,
+  Spinner,
   Stack,
   UnorderedList,
 } from '@chakra-ui/react'
@@ -25,18 +26,15 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
+import { MdArrowDropDown } from 'react-icons/md'
 import Airstack from '../assets/airstack.svg?react'
 import { fetchAirstackBlockchains } from '../queries/census'
 import { appUrl } from '../util/constants'
 import { cleanChannel, ucfirst } from '../util/strings'
+import { Address } from '../util/types'
 import { useAuth } from './Auth/useAuth'
 
 export type CensusType = 'farcaster' | 'channel' | 'followers' | 'custom' | 'erc20' | 'nft'
-
-export type Address = {
-  address: string
-  blockchain: string
-}
 
 export type CensusFormValues = {
   censusType: CensusType
@@ -45,7 +43,7 @@ export type CensusFormValues = {
   csv?: File | undefined
 }
 
-const CensusTypeSelector = ({ withCSV, ...props }: FormControlProps & { withCSV?: boolean }) => {
+const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complete?: boolean }) => {
   const { bfetch } = useAuth()
   const {
     watch,
@@ -90,12 +88,16 @@ const CensusTypeSelector = ({ withCSV, ...props }: FormControlProps & { withCSV?
     <>
       <FormControl {...props}>
         <FormLabel>Census/voters</FormLabel>
-        <RadioGroup onChange={(val: string) => setValue('censusType', val)} value={censusType} id='census-type'>
+        <RadioGroup onChange={(val: CensusType) => setValue('censusType', val)} value={censusType} id='census-type'>
           <Stack direction='column' flexWrap='wrap'>
-            <Radio value='farcaster'>🌐 All farcaster users</Radio>
-            <Radio value='channel'>⛩ Channel gated</Radio>
-            <Radio value='followers'>❤️ My followers and me</Radio>
-            {withCSV && <Radio value='custom'>🦄 Token based via CSV</Radio>}
+            {complete && (
+              <>
+                <Radio value='farcaster'>🌐 All farcaster users</Radio>
+                <Radio value='channel'>⛩ Channel gated</Radio>
+                <Radio value='followers'>❤️ My followers and me</Radio>
+                <Radio value='custom'>🦄 Token based via CSV</Radio>
+              </>
+            )}
             <Radio value='nft'>
               <Icon as={Airstack} /> NFT based via airstack
             </Radio>
@@ -116,13 +118,14 @@ const CensusTypeSelector = ({ withCSV, ...props }: FormControlProps & { withCSV?
                 {...register(`addresses.${index}.blockchain`, { required })}
                 defaultValue='ethereum'
                 w='auto'
-                _loading={isLoading}
+                icon={isLoading ? <Spinner /> : <MdArrowDropDown />}
               >
-                {blockchains.map((blockchain, key) => (
-                  <option value={blockchain} key={key}>
-                    {ucfirst(blockchain)}
-                  </option>
-                ))}
+                {blockchains &&
+                  blockchains.map((blockchain, key) => (
+                    <option value={blockchain} key={key}>
+                      {ucfirst(blockchain)}
+                    </option>
+                  ))}
               </Select>
               <InputGroup>
                 <Input placeholder='Smart contract address' {...register(`addresses.${index}.address`, { required })} />
@@ -141,7 +144,7 @@ const CensusTypeSelector = ({ withCSV, ...props }: FormControlProps & { withCSV?
           </FormControl>
         ))}
       {censusType === 'nft' && addressFields.length < 3 && (
-        <Button variant='ghost' onClick={() => appendAddress({ address: '' })}>
+        <Button variant='ghost' onClick={() => appendAddress({ address: '', blockchain: 'ethereum' })}>
           Add address
         </Button>
       )}
@@ -154,6 +157,10 @@ const CensusTypeSelector = ({ withCSV, ...props }: FormControlProps & { withCSV?
             {...register('channel', {
               required,
               validate: async (val) => {
+                if (!val) {
+                  return false
+                }
+
                 val = cleanChannel(val)
                 try {
                   const res = await bfetch(`${appUrl}/census/channel-gated/${val}/exists`)

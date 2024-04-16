@@ -43,7 +43,7 @@ export const Channels = () => {
                 }))
               } catch (e) {
                 console.error('Could not fetch channels:', e)
-                if ('message' in e) {
+                if (e instanceof Error) {
                   setError('channels', { message: e.message })
                 }
               } finally {

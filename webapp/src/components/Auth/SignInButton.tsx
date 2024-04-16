@@ -84,7 +84,7 @@ export const SignInButton = (props: ButtonProps) => {
 
   return (
     <>
-      <Button colorScheme='purple' leftIcon={<FarcasterLogo height='20' fill='white' />} {...props} onClick={onOpen}>
+      <Button colorScheme='purple' leftIcon={<FarcasterLogo height={20} fill='white' />} {...props} onClick={onOpen}>
         Sign in
       </Button>
       <Modal isOpen={isOpen} onClose={onClose} isCentered size='xs'>

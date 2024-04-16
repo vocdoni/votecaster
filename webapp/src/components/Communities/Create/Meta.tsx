@@ -17,6 +17,7 @@ export const Meta = () => {
     register,
     watch,
     formState: { errors },
+    clearErrors,
     setError,
   } = useFormContext<CommunityMetaFormValues>()
   const { bfetch } = useAuth()
@@ -46,6 +47,8 @@ export const Meta = () => {
               placeholder='Add users'
               {...field}
               onChange={async (values, { action, option }) => {
+                // remove previous errors
+                clearErrors('admins')
                 if (action === 'create-option') {
                   try {
                     setLoading(true)
@@ -59,7 +62,7 @@ export const Meta = () => {
 
                     field.onChange([...values, { label: user.username, value: user.userID.toString() }])
                   } catch (e) {
-                    if ('message' in e) {
+                    if (e instanceof Error) {
                       setError('admins', { message: e.message })
                     } else {
                       console.error('unknown error while fetching user:', e)

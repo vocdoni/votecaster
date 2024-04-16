@@ -14,13 +14,18 @@ import {
   VStack,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { FaTrash } from 'react-icons/fa6'
 import { fetchMutedUsers } from '../queries/profile'
 import { appUrl } from '../util/constants'
+import { Profile } from '../util/types'
 import { useAuth } from './Auth/useAuth'
-import { Profile } from './Auth/useAuthProvider'
 import { Check } from './Check'
+
+type MutedUsersFormValues = {
+  username: string
+}
 
 export const MutedUsersList: React.FC = (props: BoxProps) => {
   const {
@@ -29,12 +34,13 @@ export const MutedUsersList: React.FC = (props: BoxProps) => {
     reset,
     setError,
     formState: { errors },
-  } = useForm({
+  } = useForm<MutedUsersFormValues>({
     defaultValues: {
       username: '',
     },
   })
   const { bfetch } = useAuth()
+  const [loading, setLoading] = useState<boolean>(false)
   const { data, error, isLoading, refetch } = useQuery<Profile[], Error>({
     queryKey: ['mutedUsers'],
     queryFn: fetchMutedUsers(bfetch),
@@ -42,25 +48,31 @@ export const MutedUsersList: React.FC = (props: BoxProps) => {
 
   const handleUnmute = async (username: string) => {
     try {
-      await bfetch(`${appUrl}/profile/mutedUsers/${username}`, { method: 'DELETE' }).then(refetch)
+      setLoading(true)
+      await bfetch(`${appUrl}/profile/mutedUsers/${username}`, { method: 'DELETE' }).then(() => refetch())
     } catch (e) {
       console.error('could not unmute user', e)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: MutedUsersFormValues) => {
+    setLoading(true)
     try {
       await bfetch(`${appUrl}/profile/mutedUsers`, {
         method: 'POST',
         body: JSON.stringify({ username: data.username }),
-      }).then(refetch)
+      }).then(() => refetch())
       reset({ username: '' }) // Reset only the username field
     } catch (e) {
-      if ('message' in e) {
+      if (e instanceof Error) {
         console.log('error received as message:', e.message)
         setError('username', { message: e.message })
       }
       console.error('could not add muted user', e)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -90,10 +102,11 @@ export const MutedUsersList: React.FC = (props: BoxProps) => {
               <Spacer />
               <IconButton
                 aria-label={`Unmute ${user.username}`}
+                title={`Unmute "${user.username}"`}
                 icon={<FaTrash />}
                 onClick={() => handleUnmute(user.username)}
                 colorScheme='purple'
-                title={`Unmute "${user.username}"`}
+                isLoading={loading}
                 size='sm'
               />
             </HStack>
@@ -113,7 +126,7 @@ export const MutedUsersList: React.FC = (props: BoxProps) => {
                 />
                 <FormErrorMessage>{errors.username?.message?.toString()}</FormErrorMessage>
               </FormControl>
-              <Button type='submit' colorScheme='purple' flexGrow={1}>
+              <Button type='submit' colorScheme='purple' flexGrow={1} isLoading={loading}>
                 Mute
               </Button>
             </HStack>
