@@ -8,7 +8,7 @@ import { UserPolls } from '../components/Top'
 import { fetchUserPolls } from '../queries/profile'
 import type { Poll, Profile as TProfile } from '../util/types'
 
-export const Profile = () => {
+const Profile = () => {
   const { bfetch, profile } = useAuth()
   // Utilizing React Query to fetch polls
   const { isLoading, error, data } = useQuery<Poll[], Error>({
@@ -46,3 +46,5 @@ export const Profile = () => {
     </Grid>
   )
 }
+
+export default Profile

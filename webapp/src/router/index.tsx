@@ -1,17 +1,20 @@
+import { lazy } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { useAuth } from '../components/Auth/useAuth'
 import { Layout } from '../components/Layout'
-import { About } from '../pages/About'
-import { App } from '../pages/App'
-import { Communities } from '../pages/communities'
-import { CommunitiesNew } from '../pages/communities/new'
-import { Community } from '../pages/communities/view'
-import { Leaderboards } from '../pages/Leaderboards'
-import { Poll } from '../pages/Poll'
-import { Profile } from '../pages/Profile'
-import { appUrl } from '../util/constants'
-import FarcasterAccountProtectedRoute from './FarcasterAccountProtectedRoute'
-import ProtectedRoute from './ProtectedRoute'
+import { SuspenseLoader } from './SuspenseLoader'
+
+const About = lazy(() => import('../pages/About'))
+const App = lazy(() => import('../pages/App'))
+const Communities = lazy(() => import('../pages/communities'))
+const CommunitiesNew = lazy(() => import('../pages/communities/new'))
+const Leaderboards = lazy(() => import('../pages/Leaderboards'))
+const Poll = lazy(() => import('../pages/Poll'))
+const Profile = lazy(() => import('../pages/Profile'))
+
+const FarcasterAccountProtectedRoute = lazy(() => import('./FarcasterAccountProtectedRoute'))
+const ProtectedRoute = lazy(() => import('./ProtectedRoute'))
+const Community = lazy(() => import('../pages/communities/view'))
 
 export const Router = () => {
   const { bfetch } = useAuth()
@@ -22,44 +25,83 @@ export const Router = () => {
       children: [
         {
           path: '/',
-          element: <App />,
+          element: (
+            <SuspenseLoader>
+              <App />
+            </SuspenseLoader>
+          ),
         },
         {
           path: '/about',
-          element: <About />,
+          element: (
+            <SuspenseLoader>
+              <About />
+            </SuspenseLoader>
+          ),
         },
         {
           path: '/leaderboards',
-          element: <Leaderboards />,
+          element: (
+            <SuspenseLoader>
+              <Leaderboards />
+            </SuspenseLoader>
+          ),
         },
         {
           path: '/poll/:pid',
-          element: <Poll />,
+          element: (
+            <SuspenseLoader>
+              <Poll />
+            </SuspenseLoader>
+          ),
         },
         {
           path: '/communities',
-          element: <Communities />,
+          element: (
+            <SuspenseLoader>
+              <Communities />
+            </SuspenseLoader>
+          ),
         },
         {
           path: '/communities/:id',
-          element: <Community />,
-          loader: ({ params }) => bfetch(`${appUrl}/communities/${params.id}`),
+          element: (
+            <SuspenseLoader>
+              <Community />
+            </SuspenseLoader>
+          ),
         },
         {
-          element: <ProtectedRoute />,
+          element: (
+            <SuspenseLoader>
+              <ProtectedRoute />
+            </SuspenseLoader>
+          ),
           children: [
             {
               path: '/profile',
-              element: <Profile />,
+              element: (
+                <SuspenseLoader>
+                  <Profile />
+                </SuspenseLoader>
+              ),
             },
           ],
         },
         {
-          element: <FarcasterAccountProtectedRoute />,
+          element: (
+            <SuspenseLoader>
+              <FarcasterAccountProtectedRoute />
+            </SuspenseLoader>
+          ),
           children: [
             {
               path: '/communities/new',
-              element: <CommunitiesNew />,
+              element: (
+                <SuspenseLoader>
+                  <CommunitiesNew />
+                </SuspenseLoader>
+              ),
             },
           ],
         },

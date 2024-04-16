@@ -13,7 +13,7 @@ export const CommunitiesCreateForm = () => {
   const toast = useToast()
 
   const onSubmit: SubmitHandler<CommunityFormValues> = (data) => {
-    console.log('received form data:', data)
+    console.info('received form data:', data)
 
     toast({
       title: 'Community created.',

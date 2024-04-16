@@ -23,18 +23,20 @@ import {
   UnorderedList,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
+import { Select as RSelect } from 'chakra-react-select'
 import { useEffect } from 'react'
-import { useFieldArray, useFormContext } from 'react-hook-form'
+import { Controller, useFieldArray, useFormContext } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { MdArrowDropDown } from 'react-icons/md'
 import Airstack from '../assets/airstack.svg?react'
 import { fetchAirstackBlockchains } from '../queries/census'
+import { Community, fetchCommunities } from '../queries/communities'
 import { appUrl } from '../util/constants'
 import { cleanChannel, ucfirst } from '../util/strings'
 import { Address } from '../util/types'
 import { useAuth } from './Auth/useAuth'
 
-export type CensusType = 'farcaster' | 'channel' | 'followers' | 'custom' | 'erc20' | 'nft'
+export type CensusType = 'farcaster' | 'channel' | 'followers' | 'custom' | 'erc20' | 'nft' | 'community'
 
 export type CensusFormValues = {
   censusType: CensusType
@@ -60,9 +62,13 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
     control,
     name: 'addresses',
   })
-  const { data: blockchains, isLoading } = useQuery({
+  const { data: blockchains, isLoading: bloading } = useQuery({
     queryKey: ['blockchains'],
     queryFn: fetchAirstackBlockchains(bfetch),
+  })
+  const { data: communities, isLoading: cloading } = useQuery({
+    queryKey: ['communities'],
+    queryFn: fetchCommunities(bfetch),
   })
 
   const censusType = watch('censusType')
@@ -90,12 +96,13 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
         <FormLabel>Census/voters</FormLabel>
         <RadioGroup onChange={(val: CensusType) => setValue('censusType', val)} value={censusType} id='census-type'>
           <Stack direction='column' flexWrap='wrap'>
+            {complete && <Radio value='farcaster'>🌐 All farcaster users</Radio>}
+            <Radio value='channel'>⛩ Channel gated</Radio>
             {complete && (
               <>
-                <Radio value='farcaster'>🌐 All farcaster users</Radio>
-                <Radio value='channel'>⛩ Channel gated</Radio>
                 <Radio value='followers'>❤️ My followers and me</Radio>
                 <Radio value='custom'>🦄 Token based via CSV</Radio>
+                <Radio value='community'>🏘️ Community based</Radio>
               </>
             )}
             <Radio value='nft'>
@@ -107,6 +114,26 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
           </Stack>
         </RadioGroup>
       </FormControl>
+      {censusType === 'community' && (
+        <FormControl isRequired>
+          <FormLabel>Select a community</FormLabel>
+          <Controller
+            name='community'
+            control={control}
+            render={({ field }) => (
+              <RSelect
+                placeholder='Choose a community'
+                cacheOptions
+                isLoading={cloading}
+                options={communities}
+                getOptionLabel={(option: Community) => option.name}
+                getOptionValue={(option: Community) => option.id.toString()}
+                {...field}
+              />
+            )}
+          />
+        </FormControl>
+      )}
       {['erc20', 'nft'].includes(censusType) &&
         addressFields.map((field, index) => (
           <FormControl key={field.id} {...props}>
@@ -118,7 +145,7 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
                 {...register(`addresses.${index}.blockchain`, { required })}
                 defaultValue='ethereum'
                 w='auto'
-                icon={isLoading ? <Spinner /> : <MdArrowDropDown />}
+                icon={bloading ? <Spinner /> : <MdArrowDropDown />}
               >
                 {blockchains &&
                   blockchains.map((blockchain, key) => (
