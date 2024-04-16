@@ -473,6 +473,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/census/community", http.MethodPost, "private", handler.censusCommunity); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/census/check/{censusID}", http.MethodGet, "private", handler.censusQueueInfo); err != nil {
 		log.Fatal(err)
 	}

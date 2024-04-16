@@ -120,6 +120,9 @@ func (ms *MongoStorage) getCommunity(id uint64) (*Community, error) {
 	var community Community
 	err := ms.communitites.FindOne(ctx, bson.M{"_id": id}).Decode(&community)
 	if err != nil {
+		if strings.Contains(err.Error(), "no documents in result") {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &community, nil
