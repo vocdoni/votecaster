@@ -27,7 +27,7 @@ func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl string,
 	return ms.addCommunity(&community)
 }
 
-func (ms *MongoStorage) GetCommunity(id uint64) (*Community, error) {
+func (ms *MongoStorage) Community(id uint64) (*Community, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 	return ms.getCommunity(id)

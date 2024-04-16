@@ -108,5 +108,82 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 }
 
 func (v *vocdoniHandler) getCommunityHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	return nil
+	communityID := ctx.URLParam("communityID")
+	if communityID == "" {
+		return ctx.Send([]byte("No community ID provided"), http.StatusBadRequest)
+	}
+	id, err := strconv.Atoi(communityID)
+	if err != nil {
+		return ctx.Send([]byte("Invalid community ID"), http.StatusBadRequest)
+	}
+	dbCommunity, err := v.db.Community(uint64(id))
+	if err != nil {
+		return ctx.Send([]byte("Error getting community"), http.StatusInternalServerError)
+	}
+	if dbCommunity == nil {
+		return ctx.Send([]byte("Community not found"), http.StatusNotFound)
+	}
+	// get admin profiles
+	admins := []*FarcasterProfile{}
+	for _, admin := range dbCommunity.Admins {
+		user, err := v.fcapi.UserDataByFID(ctx.Request.Context(), admin)
+		if err != nil {
+			if err == farcasterapi.ErrNoDataFound {
+				continue
+			}
+			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+		}
+		admins = append(admins, &FarcasterProfile{
+			FID:           user.FID,
+			Username:      user.Username,
+			DisplayName:   user.Displayname,
+			Avatar:        user.Avatar,
+			Bio:           user.Bio,
+			Custody:       user.CustodyAddress,
+			Verifications: user.VerificationsAddresses,
+		})
+	}
+	// get census addresses details
+	censusAddresses := []CensusAddress{}
+	for _, addr := range dbCommunity.Census.Addresses {
+		censusAddresses = append(censusAddresses, CensusAddress{
+			Address:    addr.Address,
+			Blockchain: addr.Blockchain,
+		})
+	}
+	// get channels details
+	channels := []*Channel{}
+	for _, ch := range dbCommunity.Channels {
+		channel, err := v.fcapi.Channel(ctx.Request.Context(), ch)
+		if err != nil {
+			if err == farcasterapi.ErrChannelNotFound {
+				continue
+			}
+			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+		}
+		channels = append(channels, &Channel{
+			ID:          channel.ID,
+			Name:        channel.Name,
+			Description: channel.Description,
+			Followers:   channel.Followers,
+			ImageURL:    channel.Image,
+			URL:         channel.URL,
+		})
+	}
+	// encode the community
+	res, err := json.Marshal(Community{
+		ID:              dbCommunity.ID,
+		Name:            dbCommunity.Name,
+		LogoURL:         dbCommunity.ImageURL,
+		Admins:          admins,
+		Notifications:   dbCommunity.Notifications,
+		CensusName:      dbCommunity.Census.Name,
+		CensusType:      dbCommunity.Census.Type,
+		CensusAddresses: censusAddresses,
+		Channels:        channels,
+	})
+	if err != nil {
+		return ctx.Send([]byte("Error encoding community"), http.StatusInternalServerError)
+	}
+	return ctx.Send(res, http.StatusOK)
 }
