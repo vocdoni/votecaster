@@ -1,10 +1,10 @@
-import { Box, FormControl, FormErrorMessage, FormLabel, Heading, Input, VStack } from '@chakra-ui/react'
-import { AsyncCreatableSelect } from 'chakra-react-select'
-import { useState } from 'react'
-import { Controller, useFormContext } from 'react-hook-form'
-import { appUrl } from '../../../util/constants'
-import { useAuth } from '../../Auth/useAuth'
-import { CommunityCard } from '../Card'
+import {Box, FormControl, FormErrorMessage, FormLabel, Heading, Input, VStack} from '@chakra-ui/react'
+import {AsyncCreatableSelect} from 'chakra-react-select'
+import {useEffect, useState} from 'react'
+import {Controller, useFormContext} from 'react-hook-form'
+import {appUrl} from '../../../util/constants'
+import {useAuth} from '../../Auth/useAuth'
+import {CommunityCard} from '../Card'
 
 export type CommunityMetaFormValues = {
   name: string
@@ -16,14 +16,24 @@ export const Meta = () => {
   const {
     register,
     watch,
-    formState: { errors },
+    formState: {errors},
     clearErrors,
     setError,
+    setValue,
   } = useFormContext<CommunityMetaFormValues>()
-  const { bfetch } = useAuth()
+  const {bfetch, profile} = useAuth()
   const logo = watch('logo')
   const name = watch('name')
   const [loading, setLoading] = useState<boolean>(false)
+
+  useEffect(() => {
+    if (profile?.username) {
+      setValue('admins', [{
+        label: profile.displayName,
+        value: profile.username
+      }], {shouldValidate: true});
+    }
+  }, [profile?.username]);
 
   return (
     <VStack spacing={4} w='full' alignItems='start'>
@@ -36,7 +46,7 @@ export const Meta = () => {
         <FormLabel htmlFor='admins'>Admins</FormLabel>
         <Controller
           name='admins'
-          render={({ field }) => (
+          render={({field}) => (
             <AsyncCreatableSelect
               id='admins'
               isMulti
@@ -46,24 +56,24 @@ export const Meta = () => {
               isLoading={loading}
               placeholder='Add users'
               {...field}
-              onChange={async (values, { action, option }) => {
+              onChange={async (values, {action, option}) => {
                 // remove previous errors
                 clearErrors('admins')
                 if (action === 'create-option') {
                   try {
                     setLoading(true)
                     const res = await bfetch(`${appUrl}/profile/user/${option.value}`)
-                    const { user } = await res.json()
+                    const {user} = await res.json()
                     if (!user) {
                       throw new Error('User not found')
                     }
                     // adding always adds the final value, should be safe to remove it
                     values = values.slice(0, -1)
 
-                    field.onChange([...values, { label: user.username, value: user.userID.toString() }])
+                    field.onChange([...values, {label: user.username, value: user.userID.toString()}])
                   } catch (e) {
                     if (e instanceof Error) {
-                      setError('admins', { message: e.message })
+                      setError('admins', {message: e.message})
                     } else {
                       console.error('unknown error while fetching user:', e)
                     }
@@ -82,11 +92,11 @@ export const Meta = () => {
       <FormControl isRequired isInvalid={!!errors.logo}>
         <FormLabel>Logo</FormLabel>
         <Input
-          {...register('logo', { validate: (val) => /^(https?|ipfs):\/\//.test(val) || 'Must be a valid image link' })}
+          {...register('logo', {validate: (val) => /^(https?|ipfs):\/\//.test(val) || 'Must be a valid image link'})}
         />
         <FormErrorMessage>{errors.logo?.message?.toString()}</FormErrorMessage>
       </FormControl>
-      <CommunityCard pfpUrl={logo} name={name} />
+      <CommunityCard pfpUrl={logo} name={name}/>
       <Box></Box>
     </VStack>
   )
