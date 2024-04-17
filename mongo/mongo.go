@@ -223,6 +223,15 @@ func (ms *MongoStorage) createIndexes() error {
 	if _, err := ms.elections.Indexes().CreateOne(ctx, electionAuthorIndexModel); err != nil {
 		return fmt.Errorf("failed to create index on userId for elections: %w", err)
 	}
+
+	// Create index for users reputations over the user access profiles
+	// collection to support the ranking by reputation
+	reputationIndexModel := mongo.IndexModel{
+		Keys: bson.D{{Key: "reputation", Value: -1}},
+	}
+	if _, err := ms.userAccessProfiles.Indexes().CreateOne(ctx, reputationIndexModel); err != nil {
+		return fmt.Errorf("failed to create index on reputation for users: %w", err)
+	}
 	return nil
 }
 
