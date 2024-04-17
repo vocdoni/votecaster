@@ -57,6 +57,14 @@ type Channel struct {
 	URL         string `json:"url"`
 }
 
+// User defines the attributes of a farcaster user in the farcaster.vote databse
+type User struct {
+	FID         uint64 `json:"fid"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayname"`
+	Avatar      string `json:"pfpUrl"`
+}
+
 // ChannelList defines the list of channels
 type ChannelList struct {
 	Channels []*Channel `json:"channels"`
@@ -73,16 +81,16 @@ type CensusAddress struct {
 // (FarcasterProfile), the census addresses (CensusAddress) and the channels
 // (Channel)
 type Community struct {
-	ID              uint64              `json:"id"`
-	Name            string              `json:"name"`
-	LogoURL         string              `json:"logoURL"`
-	Admins          []*FarcasterProfile `json:"admins"`
-	Notifications   bool                `json:"notifications"`
-	CensusName      string              `json:"censusName"`
-	CensusType      string              `json:"censusType"`
-	CensusAddresses []*CensusAddress    `json:"censusAddresses,omitempty"`
-	CensusChannel   *Channel            `json:"censusChannel,omitempty"`
-	Channels        []*Channel          `json:"channels"`
+	ID              uint64           `json:"id"`
+	Name            string           `json:"name"`
+	LogoURL         string           `json:"logoURL"`
+	Admins          []*User          `json:"admins"`
+	Notifications   bool             `json:"notifications"`
+	CensusName      string           `json:"censusName"`
+	CensusType      string           `json:"censusType"`
+	CensusAddresses []*CensusAddress `json:"censusAddresses,omitempty"`
+	CensusChannel   *Channel         `json:"censusChannel,omitempty"`
+	Channels        []string        `json:"channels"`
 }
 
 // CommunityList defines the list of communities

@@ -566,7 +566,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodGet, "public", handler.getCommunityHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodGet, "public", handler.communityHandler); err != nil {
 		log.Fatal(err)
 	}
 

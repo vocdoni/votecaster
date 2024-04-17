@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -11,11 +12,56 @@ import (
 	"go.vocdoni.io/dvote/httprouter/apirest"
 )
 
+// censusChannelOrAddresses gets the census channel or addresses based on the
+// type of the census provided from the database. If the census provided is
+// based on a channel, it gets the channel information from the farcaster API,
+// and returns a nil for the addresses and the channel information. If the
+// census provided is based on addresses, it converts the address from the
+// database to the API format and returns them, with a nil for the channel
+// information.
+func (v *vocdoniHandler) censusChannelOrAddresses(ctx context.Context,
+	dbCensus mongo.CommunityCensus,
+) ([]*CensusAddress, *Channel, error) {
+	var censusChannel *Channel
+	var censusAddresses []*CensusAddress
+	if dbCensus.Type == mongo.TypeCommunityCensusChannel {
+		channel, err := v.fcapi.Channel(ctx, dbCensus.Channel)
+		if err != nil {
+			return nil, nil, err
+		}
+		censusChannel = &Channel{
+			ID:          channel.ID,
+			Name:        channel.Name,
+			Description: channel.Description,
+			Followers:   channel.Followers,
+			ImageURL:    channel.Image,
+			URL:         channel.URL,
+		}
+	} else { // ERC20 or NFT census type
+		censusAddresses = []*CensusAddress{}
+		if len(dbCensus.Addresses) > 0 {
+			for _, addr := range dbCensus.Addresses {
+				censusAddresses = append(censusAddresses, &CensusAddress{
+					Address:    addr.Address,
+					Blockchain: addr.Blockchain,
+				})
+			}
+		}
+	}
+	return censusAddresses, censusChannel, nil
+}
+
 func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	urlQuery := ctx.Request.URL.Query()
 	var err error
 	var dbCommunities []mongo.Community
-	if byAdminFID := urlQuery.Get("byAdminFID"); byAdminFID != "" {
+	// check if the query has the byAdminFID or byAdminUsername parameters and
+	// list communities by admin FID or username respectively, otherwise list
+	// all communities
+	byAdminFID := ctx.Request.URL.Query().Get("byAdminFID")
+	byAdminUsername := ctx.Request.URL.Query().Get("byAdminUsername")
+	switch {
+	case byAdminFID != "":
+		// if the query has the byAdminFID parameter, list communities by admin FID
 		var adminFID int
 		adminFID, err = strconv.Atoi(byAdminFID)
 		if err != nil {
@@ -24,11 +70,13 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 		if dbCommunities, err = v.db.ListCommunitiesByAdminFID(uint64(adminFID)); err != nil {
 			return ctx.Send([]byte("Error listing communities"), http.StatusInternalServerError)
 		}
-	} else if byAdminUsername := urlQuery.Get("byAdminUsername"); byAdminUsername != "" {
+	case byAdminUsername != "":
+		// if the query has the byAdminUsername parameter, list communities by admin username
 		if dbCommunities, err = v.db.ListCommunitiesByAdminUsername(byAdminUsername); err != nil {
 			return ctx.Send([]byte("Error listing communities"), http.StatusInternalServerError)
 		}
-	} else {
+	default:
+		// otherwise, list all communities
 		if dbCommunities, err = v.db.ListCommunities(); err != nil {
 			return ctx.Send([]byte("Error listing communities"), http.StatusInternalServerError)
 		}
@@ -40,74 +88,30 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 		Communities: []*Community{},
 	}
 	for _, c := range dbCommunities {
-		// get admin profiles
-		admins := []*FarcasterProfile{}
+		// get admin profiles from the database
+		admins := []*User{}
 		for _, admin := range c.Admins {
-			user, err := v.fcapi.UserDataByFID(ctx.Request.Context(), admin)
+			user, err := v.db.User(admin)
 			if err != nil {
 				if err == farcasterapi.ErrNoDataFound {
 					continue
 				}
 				return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
 			}
-			admins = append(admins, &FarcasterProfile{
-				FID:           user.FID,
-				Username:      user.Username,
-				DisplayName:   user.Displayname,
-				Avatar:        user.Avatar,
-				Bio:           user.Bio,
-				Custody:       user.CustodyAddress,
-				Verifications: user.VerificationsAddresses,
+			admins = append(admins, &User{
+				FID:         user.UserID,
+				Username:    user.Username,
+				DisplayName: user.Displayname,
+				// Avatar:      user.Avatar,
 			})
 		}
 		// get census channel or addresses based on the type
-		var censusChannel *Channel
-		var censusAddresses []*CensusAddress
-		if c.Census.Type == mongo.TypeCommunityCensusChannel {
-			channel, err := v.fcapi.Channel(ctx.Request.Context(), c.Census.Channel)
-			if err != nil {
-				if err == farcasterapi.ErrChannelNotFound {
-					return ctx.Send([]byte("Census channel not found"), http.StatusNotFound)
-				}
-				return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+		cAddresses, cChannel, err := v.censusChannelOrAddresses(ctx.Request.Context(), c.Census)
+		if err != nil {
+			if err == farcasterapi.ErrChannelNotFound {
+				return ctx.Send([]byte("Census channel not found"), http.StatusNotFound)
 			}
-			censusChannel = &Channel{
-				ID:          channel.ID,
-				Name:        channel.Name,
-				Description: channel.Description,
-				Followers:   channel.Followers,
-				ImageURL:    channel.Image,
-				URL:         channel.URL,
-			}
-		} else { // ERC20 or NFT census type
-			censusAddresses = []*CensusAddress{}
-			if len(c.Census.Addresses) > 0 {
-				for _, addr := range c.Census.Addresses {
-					censusAddresses = append(censusAddresses, &CensusAddress{
-						Address:    addr.Address,
-						Blockchain: addr.Blockchain,
-					})
-				}
-			}
-		}
-		// get channels details
-		channels := []*Channel{}
-		for _, ch := range c.Channels {
-			channel, err := v.fcapi.Channel(ctx.Request.Context(), ch)
-			if err != nil {
-				if err == farcasterapi.ErrChannelNotFound {
-					continue
-				}
-				return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
-			}
-			channels = append(channels, &Channel{
-				ID:          channel.ID,
-				Name:        channel.Name,
-				Description: channel.Description,
-				Followers:   channel.Followers,
-				ImageURL:    channel.Image,
-				URL:         channel.URL,
-			})
+			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
 		}
 		// add community to the list
 		communities.Communities = append(communities.Communities, &Community{
@@ -118,9 +122,9 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 			Notifications:   c.Notifications,
 			CensusName:      c.Census.Name,
 			CensusType:      c.Census.Type,
-			CensusAddresses: censusAddresses,
-			CensusChannel:   censusChannel,
-			Channels:        channels,
+			CensusAddresses: cAddresses,
+			CensusChannel:   cChannel,
+			Channels:        c.Channels,
 		})
 	}
 	res, err := json.Marshal(communities)
@@ -130,7 +134,8 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 	return ctx.Send(res, http.StatusOK)
 }
 
-func (v *vocdoniHandler) getCommunityHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// get community id from the URL and parse to int
 	communityID := ctx.URLParam("communityID")
 	if communityID == "" {
 		return ctx.Send([]byte("No community ID provided"), http.StatusBadRequest)
@@ -139,6 +144,7 @@ func (v *vocdoniHandler) getCommunityHandler(msg *apirest.APIdata, ctx *httprout
 	if err != nil {
 		return ctx.Send([]byte("Invalid community ID"), http.StatusBadRequest)
 	}
+	// get the community from the database by its id
 	dbCommunity, err := v.db.Community(uint64(id))
 	if err != nil {
 		return ctx.Send([]byte("Error getting community"), http.StatusInternalServerError)
@@ -146,74 +152,30 @@ func (v *vocdoniHandler) getCommunityHandler(msg *apirest.APIdata, ctx *httprout
 	if dbCommunity == nil {
 		return ctx.Send([]byte("Community not found"), http.StatusNotFound)
 	}
-	// get admin profiles
-	admins := []*FarcasterProfile{}
+	// get admin profiles for the community
+	admins := []*User{}
 	for _, admin := range dbCommunity.Admins {
-		user, err := v.fcapi.UserDataByFID(ctx.Request.Context(), admin)
+		user, err := v.db.User(admin)
 		if err != nil {
 			if err == farcasterapi.ErrNoDataFound {
 				continue
 			}
 			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
 		}
-		admins = append(admins, &FarcasterProfile{
-			FID:           user.FID,
-			Username:      user.Username,
-			DisplayName:   user.Displayname,
-			Avatar:        user.Avatar,
-			Bio:           user.Bio,
-			Custody:       user.CustodyAddress,
-			Verifications: user.VerificationsAddresses,
+		admins = append(admins, &User{
+			FID:         user.UserID,
+			Username:    user.Username,
+			DisplayName: user.Displayname,
+			// Avatar:      user.Avatar,
 		})
 	}
 	// get census channel or addresses based on the type
-	var censusChannel *Channel
-	var censusAddresses []*CensusAddress
-	if dbCommunity.Census.Type == "channel" {
-		channel, err := v.fcapi.Channel(ctx.Request.Context(), dbCommunity.Census.Channel)
-		if err != nil {
-			if err == farcasterapi.ErrChannelNotFound {
-				return ctx.Send([]byte("Census channel not found"), http.StatusNotFound)
-			}
-			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+	cAddresses, cChannel, err := v.censusChannelOrAddresses(ctx.Request.Context(), dbCommunity.Census)
+	if err != nil {
+		if err == farcasterapi.ErrChannelNotFound {
+			return ctx.Send([]byte("Census channel not found"), http.StatusNotFound)
 		}
-		censusChannel = &Channel{
-			ID:          channel.ID,
-			Name:        channel.Name,
-			Description: channel.Description,
-			Followers:   channel.Followers,
-			ImageURL:    channel.Image,
-			URL:         channel.URL,
-		}
-	} else if dbCommunity.Census.Type == "erc20" || dbCommunity.Census.Type == "nft" {
-		censusAddresses = []*CensusAddress{}
-		if len(dbCommunity.Census.Addresses) > 0 {
-			for _, addr := range dbCommunity.Census.Addresses {
-				censusAddresses = append(censusAddresses, &CensusAddress{
-					Address:    addr.Address,
-					Blockchain: addr.Blockchain,
-				})
-			}
-		}
-	}
-	// get channels details
-	channels := []*Channel{}
-	for _, ch := range dbCommunity.Channels {
-		channel, err := v.fcapi.Channel(ctx.Request.Context(), ch)
-		if err != nil {
-			if err == farcasterapi.ErrChannelNotFound {
-				continue
-			}
-			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
-		}
-		channels = append(channels, &Channel{
-			ID:          channel.ID,
-			Name:        channel.Name,
-			Description: channel.Description,
-			Followers:   channel.Followers,
-			ImageURL:    channel.Image,
-			URL:         channel.URL,
-		})
+		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
 	}
 	// encode the community
 	res, err := json.Marshal(Community{
@@ -224,9 +186,9 @@ func (v *vocdoniHandler) getCommunityHandler(msg *apirest.APIdata, ctx *httprout
 		Notifications:   dbCommunity.Notifications,
 		CensusName:      dbCommunity.Census.Name,
 		CensusType:      dbCommunity.Census.Type,
-		CensusAddresses: censusAddresses,
-		CensusChannel:   censusChannel,
-		Channels:        channels,
+		CensusAddresses: cAddresses,
+		CensusChannel:   cChannel,
+		Channels:        dbCommunity.Channels,
 	})
 	if err != nil {
 		return ctx.Send([]byte("Error encoding community"), http.StatusInternalServerError)
