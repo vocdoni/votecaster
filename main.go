@@ -391,10 +391,6 @@ func main() {
 	if err := uAPI.Endpoint.RegisterMethod("/rankings/usersByReputation", http.MethodGet, "public", handler.rankingByReputation); err != nil {
 		log.Fatal(err)
 	}
-	
-	if err := uAPI.Endpoint.RegisterMethod("/rankings/usersByVotesPollsRatio", http.MethodGet, "public", handler.usersByVotesPollsRatio); err != nil {
-		log.Fatal(err)
-	}
 
 	// Register the API methods
 	if err := uAPI.Endpoint.RegisterMethod("/router/{electionID}", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
