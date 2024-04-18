@@ -445,6 +445,17 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 	if community == nil {
 		return ctx.Send([]byte("community not found"), http.StatusNotFound)
 	}
+	// check if the current user is an admin of the community
+	var authorized bool
+	for _, admin := range community.Admins {
+		if admin == userFID {
+			authorized = true
+			break
+		}
+	}
+	if !authorized {
+		return ctx.Send([]byte("you are not an admin of this community"), http.StatusUnauthorized)
+	}
 	// create a censusID for the queue and store into it
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
@@ -477,25 +488,28 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 		return err
 	}
 	// convert the census type to the correct type for the CreateCensus function
-	censusType := ERC20type
-	if community.Census.Type == mongo.TypeCommunityCensusNFT {
+	var censusType, tokenDecimals int
+	switch community.Census.Type {
+	case mongo.TypeCommunityCensusNFT:
+		// set the census type to NFT
 		censusType = NFTtype
-	}
-	// get token decimals if the census type is ERC20
-	var tokenDecimals int
-	if censusType == ERC20type {
+	case mongo.TypeCommunityCensusERC20:
+		// set the census type to ERC20 and check the number of tokens is 1
+		censusType = ERC20type
 		if len(censusAddresses) != 1 {
 			return fmt.Errorf("erc20 census must have only one token address")
 		}
+		// get token decimals only if the census type is ERC20, otherwise set it
+		// to 0 by default (NFT census)
 		tokenDecimals, err = v.airstack.TokenDecimalsByToken(censusAddresses[0].Address, censusAddresses[0].Blockchain)
 		if err != nil {
-			return fmt.Errorf("cannot get token decimals")
+			return fmt.Errorf("cannot get erc20 token decimals")
 		}
 	}
 	// create the census from the token holders
 	data, err := v.censusTokenAirstack(censusAddresses, censusType, tokenDecimals, userFID)
 	if err != nil {
-		return fmt.Errorf("cannot create erc20 census: %w", err)
+		return fmt.Errorf("cannot create erc20/nft based census: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
 }

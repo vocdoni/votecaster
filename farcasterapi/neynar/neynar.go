@@ -359,7 +359,7 @@ func (n *NeynarAPI) UserFollowers(ctx context.Context, fid uint64) ([]uint64, er
 func (n *NeynarAPI) Channel(ctx context.Context, channelID string) (*farcasterapi.Channel, error) {
 	// create request with the channel id provided
 	url := fmt.Sprintf(neynarChannelDataByID, channelID)
-	res, err := n.request(context.Background(), url, http.MethodGet, nil, defaultRequestTimeout)
+	res, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		if strings.Contains(err.Error(), "404") {
 			return nil, farcasterapi.ErrChannelNotFound

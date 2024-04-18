@@ -67,8 +67,8 @@ type API interface {
 	// given id exists. If something goes wrong checking the channel existence,
 	// it returns an error.
 	ChannelExists(ctx context.Context, channelID string) (bool, error)
-	// ListChannels method returns the list of public channels. If something
-	// goes wrong, it returns an error.
+	// FindChannel method returns the channels that matches with the handle (or
+	// the part of it) provided. If something goes wrong, it returns an error.
 	FindChannel(ctx context.Context, query string) ([]*Channel, error)
 }
 

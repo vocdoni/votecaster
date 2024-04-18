@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
+	"go.vocdoni.io/dvote/log"
 )
 
 // censusChannelOrAddresses gets the census channel or addresses based on the
@@ -24,7 +26,8 @@ func (v *vocdoniHandler) censusChannelOrAddresses(ctx context.Context,
 ) ([]*CensusAddress, *Channel, error) {
 	var censusChannel *Channel
 	var censusAddresses []*CensusAddress
-	if dbCensus.Type == mongo.TypeCommunityCensusChannel {
+	switch dbCensus.Type {
+	case mongo.TypeCommunityCensusChannel:
 		channel, err := v.fcapi.Channel(ctx, dbCensus.Channel)
 		if err != nil {
 			return nil, nil, err
@@ -37,7 +40,7 @@ func (v *vocdoniHandler) censusChannelOrAddresses(ctx context.Context,
 			ImageURL:    channel.Image,
 			URL:         channel.URL,
 		}
-	} else { // ERC20 or NFT census type
+	case mongo.TypeCommunityCensusERC20, mongo.TypeCommunityCensusNFT:
 		censusAddresses = []*CensusAddress{}
 		if len(dbCensus.Addresses) > 0 {
 			for _, addr := range dbCensus.Addresses {
@@ -47,6 +50,8 @@ func (v *vocdoniHandler) censusChannelOrAddresses(ctx context.Context,
 				})
 			}
 		}
+	default:
+		return nil, nil, fmt.Errorf("invalid census type")
 	}
 	return censusAddresses, censusChannel, nil
 }
@@ -65,24 +70,24 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 		var adminFID int
 		adminFID, err = strconv.Atoi(byAdminFID)
 		if err != nil {
-			return ctx.Send([]byte("Invalid admin FID"), http.StatusBadRequest)
+			return ctx.Send([]byte("invalid admin FID"), http.StatusBadRequest)
 		}
 		if dbCommunities, err = v.db.ListCommunitiesByAdminFID(uint64(adminFID)); err != nil {
-			return ctx.Send([]byte("Error listing communities"), http.StatusInternalServerError)
+			return ctx.Send([]byte("error listing communities"), http.StatusInternalServerError)
 		}
 	case byAdminUsername != "":
 		// if the query has the byAdminUsername parameter, list communities by admin username
 		if dbCommunities, err = v.db.ListCommunitiesByAdminUsername(byAdminUsername); err != nil {
-			return ctx.Send([]byte("Error listing communities"), http.StatusInternalServerError)
+			return ctx.Send([]byte("error listing communities"), http.StatusInternalServerError)
 		}
 	default:
 		// otherwise, list all communities
 		if dbCommunities, err = v.db.ListCommunities(); err != nil {
-			return ctx.Send([]byte("Error listing communities"), http.StatusInternalServerError)
+			return ctx.Send([]byte("error listing communities"), http.StatusInternalServerError)
 		}
 	}
 	if len(dbCommunities) == 0 {
-		return ctx.Send([]byte("No communities found"), http.StatusNotFound)
+		return ctx.Send([]byte("no communities found"), http.StatusNotFound)
 	}
 	communities := CommunityList{
 		Communities: []*Community{},
@@ -108,10 +113,11 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 		// get census channel or addresses based on the type
 		cAddresses, cChannel, err := v.censusChannelOrAddresses(ctx.Request.Context(), c.Census)
 		if err != nil {
+			statusCode := http.StatusInternalServerError
 			if err == farcasterapi.ErrChannelNotFound {
-				return ctx.Send([]byte("Census channel not found"), http.StatusNotFound)
+				statusCode = http.StatusNotFound
 			}
-			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+			return ctx.Send([]byte(err.Error()), statusCode)
 		}
 		// add community to the list
 		communities.Communities = append(communities.Communities, &Community{
@@ -129,7 +135,7 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 	}
 	res, err := json.Marshal(communities)
 	if err != nil {
-		return ctx.Send([]byte("Error encoding communities"), http.StatusInternalServerError)
+		return ctx.Send([]byte("error encoding communities"), http.StatusInternalServerError)
 	}
 	return ctx.Send(res, http.StatusOK)
 }
@@ -138,19 +144,19 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 	// get community id from the URL and parse to int
 	communityID := ctx.URLParam("communityID")
 	if communityID == "" {
-		return ctx.Send([]byte("No community ID provided"), http.StatusBadRequest)
+		return ctx.Send([]byte("no community ID provided"), http.StatusBadRequest)
 	}
 	id, err := strconv.Atoi(communityID)
 	if err != nil {
-		return ctx.Send([]byte("Invalid community ID"), http.StatusBadRequest)
+		return ctx.Send([]byte("invalid community ID"), http.StatusBadRequest)
 	}
 	// get the community from the database by its id
 	dbCommunity, err := v.db.Community(uint64(id))
 	if err != nil {
-		return ctx.Send([]byte("Error getting community"), http.StatusInternalServerError)
+		return ctx.Send([]byte("error getting community"), http.StatusInternalServerError)
 	}
 	if dbCommunity == nil {
-		return ctx.Send([]byte("Community not found"), http.StatusNotFound)
+		return ctx.Send([]byte("community not found"), http.StatusNotFound)
 	}
 	// get admin profiles for the community
 	admins := []*User{}
@@ -158,6 +164,10 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 		user, err := v.db.User(admin)
 		if err != nil {
 			if err == farcasterapi.ErrNoDataFound {
+				log.Warnw("community admin not found in the database",
+					"err", err,
+					"user", admin,
+					"community", dbCommunity.ID)
 				continue
 			}
 			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
@@ -173,7 +183,7 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 	cAddresses, cChannel, err := v.censusChannelOrAddresses(ctx.Request.Context(), dbCommunity.Census)
 	if err != nil {
 		if err == farcasterapi.ErrChannelNotFound {
-			return ctx.Send([]byte("Census channel not found"), http.StatusNotFound)
+			return ctx.Send([]byte("census channel not found"), http.StatusNotFound)
 		}
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
 	}
@@ -191,7 +201,7 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 		Channels:        dbCommunity.Channels,
 	})
 	if err != nil {
-		return ctx.Send([]byte("Error encoding community"), http.StatusInternalServerError)
+		return ctx.Send([]byte("error encoding community"), http.StatusInternalServerError)
 	}
 	return ctx.Send(res, http.StatusOK)
 }
