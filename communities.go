@@ -101,13 +101,13 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 				if err == farcasterapi.ErrNoDataFound {
 					continue
 				}
-				return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+				return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
 			}
 			admins = append(admins, &User{
 				FID:         user.UserID,
 				Username:    user.Username,
 				DisplayName: user.Displayname,
-				// Avatar:      user.Avatar,
+				Avatar:      user.Avatar,
 			})
 		}
 		// get census channel or addresses based on the type
@@ -170,7 +170,7 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 					"community", dbCommunity.ID)
 				continue
 			}
-			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+			return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
 		}
 		admins = append(admins, &User{
 			FID:         user.UserID,
@@ -182,10 +182,11 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 	// get census channel or addresses based on the type
 	cAddresses, cChannel, err := v.censusChannelOrAddresses(ctx.Request.Context(), dbCommunity.Census)
 	if err != nil {
+		statusCode := http.StatusInternalServerError
 		if err == farcasterapi.ErrChannelNotFound {
-			return ctx.Send([]byte("census channel not found"), http.StatusNotFound)
+			statusCode = http.StatusNotFound
 		}
-		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusInternalErr)
+		return ctx.Send([]byte(err.Error()), statusCode)
 	}
 	// encode the community
 	res, err := json.Marshal(Community{
