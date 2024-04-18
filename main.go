@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/discover"
 	"github.com/vocdoni/vote-frame/farcasterapi"
@@ -57,8 +58,8 @@ func main() {
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
 	flag.String("web3",
-		"https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
-		"Web3 RPC Optimism endpoint")
+		"https://eth.llamarpc.com,https://rpc.ankr.com/eth,https://ethereum-rpc.publicnode.com,https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
+		"Web3 RPCs")
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 
 	// bot flags
@@ -230,6 +231,18 @@ func main() {
 	if censusInfo.Url == "" || len(censusInfo.Root) == 0 || censusInfo.Size == 0 {
 		log.Fatal("censusFromFile must contain a valid URL and root hash")
 	}
+
+	// Create a Web3 pool
+	web3pool, err := c3web3.NewWeb3Pool()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, endpoint := range web3endpoint {
+		if err := web3pool.AddEndpoint(endpoint); err != nil {
+			log.Warnw("failed to add web3 endpoint", "endpoint", endpoint, "error", err)
+		}
+	}
+	log.Infow("web3 pool initialized", "endpoints", web3pool.String())
 
 	// Create the MongoDB connection
 	db, err := mongo.New(mongoURL, mongoDB)

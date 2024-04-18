@@ -2,11 +2,14 @@ package communities
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
+	c3web3 "github.com/vocdoni/census3/helpers/web3"
+	comhub "github.com/vocdoni/vote-frame/discover/communities/contracts/communityhub"
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/log"
 )
@@ -23,6 +26,8 @@ type CommunitiesHubListener struct {
 	waiter           sync.WaitGroup
 	cancel           context.CancelFunc
 	lastScannedBlock atomic.Uint64
+	w3cli            *c3web3.Client
+	contract         *comhub.CommunityHubToken
 
 	Address common.Address
 	ChainID uint64
@@ -30,13 +35,23 @@ type CommunitiesHubListener struct {
 
 func NewCommunitiesHubListener(
 	goblalCtx context.Context,
+	w3p *c3web3.Web3Pool,
 	conf *CommunitiesHubListenerConfig,
 ) (*CommunitiesHubListener, error) {
 	if conf.DB == nil {
 		return nil, ErrMissingDB
 	}
-	// TODO: init the contract and request a RPC endpoint to dial
-	// the contract
+	// initialize the web3 client for the chain
+	w3cli, err := w3p.Client(conf.ChainID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get web3 client: %w", err)
+	}
+	// initialize the contract with the web3 client and the contract address
+	contract, err := comhub.NewCommunityHubToken(common.HexToAddress(conf.ContractAddress), w3cli)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get contract: %w", err)
+	}
+	// initialize the context and the listener
 	ctx, cancel := context.WithCancel(goblalCtx)
 	community := &CommunitiesHubListener{
 		db:               conf.DB,
@@ -44,10 +59,12 @@ func NewCommunitiesHubListener(
 		cancel:           cancel,
 		waiter:           sync.WaitGroup{},
 		lastScannedBlock: atomic.Uint64{},
+		w3cli:            w3cli,
+		contract:         contract,
 		Address:          common.HexToAddress(conf.ContractAddress),
 		ChainID:          conf.ChainID,
 	}
-	// get the last scanned block from the database
+	// get the last scanned block from the database and set it in the listener
 	dbLastScannedBlock, err := conf.DB.Metadata(lastSyncedBlockKey)
 	if err != nil && !strings.Contains(err.Error(), "no documents in result") {
 		log.Errorf("failed to get last scanned block: %s", err)
