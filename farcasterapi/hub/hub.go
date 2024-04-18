@@ -510,18 +510,24 @@ func (h *Hub) UserFollowers(ctx context.Context, fid uint64) ([]uint64, error) {
 	return followersFids, nil
 }
 
-// ChannelFIDs method returns the FIDs of the users that follow the channel with
-// the given id. If something goes wrong, it returns an error. It return an
-// specific error if the channel does not exist to be handled by the caller.
-func (n *Hub) ChannelFIDs(ctx context.Context, channelID string, _ chan int) ([]uint64, error) {
+// Channel method is not supported by the Hub API. It returns an error.
+func (h *Hub) Channel(ctx context.Context, channelID string) (*farcasterapi.Channel, error) {
 	return nil, fmt.Errorf("hub api does not support channels yet")
 }
 
-// ChannelExists method returns a boolean indicating if the channel with the
-// given id exists. If something goes wrong checking the channel existence,
-// it returns an error.
-func (n *Hub) ChannelExists(channelID string) (bool, error) {
+// ChannelFIDs method is not supported by the Hub API. It returns an error.
+func (h *Hub) ChannelFIDs(ctx context.Context, channelID string, _ chan int) ([]uint64, error) {
+	return nil, fmt.Errorf("hub api does not support channels yet")
+}
+
+// ChannelExists method is not supported by the Hub API. It returns an error.
+func (h *Hub) ChannelExists(ctx context.Context, channelID string) (bool, error) {
 	return false, fmt.Errorf("hub api does not support channels yet")
+}
+
+// ListChannels method is not supported by the Hub API. It returns an error.
+func (h *Hub) FindChannel(ctx context.Context, query string) ([]*farcasterapi.Channel, error) {
+	return nil, fmt.Errorf("hub api does not support channels yet")
 }
 
 // WebhookHandler method handles the incoming webhooks. Hub does not implement
