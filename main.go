@@ -65,7 +65,6 @@ func main() {
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 	// community hub flags
 	flag.String("communityHubAddress", "", "The address of the CommunityHub contract")
-	flag.Uint64("communityHubStartBlock", 7250537, "The block number to start the CommunityHub (by default, the contract creation block)")
 	flag.Uint64("communityHubChainID", 666666666, "The chain ID of the CommunityHub contract (default: DegenChain 666666666)")
 	// bot flags
 	// DISCLAMER: Currently the bot needs a HUB with write permissions to work.
@@ -126,7 +125,6 @@ func main() {
 	indexer := viper.GetBool("indexer")
 	// community hub vars
 	communityHubAddress := viper.GetString("communityHubAddress")
-	communityHubStartBlock := viper.GetUint64("communityHubStartBlock")
 	communityHubChainID := viper.GetUint64("communityHubChainID")
 
 	// bot vars
@@ -182,7 +180,6 @@ func main() {
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
 		"communityHubAddress", communityHubAddress,
-		"communityHubCreationBlock", communityHubStartBlock,
 		"communityHubChainID", communityHubChainID,
 		"botFid", botFid,
 		"botHubEndpoint", botHubEndpoint,
@@ -278,7 +275,6 @@ func main() {
 		comHub, err := communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
 			DB:              db,
 			ContractAddress: common.HexToAddress(communityHubAddress),
-			StartBlock:      communityHubStartBlock,
 			ChainID:         communityHubChainID,
 		})
 		if err != nil {

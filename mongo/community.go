@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.vocdoni.io/dvote/log"
 )
 
@@ -87,6 +88,25 @@ func (ms *MongoStorage) ListCommunitiesByAdminFID(fid uint64) ([]Community, erro
 		communities = append(communities, community)
 	}
 	return communities, nil
+}
+
+// NextCommunityID returns the next community ID which will be assigned to a new
+// community. It returns the last community ID + 1. If there are no communities
+// in the database, it returns 0. If something goes wrong, it returns an error.
+func (ms *MongoStorage) NextCommunityID() (uint64, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	opts := options.FindOne().SetSort(bson.M{"_id": -1})
+	var community Community
+	if err := ms.communitites.FindOne(ctx, bson.M{}, opts).Decode(&community); err != nil {
+		if strings.Contains(err.Error(), "no documents in result") {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return community.ID + 1, nil
 }
 
 // ListCommunitiesByAdminUsername returns the list of communities where the
