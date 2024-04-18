@@ -99,6 +99,10 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 			user, err := v.db.User(admin)
 			if err != nil {
 				if err == farcasterapi.ErrNoDataFound {
+					log.Warnw("community admin not found in the database",
+						"err", err,
+						"user", admin,
+						"community", c.ID)
 					continue
 				}
 				return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
@@ -176,7 +180,7 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 			FID:         user.UserID,
 			Username:    user.Username,
 			DisplayName: user.Displayname,
-			// Avatar:      user.Avatar,
+			Avatar:      user.Avatar,
 		})
 	}
 	// get census channel or addresses based on the type
