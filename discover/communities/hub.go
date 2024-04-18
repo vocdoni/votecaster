@@ -2,7 +2,6 @@ package communities
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -11,8 +10,6 @@ import (
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/log"
 )
-
-const zeroAddress = "0x0000000000000000000000000000000000000000"
 
 type CommunitiesHubListenerConfig struct {
 	ContractAddress string
@@ -41,7 +38,7 @@ func NewCommunitiesHubListener(
 	// TODO: init the contract and request a RPC endpoint to dial
 	// the contract
 	ctx, cancel := context.WithCancel(goblalCtx)
-	return &CommunitiesHubListener{
+	community := &CommunitiesHubListener{
 		db:               conf.DB,
 		ctx:              ctx,
 		cancel:           cancel,
@@ -49,7 +46,16 @@ func NewCommunitiesHubListener(
 		lastScannedBlock: atomic.Uint64{},
 		Address:          common.HexToAddress(conf.ContractAddress),
 		ChainID:          conf.ChainID,
-	}, nil
+	}
+	// get the last scanned block from the database
+	dbLastScannedBlock, err := conf.DB.Metadata(lastSyncedBlockKey)
+	if err != nil && !strings.Contains(err.Error(), "no documents in result") {
+		log.Errorf("failed to get last scanned block: %s", err)
+	}
+	if iLastSyncedBlock, ok := dbLastScannedBlock.(uint64); ok {
+		community.lastScannedBlock.Store(iLastSyncedBlock)
+	}
+	return community, nil
 }
 
 func (l *CommunitiesHubListener) Start() {
@@ -61,7 +67,38 @@ func (l *CommunitiesHubListener) Start() {
 	l.waiter.Add(1)
 	go func() {
 		defer l.waiter.Done()
+		// 1. SCAN BLOCKS
+		// scan from the last scanned block to the end of the iteration
+		// the iteration ends in the last scanned block + 1000000 or the last
+		// block in the chain, whichever is smaller
+		// scan from the last scanned block to the end in batches of 2000 blocks
+		// (or less if the end of the iteration is reached)
+		// At the end of every batch, update the last scanned block in the
+		// database
 
+		// 2. FILTER LOGS
+		// filter the logs to only get the ones that are related to the
+		// communities creation: 'CommunityCreated'
+		//  - using FilterCommunityCreated
+		//  - and ParseCommunityCreated
+		// which returns the id of the community and the address of the creator
+
+		// 3. GET COMMUNITY INFO
+		// get the community info using the community id calling to the contract
+		// to get the community data using:
+		//  - GetCommunity(id)
+		// which returns the ICommunityHubCommunity and must be parsed to a
+		// HubCommunity struct:
+		//  - ID (previous id) -> ID
+		//  - Metadata.Name -> Name
+		//  - Metadata.ImageUrl -> ImageUrl
+		//  - Metadata.Channels -> Channels
+		//  - Metadata.Notifications -> Notifications
+		//  - Guardians -> Admins
+		//  - Census.CensusType -> CensusType
+		//  - Census.Name -> CensusName
+		//  - Census.Channel -> CensusChannel
+		//  - Census.Addresses -> CensusAddesses
 	}()
 	// handle new logs in background and create new communities in the database
 	l.waiter.Add(1)
@@ -70,25 +107,20 @@ func (l *CommunitiesHubListener) Start() {
 		for c := range communitiesCh {
 			// create the db census according to the community census type
 			dbCensus := mongo.CommunityCensus{
-				Type: c.CensusType,
+				Type: string(c.CensusType),
 				Name: c.CensusName,
 			}
 			// if the census type is a channel, set the channel
-			if c.CensusType == mongo.TypeCommunityCensusChannel {
+			if c.CensusType == censusTypeChannel {
 				dbCensus.Channel = c.CensusChannel
 			} else {
 				// if the census type is an erc20 or nft, decode every census
 				// network address to get the contract address and blockchain
 				dbCensus.Addresses = []mongo.CommunityAddresses{}
 				for _, addr := range c.CensusAddesses {
-					address, blockchain, err := decodeNetworkAddress(addr)
-					if err != nil {
-						log.Errorf("failed to decode network address: %s", err)
-						continue
-					}
 					dbCensus.Addresses = append(dbCensus.Addresses, mongo.CommunityAddresses{
-						Address:    address.String(),
-						Blockchain: blockchain,
+						Address:    addr.Address.String(),
+						Blockchain: addr.Blockchain,
 					})
 				}
 				// if no valid addresses were found, skip the community and log
@@ -113,25 +145,4 @@ func (l *CommunitiesHubListener) Stop() {
 	log.Info("stopping communities hub listener")
 	l.cancel()
 	l.waiter.Wait()
-}
-
-// decodeNetworkAddress decodes a network address string into an ethereum address
-// and a blockchain name. The network address string must be in the format
-// <network>:<contractAddress>, for example:
-//
-//	base:0x225D58E18218E8d87f365301aB6eEe4CbfAF820b
-func decodeNetworkAddress(networkAddress string) (common.Address, string, error) {
-	parts := strings.Split(networkAddress, ":")
-	if len(parts) != 2 {
-		return common.Address{}, "", fmt.Errorf("invalid network address: %s", networkAddress)
-	}
-	strAddr, blockchain := parts[1], parts[0]
-	if strAddr == "" || blockchain == "" {
-		return common.Address{}, "", fmt.Errorf("invalid address or network: %s:%s", strAddr, blockchain)
-	}
-	addr := common.HexToAddress(strAddr)
-	if addr.String() == zeroAddress {
-		return addr, blockchain, fmt.Errorf("invalid address: %s -> %s", strAddr, zeroAddress)
-	}
-	return addr, blockchain, nil
 }

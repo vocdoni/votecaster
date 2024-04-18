@@ -158,6 +158,10 @@ type CommunitiesCollection struct {
 	Communities []Community `json:"communities" bson:"communities"`
 }
 
+type MetadataCollection struct {
+	Metadata []Metadata `json:"metadata" bson:"metadata"`
+}
+
 // UserRanking is a user ranking entry.
 type UserRanking struct {
 	FID         uint64 `json:"fid" bson:"fid"`
@@ -209,6 +213,11 @@ type CommunityCensus struct {
 type CommunityAddresses struct {
 	Address    string `json:"address" bson:"address"`
 	Blockchain string `json:"blockchain" bson:"blockchain"`
+}
+
+type Metadata struct {
+	Key   string `json:"key" bson:"_id"`
+	Value any    `json:"value" bson:"value"`
 }
 
 // dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.
