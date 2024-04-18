@@ -138,8 +138,14 @@ func (l *CommunityHub) ScanNewCommunities() {
 			default:
 				iteration++
 				// calculate the bounds of the iteration
-				startBlock := l.lastScannedBlock.Load()
-				endBlock := l.iterationEndBlock(startBlock)
+				currentBlock := l.lastScannedBlock.Load()
+				startBlock, endBlock, err := l.iterationBounds(currentBlock)
+				if err != nil {
+					log.Warnw("error getting iteration bounds",
+						"error", err,
+						"lastBlock", currentBlock)
+					continue
+				}
 				log.Infow("scanning for new communities",
 					"iteration", iteration,
 					"fromBlock", startBlock,
@@ -173,10 +179,10 @@ func (l *CommunityHub) ScanNewCommunities() {
 						"toBlock", endBatchBlock)
 					// update the start block for the next batch
 					startBlock += maxBlocksPerBatch
-					l.lastScannedBlock.Store(startBlock)
+					l.lastScannedBlock.Store(endBatchBlock + 1)
 				}
 				// update the last scanned block in the database
-				if err := l.db.SetMetadata(lastSyncedBlockKey, startBlock); err != nil {
+				if err := l.db.SetMetadata(lastSyncedBlockKey, endBlock); err != nil {
 					log.Warnw("error setting last scanned block",
 						"error", err,
 						"lastBlock", startBlock)
@@ -309,18 +315,24 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) {
 // based on the start block provided. It gets the last block in the chain and
 // returns the last block if it is less than the max last block, otherwise it
 // returns the max last block.
-func (l *CommunityHub) iterationEndBlock(startBlock uint64) uint64 {
-	// calculate the max last block to scan in a single iteration based on the
-	// start block provided
-	maxLastBlock := startBlock + maxBlocksPerIteration
+func (l *CommunityHub) iterationBounds(startBlock uint64) (uint64, uint64, error) {
 	// get the last block in the chain, if success and the is less than the max
 	// last block, return the last block, otherwise return the max last block
 	ctx, cancel := context.WithTimeout(l.ctx, time.Second*5)
 	defer cancel()
-	if lastBlock, err := l.w3cli.BlockNumber(ctx); err == nil && lastBlock < maxLastBlock {
-		return lastBlock
+	lastBlock, err := l.w3cli.BlockNumber(ctx)
+	if err != nil {
+		return 0, 0, err
 	}
-	return maxLastBlock
+	// if the start block is greater than the last block, return the last block
+	if startBlock > lastBlock {
+		return lastBlock, lastBlock, nil
+	}
+	maxLastBlock := startBlock + maxBlocksPerIteration - 1
+	if maxLastBlock < lastBlock {
+		return startBlock, maxLastBlock, nil
+	}
+	return startBlock, lastBlock, nil
 }
 
 // batchEndBlock helper method calculates the end block of the batch based on
