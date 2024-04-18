@@ -65,9 +65,8 @@ func main() {
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 	// community hub flags
 	flag.String("communityHubAddress", "", "The address of the CommunityHub contract")
-	flag.Uint64("communityHubCreationBlock", 0, "The block number of the CommunityHub contract creation")
+	flag.Uint64("communityHubStartBlock", 7250537, "The block number to start the CommunityHub (by default, the contract creation block)")
 	flag.Uint64("communityHubChainID", 666666666, "The chain ID of the CommunityHub contract (default: DegenChain 666666666)")
-
 	// bot flags
 	// DISCLAMER: Currently the bot needs a HUB with write permissions to work.
 	// It also needs a FID to impersonate to it and its private key to sign the
@@ -127,7 +126,7 @@ func main() {
 	indexer := viper.GetBool("indexer")
 	// community hub vars
 	communityHubAddress := viper.GetString("communityHubAddress")
-	communityHubCreationBlock := viper.GetUint64("communityHubCreationBlock")
+	communityHubStartBlock := viper.GetUint64("communityHubStartBlock")
 	communityHubChainID := viper.GetUint64("communityHubChainID")
 
 	// bot vars
@@ -183,7 +182,7 @@ func main() {
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
 		"communityHubAddress", communityHubAddress,
-		"communityHubCreationBlock", communityHubCreationBlock,
+		"communityHubCreationBlock", communityHubStartBlock,
 		"communityHubChainID", communityHubChainID,
 		"botFid", botFid,
 		"botHubEndpoint", botHubEndpoint,
@@ -275,11 +274,11 @@ func main() {
 	log.Infow("web3 pool initialized", "endpoints", web3pool.String())
 
 	// Create the community hub service
-	if communityHubAddress != "" && communityHubCreationBlock > 0 {
+	if communityHubAddress != "" {
 		comHub, err := communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
 			DB:              db,
 			ContractAddress: common.HexToAddress(communityHubAddress),
-			CreationBlock:   communityHubCreationBlock,
+			StartBlock:      communityHubStartBlock,
 			ChainID:         communityHubChainID,
 		})
 		if err != nil {

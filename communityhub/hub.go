@@ -18,29 +18,29 @@ import (
 )
 
 const (
-	// DefaultScannerCooldown is the default time that the scanner sleeps between
-	// scan iterations
+	// DefaultScannerCooldown is the default time that the scanner sleeps
+	// between scan iterations
 	DefaultScannerCooldown = time.Second * 10
 
 	maxBlocksPerIteration = 1000000
 	maxBlocksPerBatch     = 2000
 )
 
-// CommunityHubConfig struct defines the configuration for the
-// CommunityHub. It includes the contract address, the creation block of
-// the token, the chain ID where the contract is deployed, a database instance,
-// and the scanner cooldown (by default 10s (DefaultScannerCooldown)).
+// CommunityHubConfig struct defines the configuration for the CommunityHub.
+// It includes the contract address, the start block, the chain ID where the
+// contract is deployed, a database instance, and the scanner cooldown (by
+// default 10s (DefaultScannerCooldown)).
 type CommunityHubConfig struct {
 	ContractAddress common.Address
-	CreationBlock   uint64
+	StartBlock      uint64
 	ChainID         uint64
 	DB              *dbmongo.MongoStorage
 	ScannerCooldown time.Duration
 }
 
 // CommunityHub struct defines the CommunityHub wrapper. It includes the
-// the functions to scan for new communities in the contract and create them in
-// the database in background. It also includes some functions to get
+// the functions to scan for new communities in the contract and create them
+// in the database in background. It also includes some functions to get
 // communities or set and get results using the contract.
 type CommunityHub struct {
 	db               *dbmongo.MongoStorage
@@ -97,7 +97,7 @@ func NewCommunityHub(
 	}
 	// get the last scanned block from the database, by default the token
 	// creation block
-	lastBlock := conf.CreationBlock
+	lastBlock := conf.StartBlock
 	if dbLastBlock, err := conf.DB.Metadata(lastSyncedBlockKey); err == nil {
 		if iDBLastBlock, ok := dbLastBlock.(uint64); ok {
 			lastBlock = iDBLastBlock
