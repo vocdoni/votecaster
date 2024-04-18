@@ -55,6 +55,9 @@ type API interface {
 	// UserFollowers method returns the FIDs of the followers of the user with
 	// the given id. If something goes wrong, it returns an error.
 	UserFollowers(ctx context.Context, fid uint64) ([]uint64, error)
+	// Channel method returns the channel with the given id. If something goes
+	// wrong, it returns an error.
+	Channel(ctx context.Context, channelID string) (*Channel, error)
 	// ChannelFIDs method returns the FIDs of the users that follow the channel
 	// with the given id. If something goes wrong, it returns an error. It
 	// return an ErrChannelNotFound error if the channel does not exist to be
@@ -63,7 +66,10 @@ type API interface {
 	// ChannelExists method returns a boolean indicating if the channel with the
 	// given id exists. If something goes wrong checking the channel existence,
 	// it returns an error.
-	ChannelExists(channelID string) (bool, error)
+	ChannelExists(ctx context.Context, channelID string) (bool, error)
+	// FindChannel method returns the channels that matches with the handle (or
+	// the part of it) provided. If something goes wrong, it returns an error.
+	FindChannel(ctx context.Context, query string) ([]*Channel, error)
 }
 
 // ParentAPIMessage is a struct that represents the parent message of an
@@ -92,4 +98,16 @@ type Userdata struct {
 	CustodyAddress         string
 	VerificationsAddresses []string
 	Signers                []string
+	Avatar                 string
+	Bio                    string
+}
+
+// Channel is a struct that represents a channel in the farcaster API.
+type Channel struct {
+	ID          string
+	Name        string
+	Description string
+	Followers   int
+	Image       string
+	URL         string
 }

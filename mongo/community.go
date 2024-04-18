@@ -31,7 +31,7 @@ func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl string,
 func (ms *MongoStorage) Community(id uint64) (*Community, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
-	return ms.getCommunity(id)
+	return ms.community(id)
 }
 
 func (ms *MongoStorage) ListCommunities() ([]Community, error) {
@@ -75,7 +75,7 @@ func (ms *MongoStorage) ListCommunitiesByAdminFID(fid uint64) ([]Community, erro
 		return nil, err
 	}
 	var communities []Community
-	ctx, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel2 := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel2()
 	for cursor.Next(ctx) {
 		var community Community
@@ -100,20 +100,24 @@ func (ms *MongoStorage) ListCommunitiesByAdminUsername(username string) ([]Commu
 	return ms.ListCommunitiesByAdminFID(user.UserID)
 }
 
+// addCommunity method adds a new community to the database. It returns an error
+// if something the census type is invalid or something goes wrong with the
+// database.
 func (ms *MongoStorage) addCommunity(community *Community) error {
-	if community.Census.Type != TypeCommunityCensusChannel &&
-		community.Census.Type != TypeCommunityCensusERC20 &&
-		community.Census.Type != TypeCommunityCensusNFT {
+	switch community.Census.Type {
+	case TypeCommunityCensusChannel, TypeCommunityCensusERC20, TypeCommunityCensusNFT:
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, err := ms.communitites.InsertOne(ctx, community)
+		return err
+	default:
 		return fmt.Errorf("invalid census type")
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err := ms.communitites.InsertOne(ctx, community)
-	return err
 }
 
-func (ms *MongoStorage) getCommunity(id uint64) (*Community, error) {
+// community method returns the community with the given id. If something goes
+// wrong, it returns an error. If the community does not exist, it returns nil.
+func (ms *MongoStorage) community(id uint64) (*Community, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var community Community

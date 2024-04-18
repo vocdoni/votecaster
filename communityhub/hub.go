@@ -278,12 +278,13 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) {
 	case CensusTypeERC20, CensusTypeNFT:
 		// if the census type is an erc20 or nft, decode every census
 		// network address to get the contract address and blockchain
-		dbCensus.Addresses = []dbmongo.CommunityAddresses{}
+		dbCensus.Addresses = []dbmongo.CommunityCensusAddresses{}
 		for _, addr := range c.CensusAddesses {
-			dbCensus.Addresses = append(dbCensus.Addresses, dbmongo.CommunityAddresses{
-				Address:    addr.Address.String(),
-				Blockchain: addr.Blockchain,
-			})
+			dbCensus.Addresses = append(dbCensus.Addresses,
+				dbmongo.CommunityCensusAddresses{
+					Address:    addr.Address.String(),
+					Blockchain: addr.Blockchain,
+				})
 		}
 		// if no valid addresses were found, skip the community and log
 		// an error

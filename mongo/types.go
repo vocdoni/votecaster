@@ -159,6 +159,9 @@ type CommunitiesCollection struct {
 	Communities []Community `json:"communities" bson:"communities"`
 }
 
+// MetadataCollection is a dataset containing several metadata entries. For
+// example, it is used for store the last scanned block of the community hub
+// contract.
 type MetadataCollection struct {
 	Metadata []Metadata `json:"metadata" bson:"metadata"`
 }
@@ -204,18 +207,25 @@ const (
 	TypeCommunityCensusNFT = "nft"
 )
 
+// CommunityCensus represents the census of a community in the database. It
+// includes the name, type, and the census addresses (CommunityCensusAddresses)
+// or the census channel (depending on the type).
 type CommunityCensus struct {
-	Name      string               `json:"name" bson:"name"`
-	Type      string               `json:"type" bson:"type"`
-	Addresses []CommunityAddresses `json:"addresses" bson:"addresses"`
-	Channel   string               `json:"channel" bson:"channel"`
+	Name      string                     `json:"name" bson:"name"`
+	Type      string                     `json:"type" bson:"type"`
+	Addresses []CommunityCensusAddresses `json:"addresses" bson:"addresses"`
+	Channel   string                     `json:"channel" bson:"channel"`
 }
 
-type CommunityAddresses struct {
+// CommunityCensusAddresses represents the addresses of a contract to be used to
+// create the census of a community.
+type CommunityCensusAddresses struct {
 	Address    string `json:"address" bson:"address"`
 	Blockchain string `json:"blockchain" bson:"blockchain"`
 }
 
+// Metadata represents a metadata entry. Indexed by key, the value can be any
+// type.
 type Metadata struct {
 	Key   string `json:"key" bson:"_id"`
 	Value any    `json:"value" bson:"value"`

@@ -228,6 +228,15 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on metadata key: %w", err)
 	}
 
+	// Create an index for the 'owners' field on communities
+	ownersIndexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "owners", Value: 1}}, // 1 for ascending order
+		Options: nil,
+	}
+	if _, err := ms.communitites.Indexes().CreateOne(ctx, ownersIndexModel); err != nil {
+		return fmt.Errorf("failed to create index on owners for communities: %w", err)
+	}
+
 	return nil
 }
 

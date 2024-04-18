@@ -486,7 +486,19 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/census/community", http.MethodPost, "private", handler.censusCommunity); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/census/check/{censusID}", http.MethodGet, "private", handler.censusQueueInfo); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/exists/nft", http.MethodPost, "public", handler.checkNFTContractHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/exists/erc20", http.MethodPost, "public", handler.checkERC20ContractHandler); err != nil {
 		log.Fatal(err)
 	}
 
@@ -552,6 +564,22 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/profile/mutedUsers/{username}", http.MethodDelete, "private", handler.unmuteUserHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/channels", http.MethodGet, "public", handler.findChannelHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/channels/{channelID}", http.MethodGet, "public", handler.channelHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities", http.MethodGet, "public", handler.listCommunitiesHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodGet, "public", handler.communityHandler); err != nil {
 		log.Fatal(err)
 	}
 
