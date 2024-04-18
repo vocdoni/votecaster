@@ -13,6 +13,11 @@ export const theme = extendTheme({
     },
   },
   components: {
+    Button: defineStyleConfig({
+      defaultProps: {
+        colorScheme: 'purple',
+      },
+    }),
     Link: defineStyleConfig({
       baseStyle: {
         _hover: {
@@ -24,6 +29,16 @@ export const theme = extendTheme({
         primary: {
           color: 'purple.500',
         },
+      },
+    }),
+    Heading: defineStyleConfig({
+      baseStyle: {
+        fontWeight: 500,
+      },
+    }),
+    FormLabel: defineStyleConfig({
+      baseStyle: {
+        fontWeight: 500,
       },
     }),
   },

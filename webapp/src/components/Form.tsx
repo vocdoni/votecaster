@@ -14,47 +14,43 @@ import {
   FormHelperText,
   FormLabel,
   Heading,
-  Icon,
   IconButton,
   Input,
   InputGroup,
   InputRightElement,
-  Link,
-  ListItem,
-  Radio,
-  RadioGroup,
-  Select,
-  Stack,
   Switch,
   Textarea,
-  UnorderedList,
   VStack,
 } from '@chakra-ui/react'
-import React, { SetStateAction, useEffect, useState } from 'react'
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
-import Airstack from '../assets/airstack.svg?react'
-import { cleanChannel, ucfirst } from '../util/strings'
+import { Community } from '../queries/communities'
+import { cleanChannel } from '../util/strings'
+import { isErrorWithHTTPResponse, Profile } from '../util/types'
 import { ReputationCard } from './Auth/Reputation'
 import { SignInButton } from './Auth/SignInButton'
 import { useAuth } from './Auth/useAuth'
+import CensusTypeSelector, { CensusFormValues } from './CensusTypeSelector'
 import { Done } from './Done'
 
-interface Address {
-  address: string
-  blockchain: string
-}
-
-interface FormValues {
+type FormValues = CensusFormValues & {
   question: string
   choices: { choice: string }[]
   duration?: number
-  csv: File | undefined
-  censusType: 'farcaster' | 'channel' | 'followers' | 'custom' | 'erc20' | 'nft'
-  addresses?: Address[]
-  channel?: string
   notify?: boolean
   notificationText?: string
+  community?: Community
+}
+
+type ElectionRequest = {
+  profile: Profile
+  question: string
+  duration: number
+  options: string[]
+  notifyUsers: boolean
+  notificationText?: string
+  census?: CensusResponse
 }
 
 interface CID {
@@ -65,6 +61,11 @@ interface CensusResponse {
   root: string
   size: number
   uri: string
+}
+
+interface CensusResponseWithUsernames extends CensusResponse {
+  usernames: string[]
+  fromTotalAddresses: number
 }
 
 const appUrl = import.meta.env.APP_URL
@@ -81,7 +82,6 @@ const Form: React.FC = (props: FlexProps) => {
     handleSubmit,
     formState: { errors },
     control,
-    setValue,
     watch,
     resetField,
   } = methods
@@ -89,7 +89,7 @@ const Form: React.FC = (props: FlexProps) => {
     control,
     name: 'choices',
   })
-  const { isAuthenticated, profile, reputation, logout, bfetch } = useAuth()
+  const { isAuthenticated, profile, logout, bfetch } = useAuth()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [shortened, setShortened] = useState<string | null>(null)
@@ -97,16 +97,7 @@ const Form: React.FC = (props: FlexProps) => {
   const [usernames, setUsernames] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [censusRecords, setCensusRecords] = useState<number>(0)
-  const [blockchains, setBlockchains] = useState<string[]>([])
-  const [bloaded, setBloaded] = useState<boolean>(false)
-  const {
-    fields: addressFields,
-    append: appendAddress,
-    remove: removeAddress,
-  } = useFieldArray({
-    control,
-    name: 'addresses',
-  })
+
   const censusType = watch('censusType')
   const notify = watch('notify')
 
@@ -126,34 +117,6 @@ const Form: React.FC = (props: FlexProps) => {
       resetField('notificationText')
     }
   }, [censusType])
-
-  // fetch blockchains info (for airstack selector)
-  useEffect(() => {
-    if (blockchains.length || bloaded) return
-    ;(async () => {
-      try {
-        const chains = await bfetch(`${appUrl}/census/airstack/blockchains`)
-        const { blockchains } = await chains.json()
-        setBlockchains(blockchains.sort())
-      } catch (e) {
-        console.error('error fetching blockchains:', e)
-      } finally {
-        setBloaded(true)
-      }
-    })()
-  }, [bloaded, blockchains])
-
-  // reset address fields when censusType changes
-  useEffect(() => {
-    if (censusType === 'erc20' || censusType === 'nft') {
-      // Remove all fields initially
-      setValue('addresses', [])
-      // Add one field by default
-      for (let i = 0; i < 1; i++) {
-        appendAddress({ address: '', blockchain: 'base' })
-      }
-    }
-  }, [censusType, appendAddress, removeAddress])
 
   const checkElection = async (pid: string) => {
     try {
@@ -193,7 +156,11 @@ const Form: React.FC = (props: FlexProps) => {
     try {
       setLoading(true)
 
-      const election = {
+      if (!profile) {
+        throw new Error('user not authenticated')
+      }
+
+      const election: ElectionRequest = {
         profile,
         question: data.question,
         duration: Number(data.duration),
@@ -205,12 +172,16 @@ const Form: React.FC = (props: FlexProps) => {
         election.notificationText = data.notificationText
       }
 
+      if (!profile) {
+        throw new Error('user not authenticated')
+      }
+
       setStatus('Creating census...')
       try {
         let call: Promise<Response>
         switch (data.censusType) {
           case 'channel': {
-            const channel = cleanChannel(data.channel)
+            const channel = cleanChannel(data.channel as string)
             call = bfetch(`${appUrl}/census/channel-gated/${channel}`, { method: 'POST' })
             break
           }
@@ -231,10 +202,25 @@ const Form: React.FC = (props: FlexProps) => {
           case 'custom': {
             const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
             const contents = new Blob(
-              Array.from(data.csv).flatMap((file) => [file, lineBreak]),
+              Array.from(data.csv as unknown as Iterable<unknown>).flatMap((file: unknown) => [
+                file as BlobPart,
+                lineBreak,
+              ]),
               { type: 'text/csv' }
             )
             call = bfetch(`${appUrl}/census/csv`, { method: 'POST', body: contents })
+            break
+          }
+          case 'community': {
+            if (!data.community) {
+              throw new Error('community not received 🤔')
+            }
+            call = bfetch(`${appUrl}/census/community`, {
+              method: 'POST',
+              body: JSON.stringify({
+                communityID: data.community?.id,
+              }),
+            })
             break
           }
           case 'farcaster':
@@ -246,7 +232,7 @@ const Form: React.FC = (props: FlexProps) => {
         if (data.censusType !== 'farcaster') {
           const res = await call
           const { censusId } = (await res.json()) as CID
-          const census = await checkCensus(censusId, setStatus)
+          const census = (await checkCensus(censusId, setStatus)) as CensusResponseWithUsernames
           if (census.usernames && census.usernames.length) {
             setUsernames(census.usernames)
           }
@@ -261,12 +247,10 @@ const Form: React.FC = (props: FlexProps) => {
         }
       } catch (e) {
         console.error('there was an error creating the census:', e)
-        if ('response' in e && 'data' in e.response) {
+        if (isErrorWithHTTPResponse(e) && e.response) {
           setError(e.response.data)
-        } else {
-          if ('message' in e) {
-            setError(e.message)
-          }
+        } else if (e instanceof Error) {
+          setError(e.message)
         }
         setLoading(false)
         return
@@ -289,7 +273,7 @@ const Form: React.FC = (props: FlexProps) => {
       }, 1000)
     } catch (e) {
       console.error('there was an error creating the election:', e)
-      if ('message' in e) {
+      if (e instanceof Error) {
         setError(e.message)
       }
       setLoading(false)
@@ -308,7 +292,7 @@ const Form: React.FC = (props: FlexProps) => {
   return (
     <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 500 }} {...props}>
       <Card w='100%'>
-        <CardHeader align='center'>
+        <CardHeader textAlign='center'>
           <Heading as='h2' size='lg' textAlign='center'>
             Create a framed poll
           </Heading>
@@ -371,23 +355,7 @@ const Form: React.FC = (props: FlexProps) => {
                       Add Choice
                     </Button>
                   )}
-                  <FormControl isDisabled={loading}>
-                    <FormLabel>Census/voters</FormLabel>
-                    <RadioGroup onChange={(val: string) => setValue('censusType', val)} value={censusType}>
-                      <Stack direction='column' flexWrap='wrap'>
-                        <Radio value='farcaster'>🌐 All farcaster users</Radio>
-                        <Radio value='channel'>⛩ Channel gated</Radio>
-                        <Radio value='followers'>❤️ My followers and me</Radio>
-                        <Radio value='custom'>🦄 Token based via CSV</Radio>
-                        <Radio value='nft'>
-                          <Icon as={Airstack} /> NFT based via airstack
-                        </Radio>
-                        <Radio value='erc20'>
-                          <Icon as={Airstack} /> ERC20 based via airstack
-                        </Radio>
-                      </Stack>
-                    </RadioGroup>
-                  </FormControl>
+                  <CensusTypeSelector complete isDisabled={loading} />
                   {notifyAllowed.includes(censusType) && (
                     <FormControl isDisabled={loading}>
                       <Switch {...register('notify')} lineHeight={6}>
@@ -405,118 +373,7 @@ const Form: React.FC = (props: FlexProps) => {
                       />
                     </FormControl>
                   )}
-                  {['erc20', 'nft'].includes(censusType) &&
-                    addressFields.map((field, index) => (
-                      <FormControl key={field.id}>
-                        <FormLabel>
-                          {censusType.toUpperCase()} address {index + 1}
-                        </FormLabel>
-                        <Flex>
-                          <Select
-                            {...register(`addresses.${index}.blockchain`, { required })}
-                            defaultValue='ethereum'
-                            w='auto'
-                          >
-                            {blockchains.map((blockchain, key) => (
-                              <option value={blockchain} key={key}>
-                                {ucfirst(blockchain)}
-                              </option>
-                            ))}
-                          </Select>
-                          <InputGroup>
-                            <Input
-                              placeholder='Smart contract address'
-                              {...register(`addresses.${index}.address`, { required })}
-                            />
-                            {addressFields.length > 1 && (
-                              <InputRightElement>
-                                <IconButton
-                                  aria-label='Remove address'
-                                  icon={<BiTrash />}
-                                  onClick={() => removeAddress(index)}
-                                  size='sm'
-                                />
-                              </InputRightElement>
-                            )}
-                          </InputGroup>
-                        </Flex>
-                      </FormControl>
-                    ))}
-                  {censusType === 'nft' && addressFields.length < 3 && (
-                    <Button variant='ghost' colorScheme='purple' onClick={() => appendAddress({ address: '' })}>
-                      Add address
-                    </Button>
-                  )}
-                  {censusType === 'channel' && (
-                    <FormControl isDisabled={loading} isRequired isInvalid={!!errors.channel}>
-                      <FormLabel htmlFor='channel'>Channel slug (URL identifier)</FormLabel>
-                      <Input
-                        id='channel'
-                        placeholder='Enter channel i.e. degen'
-                        {...register('channel', {
-                          required,
-                          validate: async (val) => {
-                            val = cleanChannel(val)
-                            try {
-                              const res = await bfetch(`${appUrl}/census/channel-gated/${val}/exists`)
-                              if (res.status === 200) {
-                                return true
-                              }
-                            } catch (e) {
-                              return 'Invalid channel specified'
-                            }
-                            return 'Invalid channel specified'
-                          },
-                        })}
-                      />
-                      <FormErrorMessage>{errors.channel?.message?.toString()}</FormErrorMessage>
-                    </FormControl>
-                  )}
-                  {censusType === 'custom' && (
-                    <FormControl isDisabled={loading} isRequired>
-                      <FormLabel htmlFor='csv'>CSV files</FormLabel>
-                      <Input
-                        id='csv'
-                        placeholder='Upload CSV'
-                        type='file'
-                        multiple
-                        accept='text/csv,application/csv,.csv'
-                        {...register('csv', {
-                          required: {
-                            value: true,
-                            message: 'This field is required',
-                          },
-                        })}
-                      />
-                      {errors.csv ? (
-                        <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
-                      ) : (
-                        <FormHelperText>
-                          <Alert status='info'>
-                            <AlertDescription>
-                              The CSV files <strong>must include Ethereum addresses and their balances</strong> from any
-                              network. You can build your own at:
-                              <UnorderedList>
-                                <ListItem>
-                                  <Link target='_blank' href='https://holders.at' variant='primary'>
-                                    holders.at
-                                  </Link>{' '}
-                                  for NFTs
-                                </ListItem>
-                                <ListItem>
-                                  <Link target='_blank' href='https://collectors.poap.xyz' variant='primary'>
-                                    collectors.poap.xyz
-                                  </Link>{' '}
-                                  for POAPs
-                                </ListItem>
-                              </UnorderedList>
-                              <strong>If an address appears multiple times, its balances will be aggregated.</strong>
-                            </AlertDescription>
-                          </Alert>
-                        </FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
+
                   <FormControl isDisabled={loading} isInvalid={!!errors.duration}>
                     <FormLabel htmlFor='duration'>Duration (Optional)</FormLabel>
                     <Input
@@ -547,16 +404,16 @@ const Form: React.FC = (props: FlexProps) => {
                   )}
                   {isAuthenticated ? (
                     <>
-                      <Button type='submit' colorScheme='purple' isLoading={loading} loadingText={status}>
+                      <Button type='submit' isLoading={loading} loadingText={status}>
                         Create
                       </Button>
-                      <Box fontSize='xs' align='right'>
+                      <Box fontSize='xs' textAlign='right'>
                         or{' '}
                         <Button variant='text' size='xs' p={0} onClick={logout} height='auto'>
                           logout
                         </Button>
                       </Box>
-                      <ReputationCard reputation={reputation} />
+                      <ReputationCard />
                     </>
                   ) : (
                     <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>

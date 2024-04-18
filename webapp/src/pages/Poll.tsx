@@ -4,7 +4,7 @@ import { FaDownload } from 'react-icons/fa6'
 import { useParams } from 'react-router-dom'
 import { CsvGenerator } from '../generator'
 
-export const Poll = () => {
+const Poll = () => {
   const { pid } = useParams()
   const [voters, setVoters] = useState([])
   const [loaded, setLoaded] = useState<boolean>(false)
@@ -69,3 +69,5 @@ export const Poll = () => {
     </Box>
   )
 }
+
+export default Poll

@@ -1,6 +1,7 @@
 import {
   Avatar,
   Box,
+  BoxProps,
   Button,
   FormControl,
   FormErrorMessage,
@@ -10,64 +11,72 @@ import {
   Input,
   Link,
   Spacer,
-  StackProps,
   VStack,
 } from '@chakra-ui/react'
+import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { FaTrash } from 'react-icons/fa6'
-import { useQuery } from 'react-query'
 import { fetchMutedUsers } from '../queries/profile'
 import { appUrl } from '../util/constants'
+import { Profile } from '../util/types'
 import { useAuth } from './Auth/useAuth'
-import { Profile } from './Auth/useAuthProvider'
 import { Check } from './Check'
 
-export const MutedUsersList: React.FC = (props: StackProps) => {
+type MutedUsersFormValues = {
+  username: string
+}
+
+export const MutedUsersList: React.FC = (props: BoxProps) => {
   const {
     register,
     handleSubmit,
     reset,
     setError,
-    trigger,
     formState: { errors },
-  } = useForm({
+  } = useForm<MutedUsersFormValues>({
     defaultValues: {
       username: '',
     },
   })
   const { bfetch } = useAuth()
-  const { data, error, isLoading, refetch } = useQuery<Profile[], Error>('mutedUsers', fetchMutedUsers(bfetch))
+  const [loading, setLoading] = useState<boolean>(false)
+  const { data, error, isLoading, refetch } = useQuery<Profile[], Error>({
+    queryKey: ['mutedUsers'],
+    queryFn: fetchMutedUsers(bfetch),
+  })
 
   const handleUnmute = async (username: string) => {
     try {
-      await bfetch(`${appUrl}/profile/mutedUsers/${username}`, { method: 'DELETE' }).then(refetch)
-    } catch (e: any) {
+      setLoading(true)
+      await bfetch(`${appUrl}/profile/mutedUsers/${username}`, { method: 'DELETE' }).then(() => refetch())
+    } catch (e) {
       console.error('could not unmute user', e)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: MutedUsersFormValues) => {
+    setLoading(true)
     try {
       await bfetch(`${appUrl}/profile/mutedUsers`, {
         method: 'POST',
         body: JSON.stringify({ username: data.username }),
-      }).then(refetch)
+      }).then(() => refetch())
       reset({ username: '' }) // Reset only the username field
-    } catch (e: any) {
-      if ('message' in e) {
-        console.log('error received as message:', e.message)
+    } catch (e) {
+      if (e instanceof Error) {
         setError('username', { message: e.message })
       }
       console.error('could not add muted user', e)
+    } finally {
+      setLoading(false)
     }
   }
 
-  if (isLoading || error) {
-    return <Check isLoading={isLoading} error={error} />
-  }
-
   return (
-    <Box borderRadius='md' p={4} bg='purple.100'>
+    <Box borderRadius='md' p={4} bg='purple.100' {...props}>
       <Heading fontSize='xl' mb={4} fontWeight='600' color='purple.800'>
         Muted users
       </Heading>
@@ -92,14 +101,17 @@ export const MutedUsersList: React.FC = (props: StackProps) => {
               <Spacer />
               <IconButton
                 aria-label={`Unmute ${user.username}`}
+                title={`Unmute "${user.username}"`}
                 icon={<FaTrash />}
                 onClick={() => handleUnmute(user.username)}
                 colorScheme='purple'
-                title={`Unmute "${user.username}"`}
+                isLoading={loading}
                 size='sm'
               />
             </HStack>
           ))
+        ) : isLoading || error ? (
+          <Check isLoading={isLoading} error={error} />
         ) : (
           <p>No muted users yet</p>
         )}
@@ -113,7 +125,7 @@ export const MutedUsersList: React.FC = (props: StackProps) => {
                 />
                 <FormErrorMessage>{errors.username?.message?.toString()}</FormErrorMessage>
               </FormControl>
-              <Button type='submit' colorScheme='purple' flexGrow={1}>
+              <Button type='submit' colorScheme='purple' flexGrow={1} isLoading={loading}>
                 Mute
               </Button>
             </HStack>
