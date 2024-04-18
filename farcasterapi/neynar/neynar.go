@@ -189,7 +189,8 @@ func (n *NeynarAPI) Publish(ctx context.Context, content string, _ []uint64, emb
 }
 
 func (n *NeynarAPI) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessage,
-	content string, _ []uint64, embeds ...string) error {
+	content string, _ []uint64, embeds ...string,
+) error {
 	if n.fid == 0 {
 		return fmt.Errorf("farcaster user not set")
 	}

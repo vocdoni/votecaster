@@ -98,7 +98,6 @@ func (ms *MongoStorage) ListCommunitiesByAdminUsername(username string) ([]Commu
 		return nil, err
 	}
 	return ms.ListCommunitiesByAdminFID(user.UserID)
-
 }
 
 func (ms *MongoStorage) addCommunity(community *Community) error {

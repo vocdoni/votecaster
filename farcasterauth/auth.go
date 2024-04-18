@@ -16,10 +16,8 @@ const (
 	baseURL = "https://relay.farcaster.xyz/v1"
 )
 
-var (
-	// ErrAuthenticationPending is returned when the authentication process is still pending.
-	ErrAuthenticationPending = fmt.Errorf("authentication pending")
-)
+// ErrAuthenticationPending is returned when the authentication process is still pending.
+var ErrAuthenticationPending = fmt.Errorf("authentication pending")
 
 // Client holds the HTTP client used for the requests and the ChannelToken needed for authentication.
 // Implements FIP-11: https://github.com/farcasterxyz/protocol/discussions/110
