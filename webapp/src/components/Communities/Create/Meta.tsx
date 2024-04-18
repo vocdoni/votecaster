@@ -30,7 +30,7 @@ export const Meta = () => {
     if (profile?.username) {
       setValue('admins', [{
         label: profile.displayName,
-        value: profile.username
+        value: profile.custody
       }], {shouldValidate: true});
     }
   }, [profile?.username]);
