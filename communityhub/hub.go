@@ -230,7 +230,8 @@ func (l *CommunityHub) CommunityFromContract(communityID uint64) (*HubCommunity,
 	community := &HubCommunity{
 		ID:            communityID,
 		Name:          cc.Metadata.Name,
-		ImageUrl:      cc.Metadata.ImageURI,
+		ImageURL:      cc.Metadata.ImageURI,
+		GroupChatURL:  cc.Metadata.GroupChatURL,
 		Channels:      cc.Metadata.Channels,
 		Admins:        admins,
 		Notifications: cc.Metadata.Notifications,
@@ -297,8 +298,8 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) {
 		return
 	}
 	// create community in the database
-	if err := l.db.AddCommunity(c.ID, c.Name, c.ImageUrl, dbCensus,
-		c.Channels, c.Admins, c.Notifications,
+	if err := l.db.AddCommunity(c.ID, c.Name, c.ImageURL, c.GroupChatURL,
+		dbCensus, c.Channels, c.Admins, c.Notifications,
 	); err != nil {
 		log.Errorf("failed to add community: %s", err)
 	}

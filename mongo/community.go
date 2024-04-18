@@ -10,7 +10,7 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
-func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl string,
+func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl, groupChatUrl string,
 	census CommunityCensus, channels []string, admins []uint64, notifications bool,
 ) error {
 	ms.keysLock.Lock()
@@ -21,6 +21,7 @@ func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl string,
 		Channels:      channels,
 		Census:        census,
 		ImageURL:      imageUrl,
+		GroupChatURL:  groupChatUrl,
 		Admins:        admins,
 		Notifications: notifications,
 	}

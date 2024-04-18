@@ -61,7 +61,8 @@ type ContractAddress struct {
 type HubCommunity struct {
 	ID             uint64
 	Name           string
-	ImageUrl       string
+	ImageURL       string
+	GroupChatURL   string
 	CensusType     CensusType
 	CensusName     string
 	CensusAddesses []*ContractAddress
