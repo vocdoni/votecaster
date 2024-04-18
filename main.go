@@ -247,15 +247,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Create the Farcaster API client
-	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3endpoint)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Start the discovery user profile background process
 	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
-	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
 	defer mainCtxCancel()
 
 	// Create a Web3 pool
@@ -269,6 +262,15 @@ func main() {
 		}
 	}
 	log.Infow("web3 pool initialized", "endpoints", web3pool.String())
+
+	// Create the Farcaster API client
+	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3pool)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Start the discovery user profile background process
+	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
 
 	// Create the community hub service
 	if communityHubAddress != "" {

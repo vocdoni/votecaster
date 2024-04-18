@@ -26,9 +26,9 @@ const DefaultScannerCooldown = time.Second * 5
 const zeroHexAddr = "0x0000000000000000000000000000000000000000"
 
 // CommunityHubConfig struct defines the configuration for the CommunityHub.
-// It includes the contract address, the chain ID where the
-// contract is deployed, a database instance, and the scanner cooldown (by
-// default 10s (DefaultScannerCooldown)).
+// It includes the contract address, the chain ID where the contract is
+// deployed, a database instance, and the scanner cooldown (by default 10s
+// (DefaultScannerCooldown)).
 type CommunityHubConfig struct {
 	ContractAddress common.Address
 	ChainID         uint64
