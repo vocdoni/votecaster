@@ -30,6 +30,7 @@ type User struct {
 	Signers        []string  `json:"signers" bson:"signers"`
 	Followers      uint64    `json:"followers" bson:"followers"`
 	LastUpdated    time.Time `json:"lastUpdated" bson:"lastUpdated"`
+	Avatar         string    `json:"avatar" bson:"avatar"`
 }
 
 // UserAccessProfile holds the user's access profile data, used by our backend to determine the user's access level.

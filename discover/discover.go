@@ -164,6 +164,7 @@ func (d *FarcasterDiscover) updateUser(fid uint64) error {
 		UserID:         profile.Result.User.Fid,
 		Username:       profile.Result.User.Username,
 		Displayname:    profile.Result.User.DisplayName,
+		Avatar:         profile.Result.User.Pfp.Url,
 		CastedVotes:    castedVotes,
 		ElectionCount:  electionCount,
 		Addresses:      addresses,
@@ -315,7 +316,7 @@ func (d *FarcasterDiscover) randomFID() (uint64, uint64) {
 	lastFID, err := d.lastRegisteredFID()
 	if err != nil {
 		log.Errorw(err, "failed to get last registered FID, fallback to 370000")
-		lastFID = 370000
+		lastFID = 400000
 	}
 	return uint64(rand.NewSource(time.Now().UnixNano()).Int63())%lastFID + 1, lastFID
 }
@@ -330,7 +331,7 @@ func (d *FarcasterDiscover) runDiscoverProfilesFromRandomStart(ctx context.Conte
 	var wg sync.WaitGroup
 	wg.Add(workerCount)
 	var updateCounter int64
-	timer := time.NewTimer(30 * time.Second)
+	timer := time.NewTimer(10 * time.Second)
 
 	// Start N worker goroutines
 	for i := 0; i < workerCount; i++ {
@@ -369,7 +370,7 @@ func (d *FarcasterDiscover) runDiscoverProfilesFromRandomStart(ctx context.Conte
 					map[string]any{"partial u/s": partialCount, "total u/s": totalCount, "fid": fid, "totalUsers": d.db.CountUsers()})
 				partialTime = time.Now()
 				partialUpdateCounter = 0
-				timer.Reset(30 * time.Second)
+				timer.Reset(10 * time.Second)
 			case <-ctx.Done():
 				close(fidChan)
 				return
