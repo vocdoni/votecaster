@@ -13,11 +13,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	"github.com/vocdoni/vote-frame/airstack"
+	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/discover"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/hub"
@@ -61,6 +63,10 @@ func main() {
 		"https://rpc.degen.tips,https://eth.llamarpc.com,https://rpc.ankr.com/eth,https://ethereum-rpc.publicnode.com,https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
 		"Web3 RPCs")
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
+	// community hub flags
+	flag.String("communityHubAddress", "", "The address of the CommunityHub contract")
+	flag.Uint64("communityHubCreationBlock", 0, "The block number of the CommunityHub contract creation")
+	flag.Uint64("communityHubChainID", 666666666, "The chain ID of the CommunityHub contract (default: DegenChain 666666666)")
 
 	// bot flags
 	// DISCLAMER: Currently the bot needs a HUB with write permissions to work.
@@ -119,6 +125,10 @@ func main() {
 	web3endpoint := strings.Split(web3endpointStr, ",")
 	neynarAPIKey := viper.GetString("neynarAPIKey")
 	indexer := viper.GetBool("indexer")
+	// community hub vars
+	communityHubAddress := viper.GetString("communityHubAddress")
+	communityHubCreationBlock := viper.GetUint64("communityHubCreationBlock")
+	communityHubChainID := viper.GetUint64("communityHubChainID")
 
 	// bot vars
 	botFid := viper.GetUint64("botFid")
@@ -172,6 +182,9 @@ func main() {
 		"mongoDB", mongoDB,
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
+		"communityHubAddress", communityHubAddress,
+		"communityHubCreationBlock", communityHubCreationBlock,
+		"communityHubChainID", communityHubChainID,
 		"botFid", botFid,
 		"botHubEndpoint", botHubEndpoint,
 		"neynarSignerUUID", neynarSignerUUID,
@@ -232,18 +245,6 @@ func main() {
 		log.Fatal("censusFromFile must contain a valid URL and root hash")
 	}
 
-	// Create a Web3 pool
-	web3pool, err := c3web3.NewWeb3Pool()
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, endpoint := range web3endpoint {
-		if err := web3pool.AddEndpoint(endpoint); err != nil {
-			log.Warnw("failed to add web3 endpoint", "endpoint", endpoint, "error", err)
-		}
-	}
-	log.Infow("web3 pool initialized", "endpoints", web3pool.String())
-
 	// Create the MongoDB connection
 	db, err := mongo.New(mongoURL, mongoDB)
 	if err != nil {
@@ -260,6 +261,33 @@ func main() {
 	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
 	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
 	defer mainCtxCancel()
+
+	// Create a Web3 pool
+	web3pool, err := c3web3.NewWeb3Pool()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, endpoint := range web3endpoint {
+		if err := web3pool.AddEndpoint(endpoint); err != nil {
+			log.Warnw("failed to add web3 endpoint", "endpoint", endpoint, "error", err)
+		}
+	}
+	log.Infow("web3 pool initialized", "endpoints", web3pool.String())
+
+	// Create the community hub service
+	if communityHubAddress != "" && communityHubCreationBlock > 0 {
+		comHub, err := communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
+			DB:              db,
+			ContractAddress: common.HexToAddress(communityHubAddress),
+			CreationBlock:   communityHubCreationBlock,
+			ChainID:         communityHubChainID,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		comHub.ScanNewCommunities()
+		defer comHub.Stop()
+	}
 
 	// Create Airstack artifact
 	var as *airstack.Airstack
