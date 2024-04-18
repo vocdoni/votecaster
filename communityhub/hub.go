@@ -98,11 +98,6 @@ func NewCommunityHub(
 	// get the last scanned block from the database, by default the token
 	// creation block
 	lastBlock := conf.StartBlock
-	if dbLastBlock, err := conf.DB.Metadata(lastSyncedBlockKey); err == nil {
-		if iDBLastBlock, ok := dbLastBlock.(uint64); ok {
-			lastBlock = iDBLastBlock
-		}
-	}
 	// set the last scanned block in the listener and return it
 	community.lastScannedBlock.Store(lastBlock)
 	// set the scanner cooldown from the configuration if it is defined, or use
@@ -179,14 +174,10 @@ func (l *CommunityHub) ScanNewCommunities() {
 						"toBlock", endBatchBlock)
 					// update the start block for the next batch
 					startBlock += maxBlocksPerBatch
-					l.lastScannedBlock.Store(endBatchBlock + 1)
+					l.lastScannedBlock.Store(endBatchBlock)
 				}
-				// update the last scanned block in the database
-				if err := l.db.SetMetadata(lastSyncedBlockKey, endBlock); err != nil {
-					log.Warnw("error setting last scanned block",
-						"error", err,
-						"lastBlock", startBlock)
-				}
+				// update the last scanned block
+				l.lastScannedBlock.Store(endBlock)
 				log.Infow("iteration finished",
 					"iteration", iteration,
 					"lastBlock", startBlock)
