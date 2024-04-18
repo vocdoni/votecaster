@@ -33,6 +33,7 @@ var (
 type ICommunityHubCensus struct {
 	CensusType uint8
 	Tokens     []ICommunityHubToken
+	Channel    string
 }
 
 // ICommunityHubCommunity is an auto generated low-level Go binding around an user-defined struct.
@@ -43,12 +44,14 @@ type ICommunityHubCommunity struct {
 	ElectionResultsContract  common.Address
 	CreateElectionPermission uint8
 	Disabled                 bool
+	Funds                    *big.Int
 }
 
 // ICommunityHubCommunityMetadata is an auto generated low-level Go binding around an user-defined struct.
 type ICommunityHubCommunityMetadata struct {
 	Name          string
 	ImageURI      string
+	GroupChatURL  string
 	Channels      []string
 	Notifications bool
 }
@@ -74,7 +77,7 @@ type IElectionResultsResult struct {
 
 // CommunityHubTokenMetaData contains all meta data concerning the CommunityHubToken contract.
 var CommunityHubTokenMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"expected\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"actual\",\"type\":\"uint256\"}],\"name\":\"AmountMismatch\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"guardian\",\"type\":\"uint256\"}],\"name\":\"GuardianNotFound\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"OwnableInvalidOwner\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"OwnableUnauthorizedAccount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ZeroAmount\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"}],\"name\":\"AdminCommunityManaged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"}],\"indexed\":false,\"internalType\":\"structICommunityHub.Census\",\"name\":\"census\",\"type\":\"tuple\"}],\"name\":\"CensusSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"}],\"name\":\"CommunityCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"name\":\"CreateCommunityPriceSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"createElectionPermission\",\"type\":\"uint8\"}],\"name\":\"CreateElectionPermissionSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"electionResultsContract\",\"type\":\"address\"}],\"name\":\"DefaultElectionResultsContractSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"electionResultsContract\",\"type\":\"address\"}],\"name\":\"ElectionResultsContractSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"guardian\",\"type\":\"uint256\"}],\"name\":\"GuardianAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"guardian\",\"type\":\"uint256\"}],\"name\":\"GuardianRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"indexed\":false,\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"metadata\",\"type\":\"tuple\"}],\"name\":\"MetadataSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"notifiableElections\",\"type\":\"bool\"}],\"name\":\"NotifiableElectionsSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"electionId\",\"type\":\"bytes32\"}],\"name\":\"ResultsSet\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_guardian\",\"type\":\"uint256\"}],\"name\":\"AddGuardian\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"_metadata\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"_census\",\"type\":\"tuple\"},{\"internalType\":\"uint256[]\",\"name\":\"_guardians\",\"type\":\"uint256[]\"},{\"internalType\":\"address\",\"name\":\"_electionResultsContract\",\"type\":\"address\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"_createElectionPermission\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"_disabled\",\"type\":\"bool\"}],\"name\":\"AdminManageCommunity\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_price\",\"type\":\"uint256\"}],\"name\":\"AdminSetCommunityPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_electionResultsContract\",\"type\":\"address\"}],\"name\":\"AdminSetDefaultElectionResultsContract\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"_metadata\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"_census\",\"type\":\"tuple\"},{\"internalType\":\"uint256[]\",\"name\":\"_guardians\",\"type\":\"uint256[]\"},{\"internalType\":\"address\",\"name\":\"_electionResultsContract\",\"type\":\"address\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"_createElectionPermission\",\"type\":\"uint8\"}],\"name\":\"CreateCommunity\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"}],\"name\":\"GetCommunity\",\"outputs\":[{\"components\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"metadata\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"census\",\"type\":\"tuple\"},{\"internalType\":\"uint256[]\",\"name\":\"guardians\",\"type\":\"uint256[]\"},{\"internalType\":\"address\",\"name\":\"electionResultsContract\",\"type\":\"address\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"createElectionPermission\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"disabled\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.Community\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"GetCreateCommunityPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"GetDefaultElectionResultsContract\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"GetNextCommunityId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_guardian\",\"type\":\"uint256\"}],\"name\":\"RemoveGuardian\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"_census\",\"type\":\"tuple\"}],\"name\":\"SetCensus\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"_createElectionPermission\",\"type\":\"uint8\"}],\"name\":\"SetCreateElectionPermission\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_electionResultsContract\",\"type\":\"address\"}],\"name\":\"SetElectionResultsContract\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"_metadata\",\"type\":\"tuple\"}],\"name\":\"SetMetadata\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"_notifiableElections\",\"type\":\"bool\"}],\"name\":\"SetNotifiableElections\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_electionId\",\"type\":\"bytes32\"}],\"name\":\"getResult\",\"outputs\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"question\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"options\",\"type\":\"string[]\"},{\"internalType\":\"string\",\"name\":\"date\",\"type\":\"string\"},{\"internalType\":\"uint256[][]\",\"name\":\"tally\",\"type\":\"uint256[][]\"},{\"internalType\":\"uint256\",\"name\":\"turnout\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"totalVotingPower\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"participants\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32\",\"name\":\"censusRoot\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"censusURI\",\"type\":\"string\"}],\"internalType\":\"structIElectionResults.Result\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_electionId\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"question\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"options\",\"type\":\"string[]\"},{\"internalType\":\"string\",\"name\":\"date\",\"type\":\"string\"},{\"internalType\":\"uint256[][]\",\"name\":\"tally\",\"type\":\"uint256[][]\"},{\"internalType\":\"uint256\",\"name\":\"turnout\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"totalVotingPower\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"participants\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32\",\"name\":\"censusRoot\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"censusURI\",\"type\":\"string\"}],\"internalType\":\"structIElectionResults.Result\",\"name\":\"_result\",\"type\":\"tuple\"}],\"name\":\"setResult\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]",
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"expected\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"actual\",\"type\":\"uint256\"}],\"name\":\"AmountMismatch\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"guardian\",\"type\":\"uint256\"}],\"name\":\"GuardianNotFound\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidCreateElectionPermission\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"OwnableInvalidOwner\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"OwnableUnauthorizedAccount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ZeroAmount\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"}],\"name\":\"AdminCommunityManaged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"},{\"internalType\":\"string\",\"name\":\"channel\",\"type\":\"string\"}],\"indexed\":false,\"internalType\":\"structICommunityHub.Census\",\"name\":\"census\",\"type\":\"tuple\"}],\"name\":\"CensusSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"}],\"name\":\"CommunityCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"}],\"name\":\"CommunityDeposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"name\":\"CreateCommunityPriceSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"createElectionPermission\",\"type\":\"uint8\"}],\"name\":\"CreateElectionPermissionSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"electionResultsContract\",\"type\":\"address\"}],\"name\":\"DefaultElectionResultsContractSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"electionResultsContract\",\"type\":\"address\"}],\"name\":\"ElectionResultsContractSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"guardian\",\"type\":\"uint256\"}],\"name\":\"GuardianAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"guardian\",\"type\":\"uint256\"}],\"name\":\"GuardianRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"groupChatURL\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"indexed\":false,\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"metadata\",\"type\":\"tuple\"}],\"name\":\"MetadataSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"notifiableElections\",\"type\":\"bool\"}],\"name\":\"NotifiableElectionsSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"name\":\"PricePerElectionSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"electionId\",\"type\":\"bytes32\"}],\"name\":\"ResultsSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"Withdrawal\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_guardian\",\"type\":\"uint256\"}],\"name\":\"addGuardian\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"groupChatURL\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"_metadata\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"},{\"internalType\":\"string\",\"name\":\"channel\",\"type\":\"string\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"_census\",\"type\":\"tuple\"},{\"internalType\":\"uint256[]\",\"name\":\"_guardians\",\"type\":\"uint256[]\"},{\"internalType\":\"address\",\"name\":\"_electionResultsContract\",\"type\":\"address\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"_createElectionPermission\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"_disabled\",\"type\":\"bool\"}],\"name\":\"adminManageCommunity\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_price\",\"type\":\"uint256\"}],\"name\":\"adminSetCommunityPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_electionResultsContract\",\"type\":\"address\"}],\"name\":\"adminSetDefaultElectionResultsContract\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_price\",\"type\":\"uint256\"}],\"name\":\"adminSetPricePerElection\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"groupChatURL\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"_metadata\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"},{\"internalType\":\"string\",\"name\":\"channel\",\"type\":\"string\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"_census\",\"type\":\"tuple\"},{\"internalType\":\"uint256[]\",\"name\":\"_guardians\",\"type\":\"uint256[]\"},{\"internalType\":\"address\",\"name\":\"_electionResultsContract\",\"type\":\"address\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"_createElectionPermission\",\"type\":\"uint8\"}],\"name\":\"createCommunity\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"}],\"name\":\"getCommunity\",\"outputs\":[{\"components\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"groupChatURL\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"metadata\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"},{\"internalType\":\"string\",\"name\":\"channel\",\"type\":\"string\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"census\",\"type\":\"tuple\"},{\"internalType\":\"uint256[]\",\"name\":\"guardians\",\"type\":\"uint256[]\"},{\"internalType\":\"address\",\"name\":\"electionResultsContract\",\"type\":\"address\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"createElectionPermission\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"disabled\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"funds\",\"type\":\"uint256\"}],\"internalType\":\"structICommunityHub.Community\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getCreateCommunityPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getDefaultElectionResultsContract\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getNextCommunityId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getPricePerElection\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_electionId\",\"type\":\"bytes32\"}],\"name\":\"getResult\",\"outputs\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"question\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"options\",\"type\":\"string[]\"},{\"internalType\":\"string\",\"name\":\"date\",\"type\":\"string\"},{\"internalType\":\"uint256[][]\",\"name\":\"tally\",\"type\":\"uint256[][]\"},{\"internalType\":\"uint256\",\"name\":\"turnout\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"totalVotingPower\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"participants\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32\",\"name\":\"censusRoot\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"censusURI\",\"type\":\"string\"}],\"internalType\":\"structIElectionResults.Result\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_guardian\",\"type\":\"uint256\"}],\"name\":\"removeGuardian\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"},{\"internalType\":\"string\",\"name\":\"channel\",\"type\":\"string\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"_census\",\"type\":\"tuple\"}],\"name\":\"setCensus\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"_createElectionPermission\",\"type\":\"uint8\"}],\"name\":\"setCreateElectionPermission\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_electionResultsContract\",\"type\":\"address\"}],\"name\":\"setElectionResultsContract\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"groupChatURL\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"_metadata\",\"type\":\"tuple\"}],\"name\":\"setMetadata\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"_notifiableElections\",\"type\":\"bool\"}],\"name\":\"setNotifiableElections\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_electionId\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"question\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"options\",\"type\":\"string[]\"},{\"internalType\":\"string\",\"name\":\"date\",\"type\":\"string\"},{\"internalType\":\"uint256[][]\",\"name\":\"tally\",\"type\":\"uint256[][]\"},{\"internalType\":\"uint256\",\"name\":\"turnout\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"totalVotingPower\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"participants\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32\",\"name\":\"censusRoot\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"censusURI\",\"type\":\"string\"}],\"internalType\":\"structIElectionResults.Result\",\"name\":\"_result\",\"type\":\"tuple\"}],\"name\":\"setResult\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]",
 }
 
 // CommunityHubTokenABI is the input ABI used to generate the binding from.
@@ -223,12 +226,12 @@ func (_CommunityHubToken *CommunityHubTokenTransactorRaw) Transact(opts *bind.Tr
 	return _CommunityHubToken.Contract.contract.Transact(opts, method, params...)
 }
 
-// GetCommunity is a free data retrieval call binding the contract method 0x781bc053.
+// GetCommunity is a free data retrieval call binding the contract method 0x370603f8.
 //
-// Solidity: function GetCommunity(uint256 _communityId) view returns(((string,string,string[],bool),(uint8,(string,address)[]),uint256[],address,uint8,bool))
+// Solidity: function getCommunity(uint256 _communityId) view returns(((string,string,string,string[],bool),(uint8,(string,address)[],string),uint256[],address,uint8,bool,uint256))
 func (_CommunityHubToken *CommunityHubTokenCaller) GetCommunity(opts *bind.CallOpts, _communityId *big.Int) (ICommunityHubCommunity, error) {
 	var out []interface{}
-	err := _CommunityHubToken.contract.Call(opts, &out, "GetCommunity", _communityId)
+	err := _CommunityHubToken.contract.Call(opts, &out, "getCommunity", _communityId)
 
 	if err != nil {
 		return *new(ICommunityHubCommunity), err
@@ -240,26 +243,26 @@ func (_CommunityHubToken *CommunityHubTokenCaller) GetCommunity(opts *bind.CallO
 
 }
 
-// GetCommunity is a free data retrieval call binding the contract method 0x781bc053.
+// GetCommunity is a free data retrieval call binding the contract method 0x370603f8.
 //
-// Solidity: function GetCommunity(uint256 _communityId) view returns(((string,string,string[],bool),(uint8,(string,address)[]),uint256[],address,uint8,bool))
+// Solidity: function getCommunity(uint256 _communityId) view returns(((string,string,string,string[],bool),(uint8,(string,address)[],string),uint256[],address,uint8,bool,uint256))
 func (_CommunityHubToken *CommunityHubTokenSession) GetCommunity(_communityId *big.Int) (ICommunityHubCommunity, error) {
 	return _CommunityHubToken.Contract.GetCommunity(&_CommunityHubToken.CallOpts, _communityId)
 }
 
-// GetCommunity is a free data retrieval call binding the contract method 0x781bc053.
+// GetCommunity is a free data retrieval call binding the contract method 0x370603f8.
 //
-// Solidity: function GetCommunity(uint256 _communityId) view returns(((string,string,string[],bool),(uint8,(string,address)[]),uint256[],address,uint8,bool))
+// Solidity: function getCommunity(uint256 _communityId) view returns(((string,string,string,string[],bool),(uint8,(string,address)[],string),uint256[],address,uint8,bool,uint256))
 func (_CommunityHubToken *CommunityHubTokenCallerSession) GetCommunity(_communityId *big.Int) (ICommunityHubCommunity, error) {
 	return _CommunityHubToken.Contract.GetCommunity(&_CommunityHubToken.CallOpts, _communityId)
 }
 
-// GetCreateCommunityPrice is a free data retrieval call binding the contract method 0x407d699f.
+// GetCreateCommunityPrice is a free data retrieval call binding the contract method 0xc5bf44ab.
 //
-// Solidity: function GetCreateCommunityPrice() view returns(uint256)
+// Solidity: function getCreateCommunityPrice() view returns(uint256)
 func (_CommunityHubToken *CommunityHubTokenCaller) GetCreateCommunityPrice(opts *bind.CallOpts) (*big.Int, error) {
 	var out []interface{}
-	err := _CommunityHubToken.contract.Call(opts, &out, "GetCreateCommunityPrice")
+	err := _CommunityHubToken.contract.Call(opts, &out, "getCreateCommunityPrice")
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -271,26 +274,26 @@ func (_CommunityHubToken *CommunityHubTokenCaller) GetCreateCommunityPrice(opts 
 
 }
 
-// GetCreateCommunityPrice is a free data retrieval call binding the contract method 0x407d699f.
+// GetCreateCommunityPrice is a free data retrieval call binding the contract method 0xc5bf44ab.
 //
-// Solidity: function GetCreateCommunityPrice() view returns(uint256)
+// Solidity: function getCreateCommunityPrice() view returns(uint256)
 func (_CommunityHubToken *CommunityHubTokenSession) GetCreateCommunityPrice() (*big.Int, error) {
 	return _CommunityHubToken.Contract.GetCreateCommunityPrice(&_CommunityHubToken.CallOpts)
 }
 
-// GetCreateCommunityPrice is a free data retrieval call binding the contract method 0x407d699f.
+// GetCreateCommunityPrice is a free data retrieval call binding the contract method 0xc5bf44ab.
 //
-// Solidity: function GetCreateCommunityPrice() view returns(uint256)
+// Solidity: function getCreateCommunityPrice() view returns(uint256)
 func (_CommunityHubToken *CommunityHubTokenCallerSession) GetCreateCommunityPrice() (*big.Int, error) {
 	return _CommunityHubToken.Contract.GetCreateCommunityPrice(&_CommunityHubToken.CallOpts)
 }
 
-// GetDefaultElectionResultsContract is a free data retrieval call binding the contract method 0x72082194.
+// GetDefaultElectionResultsContract is a free data retrieval call binding the contract method 0x988a314c.
 //
-// Solidity: function GetDefaultElectionResultsContract() view returns(address)
+// Solidity: function getDefaultElectionResultsContract() view returns(address)
 func (_CommunityHubToken *CommunityHubTokenCaller) GetDefaultElectionResultsContract(opts *bind.CallOpts) (common.Address, error) {
 	var out []interface{}
-	err := _CommunityHubToken.contract.Call(opts, &out, "GetDefaultElectionResultsContract")
+	err := _CommunityHubToken.contract.Call(opts, &out, "getDefaultElectionResultsContract")
 
 	if err != nil {
 		return *new(common.Address), err
@@ -302,26 +305,26 @@ func (_CommunityHubToken *CommunityHubTokenCaller) GetDefaultElectionResultsCont
 
 }
 
-// GetDefaultElectionResultsContract is a free data retrieval call binding the contract method 0x72082194.
+// GetDefaultElectionResultsContract is a free data retrieval call binding the contract method 0x988a314c.
 //
-// Solidity: function GetDefaultElectionResultsContract() view returns(address)
+// Solidity: function getDefaultElectionResultsContract() view returns(address)
 func (_CommunityHubToken *CommunityHubTokenSession) GetDefaultElectionResultsContract() (common.Address, error) {
 	return _CommunityHubToken.Contract.GetDefaultElectionResultsContract(&_CommunityHubToken.CallOpts)
 }
 
-// GetDefaultElectionResultsContract is a free data retrieval call binding the contract method 0x72082194.
+// GetDefaultElectionResultsContract is a free data retrieval call binding the contract method 0x988a314c.
 //
-// Solidity: function GetDefaultElectionResultsContract() view returns(address)
+// Solidity: function getDefaultElectionResultsContract() view returns(address)
 func (_CommunityHubToken *CommunityHubTokenCallerSession) GetDefaultElectionResultsContract() (common.Address, error) {
 	return _CommunityHubToken.Contract.GetDefaultElectionResultsContract(&_CommunityHubToken.CallOpts)
 }
 
-// GetNextCommunityId is a free data retrieval call binding the contract method 0x708270b8.
+// GetNextCommunityId is a free data retrieval call binding the contract method 0x9532c8c3.
 //
-// Solidity: function GetNextCommunityId() view returns(uint256)
+// Solidity: function getNextCommunityId() view returns(uint256)
 func (_CommunityHubToken *CommunityHubTokenCaller) GetNextCommunityId(opts *bind.CallOpts) (*big.Int, error) {
 	var out []interface{}
-	err := _CommunityHubToken.contract.Call(opts, &out, "GetNextCommunityId")
+	err := _CommunityHubToken.contract.Call(opts, &out, "getNextCommunityId")
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -333,18 +336,49 @@ func (_CommunityHubToken *CommunityHubTokenCaller) GetNextCommunityId(opts *bind
 
 }
 
-// GetNextCommunityId is a free data retrieval call binding the contract method 0x708270b8.
+// GetNextCommunityId is a free data retrieval call binding the contract method 0x9532c8c3.
 //
-// Solidity: function GetNextCommunityId() view returns(uint256)
+// Solidity: function getNextCommunityId() view returns(uint256)
 func (_CommunityHubToken *CommunityHubTokenSession) GetNextCommunityId() (*big.Int, error) {
 	return _CommunityHubToken.Contract.GetNextCommunityId(&_CommunityHubToken.CallOpts)
 }
 
-// GetNextCommunityId is a free data retrieval call binding the contract method 0x708270b8.
+// GetNextCommunityId is a free data retrieval call binding the contract method 0x9532c8c3.
 //
-// Solidity: function GetNextCommunityId() view returns(uint256)
+// Solidity: function getNextCommunityId() view returns(uint256)
 func (_CommunityHubToken *CommunityHubTokenCallerSession) GetNextCommunityId() (*big.Int, error) {
 	return _CommunityHubToken.Contract.GetNextCommunityId(&_CommunityHubToken.CallOpts)
+}
+
+// GetPricePerElection is a free data retrieval call binding the contract method 0xd62b5c59.
+//
+// Solidity: function getPricePerElection() view returns(uint256)
+func (_CommunityHubToken *CommunityHubTokenCaller) GetPricePerElection(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _CommunityHubToken.contract.Call(opts, &out, "getPricePerElection")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// GetPricePerElection is a free data retrieval call binding the contract method 0xd62b5c59.
+//
+// Solidity: function getPricePerElection() view returns(uint256)
+func (_CommunityHubToken *CommunityHubTokenSession) GetPricePerElection() (*big.Int, error) {
+	return _CommunityHubToken.Contract.GetPricePerElection(&_CommunityHubToken.CallOpts)
+}
+
+// GetPricePerElection is a free data retrieval call binding the contract method 0xd62b5c59.
+//
+// Solidity: function getPricePerElection() view returns(uint256)
+func (_CommunityHubToken *CommunityHubTokenCallerSession) GetPricePerElection() (*big.Int, error) {
+	return _CommunityHubToken.Contract.GetPricePerElection(&_CommunityHubToken.CallOpts)
 }
 
 // GetResult is a free data retrieval call binding the contract method 0x13e86265.
@@ -409,235 +443,172 @@ func (_CommunityHubToken *CommunityHubTokenCallerSession) Owner() (common.Addres
 	return _CommunityHubToken.Contract.Owner(&_CommunityHubToken.CallOpts)
 }
 
-// AddGuardian is a paid mutator transaction binding the contract method 0xe1e009ba.
+// AddGuardian is a paid mutator transaction binding the contract method 0xc8b785f3.
 //
-// Solidity: function AddGuardian(uint256 _communityId, uint256 _guardian) returns()
+// Solidity: function addGuardian(uint256 _communityId, uint256 _guardian) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactor) AddGuardian(opts *bind.TransactOpts, _communityId *big.Int, _guardian *big.Int) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "AddGuardian", _communityId, _guardian)
+	return _CommunityHubToken.contract.Transact(opts, "addGuardian", _communityId, _guardian)
 }
 
-// AddGuardian is a paid mutator transaction binding the contract method 0xe1e009ba.
+// AddGuardian is a paid mutator transaction binding the contract method 0xc8b785f3.
 //
-// Solidity: function AddGuardian(uint256 _communityId, uint256 _guardian) returns()
+// Solidity: function addGuardian(uint256 _communityId, uint256 _guardian) returns()
 func (_CommunityHubToken *CommunityHubTokenSession) AddGuardian(_communityId *big.Int, _guardian *big.Int) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.AddGuardian(&_CommunityHubToken.TransactOpts, _communityId, _guardian)
 }
 
-// AddGuardian is a paid mutator transaction binding the contract method 0xe1e009ba.
+// AddGuardian is a paid mutator transaction binding the contract method 0xc8b785f3.
 //
-// Solidity: function AddGuardian(uint256 _communityId, uint256 _guardian) returns()
+// Solidity: function addGuardian(uint256 _communityId, uint256 _guardian) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactorSession) AddGuardian(_communityId *big.Int, _guardian *big.Int) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.AddGuardian(&_CommunityHubToken.TransactOpts, _communityId, _guardian)
 }
 
-// AdminManageCommunity is a paid mutator transaction binding the contract method 0xc06fa4e9.
+// AdminManageCommunity is a paid mutator transaction binding the contract method 0x654f6a75.
 //
-// Solidity: function AdminManageCommunity(uint256 _communityId, (string,string,string[],bool) _metadata, (uint8,(string,address)[]) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission, bool _disabled) returns()
+// Solidity: function adminManageCommunity(uint256 _communityId, (string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission, bool _disabled) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactor) AdminManageCommunity(opts *bind.TransactOpts, _communityId *big.Int, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _electionResultsContract common.Address, _createElectionPermission uint8, _disabled bool) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "AdminManageCommunity", _communityId, _metadata, _census, _guardians, _electionResultsContract, _createElectionPermission, _disabled)
+	return _CommunityHubToken.contract.Transact(opts, "adminManageCommunity", _communityId, _metadata, _census, _guardians, _electionResultsContract, _createElectionPermission, _disabled)
 }
 
-// AdminManageCommunity is a paid mutator transaction binding the contract method 0xc06fa4e9.
+// AdminManageCommunity is a paid mutator transaction binding the contract method 0x654f6a75.
 //
-// Solidity: function AdminManageCommunity(uint256 _communityId, (string,string,string[],bool) _metadata, (uint8,(string,address)[]) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission, bool _disabled) returns()
+// Solidity: function adminManageCommunity(uint256 _communityId, (string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission, bool _disabled) returns()
 func (_CommunityHubToken *CommunityHubTokenSession) AdminManageCommunity(_communityId *big.Int, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _electionResultsContract common.Address, _createElectionPermission uint8, _disabled bool) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.AdminManageCommunity(&_CommunityHubToken.TransactOpts, _communityId, _metadata, _census, _guardians, _electionResultsContract, _createElectionPermission, _disabled)
 }
 
-// AdminManageCommunity is a paid mutator transaction binding the contract method 0xc06fa4e9.
+// AdminManageCommunity is a paid mutator transaction binding the contract method 0x654f6a75.
 //
-// Solidity: function AdminManageCommunity(uint256 _communityId, (string,string,string[],bool) _metadata, (uint8,(string,address)[]) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission, bool _disabled) returns()
+// Solidity: function adminManageCommunity(uint256 _communityId, (string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission, bool _disabled) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactorSession) AdminManageCommunity(_communityId *big.Int, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _electionResultsContract common.Address, _createElectionPermission uint8, _disabled bool) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.AdminManageCommunity(&_CommunityHubToken.TransactOpts, _communityId, _metadata, _census, _guardians, _electionResultsContract, _createElectionPermission, _disabled)
 }
 
-// AdminSetCommunityPrice is a paid mutator transaction binding the contract method 0x428d87c5.
+// AdminSetCommunityPrice is a paid mutator transaction binding the contract method 0x873ceb2e.
 //
-// Solidity: function AdminSetCommunityPrice(uint256 _price) returns()
+// Solidity: function adminSetCommunityPrice(uint256 _price) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactor) AdminSetCommunityPrice(opts *bind.TransactOpts, _price *big.Int) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "AdminSetCommunityPrice", _price)
+	return _CommunityHubToken.contract.Transact(opts, "adminSetCommunityPrice", _price)
 }
 
-// AdminSetCommunityPrice is a paid mutator transaction binding the contract method 0x428d87c5.
+// AdminSetCommunityPrice is a paid mutator transaction binding the contract method 0x873ceb2e.
 //
-// Solidity: function AdminSetCommunityPrice(uint256 _price) returns()
+// Solidity: function adminSetCommunityPrice(uint256 _price) returns()
 func (_CommunityHubToken *CommunityHubTokenSession) AdminSetCommunityPrice(_price *big.Int) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.AdminSetCommunityPrice(&_CommunityHubToken.TransactOpts, _price)
 }
 
-// AdminSetCommunityPrice is a paid mutator transaction binding the contract method 0x428d87c5.
+// AdminSetCommunityPrice is a paid mutator transaction binding the contract method 0x873ceb2e.
 //
-// Solidity: function AdminSetCommunityPrice(uint256 _price) returns()
+// Solidity: function adminSetCommunityPrice(uint256 _price) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactorSession) AdminSetCommunityPrice(_price *big.Int) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.AdminSetCommunityPrice(&_CommunityHubToken.TransactOpts, _price)
 }
 
-// AdminSetDefaultElectionResultsContract is a paid mutator transaction binding the contract method 0x2893c86f.
+// AdminSetDefaultElectionResultsContract is a paid mutator transaction binding the contract method 0x25fe08c9.
 //
-// Solidity: function AdminSetDefaultElectionResultsContract(address _electionResultsContract) returns()
+// Solidity: function adminSetDefaultElectionResultsContract(address _electionResultsContract) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactor) AdminSetDefaultElectionResultsContract(opts *bind.TransactOpts, _electionResultsContract common.Address) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "AdminSetDefaultElectionResultsContract", _electionResultsContract)
+	return _CommunityHubToken.contract.Transact(opts, "adminSetDefaultElectionResultsContract", _electionResultsContract)
 }
 
-// AdminSetDefaultElectionResultsContract is a paid mutator transaction binding the contract method 0x2893c86f.
+// AdminSetDefaultElectionResultsContract is a paid mutator transaction binding the contract method 0x25fe08c9.
 //
-// Solidity: function AdminSetDefaultElectionResultsContract(address _electionResultsContract) returns()
+// Solidity: function adminSetDefaultElectionResultsContract(address _electionResultsContract) returns()
 func (_CommunityHubToken *CommunityHubTokenSession) AdminSetDefaultElectionResultsContract(_electionResultsContract common.Address) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.AdminSetDefaultElectionResultsContract(&_CommunityHubToken.TransactOpts, _electionResultsContract)
 }
 
-// AdminSetDefaultElectionResultsContract is a paid mutator transaction binding the contract method 0x2893c86f.
+// AdminSetDefaultElectionResultsContract is a paid mutator transaction binding the contract method 0x25fe08c9.
 //
-// Solidity: function AdminSetDefaultElectionResultsContract(address _electionResultsContract) returns()
+// Solidity: function adminSetDefaultElectionResultsContract(address _electionResultsContract) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactorSession) AdminSetDefaultElectionResultsContract(_electionResultsContract common.Address) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.AdminSetDefaultElectionResultsContract(&_CommunityHubToken.TransactOpts, _electionResultsContract)
 }
 
-// CreateCommunity is a paid mutator transaction binding the contract method 0xcd22ba84.
+// AdminSetPricePerElection is a paid mutator transaction binding the contract method 0x3e512ebc.
 //
-// Solidity: function CreateCommunity((string,string,string[],bool) _metadata, (uint8,(string,address)[]) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission) payable returns(uint256)
-func (_CommunityHubToken *CommunityHubTokenTransactor) CreateCommunity(opts *bind.TransactOpts, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _electionResultsContract common.Address, _createElectionPermission uint8) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "CreateCommunity", _metadata, _census, _guardians, _electionResultsContract, _createElectionPermission)
+// Solidity: function adminSetPricePerElection(uint256 _price) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) AdminSetPricePerElection(opts *bind.TransactOpts, _price *big.Int) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "adminSetPricePerElection", _price)
 }
 
-// CreateCommunity is a paid mutator transaction binding the contract method 0xcd22ba84.
+// AdminSetPricePerElection is a paid mutator transaction binding the contract method 0x3e512ebc.
 //
-// Solidity: function CreateCommunity((string,string,string[],bool) _metadata, (uint8,(string,address)[]) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission) payable returns(uint256)
+// Solidity: function adminSetPricePerElection(uint256 _price) returns()
+func (_CommunityHubToken *CommunityHubTokenSession) AdminSetPricePerElection(_price *big.Int) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.AdminSetPricePerElection(&_CommunityHubToken.TransactOpts, _price)
+}
+
+// AdminSetPricePerElection is a paid mutator transaction binding the contract method 0x3e512ebc.
+//
+// Solidity: function adminSetPricePerElection(uint256 _price) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) AdminSetPricePerElection(_price *big.Int) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.AdminSetPricePerElection(&_CommunityHubToken.TransactOpts, _price)
+}
+
+// CreateCommunity is a paid mutator transaction binding the contract method 0xf8867041.
+//
+// Solidity: function createCommunity((string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission) payable returns(uint256)
+func (_CommunityHubToken *CommunityHubTokenTransactor) CreateCommunity(opts *bind.TransactOpts, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _electionResultsContract common.Address, _createElectionPermission uint8) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "createCommunity", _metadata, _census, _guardians, _electionResultsContract, _createElectionPermission)
+}
+
+// CreateCommunity is a paid mutator transaction binding the contract method 0xf8867041.
+//
+// Solidity: function createCommunity((string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission) payable returns(uint256)
 func (_CommunityHubToken *CommunityHubTokenSession) CreateCommunity(_metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _electionResultsContract common.Address, _createElectionPermission uint8) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.CreateCommunity(&_CommunityHubToken.TransactOpts, _metadata, _census, _guardians, _electionResultsContract, _createElectionPermission)
 }
 
-// CreateCommunity is a paid mutator transaction binding the contract method 0xcd22ba84.
+// CreateCommunity is a paid mutator transaction binding the contract method 0xf8867041.
 //
-// Solidity: function CreateCommunity((string,string,string[],bool) _metadata, (uint8,(string,address)[]) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission) payable returns(uint256)
+// Solidity: function createCommunity((string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, address _electionResultsContract, uint8 _createElectionPermission) payable returns(uint256)
 func (_CommunityHubToken *CommunityHubTokenTransactorSession) CreateCommunity(_metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _electionResultsContract common.Address, _createElectionPermission uint8) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.CreateCommunity(&_CommunityHubToken.TransactOpts, _metadata, _census, _guardians, _electionResultsContract, _createElectionPermission)
 }
 
-// RemoveGuardian is a paid mutator transaction binding the contract method 0x264c408e.
+// Deposit is a paid mutator transaction binding the contract method 0xb6b55f25.
 //
-// Solidity: function RemoveGuardian(uint256 _communityId, uint256 _guardian) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactor) RemoveGuardian(opts *bind.TransactOpts, _communityId *big.Int, _guardian *big.Int) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "RemoveGuardian", _communityId, _guardian)
+// Solidity: function deposit(uint256 _communityId) payable returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) Deposit(opts *bind.TransactOpts, _communityId *big.Int) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "deposit", _communityId)
 }
 
-// RemoveGuardian is a paid mutator transaction binding the contract method 0x264c408e.
+// Deposit is a paid mutator transaction binding the contract method 0xb6b55f25.
 //
-// Solidity: function RemoveGuardian(uint256 _communityId, uint256 _guardian) returns()
+// Solidity: function deposit(uint256 _communityId) payable returns()
+func (_CommunityHubToken *CommunityHubTokenSession) Deposit(_communityId *big.Int) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.Deposit(&_CommunityHubToken.TransactOpts, _communityId)
+}
+
+// Deposit is a paid mutator transaction binding the contract method 0xb6b55f25.
+//
+// Solidity: function deposit(uint256 _communityId) payable returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) Deposit(_communityId *big.Int) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.Deposit(&_CommunityHubToken.TransactOpts, _communityId)
+}
+
+// RemoveGuardian is a paid mutator transaction binding the contract method 0xaba675b0.
+//
+// Solidity: function removeGuardian(uint256 _communityId, uint256 _guardian) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) RemoveGuardian(opts *bind.TransactOpts, _communityId *big.Int, _guardian *big.Int) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "removeGuardian", _communityId, _guardian)
+}
+
+// RemoveGuardian is a paid mutator transaction binding the contract method 0xaba675b0.
+//
+// Solidity: function removeGuardian(uint256 _communityId, uint256 _guardian) returns()
 func (_CommunityHubToken *CommunityHubTokenSession) RemoveGuardian(_communityId *big.Int, _guardian *big.Int) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.RemoveGuardian(&_CommunityHubToken.TransactOpts, _communityId, _guardian)
 }
 
-// RemoveGuardian is a paid mutator transaction binding the contract method 0x264c408e.
+// RemoveGuardian is a paid mutator transaction binding the contract method 0xaba675b0.
 //
-// Solidity: function RemoveGuardian(uint256 _communityId, uint256 _guardian) returns()
+// Solidity: function removeGuardian(uint256 _communityId, uint256 _guardian) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactorSession) RemoveGuardian(_communityId *big.Int, _guardian *big.Int) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.RemoveGuardian(&_CommunityHubToken.TransactOpts, _communityId, _guardian)
-}
-
-// SetCensus is a paid mutator transaction binding the contract method 0xcb5eefd8.
-//
-// Solidity: function SetCensus(uint256 _communityId, (uint8,(string,address)[]) _census) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactor) SetCensus(opts *bind.TransactOpts, _communityId *big.Int, _census ICommunityHubCensus) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "SetCensus", _communityId, _census)
-}
-
-// SetCensus is a paid mutator transaction binding the contract method 0xcb5eefd8.
-//
-// Solidity: function SetCensus(uint256 _communityId, (uint8,(string,address)[]) _census) returns()
-func (_CommunityHubToken *CommunityHubTokenSession) SetCensus(_communityId *big.Int, _census ICommunityHubCensus) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.SetCensus(&_CommunityHubToken.TransactOpts, _communityId, _census)
-}
-
-// SetCensus is a paid mutator transaction binding the contract method 0xcb5eefd8.
-//
-// Solidity: function SetCensus(uint256 _communityId, (uint8,(string,address)[]) _census) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactorSession) SetCensus(_communityId *big.Int, _census ICommunityHubCensus) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.SetCensus(&_CommunityHubToken.TransactOpts, _communityId, _census)
-}
-
-// SetCreateElectionPermission is a paid mutator transaction binding the contract method 0x67272a52.
-//
-// Solidity: function SetCreateElectionPermission(uint256 _communityId, uint8 _createElectionPermission) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactor) SetCreateElectionPermission(opts *bind.TransactOpts, _communityId *big.Int, _createElectionPermission uint8) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "SetCreateElectionPermission", _communityId, _createElectionPermission)
-}
-
-// SetCreateElectionPermission is a paid mutator transaction binding the contract method 0x67272a52.
-//
-// Solidity: function SetCreateElectionPermission(uint256 _communityId, uint8 _createElectionPermission) returns()
-func (_CommunityHubToken *CommunityHubTokenSession) SetCreateElectionPermission(_communityId *big.Int, _createElectionPermission uint8) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.SetCreateElectionPermission(&_CommunityHubToken.TransactOpts, _communityId, _createElectionPermission)
-}
-
-// SetCreateElectionPermission is a paid mutator transaction binding the contract method 0x67272a52.
-//
-// Solidity: function SetCreateElectionPermission(uint256 _communityId, uint8 _createElectionPermission) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactorSession) SetCreateElectionPermission(_communityId *big.Int, _createElectionPermission uint8) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.SetCreateElectionPermission(&_CommunityHubToken.TransactOpts, _communityId, _createElectionPermission)
-}
-
-// SetElectionResultsContract is a paid mutator transaction binding the contract method 0xd66917d9.
-//
-// Solidity: function SetElectionResultsContract(uint256 _communityId, address _electionResultsContract) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactor) SetElectionResultsContract(opts *bind.TransactOpts, _communityId *big.Int, _electionResultsContract common.Address) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "SetElectionResultsContract", _communityId, _electionResultsContract)
-}
-
-// SetElectionResultsContract is a paid mutator transaction binding the contract method 0xd66917d9.
-//
-// Solidity: function SetElectionResultsContract(uint256 _communityId, address _electionResultsContract) returns()
-func (_CommunityHubToken *CommunityHubTokenSession) SetElectionResultsContract(_communityId *big.Int, _electionResultsContract common.Address) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.SetElectionResultsContract(&_CommunityHubToken.TransactOpts, _communityId, _electionResultsContract)
-}
-
-// SetElectionResultsContract is a paid mutator transaction binding the contract method 0xd66917d9.
-//
-// Solidity: function SetElectionResultsContract(uint256 _communityId, address _electionResultsContract) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactorSession) SetElectionResultsContract(_communityId *big.Int, _electionResultsContract common.Address) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.SetElectionResultsContract(&_CommunityHubToken.TransactOpts, _communityId, _electionResultsContract)
-}
-
-// SetMetadata is a paid mutator transaction binding the contract method 0x2ebf88f8.
-//
-// Solidity: function SetMetadata(uint256 _communityId, (string,string,string[],bool) _metadata) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactor) SetMetadata(opts *bind.TransactOpts, _communityId *big.Int, _metadata ICommunityHubCommunityMetadata) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "SetMetadata", _communityId, _metadata)
-}
-
-// SetMetadata is a paid mutator transaction binding the contract method 0x2ebf88f8.
-//
-// Solidity: function SetMetadata(uint256 _communityId, (string,string,string[],bool) _metadata) returns()
-func (_CommunityHubToken *CommunityHubTokenSession) SetMetadata(_communityId *big.Int, _metadata ICommunityHubCommunityMetadata) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.SetMetadata(&_CommunityHubToken.TransactOpts, _communityId, _metadata)
-}
-
-// SetMetadata is a paid mutator transaction binding the contract method 0x2ebf88f8.
-//
-// Solidity: function SetMetadata(uint256 _communityId, (string,string,string[],bool) _metadata) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactorSession) SetMetadata(_communityId *big.Int, _metadata ICommunityHubCommunityMetadata) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.SetMetadata(&_CommunityHubToken.TransactOpts, _communityId, _metadata)
-}
-
-// SetNotifiableElections is a paid mutator transaction binding the contract method 0x6ebf3c4c.
-//
-// Solidity: function SetNotifiableElections(uint256 _communityId, bool _notifiableElections) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactor) SetNotifiableElections(opts *bind.TransactOpts, _communityId *big.Int, _notifiableElections bool) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "SetNotifiableElections", _communityId, _notifiableElections)
-}
-
-// SetNotifiableElections is a paid mutator transaction binding the contract method 0x6ebf3c4c.
-//
-// Solidity: function SetNotifiableElections(uint256 _communityId, bool _notifiableElections) returns()
-func (_CommunityHubToken *CommunityHubTokenSession) SetNotifiableElections(_communityId *big.Int, _notifiableElections bool) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.SetNotifiableElections(&_CommunityHubToken.TransactOpts, _communityId, _notifiableElections)
-}
-
-// SetNotifiableElections is a paid mutator transaction binding the contract method 0x6ebf3c4c.
-//
-// Solidity: function SetNotifiableElections(uint256 _communityId, bool _notifiableElections) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactorSession) SetNotifiableElections(_communityId *big.Int, _notifiableElections bool) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.SetNotifiableElections(&_CommunityHubToken.TransactOpts, _communityId, _notifiableElections)
 }
 
 // RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
@@ -659,6 +630,111 @@ func (_CommunityHubToken *CommunityHubTokenSession) RenounceOwnership() (*types.
 // Solidity: function renounceOwnership() returns()
 func (_CommunityHubToken *CommunityHubTokenTransactorSession) RenounceOwnership() (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.RenounceOwnership(&_CommunityHubToken.TransactOpts)
+}
+
+// SetCensus is a paid mutator transaction binding the contract method 0x56c4e4ba.
+//
+// Solidity: function setCensus(uint256 _communityId, (uint8,(string,address)[],string) _census) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) SetCensus(opts *bind.TransactOpts, _communityId *big.Int, _census ICommunityHubCensus) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "setCensus", _communityId, _census)
+}
+
+// SetCensus is a paid mutator transaction binding the contract method 0x56c4e4ba.
+//
+// Solidity: function setCensus(uint256 _communityId, (uint8,(string,address)[],string) _census) returns()
+func (_CommunityHubToken *CommunityHubTokenSession) SetCensus(_communityId *big.Int, _census ICommunityHubCensus) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.SetCensus(&_CommunityHubToken.TransactOpts, _communityId, _census)
+}
+
+// SetCensus is a paid mutator transaction binding the contract method 0x56c4e4ba.
+//
+// Solidity: function setCensus(uint256 _communityId, (uint8,(string,address)[],string) _census) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) SetCensus(_communityId *big.Int, _census ICommunityHubCensus) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.SetCensus(&_CommunityHubToken.TransactOpts, _communityId, _census)
+}
+
+// SetCreateElectionPermission is a paid mutator transaction binding the contract method 0x7824c05c.
+//
+// Solidity: function setCreateElectionPermission(uint256 _communityId, uint8 _createElectionPermission) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) SetCreateElectionPermission(opts *bind.TransactOpts, _communityId *big.Int, _createElectionPermission uint8) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "setCreateElectionPermission", _communityId, _createElectionPermission)
+}
+
+// SetCreateElectionPermission is a paid mutator transaction binding the contract method 0x7824c05c.
+//
+// Solidity: function setCreateElectionPermission(uint256 _communityId, uint8 _createElectionPermission) returns()
+func (_CommunityHubToken *CommunityHubTokenSession) SetCreateElectionPermission(_communityId *big.Int, _createElectionPermission uint8) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.SetCreateElectionPermission(&_CommunityHubToken.TransactOpts, _communityId, _createElectionPermission)
+}
+
+// SetCreateElectionPermission is a paid mutator transaction binding the contract method 0x7824c05c.
+//
+// Solidity: function setCreateElectionPermission(uint256 _communityId, uint8 _createElectionPermission) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) SetCreateElectionPermission(_communityId *big.Int, _createElectionPermission uint8) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.SetCreateElectionPermission(&_CommunityHubToken.TransactOpts, _communityId, _createElectionPermission)
+}
+
+// SetElectionResultsContract is a paid mutator transaction binding the contract method 0x5a6cad96.
+//
+// Solidity: function setElectionResultsContract(uint256 _communityId, address _electionResultsContract) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) SetElectionResultsContract(opts *bind.TransactOpts, _communityId *big.Int, _electionResultsContract common.Address) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "setElectionResultsContract", _communityId, _electionResultsContract)
+}
+
+// SetElectionResultsContract is a paid mutator transaction binding the contract method 0x5a6cad96.
+//
+// Solidity: function setElectionResultsContract(uint256 _communityId, address _electionResultsContract) returns()
+func (_CommunityHubToken *CommunityHubTokenSession) SetElectionResultsContract(_communityId *big.Int, _electionResultsContract common.Address) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.SetElectionResultsContract(&_CommunityHubToken.TransactOpts, _communityId, _electionResultsContract)
+}
+
+// SetElectionResultsContract is a paid mutator transaction binding the contract method 0x5a6cad96.
+//
+// Solidity: function setElectionResultsContract(uint256 _communityId, address _electionResultsContract) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) SetElectionResultsContract(_communityId *big.Int, _electionResultsContract common.Address) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.SetElectionResultsContract(&_CommunityHubToken.TransactOpts, _communityId, _electionResultsContract)
+}
+
+// SetMetadata is a paid mutator transaction binding the contract method 0x82e6d638.
+//
+// Solidity: function setMetadata(uint256 _communityId, (string,string,string,string[],bool) _metadata) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) SetMetadata(opts *bind.TransactOpts, _communityId *big.Int, _metadata ICommunityHubCommunityMetadata) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "setMetadata", _communityId, _metadata)
+}
+
+// SetMetadata is a paid mutator transaction binding the contract method 0x82e6d638.
+//
+// Solidity: function setMetadata(uint256 _communityId, (string,string,string,string[],bool) _metadata) returns()
+func (_CommunityHubToken *CommunityHubTokenSession) SetMetadata(_communityId *big.Int, _metadata ICommunityHubCommunityMetadata) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.SetMetadata(&_CommunityHubToken.TransactOpts, _communityId, _metadata)
+}
+
+// SetMetadata is a paid mutator transaction binding the contract method 0x82e6d638.
+//
+// Solidity: function setMetadata(uint256 _communityId, (string,string,string,string[],bool) _metadata) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) SetMetadata(_communityId *big.Int, _metadata ICommunityHubCommunityMetadata) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.SetMetadata(&_CommunityHubToken.TransactOpts, _communityId, _metadata)
+}
+
+// SetNotifiableElections is a paid mutator transaction binding the contract method 0xe6160fa3.
+//
+// Solidity: function setNotifiableElections(uint256 _communityId, bool _notifiableElections) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) SetNotifiableElections(opts *bind.TransactOpts, _communityId *big.Int, _notifiableElections bool) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "setNotifiableElections", _communityId, _notifiableElections)
+}
+
+// SetNotifiableElections is a paid mutator transaction binding the contract method 0xe6160fa3.
+//
+// Solidity: function setNotifiableElections(uint256 _communityId, bool _notifiableElections) returns()
+func (_CommunityHubToken *CommunityHubTokenSession) SetNotifiableElections(_communityId *big.Int, _notifiableElections bool) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.SetNotifiableElections(&_CommunityHubToken.TransactOpts, _communityId, _notifiableElections)
+}
+
+// SetNotifiableElections is a paid mutator transaction binding the contract method 0xe6160fa3.
+//
+// Solidity: function setNotifiableElections(uint256 _communityId, bool _notifiableElections) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) SetNotifiableElections(_communityId *big.Int, _notifiableElections bool) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.SetNotifiableElections(&_CommunityHubToken.TransactOpts, _communityId, _notifiableElections)
 }
 
 // SetResult is a paid mutator transaction binding the contract method 0x3c973f75.
@@ -701,6 +777,27 @@ func (_CommunityHubToken *CommunityHubTokenSession) TransferOwnership(newOwner c
 // Solidity: function transferOwnership(address newOwner) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.TransferOwnership(&_CommunityHubToken.TransactOpts, newOwner)
+}
+
+// Withdraw is a paid mutator transaction binding the contract method 0x3ccfd60b.
+//
+// Solidity: function withdraw() returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) Withdraw(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "withdraw")
+}
+
+// Withdraw is a paid mutator transaction binding the contract method 0x3ccfd60b.
+//
+// Solidity: function withdraw() returns()
+func (_CommunityHubToken *CommunityHubTokenSession) Withdraw() (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.Withdraw(&_CommunityHubToken.TransactOpts)
+}
+
+// Withdraw is a paid mutator transaction binding the contract method 0x3ccfd60b.
+//
+// Solidity: function withdraw() returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) Withdraw() (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.Withdraw(&_CommunityHubToken.TransactOpts)
 }
 
 // Receive is a paid mutator transaction binding the contract receive function.
@@ -932,9 +1029,9 @@ type CommunityHubTokenCensusSet struct {
 	Raw         types.Log // Blockchain specific contextual infos
 }
 
-// FilterCensusSet is a free log retrieval operation binding the contract event 0xe9792eee54764d34581473a0e844e57f5e07fa14e6d375c1f542b383ce48f0b7.
+// FilterCensusSet is a free log retrieval operation binding the contract event 0xf768bb0dd5bd987cdbc2706c837263b29e7326b0651e4fe20c16372d24cc02ac.
 //
-// Solidity: event CensusSet(uint256 communityId, (uint8,(string,address)[]) census)
+// Solidity: event CensusSet(uint256 communityId, (uint8,(string,address)[],string) census)
 func (_CommunityHubToken *CommunityHubTokenFilterer) FilterCensusSet(opts *bind.FilterOpts) (*CommunityHubTokenCensusSetIterator, error) {
 
 	logs, sub, err := _CommunityHubToken.contract.FilterLogs(opts, "CensusSet")
@@ -944,9 +1041,9 @@ func (_CommunityHubToken *CommunityHubTokenFilterer) FilterCensusSet(opts *bind.
 	return &CommunityHubTokenCensusSetIterator{contract: _CommunityHubToken.contract, event: "CensusSet", logs: logs, sub: sub}, nil
 }
 
-// WatchCensusSet is a free log subscription operation binding the contract event 0xe9792eee54764d34581473a0e844e57f5e07fa14e6d375c1f542b383ce48f0b7.
+// WatchCensusSet is a free log subscription operation binding the contract event 0xf768bb0dd5bd987cdbc2706c837263b29e7326b0651e4fe20c16372d24cc02ac.
 //
-// Solidity: event CensusSet(uint256 communityId, (uint8,(string,address)[]) census)
+// Solidity: event CensusSet(uint256 communityId, (uint8,(string,address)[],string) census)
 func (_CommunityHubToken *CommunityHubTokenFilterer) WatchCensusSet(opts *bind.WatchOpts, sink chan<- *CommunityHubTokenCensusSet) (event.Subscription, error) {
 
 	logs, sub, err := _CommunityHubToken.contract.WatchLogs(opts, "CensusSet")
@@ -981,9 +1078,9 @@ func (_CommunityHubToken *CommunityHubTokenFilterer) WatchCensusSet(opts *bind.W
 	}), nil
 }
 
-// ParseCensusSet is a log parse operation binding the contract event 0xe9792eee54764d34581473a0e844e57f5e07fa14e6d375c1f542b383ce48f0b7.
+// ParseCensusSet is a log parse operation binding the contract event 0xf768bb0dd5bd987cdbc2706c837263b29e7326b0651e4fe20c16372d24cc02ac.
 //
-// Solidity: event CensusSet(uint256 communityId, (uint8,(string,address)[]) census)
+// Solidity: event CensusSet(uint256 communityId, (uint8,(string,address)[],string) census)
 func (_CommunityHubToken *CommunityHubTokenFilterer) ParseCensusSet(log types.Log) (*CommunityHubTokenCensusSet, error) {
 	event := new(CommunityHubTokenCensusSet)
 	if err := _CommunityHubToken.contract.UnpackLog(event, "CensusSet", log); err != nil {
@@ -1122,6 +1219,142 @@ func (_CommunityHubToken *CommunityHubTokenFilterer) WatchCommunityCreated(opts 
 func (_CommunityHubToken *CommunityHubTokenFilterer) ParseCommunityCreated(log types.Log) (*CommunityHubTokenCommunityCreated, error) {
 	event := new(CommunityHubTokenCommunityCreated)
 	if err := _CommunityHubToken.contract.UnpackLog(event, "CommunityCreated", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// CommunityHubTokenCommunityDepositIterator is returned from FilterCommunityDeposit and is used to iterate over the raw logs and unpacked data for CommunityDeposit events raised by the CommunityHubToken contract.
+type CommunityHubTokenCommunityDepositIterator struct {
+	Event *CommunityHubTokenCommunityDeposit // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *CommunityHubTokenCommunityDepositIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(CommunityHubTokenCommunityDeposit)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(CommunityHubTokenCommunityDeposit)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *CommunityHubTokenCommunityDepositIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *CommunityHubTokenCommunityDepositIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// CommunityHubTokenCommunityDeposit represents a CommunityDeposit event raised by the CommunityHubToken contract.
+type CommunityHubTokenCommunityDeposit struct {
+	Sender      common.Address
+	Amount      *big.Int
+	CommunityId *big.Int
+	Raw         types.Log // Blockchain specific contextual infos
+}
+
+// FilterCommunityDeposit is a free log retrieval operation binding the contract event 0xd6e9bd49f32ce5202a849c6ab581631b3e952257363b06975f32872e9e1656c9.
+//
+// Solidity: event CommunityDeposit(address sender, uint256 amount, uint256 communityId)
+func (_CommunityHubToken *CommunityHubTokenFilterer) FilterCommunityDeposit(opts *bind.FilterOpts) (*CommunityHubTokenCommunityDepositIterator, error) {
+
+	logs, sub, err := _CommunityHubToken.contract.FilterLogs(opts, "CommunityDeposit")
+	if err != nil {
+		return nil, err
+	}
+	return &CommunityHubTokenCommunityDepositIterator{contract: _CommunityHubToken.contract, event: "CommunityDeposit", logs: logs, sub: sub}, nil
+}
+
+// WatchCommunityDeposit is a free log subscription operation binding the contract event 0xd6e9bd49f32ce5202a849c6ab581631b3e952257363b06975f32872e9e1656c9.
+//
+// Solidity: event CommunityDeposit(address sender, uint256 amount, uint256 communityId)
+func (_CommunityHubToken *CommunityHubTokenFilterer) WatchCommunityDeposit(opts *bind.WatchOpts, sink chan<- *CommunityHubTokenCommunityDeposit) (event.Subscription, error) {
+
+	logs, sub, err := _CommunityHubToken.contract.WatchLogs(opts, "CommunityDeposit")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(CommunityHubTokenCommunityDeposit)
+				if err := _CommunityHubToken.contract.UnpackLog(event, "CommunityDeposit", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseCommunityDeposit is a log parse operation binding the contract event 0xd6e9bd49f32ce5202a849c6ab581631b3e952257363b06975f32872e9e1656c9.
+//
+// Solidity: event CommunityDeposit(address sender, uint256 amount, uint256 communityId)
+func (_CommunityHubToken *CommunityHubTokenFilterer) ParseCommunityDeposit(log types.Log) (*CommunityHubTokenCommunityDeposit, error) {
+	event := new(CommunityHubTokenCommunityDeposit)
+	if err := _CommunityHubToken.contract.UnpackLog(event, "CommunityDeposit", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
@@ -2145,9 +2378,9 @@ type CommunityHubTokenMetadataSet struct {
 	Raw         types.Log // Blockchain specific contextual infos
 }
 
-// FilterMetadataSet is a free log retrieval operation binding the contract event 0x94aac65d269f9059e59ac9aff9cffe22dc1907d1f2ac8f6a9dde667d8a0eb044.
+// FilterMetadataSet is a free log retrieval operation binding the contract event 0x440c55e385a61cd472c0cd76ee015cab9bd0760aef9634633e6597fdea583fd5.
 //
-// Solidity: event MetadataSet(uint256 communityId, (string,string,string[],bool) metadata)
+// Solidity: event MetadataSet(uint256 communityId, (string,string,string,string[],bool) metadata)
 func (_CommunityHubToken *CommunityHubTokenFilterer) FilterMetadataSet(opts *bind.FilterOpts) (*CommunityHubTokenMetadataSetIterator, error) {
 
 	logs, sub, err := _CommunityHubToken.contract.FilterLogs(opts, "MetadataSet")
@@ -2157,9 +2390,9 @@ func (_CommunityHubToken *CommunityHubTokenFilterer) FilterMetadataSet(opts *bin
 	return &CommunityHubTokenMetadataSetIterator{contract: _CommunityHubToken.contract, event: "MetadataSet", logs: logs, sub: sub}, nil
 }
 
-// WatchMetadataSet is a free log subscription operation binding the contract event 0x94aac65d269f9059e59ac9aff9cffe22dc1907d1f2ac8f6a9dde667d8a0eb044.
+// WatchMetadataSet is a free log subscription operation binding the contract event 0x440c55e385a61cd472c0cd76ee015cab9bd0760aef9634633e6597fdea583fd5.
 //
-// Solidity: event MetadataSet(uint256 communityId, (string,string,string[],bool) metadata)
+// Solidity: event MetadataSet(uint256 communityId, (string,string,string,string[],bool) metadata)
 func (_CommunityHubToken *CommunityHubTokenFilterer) WatchMetadataSet(opts *bind.WatchOpts, sink chan<- *CommunityHubTokenMetadataSet) (event.Subscription, error) {
 
 	logs, sub, err := _CommunityHubToken.contract.WatchLogs(opts, "MetadataSet")
@@ -2194,9 +2427,9 @@ func (_CommunityHubToken *CommunityHubTokenFilterer) WatchMetadataSet(opts *bind
 	}), nil
 }
 
-// ParseMetadataSet is a log parse operation binding the contract event 0x94aac65d269f9059e59ac9aff9cffe22dc1907d1f2ac8f6a9dde667d8a0eb044.
+// ParseMetadataSet is a log parse operation binding the contract event 0x440c55e385a61cd472c0cd76ee015cab9bd0760aef9634633e6597fdea583fd5.
 //
-// Solidity: event MetadataSet(uint256 communityId, (string,string,string[],bool) metadata)
+// Solidity: event MetadataSet(uint256 communityId, (string,string,string,string[],bool) metadata)
 func (_CommunityHubToken *CommunityHubTokenFilterer) ParseMetadataSet(log types.Log) (*CommunityHubTokenMetadataSet, error) {
 	event := new(CommunityHubTokenMetadataSet)
 	if err := _CommunityHubToken.contract.UnpackLog(event, "MetadataSet", log); err != nil {
@@ -2494,6 +2727,140 @@ func (_CommunityHubToken *CommunityHubTokenFilterer) ParseOwnershipTransferred(l
 	return event, nil
 }
 
+// CommunityHubTokenPricePerElectionSetIterator is returned from FilterPricePerElectionSet and is used to iterate over the raw logs and unpacked data for PricePerElectionSet events raised by the CommunityHubToken contract.
+type CommunityHubTokenPricePerElectionSetIterator struct {
+	Event *CommunityHubTokenPricePerElectionSet // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *CommunityHubTokenPricePerElectionSetIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(CommunityHubTokenPricePerElectionSet)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(CommunityHubTokenPricePerElectionSet)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *CommunityHubTokenPricePerElectionSetIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *CommunityHubTokenPricePerElectionSetIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// CommunityHubTokenPricePerElectionSet represents a PricePerElectionSet event raised by the CommunityHubToken contract.
+type CommunityHubTokenPricePerElectionSet struct {
+	Price *big.Int
+	Raw   types.Log // Blockchain specific contextual infos
+}
+
+// FilterPricePerElectionSet is a free log retrieval operation binding the contract event 0x0840c2296c4c97ecdc9b8dc544cd67f45a8d629b9d6109410530bb58b7f17b92.
+//
+// Solidity: event PricePerElectionSet(uint256 price)
+func (_CommunityHubToken *CommunityHubTokenFilterer) FilterPricePerElectionSet(opts *bind.FilterOpts) (*CommunityHubTokenPricePerElectionSetIterator, error) {
+
+	logs, sub, err := _CommunityHubToken.contract.FilterLogs(opts, "PricePerElectionSet")
+	if err != nil {
+		return nil, err
+	}
+	return &CommunityHubTokenPricePerElectionSetIterator{contract: _CommunityHubToken.contract, event: "PricePerElectionSet", logs: logs, sub: sub}, nil
+}
+
+// WatchPricePerElectionSet is a free log subscription operation binding the contract event 0x0840c2296c4c97ecdc9b8dc544cd67f45a8d629b9d6109410530bb58b7f17b92.
+//
+// Solidity: event PricePerElectionSet(uint256 price)
+func (_CommunityHubToken *CommunityHubTokenFilterer) WatchPricePerElectionSet(opts *bind.WatchOpts, sink chan<- *CommunityHubTokenPricePerElectionSet) (event.Subscription, error) {
+
+	logs, sub, err := _CommunityHubToken.contract.WatchLogs(opts, "PricePerElectionSet")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(CommunityHubTokenPricePerElectionSet)
+				if err := _CommunityHubToken.contract.UnpackLog(event, "PricePerElectionSet", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParsePricePerElectionSet is a log parse operation binding the contract event 0x0840c2296c4c97ecdc9b8dc544cd67f45a8d629b9d6109410530bb58b7f17b92.
+//
+// Solidity: event PricePerElectionSet(uint256 price)
+func (_CommunityHubToken *CommunityHubTokenFilterer) ParsePricePerElectionSet(log types.Log) (*CommunityHubTokenPricePerElectionSet, error) {
+	event := new(CommunityHubTokenPricePerElectionSet)
+	if err := _CommunityHubToken.contract.UnpackLog(event, "PricePerElectionSet", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
 // CommunityHubTokenResultsSetIterator is returned from FilterResultsSet and is used to iterate over the raw logs and unpacked data for ResultsSet events raised by the CommunityHubToken contract.
 type CommunityHubTokenResultsSetIterator struct {
 	Event *CommunityHubTokenResultsSet // Event containing the contract specifics and raw log
@@ -2623,6 +2990,141 @@ func (_CommunityHubToken *CommunityHubTokenFilterer) WatchResultsSet(opts *bind.
 func (_CommunityHubToken *CommunityHubTokenFilterer) ParseResultsSet(log types.Log) (*CommunityHubTokenResultsSet, error) {
 	event := new(CommunityHubTokenResultsSet)
 	if err := _CommunityHubToken.contract.UnpackLog(event, "ResultsSet", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// CommunityHubTokenWithdrawalIterator is returned from FilterWithdrawal and is used to iterate over the raw logs and unpacked data for Withdrawal events raised by the CommunityHubToken contract.
+type CommunityHubTokenWithdrawalIterator struct {
+	Event *CommunityHubTokenWithdrawal // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *CommunityHubTokenWithdrawalIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(CommunityHubTokenWithdrawal)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(CommunityHubTokenWithdrawal)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *CommunityHubTokenWithdrawalIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *CommunityHubTokenWithdrawalIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// CommunityHubTokenWithdrawal represents a Withdrawal event raised by the CommunityHubToken contract.
+type CommunityHubTokenWithdrawal struct {
+	Amount *big.Int
+	To     common.Address
+	Raw    types.Log // Blockchain specific contextual infos
+}
+
+// FilterWithdrawal is a free log retrieval operation binding the contract event 0xd964a27d45f595739c13d8b1160b57491050cacf3a2e5602207277d6228f64ee.
+//
+// Solidity: event Withdrawal(uint256 amount, address to)
+func (_CommunityHubToken *CommunityHubTokenFilterer) FilterWithdrawal(opts *bind.FilterOpts) (*CommunityHubTokenWithdrawalIterator, error) {
+
+	logs, sub, err := _CommunityHubToken.contract.FilterLogs(opts, "Withdrawal")
+	if err != nil {
+		return nil, err
+	}
+	return &CommunityHubTokenWithdrawalIterator{contract: _CommunityHubToken.contract, event: "Withdrawal", logs: logs, sub: sub}, nil
+}
+
+// WatchWithdrawal is a free log subscription operation binding the contract event 0xd964a27d45f595739c13d8b1160b57491050cacf3a2e5602207277d6228f64ee.
+//
+// Solidity: event Withdrawal(uint256 amount, address to)
+func (_CommunityHubToken *CommunityHubTokenFilterer) WatchWithdrawal(opts *bind.WatchOpts, sink chan<- *CommunityHubTokenWithdrawal) (event.Subscription, error) {
+
+	logs, sub, err := _CommunityHubToken.contract.WatchLogs(opts, "Withdrawal")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(CommunityHubTokenWithdrawal)
+				if err := _CommunityHubToken.contract.UnpackLog(event, "Withdrawal", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseWithdrawal is a log parse operation binding the contract event 0xd964a27d45f595739c13d8b1160b57491050cacf3a2e5602207277d6228f64ee.
+//
+// Solidity: event Withdrawal(uint256 amount, address to)
+func (_CommunityHubToken *CommunityHubTokenFilterer) ParseWithdrawal(log types.Log) (*CommunityHubTokenWithdrawal, error) {
+	event := new(CommunityHubTokenWithdrawal)
+	if err := _CommunityHubToken.contract.UnpackLog(event, "Withdrawal", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

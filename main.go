@@ -58,7 +58,7 @@ func main() {
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
 	flag.String("web3",
-		"https://eth.llamarpc.com,https://rpc.ankr.com/eth,https://ethereum-rpc.publicnode.com,https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
+		"https://rpc.degen.tips,https://eth.llamarpc.com,https://rpc.ankr.com/eth,https://ethereum-rpc.publicnode.com,https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
 		"Web3 RPCs")
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 

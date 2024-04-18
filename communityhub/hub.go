@@ -107,20 +107,19 @@ func NewCommunityHub(
 	community.lastScannedBlock.Store(lastBlock)
 	// set the scanner cooldown from the configuration if it is defined, or use
 	// the default one
-	community.scannerCooldown = DefaultScannerCooldown
-	if conf.ScannerCooldown > 0 {
+	if community.scannerCooldown = DefaultScannerCooldown; conf.ScannerCooldown > 0 {
 		community.scannerCooldown = conf.ScannerCooldown
 	}
 	return community, nil
 }
 
-// ScanNewCommunities method starts the listener to scan for new communities in
-// the contract and create them in the database in background. It starts two
+// ScanNewCommunities method starts the listener to scan for new communities
+// in the contract and create them in the database in background. It starts two
 // goroutines, one to scan for new logs in the contract and submit them to a
-// channel, and another one to handle the new logs and create the communities in
-// the database. It calculates the bounds of the iteration and the batch, and
-// iterates between them to get the logs. It updates the last scanned block in the
-// the database after each iteration.
+// channel, and another one to handle the new logs and create the communities
+// in the database. It calculates the bounds of the iteration and the batch,
+// and iterates between them to get the logs. It updates the last scanned block
+// in the database after each iteration.
 func (l *CommunityHub) ScanNewCommunities() {
 	log.Infow("starting communities hub scanner",
 		"contract", l.Address.String(),
@@ -173,10 +172,15 @@ func (l *CommunityHub) ScanNewCommunities() {
 						"fromBlock", startBlock,
 						"toBlock", endBatchBlock)
 					// update the start block for the next batch
-					startBlock = endBatchBlock
+					startBlock += maxBlocksPerBatch
+					l.lastScannedBlock.Store(startBlock)
 				}
 				// update the last scanned block in the database
-				l.lastScannedBlock.Store(startBlock)
+				if err := l.db.SetMetadata(lastSyncedBlockKey, startBlock); err != nil {
+					log.Warnw("error setting last scanned block",
+						"error", err,
+						"lastBlock", startBlock)
+				}
 				log.Infow("iteration finished",
 					"iteration", iteration,
 					"lastBlock", startBlock)
@@ -207,6 +211,53 @@ func (l *CommunityHub) Stop() {
 	l.waiter.Wait()
 }
 
+// CommunityFromContract  method gets the community data from the contract and
+// returns it as a HubCommunity struct. It decodes the admins and census
+// addresses from the contract data. If something goes wrong getting the
+// community data, it returns an error.
+func (l *CommunityHub) CommunityFromContract(communityID uint64) (*HubCommunity, error) {
+	// get the community data from the contract
+	cc, err := l.contract.GetCommunity(nil, new(big.Int).SetUint64(communityID))
+	if err != nil {
+		return nil, errors.Join(ErrGettingCommunity, err)
+	}
+	// decode admins
+	admins := []uint64{}
+	for _, bAdmin := range cc.Guardians {
+		admins = append(admins, bAdmin.Uint64())
+	}
+	// initialize the resulting community struct
+	community := &HubCommunity{
+		ID:            communityID,
+		Name:          cc.Metadata.Name,
+		ImageUrl:      cc.Metadata.ImageURI,
+		Channels:      cc.Metadata.Channels,
+		Admins:        admins,
+		Notifications: cc.Metadata.Notifications,
+	}
+	community.CensusType = internalCensusTypes[cc.Census.CensusType]
+	// decode census data according to the census type
+	switch community.CensusType {
+	case CensusTypeChannel:
+		// if the census type is a channel, set the channel
+		community.CensusChannel = cc.Census.Channel
+	case CensusTypeERC20, CensusTypeNFT:
+		// if the census type is an erc20 or nft, decode every census network
+		// address to get the contract address and blockchain
+		community.CensusAddesses = []*ContractAddress{}
+		for _, addr := range cc.Census.Tokens {
+			community.CensusAddesses = append(community.CensusAddesses, &ContractAddress{
+				Blockchain: addr.Blockchain,
+				Address:    addr.ContractAddress,
+			})
+		}
+	default:
+		return nil, errors.Join(ErrDecodingCreationLog, fmt.Errorf("unknown census type: %d", cc.Census.CensusType))
+	}
+	// return the community data
+	return community, nil
+}
+
 // storeCommunity helper method creates a new community in the database. It
 // creates the db census according to the community census type, and if the
 // census type is a channel, it sets the channel. If the census type is an erc20
@@ -221,9 +272,10 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) {
 		Name: c.CensusName,
 	}
 	// if the census type is a channel, set the channel
-	if c.CensusType == censusTypeChannel {
+	switch c.CensusType {
+	case CensusTypeChannel:
 		dbCensus.Channel = c.CensusChannel
-	} else {
+	case CensusTypeERC20, CensusTypeNFT:
 		// if the census type is an erc20 or nft, decode every census
 		// network address to get the contract address and blockchain
 		dbCensus.Addresses = []dbmongo.CommunityAddresses{}
@@ -239,6 +291,9 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) {
 			log.Errorf("no valid addresses found for community: %s", c.Name)
 			return
 		}
+	default:
+		log.Errorf("unknown census type: %s", c.CensusType)
+		return
 	}
 	// create community in the database
 	if err := l.db.AddCommunity(c.ID, c.Name, c.ImageUrl, dbCensus,
@@ -266,12 +321,12 @@ func (l *CommunityHub) iterationEndBlock(startBlock uint64) uint64 {
 	return maxLastBlock
 }
 
-// batchEndBlock helper method calculates the end block of the batch based on the
-// start block and the end block of the iteration. It returns the end block of
-// the batch if it is less than the end block of the iteration, otherwise it
+// batchEndBlock helper method calculates the end block of the batch based on
+// the start block and the end block of the iteration. It returns the end block
+// of the batch if it is less than the end block of the iteration, otherwise it
 // returns the end block of the iteration.
 func (l *CommunityHub) batchEndBlock(startBatchBlock, endIterBlock uint64) uint64 {
-	endBatchBlock := startBatchBlock + maxBlocksPerBatch
+	endBatchBlock := startBatchBlock + maxBlocksPerBatch - 1
 	if endBatchBlock > endIterBlock {
 		return endIterBlock
 	}
@@ -297,41 +352,4 @@ func (l *CommunityHub) submitCommunityCreation(
 		comCh <- community
 	}
 	return nil
-}
-
-// CommunityFromContract  method gets the community data from the contract and
-// returns it as a HubCommunity struct. It decodes the admins and census
-// addresses from the contract data. If something goes wrong getting the
-// community data, it returns an error.
-func (l *CommunityHub) CommunityFromContract(communityID uint64) (*HubCommunity, error) {
-	// get the community data from the contract
-	contractCommunity, err := l.contract.GetCommunity(nil, new(big.Int).SetUint64(communityID))
-	if err != nil {
-		return nil, errors.Join(ErrGettingCommunity, err)
-	}
-	// decode admins
-	admins := []uint64{}
-	for _, bAdmin := range contractCommunity.Guardians {
-		admins = append(admins, bAdmin.Uint64())
-	}
-	// decode census addresses
-	censusAddresses := []*Address{}
-	for _, addr := range contractCommunity.Census.Tokens {
-		censusAddresses = append(censusAddresses, &Address{
-			Blockchain: addr.Blockchain,
-			Address:    addr.ContractAddress,
-		})
-	}
-	// return the community data
-	return &HubCommunity{
-		ID:             communityID,
-		Name:           contractCommunity.Metadata.Name,
-		ImageUrl:       contractCommunity.Metadata.ImageURI,
-		Channels:       contractCommunity.Metadata.Channels,
-		Admins:         admins,
-		Notifications:  contractCommunity.Metadata.Notifications,
-		CensusType:     CensusType(contractCommunity.Census.CensusType),
-		CensusChannel:  "TODO",
-		CensusAddesses: censusAddresses,
-	}, nil
 }
