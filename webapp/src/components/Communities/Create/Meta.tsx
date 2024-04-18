@@ -8,7 +8,7 @@ import {CommunityCard} from '../Card'
 
 export type CommunityMetaFormValues = {
   name: string
-  admins: { label: string; value: string }[]
+  admins: { label: string; value: number }[]
   logo: string
 }
 
@@ -30,7 +30,7 @@ export const Meta = () => {
     if (profile?.username) {
       setValue('admins', [{
         label: profile.displayName,
-        value: profile.custody
+        value: profile.fid
       }], {shouldValidate: true});
     }
   }, [profile?.username]);

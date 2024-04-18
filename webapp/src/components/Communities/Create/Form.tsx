@@ -31,7 +31,7 @@ export const CommunitiesCreateForm = () => {
         data.logo, // logo uri
         "https://t.me/nothing", // groupChatURL
         data.channels.map((chan) => chan.value) ?? [],  // channels
-        0 // notifications
+        false // notifications
       ]
 
       const census = [
@@ -42,7 +42,7 @@ export const CommunitiesCreateForm = () => {
       ]
 
       const guardians = data.admins.map((admin) => admin.value)
-      const createElectionPermission = 0
+      const createElectionPermission = false
 
       console.info('Degen contract address', degenContractAddress)
       console.info('mapped for contract write:', [
