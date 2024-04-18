@@ -84,13 +84,14 @@ type Community struct {
 	ID              uint64           `json:"id"`
 	Name            string           `json:"name"`
 	LogoURL         string           `json:"logoURL"`
+	GroupChatURL    string           `json:"groupChat"`
 	Admins          []*User          `json:"admins"`
 	Notifications   bool             `json:"notifications"`
 	CensusName      string           `json:"censusName"`
 	CensusType      string           `json:"censusType"`
 	CensusAddresses []*CensusAddress `json:"censusAddresses,omitempty"`
 	CensusChannel   *Channel         `json:"censusChannel,omitempty"`
-	Channels        []string        `json:"channels"`
+	Channels        []string         `json:"channels"`
 }
 
 // CommunityList defines the list of communities

@@ -159,6 +159,13 @@ type CommunitiesCollection struct {
 	Communities []Community `json:"communities" bson:"communities"`
 }
 
+// MetadataCollection is a dataset containing several metadata entries. For
+// example, it is used for store the last scanned block of the community hub
+// contract.
+type MetadataCollection struct {
+	Metadata []Metadata `json:"metadata" bson:"metadata"`
+}
+
 // UserRanking is a user ranking entry.
 type UserRanking struct {
 	FID         uint64 `json:"fid" bson:"fid"`
@@ -184,6 +191,7 @@ type Community struct {
 	Channels      []string        `json:"channels" bson:"channels"`
 	Census        CommunityCensus `json:"census" bson:"census"`
 	ImageURL      string          `json:"imageURL" bson:"imageURL"`
+	GroupChatURL  string          `json:"groupChatURL" bson:"groupChatURL"`
 	Admins        []uint64        `json:"owners" bson:"owners"`
 	Notifications bool            `json:"notifications" bson:"notifications"`
 }
@@ -215,6 +223,13 @@ type CommunityCensus struct {
 type CommunityCensusAddresses struct {
 	Address    string `json:"address" bson:"address"`
 	Blockchain string `json:"blockchain" bson:"blockchain"`
+}
+
+// Metadata represents a metadata entry. Indexed by key, the value can be any
+// type.
+type Metadata struct {
+	Key   string `json:"key" bson:"_id"`
+	Value any    `json:"value" bson:"value"`
 }
 
 // dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.

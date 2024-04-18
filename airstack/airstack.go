@@ -32,7 +32,8 @@ func NewAirstack(
 	supportAPI string,
 	supportedBlockchains,
 	tokenWhitelist []string,
-	maxHolders uint32) (*Airstack, error) {
+	maxHolders uint32,
+) (*Airstack, error) {
 	client, err := ac.NewClient(ctx, endpoint, apiKey, supportedBlockchains)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Airstack: %w", err)

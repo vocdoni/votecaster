@@ -17,7 +17,8 @@ func (ms *MongoStorage) AddElection(
 	userFID uint64,
 	source string,
 	question string,
-	usersCount, usersCountInitial, tokenDecimals uint32) error {
+	usersCount, usersCountInitial, tokenDecimals uint32,
+) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
