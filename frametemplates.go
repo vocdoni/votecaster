@@ -59,15 +59,15 @@ var frameMain = header + `
     <meta name="fc:frame:button:1:action" content="post" />
     <meta name="fc:frame:button:1:target" content="{server}/poll/{processID}" />
 
-    <meta name="fc:frame:button:2" content="Results" />
+    <meta name="fc:frame:button:2" content="👀 Results" />
     <meta name="fc:frame:button:2:action" content="post" />
     <meta name="fc:frame:button:2:target" content="{server}/poll/results/{processID}" />
 
-    <meta name="fc:frame:button:3" content="Info" />
+    <meta name="fc:frame:button:3" content="🔎 Info" />
     <meta name="fc:frame:button:3:action" content="post" />
     <meta name="fc:frame:button:3:target" content="{server}/info/{processID}" />
 
-    <meta name="fc:frame:button:4" content="Create new" />
+    <meta name="fc:frame:button:4" content="📝 New" />
     <meta name="fc:frame:button:4:action" content="link" />
     <meta name="fc:frame:button:4:target" content="{server}" />
 
@@ -83,6 +83,7 @@ var frameVote = header + `
     <meta property="fc:frame:button:2" content="{option1}" />
     <meta property="fc:frame:button:3" content="{option2}" />
     <meta property="fc:frame:button:4" content="{option3}" />
+    <meta property="fc:frame:state" content="{state}" />
 ` + body
 
 var frameAfterVote = header + `
@@ -90,8 +91,8 @@ var frameAfterVote = header + `
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="{image}" />
     <meta property="fc:frame:post_url" content="{server}/poll/results/{processID}" />
-    <meta property="fc:frame:button:1" content="Results" />
-    <meta property="fc:frame:button:2" content="Verify on explorer" />
+    <meta property="fc:frame:button:1" content="📋 Results" />
+    <meta property="fc:frame:button:2" content="🔎 Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
 ` + body
@@ -102,13 +103,13 @@ var frameResults = header + `
     <meta property="fc:frame:image" content="{image}" />
 
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
-    <meta property="fc:frame:button:1" content="Back" />
+    <meta property="fc:frame:button:1" content="⬅️ Back" />
 
-    <meta property="fc:frame:button:2" content="Check at onvote.app" />
+    <meta property="fc:frame:button:2" content="🔎 Explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
-    <meta property="fc:frame:button:2:target" content="{onvote}/processes/{processID}" />
+    <meta property="fc:frame:button:2:target" content="{explorer}/processes/show/#/{processID}" />
 
-    <meta property="fc:frame:button:3" content="Participants" />
+    <meta property="fc:frame:button:3" content="📋 Participants" />
     <meta property="fc:frame:button:3:action" content="link" />
     <meta property="fc:frame:button:3:target" content="{server}/app/#poll/{processID}" />
 ` + body
@@ -125,19 +126,15 @@ var frameInfo = header + `
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:image" content="{image}" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
-    <meta property="fc:frame:button:1" content="Back" />
+    <meta property="fc:frame:button:1" content="️⬅️ Back" />
 
-    <meta property="fc:frame:button:2" content="Onvote" />
+    <meta property="fc:frame:button:2" content="🔎 Explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
-    <meta property="fc:frame:button:2:target" content="{onvote}/processes/{processID}" />
+    <meta property="fc:frame:button:2:target" content="{explorer}/processes/show/#/{processID}" />
 
-    <meta property="fc:frame:button:3" content="Explorer" />
+    <meta property="fc:frame:button:3" content="😊 About us" />
     <meta property="fc:frame:button:3:action" content="link" />
-    <meta property="fc:frame:button:3:target" content="{explorer}/processes/show/#/{processID}" />
-
-    <meta property="fc:frame:button:4" content="About us" />
-    <meta property="fc:frame:button:4:action" content="link" />
-    <meta property="fc:frame:button:4:target" content="https://warpcast.com/vocdoni" />
+    <meta property="fc:frame:button:3:target" content="https://warpcast.com/vocdoni" />
 ` + body
 
 var frameAlreadyVoted = header + `
@@ -145,7 +142,7 @@ var frameAlreadyVoted = header + `
     <meta property="fc:frame:image" content="{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
-    <meta property="fc:frame:button:1" content="Back" />
+    <meta property="fc:frame:button:1" content="⬅️ Back" />
     <meta property="fc:frame:button:2" content="🔍 Verify on explorer" />
     <meta property="fc:frame:button:2:action" content="link" />
     <meta property="fc:frame:button:2:target" content="{explorer}/verify/#/{nullifier}" />
@@ -164,7 +161,7 @@ var frameError = header + `
     <meta property="fc:frame:image" content="{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
-    <meta property="fc:frame:button:1" content="Back" />
+    <meta property="fc:frame:button:1" content="⬅️ Back" />
 ` + body
 
 var frameNotifications = header + `
@@ -182,7 +179,7 @@ var frameNotificationsResponse = header + `
     <meta property="fc:frame:image" content="{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
     <meta property="fc:frame:post_url" content="{server}/notifications" />
-    <meta property="fc:frame:button:1" content="Back" />
+    <meta property="fc:frame:button:1" content="⬅️ Back" />
 ` + body
 
 var frameNotificationsManager = header + `

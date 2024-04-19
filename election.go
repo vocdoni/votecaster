@@ -136,6 +136,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	response := strings.ReplaceAll(frame(frameVote), "{image}", imageLink(png))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
+	response = strings.ReplaceAll(response, "{state}", ctx.URLParam("electionID"))
 
 	r := election.Metadata.Questions[0].Choices
 	for i := 0; i < 4; i++ {
