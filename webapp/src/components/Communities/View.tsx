@@ -3,8 +3,10 @@ import { PropsWithChildren, ReactElement } from 'react'
 import { TbExternalLink } from "react-icons/tb"
 import { SiFarcaster } from "react-icons/si";
 import { BsChatDotsFill } from "react-icons/bs";
-
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom';
+
+import { appUrl, degenContractAddress } from '../../util/constants'
 import { Community } from '../../queries/communities'
 import { fetchPollsByCommunity } from '../../queries/tops'
 import { useAuth } from '../Auth/useAuth'
@@ -28,14 +30,28 @@ const lastPollVote = (poll : Poll) : string => {
 }
 
 export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
-  const { bfetch } = useAuth()
-  const { data: communityPolls } = useQuery<Poll[], Error>({
+  const { bfetch, profile, isAuthenticated } = useAuth()
+  const { data: communityPolls, refetch } = useQuery<Poll[], Error>({
     queryKey: ['communityPolls', community?.id],
     queryFn: fetchPollsByCommunity(bfetch, community as Community),
     enabled: !!community,
   })
+  const navigate = useNavigate() // Hook to control navigation
 
   if (!community) return;
+
+
+  const imAdmin = isAuthenticated && community.admins.some(admin => admin.fid == profile?.fid);
+
+  const disableCommunity = async () => {
+    try {
+      await bfetch(`${appUrl}/communities/${community.id}`, { method: 'DELETE' }).then(() => refetch())
+    } catch (e) {
+      console.error('could not unmute user', e)
+    } finally {
+      navigate('/communities')
+    }
+  }
 
   const channelLinks: ReactElement[] = [];
   community.channels.forEach((channel, index) => {
@@ -66,8 +82,11 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
               Managed by <CommunityAdmins community={community} />
             </Text>
             <Text fontSize='smaller' mt='6'>
-              Deployed on <Link isExternal href={`https://explorer.degen.tips/address/${import.meta.env.VOCDONI_COMMUNITYHUBADDRESS}`}><Text as={'u'}>🎩 DegenChain</Text></Link>
+              Deployed on <Link isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`}><Text as={'u'}>🎩 DegenChain</Text></Link>
             </Text>
+            {!!imAdmin && <Link as={'span'} onClick={disableCommunity}>
+              <Text fontSize='xs' mt='6' color="red">Disable community</Text>
+            </Link>}
           </Box>
         </WhiteBox>
       </GridItem>
