@@ -39,7 +39,7 @@ export const CommunitiesCreateForm = () => {
       const metadata: ICommunityHub.CommunityMetadataStruct = {
         name: data.name, // name
         imageURI: data.logo, // logo uri
-        groupChatURL: data.groupChat, // groupChatURL
+        groupChatURL: data.groupChat ?? '', // groupChatURL
         channels: data.channels.map((chan) => chan.value) ?? [],  // channels
         notifications: true // notifications
       }

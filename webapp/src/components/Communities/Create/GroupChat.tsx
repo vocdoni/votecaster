@@ -22,7 +22,7 @@ export const GroupChat = () => {
       <Heading size='sm'>Group chat</Heading>
       <Text>Add the link to your community group chat (if you have any), to share it with your community. (Make sure to
         gate it with Farcaster or Collab.Land to avoid spam)</Text>
-      <FormControl isRequired isInvalid={!!errors.logo}>
+      <FormControl isInvalid={!!errors.logo}>
         <Input
           {...register('groupChat', {validate: (val) => urlValidation(val) || 'Must be a valid link'})}
         />
