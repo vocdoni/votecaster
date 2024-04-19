@@ -1,4 +1,4 @@
-import { Avatar, Box, Flex, Grid, GridItem, Heading, Icon, Link, Text, HStack } from '@chakra-ui/react'
+import { Avatar, Box, Flex, Grid, GridItem, Heading, Icon, Link, Text, HStack, Table, Thead, Tr, Th } from '@chakra-ui/react'
 import { PropsWithChildren, ReactElement } from 'react'
 import { TbExternalLink } from "react-icons/tb"
 import { SiFarcaster } from "react-icons/si";
@@ -36,7 +36,7 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
     <Grid
       w='full'
       gap={4}
-      gridTemplateAreas={{ base: '"profile" "links"', md: '"profile links"' }}
+      gridTemplateAreas={{ base: '"profile" "links" "polls"', md: '"profile links" "polls polls"' }}
       gridTemplateColumns={{ base: 'full', md: '50%' }}
     >
       <GridItem gridArea='profile'>
@@ -72,6 +72,22 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
               </HStack>
             </Link>
           </Box>
+        </WhiteBox>
+      </GridItem>
+      <GridItem gridArea='polls'>
+        <WhiteBox>
+          <Heading size={'md'} mb={4}>Community Polls</Heading>
+          <Table>
+            <Thead>
+              <Tr>
+                <Th>Question</Th>
+                <Th isNumeric>Census size</Th>
+                <Th isNumeric>Turnout (voters)</Th>
+                <Th isNumeric>Turnout (votes)</Th>
+                <Th>Status</Th>
+              </Tr>
+            </Thead>
+          </Table>
         </WhiteBox>
       </GridItem>
     </Grid>
