@@ -2,6 +2,7 @@ package communityhub
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"math/big"
@@ -52,10 +53,11 @@ type CommunityHub struct {
 	w3cli           *c3web3.Client
 	contract        *comhub.CommunityHubToken
 	scannerCooldown time.Duration
-	signer          *bind.TransactOpts
+	privKey         *ecdsa.PrivateKey
+	privAddress     common.Address
 
-	Address common.Address
-	ChainID uint64
+	ContractAddress common.Address
+	ChainID         uint64
 }
 
 // NewCommunityHub function initializes a new CommunityHub instance. It returns
@@ -95,7 +97,7 @@ func NewCommunityHub(
 		nextCommunityID: atomic.Uint64{},
 		w3cli:           w3cli,
 		contract:        contract,
-		Address:         conf.ContractAddress,
+		ContractAddress: conf.ContractAddress,
 		ChainID:         conf.ChainID,
 	}
 	// check the last community ID in the database and set it if it is defined
@@ -109,16 +111,12 @@ func NewCommunityHub(
 	}
 	// parse the private key if it is defined
 	if conf.PrivKey != "" {
-		privKey, err := crypto.HexToECDSA(conf.PrivKey)
+		community.privKey, err = crypto.HexToECDSA(conf.PrivKey)
 		if err != nil {
 			log.Warnw("failed to parse CommunityHub private key", "error", err)
 			return community, nil
 		}
-		bChainID := new(big.Int).SetUint64(conf.ChainID)
-		community.signer, err = bind.NewKeyedTransactorWithChainID(privKey, bChainID)
-		if err != nil {
-			return nil, errors.Join(ErrCreatingSigner, err)
-		}
+		community.privAddress = crypto.PubkeyToAddress(community.privKey.PublicKey)
 	}
 	return community, nil
 }
@@ -131,7 +129,7 @@ func NewCommunityHub(
 // the next iteration. It sleeps if no communities are found in the contract.
 func (l *CommunityHub) ScanNewCommunities() {
 	log.Infow("starting communities hub scanner",
-		"contract", l.Address.String(),
+		"contract", l.ContractAddress.String(),
 		"chainID", l.ChainID)
 	// scan for new logs in background
 	l.waiter.Add(1)
@@ -147,7 +145,15 @@ func (l *CommunityHub) ScanNewCommunities() {
 				currentID := l.nextCommunityID.Load()
 				newCommunity, err := l.Community(currentID)
 				if err != nil {
-					if !errors.Is(err, ErrCommunityNotFound) {
+					// if community is disabled, skip it incrementing the
+					// next community ID, otherwise log the error unless the
+					// community is not found
+					switch err {
+					case ErrDisabledCommunity:
+						l.nextCommunityID.Add(1)
+					case ErrCommunityNotFound:
+						break
+					default:
 						log.Warnw("failed to get community from contract",
 							"communityID", currentID,
 							"error", err)
@@ -201,47 +207,8 @@ func (l *CommunityHub) Community(communityID uint64) (*HubCommunity, error) {
 	if err != nil {
 		return nil, errors.Join(ErrGettingCommunity, err)
 	}
-	// check if the community is not found in the contract, to do that, compare
-	// the election results contract address with the zero address
-	if cc.ElectionResultsContract.String() == zeroHexAddr {
-		return nil, ErrCommunityNotFound
-	}
-	// decode admins
-	admins := []uint64{}
-	for _, bAdmin := range cc.Guardians {
-		admins = append(admins, uint64(bAdmin.Int64()))
-	}
-	// initialize the resulting community struct
-	community := &HubCommunity{
-		ID:            communityID,
-		Name:          cc.Metadata.Name,
-		ImageURL:      cc.Metadata.ImageURI,
-		GroupChatURL:  cc.Metadata.GroupChatURL,
-		Channels:      cc.Metadata.Channels,
-		Admins:        admins,
-		Notifications: cc.Metadata.Notifications,
-	}
-	community.CensusType = internalCensusTypes[cc.Census.CensusType]
-	// decode census data according to the census type
-	switch community.CensusType {
-	case CensusTypeChannel:
-		// if the census type is a channel, set the channel
-		community.CensusChannel = cc.Census.Channel
-	case CensusTypeERC20, CensusTypeNFT:
-		// if the census type is an erc20 or nft, decode every census network
-		// address to get the contract address and blockchain
-		community.CensusAddesses = []*ContractAddress{}
-		for _, addr := range cc.Census.Tokens {
-			community.CensusAddesses = append(community.CensusAddesses, &ContractAddress{
-				Blockchain: addr.Blockchain,
-				Address:    addr.ContractAddress,
-			})
-		}
-	default:
-		return nil, errors.Join(ErrDecodingCommunity, ErrUnknownCensusType)
-	}
 	// return the community data
-	return community, nil
+	return contractToHub(communityID, cc)
 }
 
 // Results method gets the election results using the community and elections
@@ -275,8 +242,9 @@ func (l *CommunityHub) Results(communityID uint64, electionID []byte) (*HubResul
 // election IDs provided. If something goes wrong setting the results in the
 // contract, it returns an error.
 func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results *HubResults) error {
-	if l.signer == nil {
-		return ErrNoSignerConfigured
+	transactOpts, err := l.authTransactOpts()
+	if err != nil {
+		return err
 	}
 	// convert the community ID to a *big.Int
 	bCommunityID := new(big.Int).SetUint64(communityID)
@@ -287,7 +255,7 @@ func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results
 	bCensusRoot := [32]byte{}
 	copy(bCensusRoot[:], results.CensusRoot)
 	// set the election results in the contract
-	if _, err := l.contract.SetResult(l.signer, bCommunityID, bElectionID,
+	if _, err := l.contract.SetResult(transactOpts, bCommunityID, bElectionID,
 		comhub.IElectionResultsResult{
 			Question:         results.Question,
 			Options:          results.Options,
@@ -299,6 +267,36 @@ func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results
 			CensusURI:        results.CensusURI,
 		}); err != nil {
 		return errors.Join(ErrSettingResults, err)
+	}
+	return nil
+}
+
+// DisableCommunity method disables the community in the contract by the
+// community ID provided. If something goes wrong disabling the community in
+// the contract, it returns an error.
+func (l *CommunityHub) DisableCommunity(communityID uint64) error {
+	transactOpts, err := l.authTransactOpts()
+	if err != nil {
+		return err
+	}
+	// convert the community ID to a *big.Int
+	bCommunityID := new(big.Int).SetUint64(communityID)
+	// get the community data from the contract
+	community, err := l.contract.GetCommunity(nil, bCommunityID)
+	if err != nil {
+		return err
+	}
+	// disable the community in the contract
+	_, err = l.contract.AdminManageCommunity(transactOpts,
+		bCommunityID,
+		community.Metadata,
+		community.Census,
+		community.Guardians,
+		community.ElectionResultsContract,
+		community.CreateElectionPermission,
+		true)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -346,4 +344,35 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) error {
 		return errors.Join(ErrAddCommunity, err)
 	}
 	return nil
+}
+
+// authTransactOpts helper method creates the transact options with the private
+// key configured in the CommunityHub. It sets the nonce, gas price, and gas
+// limit. If something goes wrong creating the signer, getting the nonce, or
+// getting the gas price, it returns an error.
+func (l *CommunityHub) authTransactOpts() (*bind.TransactOpts, error) {
+	if l.privKey == nil {
+		return nil, ErrNoPrivKeyConfigured
+	}
+	bChainID := new(big.Int).SetUint64(l.ChainID)
+	auth, err := bind.NewKeyedTransactorWithChainID(l.privKey, bChainID)
+	if err != nil {
+		return nil, errors.Join(ErrCreatingSigner, err)
+	}
+	// create the context with a timeout
+	ctx, cancel := context.WithTimeout(l.ctx, 10*time.Second)
+	defer cancel()
+	// set the nonce
+	nonce, err := l.w3cli.PendingNonceAt(ctx, l.privAddress)
+	if err != nil {
+		return nil, errors.Join(ErrSendingTx, err)
+	}
+	auth.Nonce = new(big.Int).SetUint64(nonce)
+	// set the gas price
+	if auth.GasPrice, err = l.w3cli.SuggestGasPrice(ctx); err != nil {
+		return nil, errors.Join(ErrSendingTx, err)
+	}
+	// set the gas limit
+	auth.GasLimit = 0
+	return auth, nil
 }

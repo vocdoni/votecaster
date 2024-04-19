@@ -276,14 +276,14 @@ func main() {
 	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
 
 	// Create the community hub service
+	var comHub *communityhub.CommunityHub
 	if communityHubAddress != "" {
-		comHub, err := communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
+		if comHub, err = communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
 			DB:              db,
 			ContractAddress: common.HexToAddress(communityHubAddress),
 			ChainID:         communityHubChainID,
 			PrivKey:         communityHubAdminPrivKey,
-		})
-		if err != nil {
+		}); err != nil {
 			log.Fatal(err)
 		}
 		comHub.ScanNewCommunities()
@@ -308,7 +308,8 @@ func main() {
 
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)
-	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as)
+	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo,
+		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, comHub)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -609,6 +610,10 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodGet, "public", handler.communityHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodDelete, "private", handler.disableCommunityHanler); err != nil {
 		log.Fatal(err)
 	}
 
