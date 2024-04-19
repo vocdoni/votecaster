@@ -28,6 +28,13 @@ export const fetchCommunities = (bfetch: FetchFunction) => async () => {
   return communities
 }
 
+export const fetchCommunitiesByAdmin = (bfetch: FetchFunction, profile: Profile) => async () => {
+  const response = await bfetch(`${appUrl}/communities?byAdminFID=${profile.fid}`)
+  const {communities} = (await response.json()) as { communities: Community[] }
+
+  return communities
+}
+
 export const fetchCommunity = (bfetch: FetchFunction, id: string) => async () => {
   const response = await bfetch(`${appUrl}/communities/${id}`)
   const community = (await response.json()) as Community
