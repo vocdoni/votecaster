@@ -163,19 +163,16 @@ func (ms *MongoStorage) community(id uint64) (*Community, error) {
 func (ms *MongoStorage) IsCommunityAdmin(userID, communityID uint64) bool {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	// Query to check if the userID is in the admins of the given communityID
+	// Query to check if the userID is one of the admins in the given communityID
 	count, err := ms.communitites.CountDocuments(ctx, bson.M{
 		"_id":    communityID,
-		"admins": userID,
+		"owners": bson.M{"$in": []uint64{userID}}, // Correct usage of querying inside an array
 	})
 	if err != nil {
-		log.Warn("error querying community admins: ", err)
+		log.Warn("Error querying community admins: ", err)
 		return false
 	}
-
 	return count > 0
 }
