@@ -68,6 +68,7 @@ func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httproute
 		LastVoteTime time.Time `json:"lastVoteTime"`
 		Question     string    `json:"title"`
 		CastedVotes  uint64    `json:"voteCount"`
+		Turnout      uint32    `json:"turnout"`
 		Username     string    `json:"createdByUsername"`
 		Displayname  string    `json:"createdByDisplayname"`
 	}
@@ -90,6 +91,7 @@ func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httproute
 			dbElections[i].LastVoteTime,
 			dbElections[i].Question,
 			dbElections[i].CastedVotes,
+			dbElections[i].Turnout,
 			username,
 			displayname,
 		})
