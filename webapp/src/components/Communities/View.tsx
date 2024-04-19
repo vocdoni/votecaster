@@ -14,7 +14,7 @@ import {
   Tr,
   Td,
   Th,
-  Tbody
+  Tbody, Button
 } from '@chakra-ui/react'
 import {PropsWithChildren, ReactElement} from 'react'
 import {TbExternalLink} from "react-icons/tb"
@@ -28,6 +28,7 @@ import {Community} from '../../queries/communities'
 import {fetchPollsByCommunity} from '../../queries/tops'
 import {useAuth} from '../Auth/useAuth'
 import {Poll} from '../../util/types';
+import {MdHowToVote} from "react-icons/md";
 
 export type CommunitiesViewProps = {
   community: Community
@@ -103,9 +104,12 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
               Deployed on <Link isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`}><Text
               as={'u'}>🎩 DegenChain</Text></Link>
             </Text>
-            {!!imAdmin && <Link as={'span'} onClick={disableCommunity}>
-              <Text fontSize='xs' mt='6' color="red">Disable community</Text>
-            </Link>}
+            {!!imAdmin && <Flex mt={4} gap={4}>
+              <Button onClick={disableCommunity} colorScheme={'red'}>
+                <Text>Disable community</Text>
+              </Button>
+              <Button onClick={() => navigate('/')} leftIcon={<MdHowToVote/>}>Create vote</Button></Flex>
+            }
           </Box>
         </WhiteBox>
       </GridItem>
