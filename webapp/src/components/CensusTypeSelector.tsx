@@ -30,7 +30,7 @@ import {BiTrash} from 'react-icons/bi'
 import {MdArrowDropDown} from 'react-icons/md'
 import Airstack from '../assets/airstack.svg?react'
 import {fetchAirstackBlockchains} from '../queries/census'
-import {Community, fetchCommunities} from '../queries/communities'
+import {Community, fetchCommunities, fetchCommunitiesByAdmin} from '../queries/communities'
 import {appUrl} from '../util/constants'
 import {cleanChannel, ucfirst} from '../util/strings'
 import {Address} from '../util/types'
@@ -46,7 +46,8 @@ export type CensusFormValues = {
 }
 
 const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?: boolean }) => {
-  const {bfetch} = useAuth()
+  const {bfetch, profile} = useAuth()
+
   const {
     watch,
     formState: {errors},
@@ -68,7 +69,8 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
   })
   const {data: communities, isLoading: cloading} = useQuery({
     queryKey: ['communities'],
-    queryFn: fetchCommunities(bfetch),
+    queryFn: fetchCommunitiesByAdmin(bfetch, profile!),
+    enabled: profile != null
   })
 
   const censusType = watch('censusType')
