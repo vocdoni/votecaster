@@ -1,13 +1,13 @@
-import { Box, Button, ButtonProps, Heading, Text } from '@chakra-ui/react'
-import { useConnectModal } from '@rainbow-me/rainbowkit'
-import { CiWallet } from 'react-icons/ci'
-import { GiTopHat } from 'react-icons/gi'
-import { MdOutlineRocketLaunch } from 'react-icons/md'
-import { useAccount } from 'wagmi'
+import {Box, Button, ButtonProps, Heading, Text} from '@chakra-ui/react'
+import {useConnectModal} from '@rainbow-me/rainbowkit'
+import {CiWallet} from 'react-icons/ci'
+import {GiTopHat} from 'react-icons/gi'
+import {MdOutlineRocketLaunch} from 'react-icons/md'
+import {useAccount} from 'wagmi'
 
 export const Confirm = (props: ButtonProps) => {
-  const { isConnected } = useAccount()
-  const { openConnectModal } = useConnectModal()
+  const {isConnected} = useAccount()
+  const {openConnectModal} = useConnectModal()
 
   return (
     <Box display='flex' gap={4} flexDir='column'>
@@ -22,11 +22,12 @@ export const Confirm = (props: ButtonProps) => {
         <Text>1000 $DEGEN</Text>
       </Box>
       {isConnected ? (
-        <Button mt={4} colorScheme='blue' type='submit' rightIcon={<GiTopHat />} leftIcon={<MdOutlineRocketLaunch />}>
+        <Button mt={4} colorScheme='blue' type='submit' rightIcon={<GiTopHat/>}
+                leftIcon={<MdOutlineRocketLaunch/>} {...props}>
           Deploy your community on Degenchain
         </Button>
       ) : (
-        <Button onClick={openConnectModal} colorScheme='blue' leftIcon={<CiWallet />} {...props}>
+        <Button onClick={openConnectModal} colorScheme='blue' leftIcon={<CiWallet/>} {...props}>
           Connect wallet first
         </Button>
       )}
