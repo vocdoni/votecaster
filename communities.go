@@ -251,9 +251,13 @@ func (v *vocdoniHandler) disableCommunityHanler(msg *apirest.APIdata, ctx *httpr
 	if !authorized {
 		return ctx.Send([]byte("you are not an admin of this community"), http.StatusUnauthorized)
 	}
-	// disable the community
+	// disable the community in the community hub contract and delete it from
+	// the database
 	if err := v.comhub.DisableCommunity(community.ID); err != nil {
 		return ctx.Send([]byte("error disabling community"), http.StatusInternalServerError)
+	}
+	if err := v.db.DelCommunity(community.ID); err != nil {
+		return ctx.Send([]byte("error deleting community"), http.StatusInternalServerError)
 	}
 	return ctx.Send([]byte("ok"), http.StatusOK)
 }

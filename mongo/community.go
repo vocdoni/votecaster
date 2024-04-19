@@ -121,6 +121,15 @@ func (ms *MongoStorage) ListCommunitiesByAdminUsername(username string) ([]Commu
 	return ms.ListCommunitiesByAdminFID(user.UserID)
 }
 
+// DelCommunity removes the community with the specified ID from the database.
+// If an error occurs, it returns the error.
+func (ms *MongoStorage) DelCommunity(communityID uint64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := ms.communitites.DeleteOne(ctx, bson.M{"_id": communityID})
+	return err
+}
+
 // addCommunity method adds a new community to the database. It returns an error
 // if something the census type is invalid or something goes wrong with the
 // database.
