@@ -17,6 +17,7 @@ import (
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	comhub "github.com/vocdoni/vote-frame/communityhub/contracts/communityhubtoken"
 	dbmongo "github.com/vocdoni/vote-frame/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.vocdoni.io/dvote/log"
 )
 
@@ -167,6 +168,10 @@ func (l *CommunityHub) ScanNewCommunities() {
 					"censusChannel", newCommunity.CensusChannel,
 					"censusAddresses", newCommunity.CensusAddesses)
 				if err := l.storeCommunity(newCommunity); err != nil {
+					// return if database is closed
+					if err == ErrClosedDB {
+						return
+					}
 					// TODO: Change the admins of wrong communities
 					if strings.Contains(err.Error(), "overflows int64") {
 						log.Warnw("admins fids overflowed, skipping community",
@@ -341,6 +346,9 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) error {
 	if err := l.db.AddCommunity(c.ID, c.Name, c.ImageURL, c.GroupChatURL,
 		dbCensus, c.Channels, c.Admins, c.Notifications,
 	); err != nil {
+		if err == mongo.ErrClientDisconnected {
+			return ErrClosedDB
+		}
 		return errors.Join(ErrAddCommunity, err)
 	}
 	return nil

@@ -66,7 +66,7 @@ func main() {
 	// community hub flags
 	flag.String("communityHubAddress", "", "The address of the CommunityHub contract")
 	flag.Uint64("communityHubChainID", 666666666, "The chain ID of the CommunityHub contract (default: DegenChain 666666666)")
-	flag.String("communityHubChainAdminPrivKey", "", "The private key of a wallet admin of the CommunityHub contract in hex format")
+	flag.String("communityHubAdminPrivKey", "", "The private key of a wallet admin of the CommunityHub contract in hex format")
 	// bot flags
 	// DISCLAMER: Currently the bot needs a HUB with write permissions to work.
 	// It also needs a FID to impersonate to it and its private key to sign the
@@ -127,7 +127,7 @@ func main() {
 	// community hub vars
 	communityHubAddress := viper.GetString("communityHubAddress")
 	communityHubChainID := viper.GetUint64("communityHubChainID")
-	communityHubAdminPrivKey := viper.GetString("communityHubChainAdminPrivKey")
+	communityHubAdminPrivKey := viper.GetString("communityHubAdminPrivKey")
 
 	// bot vars
 	botFid := viper.GetUint64("botFid")

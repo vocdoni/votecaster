@@ -6,6 +6,8 @@ var (
 	// ErrMissingDB is returned when no database is provided during CommunituHub
 	// initialization
 	ErrMissingDB = fmt.Errorf("missing db")
+	// ErrClosedDB is returned when the database is closed
+	ErrClosedDB = fmt.Errorf("db is closed")
 	// ErrWeb3Client is returned when no web3 client is found in the provided
 	// web3 pool
 	ErrWeb3Client = fmt.Errorf("failed to get web3 client from the pool")
