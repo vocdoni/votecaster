@@ -180,6 +180,7 @@ func ResultsImage(election *api.Election, censusTokenDecimals uint32) (string, e
 	}
 
 	title := election.Metadata.Questions[0].Title["default"]
+
 	choices := []string{}
 	results := []string{}
 	for _, option := range election.Metadata.Questions[0].Choices {

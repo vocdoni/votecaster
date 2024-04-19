@@ -88,8 +88,11 @@ type ElectionMeta struct {
 
 // Results represents the final results of an election.
 type Results struct {
-	ElectionID string `json:"electionId" bson:"_id"`
-	FinalPNG   []byte `json:"finalPNG" bson:"finalPNG"`
+	ElectionID string   `json:"electionId" bson:"_id"`
+	FinalPNG   []byte   `json:"finalPNG" bson:"finalPNG"`
+	Choices    []string `json:"title" bson:"title"`
+	Votes      []string `json:"votes" bson:"votes"`
+	Finalized  bool     `json:"finalized" bson:"finalized"`
 }
 
 // VotersOfElection represents the list of voters of an election.

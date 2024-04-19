@@ -489,13 +489,9 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 					continue
 				}
 				if election.FinalResults {
-					png, err := imageframe.ResultsImage(election, electionMeta.CensusERC20TokenDecimals)
+					_, err := v.finalizeElectionResults(election, electionMeta)
 					if err != nil {
-						log.Errorw(err, "failed to generate results image")
-						continue
-					}
-					if err := v.db.AddFinalResults(electionIDbytes, imageframe.FromCache(png)); err != nil {
-						log.Errorw(err, "failed to add final results to database")
+						log.Errorw(err, "failed to finalize election results")
 						continue
 					}
 					log.Infow("finalized election", "electionID", electionID)
