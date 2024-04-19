@@ -43,7 +43,7 @@ export const CommunitiesList = () => {
           Create your own community and start managing its governance
         </Text>
         <Link as={RouterLink} to='/communities/new'>
-          <Button leftIcon={<MdOutlineGroupAdd/>}>Create a community</Button>
+          <Button>Create a community on 🎩 Degenchain</Button>
         </Link>
       </Box>
     </VStack>
