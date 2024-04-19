@@ -1,6 +1,9 @@
-import { Avatar, Box, Flex, Grid, GridItem, Heading, Icon, Link, Text } from '@chakra-ui/react'
-import { PropsWithChildren } from 'react'
-import { FaExternalLinkAlt } from 'react-icons/fa'
+import { Avatar, Box, Flex, Grid, GridItem, Heading, Icon, Link, Text, HStack, VStack, color } from '@chakra-ui/react'
+import { PropsWithChildren, ReactElement } from 'react'
+import { TbExternalLink } from "react-icons/tb"
+import { SiFarcaster } from "react-icons/si";
+import { BsChatDotsFill } from "react-icons/bs";
+
 import { Community } from '../../queries/communities'
 
 export type CommunitiesViewProps = {
@@ -8,13 +11,26 @@ export type CommunitiesViewProps = {
 }
 
 const WhiteBox = ({ children }: PropsWithChildren) => (
-  <Flex alignItems='center' gap={4} padding={4} bg='white' boxShadow='sm' borderRadius='md' flexWrap='wrap' h='100%'>
+  <Flex alignItems='start' gap={4} padding={6} bg='white' boxShadow='sm' borderRadius='md' flexWrap='wrap' h='100%'>
     {children}
   </Flex>
 )
 
 export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
   if (!community) return
+
+  const channelLinks: ReactElement[] = [];
+  community.channels.forEach((channel, index) => {
+    channelLinks.push(
+      <Link key={`link-${channel}`} fontSize="sm" color="gray" isExternal _hover={{ textDecoration: 'underline' }} href={`https://warpcast.com/~/channel/${channel}`}>
+        /{channel}
+      </Link>
+    );
+    // Add the separator if it's not the last item
+    if (index !== community.channels.length - 1) {
+      channelLinks.push(<Text as="span" fontSize="sm" mx={1} color={'grey'} key={`separator-${index}`}>&amp;</Text>);
+    }
+  });
 
   return (
     <Grid
@@ -31,16 +47,31 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
             <Text fontSize='smaller' fontStyle='italic'>
               Managed by <CommunityAdmins community={community} />
             </Text>
+            <Text fontSize='smaller' mt='6'>
+              Deployed on 🎩 DegenChain
+            </Text>
           </Box>
         </WhiteBox>
       </GridItem>
       <GridItem gridArea='links'>
         <WhiteBox>
-          {community.channels.map((channel) => (
-            <Link isExternal href={channel.url}>
-              {channel.name} <Icon as={FaExternalLinkAlt} w={3} />
+          <Box>
+            <Heading size={'sm'} mb={2}>Community Engagement</Heading>
+            <HStack spacing={2} align='center'>
+              <Icon as={SiFarcaster} size={8}/>
+              <Text fontWeight={'semibold'} fontSize={'sm'}>Official Farcaster channels</Text>
+            </HStack>
+            <Box ml={6} mb={2}>
+              { channelLinks }
+            </Box>
+            <Link isExternal href={community.groupChat}>
+              <HStack spacing={2} align='center'>
+                <Icon as={BsChatDotsFill}/> 
+                <Heading size='xs'><Text as='u'>Official group chat</Text></Heading>
+                <Icon as={TbExternalLink} size={4} />
+              </HStack>
             </Link>
-          ))}
+          </Box>
         </WhiteBox>
       </GridItem>
     </Grid>

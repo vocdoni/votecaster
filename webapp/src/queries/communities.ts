@@ -1,15 +1,6 @@
 import {appUrl} from '../util/constants'
 import {Address, FetchFunction, Profile} from '../util/types'
 
-export type Channel = {
-  id: string
-  name: string
-  description: string
-  followerCount: number
-  image: string
-  url: string
-}
-
 export type Community = {
   id: number
   name: string
@@ -18,7 +9,8 @@ export type Community = {
   notifications: boolean
   censusType: string
   censusAddresses: Address[]
-  channels: Channel[]
+  channels: string[]
+  groupChat: string
 }
 
 export const fetchCommunities = (bfetch: FetchFunction) => async () => {

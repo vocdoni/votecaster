@@ -88,7 +88,6 @@ type Community struct {
 	GroupChatURL    string           `json:"groupChat"`
 	Admins          []*User          `json:"admins"`
 	Notifications   bool             `json:"notifications"`
-	CensusName      string           `json:"censusName"`
 	CensusType      string           `json:"censusType"`
 	CensusAddresses []*CensusAddress `json:"censusAddresses,omitempty"`
 	CensusChannel   *Channel         `json:"censusChannel,omitempty"`
