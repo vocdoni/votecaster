@@ -20,7 +20,8 @@ export const CommunitiesList = () => {
       <SimpleGrid gap={4} w='full' alignItems='start' columns={{base: 1, md: 2, lg: 4}}>
         {data &&
           data.map((community, k) => (
-            <CommunityCard key={k} community={community}/>
+            <CommunityCard name={community.name} slug={community.id} key={k} pfpUrl={community.logoURL}
+                           admins={community.admins}/>
           ))}
       </SimpleGrid>
       <Check error={error} isLoading={isLoading}/>
