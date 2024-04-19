@@ -19,11 +19,11 @@ import {GroupChat} from "./GroupChat.tsx";
 export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusType' | 'channel'> &
   CommunityMetaFormValues & {
   channels: { label: string; value: string }[]
+  enableNotifications: boolean // todo(kon): not for mvp
 }
 
 export const CommunitiesCreateForm = () => {
   const methods = useForm<CommunityFormValues>()
-  // const {data: hash, isPending, writeContract, error} = useWriteContract()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const {data: walletClient} = useWalletClient()
@@ -41,7 +41,7 @@ export const CommunitiesCreateForm = () => {
         imageURI: data.logo, // logo uri
         groupChatURL: data.groupChat, // groupChatURL
         channels: data.channels.map((chan) => chan.value) ?? [],  // channels
-        notifications: false // notifications
+        notifications: true // notifications
       }
 
       const census: ICommunityHub.CensusStruct = {
