@@ -68,8 +68,8 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
     queryFn: fetchAirstackBlockchains(bfetch),
   })
   const {data: communities, isLoading: cloading} = useQuery({
-    queryKey: ['communities'],
-    queryFn: fetchCommunitiesByAdmin(bfetch, profile!),
+    queryKey: ['communities', 'byAdmin'],
+    queryFn: () => fetchCommunitiesByAdmin(bfetch, profile!),
     enabled: profile != null
   })
 

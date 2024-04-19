@@ -361,7 +361,6 @@ const Form: React.FC = (props: FlexProps) => {
                       Add Choice
                     </Button>
                   )}
-                  {/*<ToggleStateComponent/>*/}
                   <CensusTypeSelector complete isDisabled={loading}/>
                   {notifyAllowed.includes(censusType) && (
                     <FormControl isDisabled={loading}>
