@@ -216,6 +216,18 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on castedVotes for elections: %w", err)
 	}
 
+	// Create an index model for the 'community.id' field on elections
+	electionsByCommunityIndexModel := mongo.IndexModel{
+		Keys:    bson.M{"community.id": 1}, // Index in ascending order
+		Options: options.Index().SetName("communityID_index"),
+	}
+
+	// Create the index
+	_, err = ms.elections.Indexes().CreateOne(ctx, electionsByCommunityIndexModel)
+	if err != nil {
+		return fmt.Errorf("failed to create index on community.id: %w", err)
+	}
+
 	// Create an index for the 'owners' field on communities
 	ownersIndexModel := mongo.IndexModel{
 		Keys:    bson.D{{Key: "owners", Value: 1}}, // 1 for ascending order

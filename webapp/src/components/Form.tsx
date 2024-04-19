@@ -51,6 +51,7 @@ type ElectionRequest = {
   notifyUsers: boolean
   notificationText?: string
   census?: CensusResponse
+  community?: number
 }
 
 interface CID {
@@ -160,12 +161,17 @@ const Form: React.FC = (props: FlexProps) => {
         throw new Error('user not authenticated')
       }
 
+      if (data.community && !data.community.admins.find((admin) => admin.fid === profile.fid)) {
+        throw new Error('you are not an admin of this community')
+      }
+
       const election: ElectionRequest = {
         profile,
         question: data.question,
         duration: Number(data.duration),
         options: data.choices.map((c) => c.choice),
         notifyUsers: data.notify || false,
+        community: data.community?.id || undefined,
       }
 
       if (data.notificationText?.length) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"go.vocdoni.io/dvote/httprouter"
@@ -63,13 +64,15 @@ func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httproute
 	}
 
 	type Election struct {
-		CreatedTime  time.Time `json:"createdTime"`
-		ElectionID   string    `json:"electionId"`
-		LastVoteTime time.Time `json:"lastVoteTime"`
-		Question     string    `json:"title"`
-		CastedVotes  uint64    `json:"voteCount"`
-		Username     string    `json:"createdByUsername"`
-		Displayname  string    `json:"createdByDisplayname"`
+		CreatedTime             time.Time `json:"createdTime"`
+		ElectionID              string    `json:"electionId"`
+		LastVoteTime            time.Time `json:"lastVoteTime"`
+		Question                string    `json:"title"`
+		CastedVotes             uint64    `json:"voteCount"`
+		CensusParticipantsCount uint64    `json:"censusParticipantsCount"`
+		Turnout                 float32   `json:"turnout"`
+		Username                string    `json:"createdByUsername"`
+		Displayname             string    `json:"createdByDisplayname"`
 	}
 
 	var elections []*Election
@@ -90,6 +93,64 @@ func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httproute
 			dbElections[i].LastVoteTime,
 			dbElections[i].Question,
 			dbElections[i].CastedVotes,
+			uint64(dbElections[i].FarcasterUserCount),
+			dbElections[i].Turnout,
+			username,
+			displayname,
+		})
+	}
+	jresponse, err := json.Marshal(map[string]any{
+		"polls": elections,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.SetResponseContentType("application/json")
+	return ctx.Send(jresponse, http.StatusOK)
+}
+
+func (v *vocdoniHandler) electionsByCommunityHandler(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	id, err := strconv.ParseUint(ctx.URLParam("communityID"), 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to parse community ID: %w", err)
+	}
+
+	dbElections, err := v.db.ElectionsByCommunity(id)
+	if err != nil {
+		return fmt.Errorf("failed to get elections for community %d: %w", id, err)
+	}
+	type Election struct {
+		CreatedTime             time.Time `json:"createdTime"`
+		ElectionID              string    `json:"electionId"`
+		LastVoteTime            time.Time `json:"lastVoteTime"`
+		Question                string    `json:"title"`
+		CastedVotes             uint64    `json:"voteCount"`
+		CensusParticipantsCount uint64    `json:"censusParticipantsCount"`
+		Turnout                 float32   `json:"turnout"`
+		Username                string    `json:"createdByUsername"`
+		Displayname             string    `json:"createdByDisplayname"`
+	}
+
+	var elections []*Election
+
+	for i := range dbElections {
+		var username, displayname string
+		user, err := v.db.User(dbElections[i].UserID)
+		if err != nil {
+			log.Warnw("failed to fetch user", "error", err)
+			username = "unknown"
+		} else {
+			username = user.Username
+			displayname = user.Displayname
+		}
+		elections = append(elections, &Election{
+			dbElections[i].CreatedTime,
+			dbElections[i].ElectionID,
+			dbElections[i].LastVoteTime,
+			dbElections[i].Question,
+			dbElections[i].CastedVotes,
+			uint64(dbElections[i].FarcasterUserCount),
+			dbElections[i].Turnout,
 			username,
 			displayname,
 		})

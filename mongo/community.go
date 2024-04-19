@@ -112,8 +112,6 @@ func (ms *MongoStorage) NextCommunityID() (uint64, error) {
 // ListCommunitiesByAdminUsername returns the list of communities where the
 // user is an admin by username provided. It queries about the user FID first.
 func (ms *MongoStorage) ListCommunitiesByAdminUsername(username string) ([]Community, error) {
-	ms.keysLock.RLock()
-	defer ms.keysLock.RUnlock()
 	user, err := ms.UserByUsername(username)
 	if err != nil {
 		return nil, err
@@ -159,4 +157,25 @@ func (ms *MongoStorage) community(id uint64) (*Community, error) {
 		return nil, err
 	}
 	return &community, nil
+}
+
+// IsCommunityAdmin checks if the user is an admin of the given community by ID.
+func (ms *MongoStorage) IsCommunityAdmin(userID, communityID uint64) bool {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Query to check if the userID is in the admins of the given communityID
+	count, err := ms.communitites.CountDocuments(ctx, bson.M{
+		"_id":    communityID,
+		"admins": userID,
+	})
+	if err != nil {
+		log.Warn("error querying community admins: ", err)
+		return false
+	}
+
+	return count > 0
 }

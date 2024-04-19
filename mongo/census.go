@@ -146,3 +146,39 @@ func (ms *MongoStorage) SetElectionIdForCensusRoot(root, electionID types.HexByt
 
 	return nil
 }
+
+// censusParticipantsCount returns the number of participants in the census associated with a given election.
+func (ms *MongoStorage) censusParticipantsCount(electionID types.HexBytes) (uint64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Define the aggregation pipeline to compute the size of the participants map
+	pipeline := []bson.M{
+		{"$match": bson.M{"electionId": electionID.String()}},
+		{
+			"$project": bson.M{
+				"participantCount": bson.M{"$size": "$participants"},
+			},
+		},
+	}
+
+	cursor, err := ms.census.Aggregate(ctx, pipeline)
+	if err != nil {
+		return 0, fmt.Errorf("failed to execute aggregation: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	// Parse the aggregation result
+	if cursor.Next(ctx) {
+		var result struct {
+			ParticipantCount uint64 `bson:"participantCount"`
+		}
+		if err := cursor.Decode(&result); err != nil {
+			return 0, fmt.Errorf("failed to decode aggregation result: %w", err)
+		}
+		return result.ParticipantCount, nil
+	}
+
+	// If there's no such census, return zero participants
+	return 0, nil
+}
