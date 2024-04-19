@@ -66,6 +66,7 @@ export const CommunitiesCreateForm = () => {
         createElectionPermission,
       ])
 
+      // todo(kon): put this code on a provider and get the contract instance from there
       let signer: any
       if (walletClient && address && walletClient.account.address === address) {
         signer = await walletClientToSigner(walletClient)
@@ -74,6 +75,7 @@ export const CommunitiesCreateForm = () => {
 
       const communityHubContract = CommunityHub__factory.connect(degenContractAddress, signer)
 
+      // todo(kon): can this be moved to a reactQuery?
       const tx = await communityHubContract.createCommunity(
         metadata, census, guardians, electionResultsContract, createElectionPermission)
 

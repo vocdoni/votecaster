@@ -15,14 +15,16 @@ import {CommunityFormValues, findLog, walletClientToSigner} from "./Form.tsx";
 export const Confirm = (props: ButtonProps) => {
   const {isConnected} = useAccount()
   const [isLoading, setIsLoading] = useState(false)
-  const [price, setPrice] = useState<number | null>()
+  const [price, setPrice] = useState<string | null>()
   const {openConnectModal} = useConnectModal()
 
   const {data: walletClient} = useWalletClient()
   const {address} = useAccount()
 
   useEffect(() => {
-    ;(async () => {
+    if (!walletClient || !address) return
+      ;
+    (async () => {
       try {
         setIsLoading(true)
         // todo(kon): put this code on a provider and get the contract instance from there
@@ -36,14 +38,15 @@ export const Confirm = (props: ButtonProps) => {
 
         // todo(kon): move this to a reactQuery?
         const price = await communityHubContract.getCreateCommunityPrice()
-        setPrice(Number(price))
+
+        setPrice(price.toString())
       } catch (e) {
         console.error('could not create community:', e)
       } finally {
         setIsLoading(false)
       }
     })();
-  }, [walletClient, address, isLoading])
+  }, [walletClient, address])
 
   return (
     <Box display='flex' gap={4} flexDir='column'>
@@ -53,7 +56,7 @@ export const Confirm = (props: ButtonProps) => {
         As soon as it's created, you will be able to create and manage polls secured by the Vocdoni protocol for
         decentralized, censorship-resistant and gassless voting.
       </Text>
-      {price && <Box display='flex' justifyContent='space-between' fontWeight='500' w='full'>
+      {!!price && <Box display='flex' justifyContent='space-between' fontWeight='500' w='full'>
         <Text>Cost</Text>
         <Text>{price} $DEGEN</Text>
       </Box>}
