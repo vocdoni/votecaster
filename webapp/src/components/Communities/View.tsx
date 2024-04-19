@@ -1,37 +1,55 @@
-import { Avatar, Box, Flex, Grid, GridItem, Heading, Icon, Link, Text, HStack, Table, Thead, Tr, Td, Th, Tbody } from '@chakra-ui/react'
-import { PropsWithChildren, ReactElement } from 'react'
-import { TbExternalLink } from "react-icons/tb"
-import { SiFarcaster } from "react-icons/si";
-import { BsChatDotsFill } from "react-icons/bs";
-import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom';
+import {
+  Avatar,
+  Box,
+  Flex,
+  Grid,
+  GridItem,
+  Heading,
+  Icon,
+  Link,
+  Text,
+  HStack,
+  Table,
+  Thead,
+  Tr,
+  Td,
+  Th,
+  Tbody, Button
+} from '@chakra-ui/react'
+import {PropsWithChildren, ReactElement} from 'react'
+import {TbExternalLink} from "react-icons/tb"
+import {SiFarcaster} from "react-icons/si";
+import {BsChatDotsFill} from "react-icons/bs";
+import {useQuery} from '@tanstack/react-query'
+import {useNavigate} from 'react-router-dom';
 
-import { appUrl, degenContractAddress } from '../../util/constants'
-import { Community } from '../../queries/communities'
-import { fetchPollsByCommunity } from '../../queries/tops'
-import { useAuth } from '../Auth/useAuth'
-import { Poll } from '../../util/types';
+import {appUrl, degenContractAddress} from '../../util/constants'
+import {Community} from '../../queries/communities'
+import {fetchPollsByCommunity} from '../../queries/tops'
+import {useAuth} from '../Auth/useAuth'
+import {Poll} from '../../util/types';
+import {MdHowToVote} from "react-icons/md";
 
 export type CommunitiesViewProps = {
   community: Community
 }
 
-const WhiteBox = ({ children }: PropsWithChildren) => (
+const WhiteBox = ({children}: PropsWithChildren) => (
   <Flex alignItems='start' gap={4} padding={6} bg='white' boxShadow='sm' borderRadius='md' flexWrap='wrap' h='100%'>
     {children}
   </Flex>
 )
 
-const lastPollVote = (poll : Poll) : string => {
+const lastPollVote = (poll: Poll): string => {
   if (poll.voteCount === 0) {
     return 'Never'
   }
   return (new Date(poll.lastVoteTime)).toDateString()
 }
 
-export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
-  const { bfetch, profile, isAuthenticated } = useAuth()
-  const { data: communityPolls, refetch } = useQuery<Poll[], Error>({
+export const CommunitiesView = ({community}: CommunitiesViewProps) => {
+  const {bfetch, profile, isAuthenticated} = useAuth()
+  const {data: communityPolls, refetch} = useQuery<Poll[], Error>({
     queryKey: ['communityPolls', community?.id],
     queryFn: fetchPollsByCommunity(bfetch, community as Community),
     enabled: !!community,
@@ -45,7 +63,7 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
 
   const disableCommunity = async () => {
     try {
-      await bfetch(`${appUrl}/communities/${community.id}`, { method: 'DELETE' }).then(() => refetch())
+      await bfetch(`${appUrl}/communities/${community.id}`, {method: 'DELETE'}).then(() => refetch())
     } catch (e) {
       console.error('could not unmute user', e)
     } finally {
@@ -56,7 +74,8 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
   const channelLinks: ReactElement[] = [];
   community.channels.forEach((channel, index) => {
     channelLinks.push(
-      <Link key={`link-${channel}`} fontSize="sm" color="gray" isExternal _hover={{ textDecoration: 'underline' }} href={`https://warpcast.com/~/channel/${channel}`}>
+      <Link key={`link-${channel}`} fontSize="sm" color="gray" isExternal _hover={{textDecoration: 'underline'}}
+            href={`https://warpcast.com/~/channel/${channel}`}>
         /{channel}
       </Link>
     );
@@ -70,23 +89,27 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
     <Grid
       w='full'
       gap={4}
-      gridTemplateAreas={{ base: '"profile" "links" "polls"', md: '"profile links" "polls polls"' }}
-      gridTemplateColumns={{ base: 'full', md: '50%' }}
+      gridTemplateAreas={{base: '"profile" "links" "polls"', md: '"profile links" "polls polls"'}}
+      gridTemplateColumns={{base: 'full', md: '50%'}}
     >
       <GridItem gridArea='profile'>
         <WhiteBox>
-          <Avatar src={community.logoURL} />
+          <Avatar src={community.logoURL}/>
           <Box>
             <Heading size='md'>{community.name}</Heading>
             <Text fontSize='smaller' fontStyle='italic'>
-              Managed by <CommunityAdmins community={community} />
+              Managed by <CommunityAdmins community={community}/>
             </Text>
             <Text fontSize='smaller' mt='6'>
-              Deployed on <Link isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`}><Text as={'u'}>🎩 DegenChain</Text></Link>
+              Deployed on <Link isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`}><Text
+              as={'u'}>🎩 DegenChain</Text></Link>
             </Text>
-            {!!imAdmin && <Link as={'span'} onClick={disableCommunity}>
-              <Text fontSize='xs' mt='6' color="red">Disable community</Text>
-            </Link>}
+            {!!imAdmin && <Flex mt={4} gap={4}>
+              <Button onClick={disableCommunity} colorScheme={'red'}>
+                <Text>Disable community</Text>
+              </Button>
+              <Button onClick={() => navigate('/')} leftIcon={<MdHowToVote/>}>Create vote</Button></Flex>
+            }
           </Box>
         </WhiteBox>
       </GridItem>
@@ -96,22 +119,22 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
             <Heading size={'sm'} mb={2}>Community Engagement</Heading>
             <HStack spacing={2} align='center'>
               <Icon as={SiFarcaster} size={8}/>
-              <Text fontWeight={'semibold'} fontSize={'sm'}>Official Farcaster channels</Text>
+              <Text fontWeight={'semibold'} fontSize={'sm'}>Farcaster channels</Text>
             </HStack>
             <Box ml={6} mb={2}>
-              { channelLinks }
+              {channelLinks}
             </Box>
             <Link isExternal href={community.groupChat}>
               <HStack spacing={2} align='center'>
-                <Icon as={BsChatDotsFill}/> 
-                <Heading size='xs'><Text as='u'>Official group chat</Text></Heading>
-                <Icon as={TbExternalLink} size={4} />
+                <Icon as={BsChatDotsFill}/>
+                <Heading size='xs'><Text as='u'>Group chat</Text></Heading>
+                <Icon as={TbExternalLink} size={4}/>
               </HStack>
             </Link>
           </Box>
         </WhiteBox>
       </GridItem>
-      { !!communityPolls && <GridItem gridArea='polls'>
+      {!!communityPolls && <GridItem gridArea='polls'>
         <WhiteBox>
           <Heading size={'md'} mb={4}>Community Polls</Heading>
           <Table>
@@ -131,7 +154,7 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
                   <Td isNumeric>{poll.censusParticipantsCount}</Td>
                   <Td isNumeric>{poll.voteCount}</Td>
                   <Td isNumeric>{`${poll.turnout}%`}</Td>
-                  <Td textAlign='center'>{ lastPollVote(poll) }</Td>
+                  <Td textAlign='center'>{lastPollVote(poll)}</Td>
                 </Tr>
               ))}
             </Tbody>
@@ -142,7 +165,7 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
   )
 }
 
-export const CommunityAdmins = ({ community }: CommunitiesViewProps) => {
+export const CommunityAdmins = ({community}: CommunitiesViewProps) => {
   return community.admins.map((admin, k) => (
     <>
       <Link isExternal href={`https://warpcast.com/${admin.username}`}>
