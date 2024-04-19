@@ -22,17 +22,17 @@ import {
   Textarea,
   VStack,
 } from '@chakra-ui/react'
-import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
-import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
-import { BiTrash } from 'react-icons/bi'
-import { Community } from '../queries/communities'
-import { cleanChannel } from '../util/strings'
-import { isErrorWithHTTPResponse, Profile } from '../util/types'
-import { ReputationCard } from './Auth/Reputation'
-import { SignInButton } from './Auth/SignInButton'
-import { useAuth } from './Auth/useAuth'
-import CensusTypeSelector, { CensusFormValues } from './CensusTypeSelector'
-import { Done } from './Done'
+import React, {Dispatch, SetStateAction, useEffect, useState} from 'react'
+import {FormProvider, useFieldArray, useForm} from 'react-hook-form'
+import {BiTrash} from 'react-icons/bi'
+import {Community} from '../queries/communities'
+import {cleanChannel} from '../util/strings'
+import {isErrorWithHTTPResponse, Profile} from '../util/types'
+import {ReputationCard} from './Auth/Reputation'
+import {SignInButton} from './Auth/SignInButton'
+import {useAuth} from './Auth/useAuth'
+import CensusTypeSelector, {CensusFormValues} from './CensusTypeSelector'
+import {Done} from './Done'
 
 type FormValues = CensusFormValues & {
   question: string
@@ -73,23 +73,23 @@ const appUrl = import.meta.env.APP_URL
 const Form: React.FC = (props: FlexProps) => {
   const methods = useForm<FormValues>({
     defaultValues: {
-      choices: [{ choice: '' }, { choice: '' }],
+      choices: [{choice: ''}, {choice: ''}],
       censusType: 'farcaster',
     },
   })
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: {errors},
     control,
     watch,
     resetField,
   } = methods
-  const { fields, append, remove } = useFieldArray({
+  const {fields, append, remove} = useFieldArray({
     control,
     name: 'choices',
   })
-  const { isAuthenticated, profile, logout, bfetch } = useAuth()
+  const {isAuthenticated, profile, logout, bfetch} = useAuth()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [shortened, setShortened] = useState<string | null>(null)
@@ -101,7 +101,7 @@ const Form: React.FC = (props: FlexProps) => {
   const censusType = watch('censusType')
   const notify = watch('notify')
 
-  const notifyAllowed = ['custom', 'nft', 'erc20']
+  const notifyAllowed = ['custom', 'nft', 'erc20', 'community']
 
   // reset shortened when no pid received
   useEffect(() => {
@@ -123,7 +123,7 @@ const Form: React.FC = (props: FlexProps) => {
       const res = await bfetch(`${appUrl}/create/check/${pid}`)
       if (res.status === 200) {
         setPid(pid)
-        const { url } = await res.json()
+        const {url} = await res.json()
         if (url) {
           setShortened(url)
         }
@@ -182,20 +182,20 @@ const Form: React.FC = (props: FlexProps) => {
         switch (data.censusType) {
           case 'channel': {
             const channel = cleanChannel(data.channel as string)
-            call = bfetch(`${appUrl}/census/channel-gated/${channel}`, { method: 'POST' })
+            call = bfetch(`${appUrl}/census/channel-gated/${channel}`, {method: 'POST'})
             break
           }
           case 'nft':
           case 'erc20':
             call = bfetch(`${appUrl}/census/airstack/${data.censusType}`, {
               method: 'POST',
-              body: JSON.stringify({ tokens: data.addresses }),
+              body: JSON.stringify({tokens: data.addresses}),
             })
             break
           case 'followers': {
             call = bfetch(`${appUrl}/census/followers/${profile.fid}`, {
               method: 'POST',
-              body: JSON.stringify({ profile }),
+              body: JSON.stringify({profile}),
             })
             break
           }
@@ -206,9 +206,9 @@ const Form: React.FC = (props: FlexProps) => {
                 file as BlobPart,
                 lineBreak,
               ]),
-              { type: 'text/csv' }
+              {type: 'text/csv'}
             )
-            call = bfetch(`${appUrl}/census/csv`, { method: 'POST', body: contents })
+            call = bfetch(`${appUrl}/census/csv`, {method: 'POST', body: contents})
             break
           }
           case 'community': {
@@ -231,7 +231,7 @@ const Form: React.FC = (props: FlexProps) => {
 
         if (data.censusType !== 'farcaster') {
           const res = await call
-          const { censusId } = (await res.json()) as CID
+          const {censusId} = (await res.json()) as CID
           const census = (await checkCensus(censusId, setStatus)) as CensusResponseWithUsernames
           if (census.usernames && census.usernames.length) {
             setUsernames(census.usernames)
@@ -290,7 +290,7 @@ const Form: React.FC = (props: FlexProps) => {
   }
 
   return (
-    <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 500 }} {...props}>
+    <Flex flexDir='column' alignItems='center' w={{base: 'full', sm: 450, md: 500}} {...props}>
       <Card w='100%'>
         <CardHeader textAlign='center'>
           <Heading as='h2' size='lg' textAlign='center'>
@@ -318,7 +318,7 @@ const Form: React.FC = (props: FlexProps) => {
                       placeholder='Enter your question'
                       {...register('question', {
                         required,
-                        maxLength: { value: 250, message: 'Max length is 250 characters' },
+                        maxLength: {value: 250, message: 'Max length is 250 characters'},
                       })}
                     />
                     <FormErrorMessage>{errors.question?.message?.toString()}</FormErrorMessage>
@@ -334,14 +334,14 @@ const Form: React.FC = (props: FlexProps) => {
                       <InputGroup>
                         <Input
                           placeholder={`Enter choice ${index + 1}`}
-                          {...register(`choices.${index}.choice`, { required, maxLength })}
+                          {...register(`choices.${index}.choice`, {required, maxLength})}
                         />
                         {fields.length > 2 && (
                           <InputRightElement>
                             <IconButton
                               size='sm'
                               aria-label='Remove choice'
-                              icon={<BiTrash />}
+                              icon={<BiTrash/>}
                               onClick={() => remove(index)}
                             />
                           </InputRightElement>
@@ -351,11 +351,11 @@ const Form: React.FC = (props: FlexProps) => {
                     </FormControl>
                   ))}
                   {fields.length < 4 && (
-                    <Button alignSelf='end' onClick={() => append({ choice: '' })} isDisabled={loading}>
+                    <Button alignSelf='end' onClick={() => append({choice: ''})} isDisabled={loading}>
                       Add Choice
                     </Button>
                   )}
-                  <CensusTypeSelector complete isDisabled={loading} />
+                  <CensusTypeSelector complete isDisabled={loading}/>
                   {notifyAllowed.includes(censusType) && (
                     <FormControl isDisabled={loading}>
                       <Switch {...register('notify')} lineHeight={6}>
@@ -389,14 +389,14 @@ const Form: React.FC = (props: FlexProps) => {
                   </FormControl>
                   {error && (
                     <Alert status='error'>
-                      <AlertIcon />
+                      <AlertIcon/>
                       {error}
                     </Alert>
                   )}
 
                   {notify && usernames.length > 1000 && (
                     <Alert status='warning'>
-                      <AlertIcon />
+                      <AlertIcon/>
                       <AlertDescription>
                         Selected census contains more than 1,000 farcaster users. Won't be notifying them.
                       </AlertDescription>
@@ -413,11 +413,11 @@ const Form: React.FC = (props: FlexProps) => {
                           logout
                         </Button>
                       </Box>
-                      <ReputationCard />
+                      <ReputationCard/>
                     </>
                   ) : (
                     <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>
-                      <SignInButton size='lg' />
+                      <SignInButton size='lg'/>
                       to create a poll
                     </Box>
                   )}
