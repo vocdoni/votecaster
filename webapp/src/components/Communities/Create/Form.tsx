@@ -114,39 +114,42 @@ export const CommunitiesCreateForm = () => {
 
   return (
     <Box display='flex' flexDir='column' gap={1}>
-      <Heading size='md'>Create community</Heading>
-      <Text color='gray.400' mb={4}>
-        Create your Farcaster.vote community to start managing proposals, creating polls, notify users, etc.
-      </Text>
       <FormProvider {...methods}>
-        {tx ? (<CommunityDone tx={tx} communityId={communityId}/>) : (
-          <Box
-            as='form'
-            onSubmit={methods.handleSubmit(onSubmit)}
-            gap={4}
-            display='flex'
-            flexDir={['column', 'column', 'row']}
-            alignItems='start'
-          >
-            <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-              <VStack spacing={8} alignItems='left'>
-                <Meta/>
-                <CensusSelector/>
-                <Channels/>
-              </VStack>
+        {tx ? (<CommunityDone tx={tx}/>) : (
+          <>
+            <Heading size='md'>Create community</Heading>
+            <Text color='gray.400' mb={4}>
+              Create your Farcaster.vote community to start managing proposals, creating polls, notify users, etc.
+            </Text>
+            <Box
+              as='form'
+              onSubmit={methods.handleSubmit(onSubmit)}
+              gap={4}
+              display='flex'
+              flexDir={['column', 'column', 'row']}
+              alignItems='start'
+            >
+              <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
+                <VStack spacing={8} alignItems='left'>
+                  <Meta/>
+                  <CensusSelector/>
+                  <Channels/>
+                </VStack>
+              </Box>
+              <Flex direction={'column'} gap={4}>
+                <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
+                  <GroupChat/>
+                </Box>
+                <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
+                  <Confirm isLoading={isPending}/>
+                </Box>
+              </Flex>
             </Box>
-            <Flex direction={'column'} gap={4}>
-              <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-                <GroupChat/>
-              </Box>
-              <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-                <Confirm isLoading={isPending}/>
-              </Box>
-            </Flex>
-          </Box>)}
-        {error && <Alert maxW={'90vw'} status='error'>
-          <AlertDescription whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis"
-                            isTruncated>{error}</AlertDescription></Alert>}
+            {error && <Alert maxW={'90vw'} status='error'>
+              <AlertDescription whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis"
+                                isTruncated>{error}</AlertDescription></Alert>}
+          </>
+        )}
       </FormProvider>
     </Box>
   )

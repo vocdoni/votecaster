@@ -1,15 +1,39 @@
+import {Box, Flex, Heading, Card, CardBody, Button, Avatar, Link, Icon} from "@chakra-ui/react";
+import {MdHowToVote} from "react-icons/md";
+import {useFormContext} from "react-hook-form";
+import {CommunityMetaFormValues} from "./Meta.tsx";
+import {FaExternalLinkAlt} from "react-icons/fa";
+
 type DoneProps = {
   tx: string
-  communityId?: string | null
 }
 
-const CommunityDone = ({tx, communityId}: DoneProps) => {
+const CommunityDone = ({tx}: DoneProps) => {
+  const {
+    watch,
+  } = useFormContext<CommunityMetaFormValues>()
+  const logo = watch('logo')
+
   return (
-    <div>
-      <h1>Created Succesfully</h1>
-      <p>Community ID: {communityId}</p>
-      <p>Transaction ID: {tx}</p>
-    </div>
+    <Flex flexDir='column' alignItems='center' w={{base: 'full', sm: 450, md: 500}}>
+      <Card w='100%'>
+        <CardBody my={10}>
+          <Flex direction={'column'} justifyItems={'center'} textAlign={'center'} gap={6}>
+            {logo && <Box>
+              <Avatar src={logo} size={'xl'}/>
+            </Box>}
+            <Heading mb={10} size='lg'>Your community is now live on
+              <Link href={`https://explorer.degen.tips/tx/${tx}`} isExternal> 🎩 Degenchain!
+                <Icon as={FaExternalLinkAlt} w={4}/>
+              </Link>
+            </Heading>
+            <Heading size='md'>Get started by creating polls<br/>
+              to engage with your members!</Heading>
+            <Button leftIcon={<MdHowToVote/>}>Create your first vote</Button>
+          </Flex>
+        </CardBody>
+      </Card>
+    </Flex>
   )
 }
 
