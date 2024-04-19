@@ -1,4 +1,4 @@
-import {Alert, Box, Heading, Text, VStack} from '@chakra-ui/react'
+import {Alert, Box, Heading, Text, VStack, AlertDescription, Flex} from '@chakra-ui/react'
 import {FormProvider, SubmitHandler, useForm} from 'react-hook-form'
 import {useAccount, useWalletClient, type UseWalletClientReturnType} from 'wagmi'
 import {degenContractAddress, electionResultsContract} from '../../../util/constants'
@@ -14,6 +14,7 @@ import {CommunityHubInterface, ICommunityHub} from "../../../typechain/src/Commu
 import {BrowserProvider} from "ethers";
 import {id} from "@ethersproject/hash";
 import {ContractTransactionReceipt} from "ethers";
+import {GroupChat} from "./GroupChat.tsx";
 
 export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusType' | 'channel'> &
   CommunityMetaFormValues & {
@@ -38,7 +39,7 @@ export const CommunitiesCreateForm = () => {
       const metadata: ICommunityHub.CommunityMetadataStruct = {
         name: data.name, // name
         imageURI: data.logo, // logo uri
-        groupChatURL: "https://t.me/nothing", // groupChatURL
+        groupChatURL: data.groupChat, // groupChatURL
         channels: data.channels.map((chan) => chan.value) ?? [],  // channels
         notifications: false // notifications
       }
@@ -105,7 +106,6 @@ export const CommunitiesCreateForm = () => {
     }
   }, [walletClient, address, isPending])
 
-
   return (
     <Box display='flex' flexDir='column' gap={1}>
       <Heading size='md'>Create community</Heading>
@@ -128,11 +128,18 @@ export const CommunitiesCreateForm = () => {
               <Channels/>
             </VStack>
           </Box>
-          <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-            <Confirm isLoading={isPending}/>
-          </Box>
+          <Flex direction={'column'} gap={4}>
+            <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
+              <GroupChat/>
+            </Box>
+            <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
+              <Confirm isLoading={isPending}/>
+            </Box>
+          </Flex>
         </Box>
-        {error && <Alert status='error'>{error}</Alert>}
+        {error && <Alert maxW={'90vw'} status='error'>
+          <AlertDescription whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis"
+                            isTruncated>{error}</AlertDescription></Alert>}
       </FormProvider>
     </Box>
   )
