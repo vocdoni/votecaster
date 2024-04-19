@@ -16,7 +16,6 @@ export type Community = {
   logoURL: string
   admins: Profile[]
   notifications: boolean
-  censusName: string
   censusType: string
   censusAddresses: Address[]
   channels: Channel[]
