@@ -1,10 +1,14 @@
-import { Avatar, Box, Flex, Grid, GridItem, Heading, Icon, Link, Text, HStack, Table, Thead, Tr, Th } from '@chakra-ui/react'
+import { Avatar, Box, Flex, Grid, GridItem, Heading, Icon, Link, Text, HStack, Table, Thead, Tr, Td, Th, Tbody } from '@chakra-ui/react'
 import { PropsWithChildren, ReactElement } from 'react'
 import { TbExternalLink } from "react-icons/tb"
 import { SiFarcaster } from "react-icons/si";
 import { BsChatDotsFill } from "react-icons/bs";
 
+import { useQuery } from '@tanstack/react-query'
 import { Community } from '../../queries/communities'
+import { fetchPollsByCommunity } from '../../queries/tops'
+import { useAuth } from '../Auth/useAuth'
+import { Poll } from '../../util/types';
 
 export type CommunitiesViewProps = {
   community: Community
@@ -16,8 +20,22 @@ const WhiteBox = ({ children }: PropsWithChildren) => (
   </Flex>
 )
 
+const lastPollVote = (poll : Poll) : string => {
+  if (poll.voteCount === 0) {
+    return 'Never'
+  }
+  return (new Date(poll.lastVoteTime)).toDateString()
+}
+
 export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
-  if (!community) return
+  const { bfetch } = useAuth()
+  const { data: communityPolls } = useQuery<Poll[], Error>({
+    queryKey: ['communityPolls', community?.id],
+    queryFn: fetchPollsByCommunity(bfetch, community as Community),
+    enabled: !!community,
+  })
+
+  if (!community) return;
 
   const channelLinks: ReactElement[] = [];
   community.channels.forEach((channel, index) => {
@@ -48,7 +66,7 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
               Managed by <CommunityAdmins community={community} />
             </Text>
             <Text fontSize='smaller' mt='6'>
-              Deployed on 🎩 DegenChain
+              Deployed on <Link isExternal href={`https://explorer.degen.tips/address/${import.meta.env.VOCDONI_COMMUNITYHUBADDRESS}`}><Text as={'u'}>🎩 DegenChain</Text></Link>
             </Text>
           </Box>
         </WhiteBox>
@@ -74,7 +92,7 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
           </Box>
         </WhiteBox>
       </GridItem>
-      <GridItem gridArea='polls'>
+      { !!communityPolls && <GridItem gridArea='polls'>
         <WhiteBox>
           <Heading size={'md'} mb={4}>Community Polls</Heading>
           <Table>
@@ -82,14 +100,25 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
               <Tr>
                 <Th>Question</Th>
                 <Th isNumeric>Census size</Th>
-                <Th isNumeric>Turnout (voters)</Th>
-                <Th isNumeric>Turnout (votes)</Th>
-                <Th>Status</Th>
+                <Th isNumeric>Votes</Th>
+                <Th isNumeric>Turnout(%)</Th>
+                <Th>Last vote</Th>
               </Tr>
             </Thead>
+            <Tbody>
+              {communityPolls?.map((poll, index) => (
+                <Tr key={index}>
+                  <Td>{poll.title} <small>by {poll.createdByDisplayname}</small></Td>
+                  <Td isNumeric>{poll.censusParticipantsCount}</Td>
+                  <Td isNumeric>{poll.voteCount}</Td>
+                  <Td isNumeric>{`${poll.turnout}%`}</Td>
+                  <Td textAlign='center'>{ lastPollVote(poll) }</Td>
+                </Tr>
+              ))}
+            </Tbody>
           </Table>
         </WhiteBox>
-      </GridItem>
+      </GridItem>}
     </Grid>
   )
 }
@@ -100,7 +129,7 @@ export const CommunityAdmins = ({ community }: CommunitiesViewProps) => {
       <Link isExternal href={`https://warpcast.com/${admin.username}`}>
         {admin.displayName || admin.username}
       </Link>
-      {k === community.admins.length - 2 ? ' & ' : k < community.admins.lengths - 2 ? ', ' : ''}
+      {k === community.admins.length - 2 ? ' & ' : k < community.admins.length - 2 ? ', ' : ''}
     </>
   ))
 }
