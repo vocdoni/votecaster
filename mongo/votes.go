@@ -16,7 +16,7 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 	defer ms.keysLock.Unlock()
 	log.Debugw("increase vote count", "userID", userFID, "electionID", electionID.String())
 
-	user, err := ms.getUserData(userFID)
+	user, err := ms.userData(userFID)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (ms *MongoStorage) VotersOfElection(electionID types.HexBytes) ([]string, e
 	}
 	var usernames []string
 	for _, voter := range voters.Voters {
-		u, err := ms.getUserData(voter)
+		u, err := ms.userData(voter)
 		if err != nil {
 			log.Warnw("failed to get user", "userID", voter, "err", err)
 			continue

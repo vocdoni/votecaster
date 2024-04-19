@@ -68,6 +68,12 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		// log the user creating the election for debugging purposes
 		log.Infow("user creating election", "username", user.Username, "fid", fid)
 	}
+
+	// check if the user is admin of the community
+	if req.CommunityID != nil && !v.db.IsCommunityAdmin(fid, *req.CommunityID) {
+		return fmt.Errorf("user is not an admin of the community")
+	}
+
 	// check if the user has enough reputation to notify voters
 	if req.NotifyUsers && !features.IsAllowed(features.NOTIFY_USERS, accessProfile.Reputation) {
 		return ctx.Send([]byte("user does not have enough reputation to notify voters"), http.StatusBadRequest)

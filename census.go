@@ -437,6 +437,7 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return err
 	}
+
 	// get the community from the database
 	community, err := v.db.Community(req.CommunityID)
 	if err != nil {
@@ -445,17 +446,12 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 	if community == nil {
 		return ctx.Send([]byte("community not found"), http.StatusNotFound)
 	}
-	// check if the current user is an admin of the community
-	var authorized bool
-	for _, admin := range community.Admins {
-		if admin == userFID {
-			authorized = true
-			break
-		}
+
+	// check if the user is admin of the community
+	if !v.db.IsCommunityAdmin(userFID, req.CommunityID) {
+		return fmt.Errorf("user is not an admin of the community")
 	}
-	if !authorized {
-		return ctx.Send([]byte("you are not an admin of this community"), http.StatusUnauthorized)
-	}
+
 	// create a censusID for the queue and store into it
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {

@@ -67,7 +67,7 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 			continue
 		}
 
-		user, err := ms.getUserData(election.UserID)
+		user, err := ms.userData(election.UserID)
 		if err != nil {
 			log.Warn(err)
 			continue
