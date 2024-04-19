@@ -92,7 +92,8 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	req.ElectionDescription.UsersCountInitial = uint32(census.FromTotalAddresses)
 	// create the election and save it in the database
 	electionID, err := v.createAndSaveElectionAndProfile(&req.ElectionDescription, census,
-		req.Profile, false, req.NotifyUsers, req.NotificationText, ElectionSourceWebApp)
+		req.Profile, false, req.NotifyUsers, req.NotificationText, ElectionSourceWebApp,
+		req.CommunityID)
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
@@ -329,7 +330,7 @@ func ensureAccountExist(cli *apiclient.HTTPclient) error {
 // and saved in the database.
 func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescription,
 	census *CensusInfo, profile *FarcasterProfile, wait bool, notify bool,
-	customText string, source string,
+	customText string, source string, communityID *uint64,
 ) (types.HexBytes, error) {
 	// use the request census or use the one hardcoded for all farcaster users
 	if census == nil {
@@ -346,7 +347,8 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 		if err != nil {
 			return fmt.Errorf("failed to create election: %w", err)
 		}
-		if err := v.saveElectionAndProfile(election, profile, source, desc.UsersCount, desc.UsersCountInitial, census.TokenDecimals); err != nil {
+		if err := v.saveElectionAndProfile(election, profile, source, desc.UsersCount,
+			desc.UsersCountInitial, census.TokenDecimals, communityID); err != nil {
 			return fmt.Errorf("failed to save election and profile: %w", err)
 		}
 		if notify {
@@ -398,9 +400,21 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 	profile *FarcasterProfile,
 	source string,
 	usersCount, usersCountInitial, tokenDecimals uint32,
+	communityID *uint64,
 ) error {
 	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
 		return fmt.Errorf("invalid election")
+	}
+	var community *mongo.ElectionCommunity
+	if communityID != nil {
+		c, err := v.db.Community(*communityID)
+		if err != nil {
+			return fmt.Errorf("failed to get community from database: %w", err)
+		}
+		community = &mongo.ElectionCommunity{
+			ID:   c.ID,
+			Name: c.Name,
+		}
 	}
 	// add the election to the LRU cache and the database
 	v.electionLRU.Add(election.ElectionID.String(), election)
@@ -411,7 +425,8 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 		election.Metadata.Title["default"],
 		usersCount,
 		usersCountInitial,
-		tokenDecimals); err != nil {
+		tokenDecimals,
+		community); err != nil {
 		return fmt.Errorf("failed to add election to database: %w", err)
 	}
 	u, err := v.db.User(profile.FID)

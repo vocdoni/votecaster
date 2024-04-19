@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/web3"
 	"go.vocdoni.io/dvote/log"
@@ -72,13 +73,11 @@ type NeynarAPI struct {
 	web3provider *web3.FarcasterProvider
 }
 
-func NewNeynarAPI(apiKey string, web3endpoints []string) (*NeynarAPI, error) {
-	log.Infow("starting neynar api with web3 support", "web3endpoints", len(web3endpoints))
-	web3provider := web3.NewFarcasterProvider()
-	for _, web3endpoint := range web3endpoints {
-		if err := web3provider.AddEndpoint(web3endpoint); err != nil {
-			return nil, err
-		}
+func NewNeynarAPI(apiKey string, web3Pool *c3web3.Web3Pool) (*NeynarAPI, error) {
+	log.Infow("starting neynar api with web3 support", "web3endpoints", len(web3Pool.String()))
+	web3provider, err := web3.NewFarcasterProvider(web3Pool)
+	if err != nil {
+		return nil, fmt.Errorf("error creating web3 provider: %w", err)
 	}
 	// Run a quick test to check if the web3 endpoint is working
 	signers, err := web3provider.GetAppKeysByFid(big.NewInt(3))

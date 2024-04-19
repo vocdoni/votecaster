@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/mongo"
@@ -98,11 +99,13 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 		for _, admin := range c.Admins {
 			user, err := v.db.User(admin)
 			if err != nil {
-				if err == farcasterapi.ErrNoDataFound {
+				if err == farcasterapi.ErrNoDataFound ||
+					strings.Contains(err.Error(), "user unknown") {
 					log.Warnw("community admin not found in the database",
 						"err", err,
 						"user", admin,
 						"community", c.ID)
+					admins = append(admins, &User{FID: admin})
 					continue
 				}
 				return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
@@ -211,4 +214,46 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 		return ctx.Send([]byte("error encoding community"), http.StatusInternalServerError)
 	}
 	return ctx.Send(res, http.StatusOK)
+}
+
+// disableCommunityHanler allows to an admin of a community to disable it.
+func (v *vocdoniHandler) disableCommunityHanler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// extract userFID from auth token
+	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
+	if err != nil {
+		return fmt.Errorf("cannot get user from auth token: %w", err)
+	}
+	// get community id from the URL and parse to int
+	communityID := ctx.URLParam("communityID")
+	if communityID == "" {
+		return ctx.Send([]byte("no community ID provided"), http.StatusBadRequest)
+	}
+	id, err := strconv.Atoi(communityID)
+	if err != nil {
+		return ctx.Send([]byte("invalid community ID"), http.StatusBadRequest)
+	}
+	// get the community from the database by its id
+	community, err := v.db.Community(uint64(id))
+	if err != nil {
+		return ctx.Send([]byte("error getting community"), http.StatusInternalServerError)
+	}
+	if community == nil {
+		return ctx.Send([]byte("community not found"), http.StatusNotFound)
+	}
+	// check if the current user is an admin of the community
+	var authorized bool
+	for _, admin := range community.Admins {
+		if admin == userFID {
+			authorized = true
+			break
+		}
+	}
+	if !authorized {
+		return ctx.Send([]byte("you are not an admin of this community"), http.StatusUnauthorized)
+	}
+	// disable the community
+	if err := v.comhub.DisableCommunity(community.ID); err != nil {
+		return ctx.Send([]byte("error disabling community"), http.StatusInternalServerError)
+	}
+	return ctx.Send([]byte("ok"), http.StatusOK)
 }

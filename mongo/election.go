@@ -18,6 +18,7 @@ func (ms *MongoStorage) AddElection(
 	source string,
 	question string,
 	usersCount, usersCountInitial, tokenDecimals uint32,
+	community *ElectionCommunity,
 ) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
@@ -33,6 +34,7 @@ func (ms *MongoStorage) AddElection(
 		ElectionMeta: ElectionMeta{
 			CensusERC20TokenDecimals: tokenDecimals,
 		},
+		Community: community,
 	}
 	log.Infow("added new election", "electionID", electionID.String(), "userID", userFID, "question", question)
 	return ms.addElection(&election)

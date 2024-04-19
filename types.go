@@ -24,6 +24,7 @@ type ElectionCreateRequest struct {
 	Census           *CensusInfo       `json:"census,omitempty"`
 	NotifyUsers      bool              `json:"notifyUsers"`
 	NotificationText string            `json:"notificationText"`
+	CommunityID      *uint64           `json:"community,omitempty"`
 }
 
 // ElectionDescription defines the parameters for a new election.

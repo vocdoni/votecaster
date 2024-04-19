@@ -65,8 +65,8 @@ func main() {
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 	// community hub flags
 	flag.String("communityHubAddress", "", "The address of the CommunityHub contract")
-	flag.Uint64("communityHubStartBlock", 7250537, "The block number to start the CommunityHub (by default, the contract creation block)")
 	flag.Uint64("communityHubChainID", 666666666, "The chain ID of the CommunityHub contract (default: DegenChain 666666666)")
+	flag.String("communityHubChainAdminPrivKey", "", "The private key of a wallet admin of the CommunityHub contract in hex format")
 	// bot flags
 	// DISCLAMER: Currently the bot needs a HUB with write permissions to work.
 	// It also needs a FID to impersonate to it and its private key to sign the
@@ -126,8 +126,8 @@ func main() {
 	indexer := viper.GetBool("indexer")
 	// community hub vars
 	communityHubAddress := viper.GetString("communityHubAddress")
-	communityHubStartBlock := viper.GetUint64("communityHubStartBlock")
 	communityHubChainID := viper.GetUint64("communityHubChainID")
+	communityHubAdminPrivKey := viper.GetString("communityHubChainAdminPrivKey")
 
 	// bot vars
 	botFid := viper.GetUint64("botFid")
@@ -182,8 +182,8 @@ func main() {
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
 		"communityHubAddress", communityHubAddress,
-		"communityHubCreationBlock", communityHubStartBlock,
 		"communityHubChainID", communityHubChainID,
+		"communityHubAdmin", communityHubAdminPrivKey != "",
 		"botFid", botFid,
 		"botHubEndpoint", botHubEndpoint,
 		"neynarSignerUUID", neynarSignerUUID,
@@ -250,15 +250,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Create the Farcaster API client
-	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3endpoint)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Start the discovery user profile background process
 	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
-	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
 	defer mainCtxCancel()
 
 	// Create a Web3 pool
@@ -273,15 +266,24 @@ func main() {
 	}
 	log.Infow("web3 pool initialized", "endpoints", web3pool.String())
 
+	// Create the Farcaster API client
+	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3pool)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Start the discovery user profile background process
+	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
+
 	// Create the community hub service
+	var comHub *communityhub.CommunityHub
 	if communityHubAddress != "" {
-		comHub, err := communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
+		if comHub, err = communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
 			DB:              db,
 			ContractAddress: common.HexToAddress(communityHubAddress),
-			StartBlock:      communityHubStartBlock,
 			ChainID:         communityHubChainID,
-		})
-		if err != nil {
+			PrivKey:         communityHubAdminPrivKey,
+		}); err != nil {
 			log.Fatal(err)
 		}
 		comHub.ScanNewCommunities()
@@ -306,7 +308,8 @@ func main() {
 
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)
-	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as)
+	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo,
+		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, comHub)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -607,6 +610,10 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodGet, "public", handler.communityHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodDelete, "private", handler.disableCommunityHanler); err != nil {
 		log.Fatal(err)
 	}
 

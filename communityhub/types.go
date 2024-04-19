@@ -1,6 +1,10 @@
 package communityhub
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 // CensusType represents the type of census that a community is using to create
 // polls
@@ -50,6 +54,13 @@ var internalCensusTypes = map[uint8]CensusType{
 	CONTRACT_CENSUS_TYPE_NFT:     CensusTypeNFT,
 }
 
+// contractCensusTypes is the reverse of internalCensusTypes
+var contractCensusTypes = map[CensusType]uint8{
+	CensusTypeChannel: CONTRACT_CENSUS_TYPE_CHANNEL,
+	CensusTypeERC20:   CONTRACT_CENSUS_TYPE_ERC20,
+	CensusTypeNFT:     CONTRACT_CENSUS_TYPE_NFT,
+}
+
 // ContractAddress represents the address of a contract in a certain blockchain,
 // which is included in this struct
 type ContractAddress struct {
@@ -70,4 +81,22 @@ type HubCommunity struct {
 	Channels       []string // warpcast channels ids
 	Admins         []uint64 // farcaster users fids
 	Notifications  bool
+	// internal
+	electionResultsContract  common.Address
+	createElectionPermission uint8
+	disabled                 bool
+	funds                    *big.Int
+}
+
+// HubResult represents the result of a poll in the CommunityHub
+type HubResults struct {
+	Question         string
+	Options          []string
+	Date             string
+	Tally            [][]*big.Int
+	Turnout          *big.Int
+	TotalVotingPower *big.Int
+	Participants     []*big.Int
+	CensusRoot       []byte
+	CensusURI        string
 }

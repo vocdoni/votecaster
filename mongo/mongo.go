@@ -38,7 +38,6 @@ type MongoStorage struct {
 	notifications      *mongo.Collection
 	userAccessProfiles *mongo.Collection
 	communitites       *mongo.Collection
-	metadata           *mongo.Collection
 }
 
 type Options struct {
@@ -106,7 +105,6 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.notifications = client.Database(database).Collection("notifications")
 	ms.userAccessProfiles = client.Database(database).Collection("userAccessProfiles")
 	ms.communitites = client.Database(database).Collection("communities")
-	ms.metadata = client.Database(database).Collection("metadata")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
 	// else, just createIndexes
@@ -216,16 +214,6 @@ func (ms *MongoStorage) createIndexes() error {
 	_, err = ms.elections.Indexes().CreateOne(ctx, electionCastedVotesIndexModel)
 	if err != nil {
 		return fmt.Errorf("failed to create index on castedVotes for elections: %w", err)
-	}
-
-	// Create an index model for the 'key' field on metadata
-	metadataIndex := mongo.IndexModel{
-		Keys:    bson.M{"key": 1},
-		Options: options.Index().SetUnique(true),
-	}
-	_, err = ms.metadata.Indexes().CreateOne(ctx, metadataIndex)
-	if err != nil {
-		return fmt.Errorf("failed to create index on metadata key: %w", err)
 	}
 
 	// Create an index for the 'owners' field on communities
