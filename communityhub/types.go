@@ -1,6 +1,10 @@
 package communityhub
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 // CensusType represents the type of census that a community is using to create
 // polls
@@ -70,4 +74,17 @@ type HubCommunity struct {
 	Channels       []string // warpcast channels ids
 	Admins         []uint64 // farcaster users fids
 	Notifications  bool
+}
+
+// HubResult represents the result of a poll in the CommunityHub
+type HubResults struct {
+	Question         string
+	Options          []string
+	Date             string
+	Tally            [][]*big.Int
+	Turnout          *big.Int
+	TotalVotingPower *big.Int
+	Participants     []*big.Int
+	CensusRoot       []byte
+	CensusURI        string
 }

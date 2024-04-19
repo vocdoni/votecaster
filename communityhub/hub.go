@@ -10,7 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	comhub "github.com/vocdoni/vote-frame/communityhub/contracts/communityhubtoken"
 	dbmongo "github.com/vocdoni/vote-frame/mongo"
@@ -33,6 +35,7 @@ type CommunityHubConfig struct {
 	ContractAddress common.Address
 	ChainID         uint64
 	DB              *dbmongo.MongoStorage
+	PrivKey         string
 	ScannerCooldown time.Duration
 }
 
@@ -49,6 +52,7 @@ type CommunityHub struct {
 	w3cli           *c3web3.Client
 	contract        *comhub.CommunityHubToken
 	scannerCooldown time.Duration
+	signer          *bind.TransactOpts
 
 	Address common.Address
 	ChainID uint64
@@ -74,12 +78,12 @@ func NewCommunityHub(
 	// initialize the web3 client for the chain
 	w3cli, err := w3p.Client(conf.ChainID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get web3 client: %w", err)
+		return nil, errors.Join(ErrWeb3Client, err)
 	}
 	// initialize the contract with the web3 client and the contract address
 	contract, err := comhub.NewCommunityHubToken(conf.ContractAddress, w3cli)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get contract: %w", err)
+		return nil, errors.Join(ErrInitContract, err)
 	}
 	// initialize the context and the listener
 	ctx, cancel := context.WithCancel(goblalCtx)
@@ -102,6 +106,19 @@ func NewCommunityHub(
 	// the default one
 	if community.scannerCooldown = DefaultScannerCooldown; conf.ScannerCooldown > 0 {
 		community.scannerCooldown = conf.ScannerCooldown
+	}
+	// parse the private key if it is defined
+	if conf.PrivKey != "" {
+		privKey, err := crypto.HexToECDSA(conf.PrivKey)
+		if err != nil {
+			log.Warnw("failed to parse CommunityHub private key", "error", err)
+			return community, nil
+		}
+		bChainID := new(big.Int).SetUint64(conf.ChainID)
+		community.signer, err = bind.NewKeyedTransactorWithChainID(privKey, bChainID)
+		if err != nil {
+			return nil, errors.Join(ErrCreatingSigner, err)
+		}
 	}
 	return community, nil
 }
@@ -128,7 +145,7 @@ func (l *CommunityHub) ScanNewCommunities() {
 				time.Sleep(l.scannerCooldown)
 				// get the next community from the contract
 				currentID := l.nextCommunityID.Load()
-				newCommunity, err := l.CommunityFromContract(currentID)
+				newCommunity, err := l.Community(currentID)
 				if err != nil {
 					if !errors.Is(err, ErrCommunityNotFound) {
 						log.Warnw("failed to get community from contract",
@@ -172,13 +189,13 @@ func (l *CommunityHub) Stop() {
 	l.waiter.Wait()
 }
 
-// CommunityFromContract method gets the community data from the contract and
-// returns it as a HubCommunity struct. It decodes the admins and census
-// addresses from the contract data. It checks if the community is was found
-// in the contract by comparing the election results contract address with the
-// zero address. It returns the community data, and if something goes wrong,
-// it returns an error.
-func (l *CommunityHub) CommunityFromContract(communityID uint64) (*HubCommunity, error) {
+// Community method gets the community data from the contract and returns it
+// as a HubCommunity struct. It decodes the admins and census addresses from
+// the contract data. It checks if the community is was found in the contract
+// by comparing the election results contract address with the zero address.
+// It returns the community data, and if something goes wrong, it returns an
+// error.
+func (l *CommunityHub) Community(communityID uint64) (*HubCommunity, error) {
 	// get the community data from the contract
 	cc, err := l.contract.GetCommunity(nil, new(big.Int).SetUint64(communityID))
 	if err != nil {
@@ -221,10 +238,69 @@ func (l *CommunityHub) CommunityFromContract(communityID uint64) (*HubCommunity,
 			})
 		}
 	default:
-		return nil, errors.Join(ErrDecodingCommunity, fmt.Errorf("unknown census type: %d", cc.Census.CensusType))
+		return nil, errors.Join(ErrDecodingCommunity, ErrUnknownCensusType)
 	}
 	// return the community data
 	return community, nil
+}
+
+// Results method gets the election results using the community and elections
+// IDs from the contract and returns them as a HubResults struct. If something
+// goes wrong getting the results from the contract, it returns an error.
+func (l *CommunityHub) Results(communityID uint64, electionID []byte) (*HubResults, error) {
+	// convert the community ID to a *big.Int
+	bCommunityID := new(big.Int).SetUint64(communityID)
+	// convert the election ID to a [32]byte
+	bElectionID := [32]byte{}
+	copy(bElectionID[:], electionID)
+	// get the election results from the contract
+	contractResults, err := l.contract.GetResult(nil, bCommunityID, bElectionID)
+	if err != nil {
+		return nil, errors.Join(ErrGettingResults, err)
+	}
+	// return the results struct
+	return &HubResults{
+		Question:         contractResults.Question,
+		Options:          contractResults.Options,
+		Date:             contractResults.Date,
+		Turnout:          contractResults.Turnout,
+		TotalVotingPower: contractResults.TotalVotingPower,
+		Participants:     contractResults.Participants,
+		CensusRoot:       contractResults.CensusRoot[:],
+		CensusURI:        contractResults.CensusURI,
+	}, nil
+}
+
+// SetResults method sets the election results provided to the community and
+// election IDs provided. If something goes wrong setting the results in the
+// contract, it returns an error.
+func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results *HubResults) error {
+	if l.signer == nil {
+		return ErrNoSignerConfigured
+	}
+	// convert the community ID to a *big.Int
+	bCommunityID := new(big.Int).SetUint64(communityID)
+	// convert the election ID to a [32]byte
+	bElectionID := [32]byte{}
+	copy(bElectionID[:], electionID)
+	// convert census root to a [32]byte
+	bCensusRoot := [32]byte{}
+	copy(bCensusRoot[:], results.CensusRoot)
+	// set the election results in the contract
+	if _, err := l.contract.SetResult(l.signer, bCommunityID, bElectionID,
+		comhub.IElectionResultsResult{
+			Question:         results.Question,
+			Options:          results.Options,
+			Date:             results.Date,
+			Turnout:          results.Turnout,
+			TotalVotingPower: results.TotalVotingPower,
+			Participants:     results.Participants,
+			CensusRoot:       bCensusRoot,
+			CensusURI:        results.CensusURI,
+		}); err != nil {
+		return errors.Join(ErrSettingResults, err)
+	}
+	return nil
 }
 
 // storeCommunity helper method creates a new community in the database. It
@@ -258,16 +334,16 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) error {
 		// if no valid addresses were found, skip the community and log
 		// an error
 		if len(dbCensus.Addresses) == 0 {
-			return fmt.Errorf("no valid addresses found for community: %s", c.Name)
+			return fmt.Errorf("%w: %s", ErrBadCensusAddressees, c.Name)
 		}
 	default:
-		return fmt.Errorf("unknown census type: %s", c.CensusType)
+		return fmt.Errorf("%w: %s", ErrUnknownCensusType, c.CensusType)
 	}
 	// create community in the database
 	if err := l.db.AddCommunity(c.ID, c.Name, c.ImageURL, c.GroupChatURL,
 		dbCensus, c.Channels, c.Admins, c.Notifications,
 	); err != nil {
-		return fmt.Errorf("failed to add community: %w", err)
+		return errors.Join(ErrAddCommunity, err)
 	}
 	return nil
 }
