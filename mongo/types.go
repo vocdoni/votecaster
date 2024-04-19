@@ -45,18 +45,25 @@ type UserAccessProfile struct {
 	NotificationsMutedUsers []uint64 `json:"notificationsMutedUsers" bson:"notificationsMutedUsers"`
 }
 
+// ElectionCommunity represents the community used to create an election.
+type ElectionCommunity struct {
+	ID   uint64 `json:"id" bson:"id"`
+	Name string `json:"name" bson:"name"`
+}
+
 // Election represents an election and its details owned by a user.
 type Election struct {
 	ElectionMeta
-	ElectionID            string    `json:"electionId" bson:"_id"`
-	UserID                uint64    `json:"userId" bson:"userId"`
-	CastedVotes           uint64    `json:"castedVotes" bson:"castedVotes"`
-	LastVoteTime          time.Time `json:"lastVoteTime" bson:"lastVoteTime"`
-	CreatedTime           time.Time `json:"createdTime" bson:"createdTime"`
-	Source                string    `json:"source" bson:"source"`
-	FarcasterUserCount    uint32    `json:"farcasterUserCount" bson:"farcasterUserCount"`
-	InitialAddressesCount uint32    `json:"initialAddressesCount" bson:"initialAddressesCount"`
-	Question              string    `json:"question" bson:"question"`
+	ElectionID            string             `json:"electionId" bson:"_id"`
+	UserID                uint64             `json:"userId" bson:"userId"`
+	CastedVotes           uint64             `json:"castedVotes" bson:"castedVotes"`
+	LastVoteTime          time.Time          `json:"lastVoteTime" bson:"lastVoteTime"`
+	CreatedTime           time.Time          `json:"createdTime" bson:"createdTime"`
+	Source                string             `json:"source" bson:"source"`
+	FarcasterUserCount    uint32             `json:"farcasterUserCount" bson:"farcasterUserCount"`
+	InitialAddressesCount uint32             `json:"initialAddressesCount" bson:"initialAddressesCount"`
+	Question              string             `json:"question" bson:"question"`
+	Community             *ElectionCommunity `json:"community" bson:"community"`
 }
 
 // Census stores the census of an election ready to be used for voting on farcaster.
