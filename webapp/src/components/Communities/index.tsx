@@ -1,4 +1,4 @@
-import {Box, Button, Heading, Link, SimpleGrid, Text, VStack, Stack, useRadio} from '@chakra-ui/react'
+import {Box, Button, Heading, Link, SimpleGrid, Text, VStack, Stack} from '@chakra-ui/react'
 import {useQuery} from '@tanstack/react-query'
 import {Link as RouterLink} from 'react-router-dom'
 import {fetchCommunities} from '../../queries/communities'
@@ -32,20 +32,8 @@ export const CommunitiesList = () => {
   return (
     <VStack spacing={4} w='full' alignItems='start'>
       <Heading size='md'>Communities</Heading>
-      <Stack direction='row' align='center'>
-        <Button onClick={() => {
-          if (showMyCommunities) toggleMyCommunities()
-        }} colorScheme='gray' size='xs' leftIcon={<FaUsers/>}
-                variant={!showMyCommunities ? 'solid' : 'outline'}>
-          All communities
-        </Button>
-        <Button onClick={() => {
-          if (!showMyCommunities) toggleMyCommunities()
-        }} colorScheme='gray' size='xs' leftIcon={<FaRegStar/>}
-                variant={showMyCommunities ? 'solid' : 'outline'}>
-          My communities
-        </Button>
-      </Stack>
+      <ToggleStateComponent state={showMyCommunities} toggleState={toggleMyCommunities} state1text={"All communities"}
+                            state2text={"My communities"}/>
       <SimpleGrid gap={4} w='full' alignItems='start' columns={{base: 1, md: 2, lg: 4}}>
         {filteredData &&
           filteredData.map((community, k) => (
@@ -77,4 +65,29 @@ export const CommunitiesList = () => {
       </Box>
     </VStack>
   )
+}
+
+interface IToggleStateComponentProps {
+  state: boolean
+  toggleState: () => void
+  state1text: string
+  state2text: string
+}
+
+export const ToggleStateComponent = ({state, toggleState, state1text, state2text}: IToggleStateComponentProps) => {
+  return (
+    <Stack direction='row' align='center'>
+      <Button onClick={() => {
+        if (state) toggleState()
+      }} colorScheme='gray' size='xs' leftIcon={<FaUsers/>} variant={!state ? 'solid' : 'outline'}>
+        {state1text}
+      </Button>
+      <Button onClick={() => {
+        if (!state) toggleState()
+      }} colorScheme='gray' size='xs' leftIcon={<FaRegStar/>} variant={state ? 'solid' : 'outline'}>
+        {state2text}
+      </Button>
+    </Stack>
+  )
+
 }
