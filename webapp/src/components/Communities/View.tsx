@@ -1,4 +1,4 @@
-import { Avatar, Box, Flex, Grid, GridItem, Heading, Icon, Link, Text, HStack, VStack, color } from '@chakra-ui/react'
+import { Avatar, Box, Flex, Grid, GridItem, Heading, Icon, Link, Text, HStack } from '@chakra-ui/react'
 import { PropsWithChildren, ReactElement } from 'react'
 import { TbExternalLink } from "react-icons/tb"
 import { SiFarcaster } from "react-icons/si";
