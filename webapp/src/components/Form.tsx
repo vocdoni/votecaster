@@ -296,7 +296,7 @@ const Form: React.FC = (props: FlexProps) => {
   }
 
   return (
-    <Flex flexDir='column' alignItems='center' w={{base: 'full', sm: 450, md: 500}} {...props}>
+    <Flex flexDir='column' alignItems='center' w={{base: 'full', sm: 450, md: 550}} {...props}>
       <Card w='100%'>
         <CardHeader textAlign='center'>
           <Heading as='h2' size='lg' textAlign='center'>
@@ -365,7 +365,7 @@ const Form: React.FC = (props: FlexProps) => {
                   {notifyAllowed.includes(censusType) && (
                     <FormControl isDisabled={loading}>
                       <Switch {...register('notify')} lineHeight={6}>
-                        Notify farcaster users via cast (only for censuses &lt; 1k)
+                        🔔 Notify farcaster users via cast (only for censuses &lt; 1k)
                       </Switch>
                     </FormControl>
                   )}
