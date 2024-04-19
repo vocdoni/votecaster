@@ -90,9 +90,9 @@ func (ms *MongoStorage) addVoterToElection(electionID types.HexBytes, userFID ui
 	if err != nil {
 		return fmt.Errorf("failed to get census participants count: %w", err)
 	}
-	turnout := uint64(0)
+	turnout := float32(0)
 	if censusParticipantsCount > 0 {
-		turnout = (100 * uint64(len(voters.Voters))) / censusParticipantsCount
+		turnout = (100 * float32(len(voters.Voters))) / float32(censusParticipantsCount)
 	}
 
 	// Update the turnout in the Election document
