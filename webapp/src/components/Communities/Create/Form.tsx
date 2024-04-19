@@ -1,4 +1,4 @@
-import {Alert, Box, Heading, Text, VStack} from '@chakra-ui/react'
+import {Alert, Box, Heading, Text, VStack, AlertDescription, Flex} from '@chakra-ui/react'
 import {FormProvider, SubmitHandler, useForm} from 'react-hook-form'
 import {useAccount, useWalletClient, type UseWalletClientReturnType} from 'wagmi'
 import {degenContractAddress, electionResultsContract} from '../../../util/constants'
@@ -14,17 +14,21 @@ import {CommunityHubInterface, ICommunityHub} from "../../../typechain/src/Commu
 import {BrowserProvider} from "ethers";
 import {id} from "@ethersproject/hash";
 import {ContractTransactionReceipt} from "ethers";
+import {GroupChat} from "./GroupChat.tsx";
+import CommunityDone from "./Done.tsx";
 
 export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusType' | 'channel'> &
   CommunityMetaFormValues & {
   channels: { label: string; value: string }[]
+  enableNotifications: boolean // todo(kon): not for mvp
 }
 
 export const CommunitiesCreateForm = () => {
   const methods = useForm<CommunityFormValues>()
-  // const {data: hash, isPending, writeContract, error} = useWriteContract()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tx, setTx] = useState<string | null>(null)
+  const [communityId, setCommunityId] = useState<string | null>(null)
   const {data: walletClient} = useWalletClient()
   const {address} = useAccount()
 
@@ -38,9 +42,9 @@ export const CommunitiesCreateForm = () => {
       const metadata: ICommunityHub.CommunityMetadataStruct = {
         name: data.name, // name
         imageURI: data.logo, // logo uri
-        groupChatURL: "https://t.me/nothing", // groupChatURL
+        groupChatURL: data.groupChat ?? '', // groupChatURL
         channels: data.channels.map((chan) => chan.value) ?? [],  // channels
-        notifications: false // notifications
+        notifications: true // notifications
       }
 
       const census: ICommunityHub.CensusStruct = {
@@ -62,6 +66,7 @@ export const CommunitiesCreateForm = () => {
         createElectionPermission,
       ])
 
+      // todo(kon): put this code on a provider and get the contract instance from there
       let signer: any
       if (walletClient && address && walletClient.account.address === address) {
         signer = await walletClientToSigner(walletClient)
@@ -70,6 +75,7 @@ export const CommunitiesCreateForm = () => {
 
       const communityHubContract = CommunityHub__factory.connect(degenContractAddress, signer)
 
+      // todo(kon): can this be moved to a reactQuery?
       const tx = await communityHubContract.createCommunity(
         metadata, census, guardians, electionResultsContract, createElectionPermission)
 
@@ -93,7 +99,8 @@ export const CommunitiesCreateForm = () => {
         throw Error("Cannot get community id")
       }
       console.log("Commnuity id found", communityId, tx.hash)
-
+      setTx(tx.hash)
+      setCommunityId(communityId)
     } catch (e) {
       console.error('could not create community:', e)
       if (e instanceof Error) {
@@ -105,34 +112,44 @@ export const CommunitiesCreateForm = () => {
     }
   }, [walletClient, address, isPending])
 
-
   return (
     <Box display='flex' flexDir='column' gap={1}>
-      <Heading size='md'>Create community</Heading>
-      <Text color='gray.400' mb={4}>
-        Create your Farcaster.vote community to start managing proposals, creating polls, notify users, etc.
-      </Text>
       <FormProvider {...methods}>
-        <Box
-          as='form'
-          onSubmit={methods.handleSubmit(onSubmit)}
-          gap={4}
-          display='flex'
-          flexDir={['column', 'column', 'row']}
-          alignItems='start'
-        >
-          <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-            <VStack spacing={8} alignItems='left'>
-              <Meta/>
-              <CensusSelector/>
-              <Channels/>
-            </VStack>
-          </Box>
-          <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-            <Confirm isLoading={isPending}/>
-          </Box>
-        </Box>
-        {error && <Alert status='error'>{error}</Alert>}
+        {tx ? (<CommunityDone tx={tx}/>) : (
+          <>
+            <Heading size='md'>Create community</Heading>
+            <Text color='gray.400' mb={4}>
+              Create your Farcaster.vote community to start managing proposals, creating polls, notify users, etc.
+            </Text>
+            <Box
+              as='form'
+              onSubmit={methods.handleSubmit(onSubmit)}
+              gap={4}
+              display='flex'
+              flexDir={['column', 'column', 'row']}
+              alignItems='start'
+            >
+              <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
+                <VStack spacing={8} alignItems='left'>
+                  <Meta/>
+                  <CensusSelector/>
+                  <Channels/>
+                </VStack>
+              </Box>
+              <Flex direction={'column'} gap={4}>
+                <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
+                  <GroupChat/>
+                </Box>
+                <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
+                  <Confirm isLoading={isPending}/>
+                </Box>
+              </Flex>
+            </Box>
+            {error && <Alert maxW={'90vw'} status='error'>
+              <AlertDescription whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis"
+                                isTruncated>{error}</AlertDescription></Alert>}
+          </>
+        )}
       </FormProvider>
     </Box>
   )

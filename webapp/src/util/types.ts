@@ -24,7 +24,9 @@ export type Poll = {
   createdByDisplayname: string
   voteCount: number
   createdTime: Date
-  lastVoteTime: Date
+  lastVoteTime: Date,
+  turnout: number
+  censusParticipantsCount: number
 }
 
 export interface HTTPErrorResponse {

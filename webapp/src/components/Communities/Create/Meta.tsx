@@ -1,15 +1,17 @@
-import {Box, FormControl, FormErrorMessage, FormLabel, Heading, Input, VStack} from '@chakra-ui/react'
+import {FormHelperText, Box, FormControl, FormErrorMessage, FormLabel, Heading, Input, VStack} from '@chakra-ui/react'
 import {AsyncCreatableSelect} from 'chakra-react-select'
 import {useEffect, useState} from 'react'
 import {Controller, useFormContext} from 'react-hook-form'
 import {appUrl} from '../../../util/constants'
 import {useAuth} from '../../Auth/useAuth'
 import {CommunityCard} from '../Card'
+import {urlValidation} from "../../../util/strings.ts";
 
 export type CommunityMetaFormValues = {
   name: string
   admins: { label: string; value: number }[]
   logo: string
+  groupChat: string
 }
 
 export const Meta = () => {
@@ -91,8 +93,11 @@ export const Meta = () => {
       </FormControl>
       <FormControl isRequired isInvalid={!!errors.logo}>
         <FormLabel>Logo</FormLabel>
+        <FormHelperText>Add the logo of your community</FormHelperText>
         <Input
-          {...register('logo', {validate: (val) => /^(https?|ipfs):\/\//.test(val) || 'Must be a valid image link'})}
+          mt={3}
+          placeholder={"Insert URL here"}
+          {...register('logo', {validate: (val) => urlValidation(val) || 'Must be a valid image link'})}
         />
         <FormErrorMessage>{errors.logo?.message?.toString()}</FormErrorMessage>
       </FormControl>
