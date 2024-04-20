@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -28,7 +29,7 @@ func (ms *MongoStorage) AddCensus(censusID types.HexBytes, userFID uint64) error
 
 // AddParticipantsToCensus updates a census document with participants and their associated values.
 func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, participants map[string]string,
-	fromTotalAddresses uint32, tokenDecimals uint32,
+	fromTotalAddresses uint32, totalWeight *big.Int, tokenDecimals uint32,
 ) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
@@ -41,6 +42,7 @@ func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, partici
 			"participants":       participants,
 			"fromTotalAddresses": fromTotalAddresses,
 			"tokenDecimals":      tokenDecimals,
+			"totalWeight":        totalWeight.String(),
 		},
 	}
 

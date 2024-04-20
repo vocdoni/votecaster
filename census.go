@@ -256,6 +256,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		}
 		// since each participant can have multiple signers, we need to get the unique usernames
 		uniqueParticipantsMap := make(map[string]string)
+		totalWeight := new(big.Int).SetUint64(0)
 		for _, p := range participants {
 			if _, ok := uniqueParticipantsMap[p.Username]; ok {
 				// if the username is already in the map, skip
@@ -265,6 +266,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 				p.Weight = big.NewInt(1)
 			}
 			uniqueParticipantsMap[p.Username] = p.Weight.String()
+			totalWeight.Add(totalWeight, p.Weight)
 		}
 		uniqueParticipants := []string{}
 		for k := range uniqueParticipantsMap {
@@ -275,6 +277,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		log.Infow("census created from CSV",
 			"censusID", censusID.String(),
 			"size", len(ci.Usernames),
+			"totalWeight", totalWeight.String(),
 			"duration", time.Since(startTime),
 			"fromTotalAddresses", totalCSVaddresses)
 
@@ -282,7 +285,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		v.censusCreationMap.Store(censusID.String(), *ci)
 
 		// add participants to the census in the database
-		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, 0); err != nil {
+		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, totalWeight, 0); err != nil {
 			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
 		}
 	}()
@@ -712,6 +715,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 
 		// since each participant can have multiple signers, we need to get the unique usernames
 		uniqueParticipantsMap := make(map[string]string)
+		totalWeight := new(big.Int).SetUint64(0)
 		for _, p := range participants {
 			if _, ok := uniqueParticipantsMap[p.Username]; ok {
 				// if the username is already in the map, skip
@@ -720,6 +724,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 			if p.Weight == nil {
 				p.Weight = big.NewInt(1)
 			}
+			totalWeight.Add(totalWeight, p.Weight)
 			uniqueParticipantsMap[p.Username] = p.Weight.String()
 		}
 		uniqueParticipants := []string{}
@@ -731,6 +736,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 		log.Infow("census created from Airstack",
 			"censusID", censusID.String(),
 			"size", len(ci.Usernames),
+			"totalWeight", totalWeight.String(),
 			"duration", time.Since(startTime),
 			"totalAddresses", totalAddresses,
 			"participants", len(ci.Usernames),
@@ -738,7 +744,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 		// store the census info in the memory map
 		v.censusCreationMap.Store(censusID.String(), *ci)
 		// add participants to the census in the database
-		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, uint32(tokenDecimals)); err != nil {
+		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, totalWeight, uint32(tokenDecimals)); err != nil {
 			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
 		}
 	}()
@@ -795,17 +801,27 @@ func (v *vocdoniHandler) censusWarpcastChannel(censusID types.HexBytes, channelI
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		uniqueUsernames := map[string]bool{}
+		uniqueParticipantsMap := map[string]string{}
 		for _, p := range participants {
-			if _, ok := uniqueUsernames[p.Username]; !ok {
-				uniqueUsernames[p.Username] = true
+			if _, ok := uniqueParticipantsMap[p.Username]; !ok {
+				uniqueParticipantsMap[p.Username] = "1"
 			}
 		}
-		for username := range uniqueUsernames {
+		for username := range uniqueParticipantsMap {
 			censusInfo.Usernames = append(censusInfo.Usernames, username)
 		}
 		censusInfo.FromTotalAddresses = uint32(len(participants))
 		v.censusCreationMap.Store(censusID.String(), *censusInfo)
+		// add participants to the census in the database
+		if err := v.db.AddParticipantsToCensus(
+			censusID,
+			uniqueParticipantsMap,
+			censusInfo.FromTotalAddresses,
+			new(big.Int).SetUint64(uint64(len(uniqueParticipantsMap))),
+			0,
+		); err != nil {
+			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
+		}
 		log.Infow("census created from channel",
 			"channelID", channelID,
 			"participants", len(censusInfo.Usernames))

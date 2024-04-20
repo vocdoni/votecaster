@@ -52,6 +52,8 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 }
 
 func (ms *MongoStorage) addVoterToElection(electionID types.HexBytes, userFID uint64) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

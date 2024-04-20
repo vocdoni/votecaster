@@ -76,6 +76,7 @@ type Census struct {
 	Participants       map[string]string `json:"participants" bson:"participants"`
 	FromTotalAddresses uint32            `json:"fromTotalAddresses" bson:"fromTotalAddresses"`
 	CreatedBy          uint64            `json:"createdBy" bson:"createdBy"`
+	TotalWeight        string            `json:"totalWeight" bson:"totalWeight"`
 }
 
 // ElectionMeta stores non related election information that is useful
