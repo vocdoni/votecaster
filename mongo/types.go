@@ -259,7 +259,7 @@ func dynamicUpdateDocument(item interface{}, alwaysUpdateTags []string) (bson.M,
 		}
 		fieldType := typ.Field(i)
 		tag := fieldType.Tag.Get("bson")
-		if tag == "" || tag == "-" {
+		if tag == "" || tag == "-" || tag == "_id" {
 			continue
 		}
 

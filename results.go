@@ -142,6 +142,10 @@ func (v *vocdoniHandler) finalizeElectionResults(election *api.Election, electio
 		hubResults.Tally = make([][]*big.Int, 0)
 		for _, option := range election.Results[0] {
 			opt := new(big.Int).Set(option.MathBigInt())
+			if len(hubResults.Tally) == 0 {
+				hubResults.Tally = append(hubResults.Tally, []*big.Int{opt})
+				continue
+			}
 			hubResults.Tally[0] = append(hubResults.Tally[0], opt)
 		}
 

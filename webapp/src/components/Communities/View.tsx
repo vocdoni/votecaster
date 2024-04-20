@@ -16,12 +16,12 @@ import {
   Th,
   Tbody, Button
 } from '@chakra-ui/react'
-import {PropsWithChildren, ReactElement} from 'react'
+import {PropsWithChildren, ReactElement, Fragment} from 'react'
 import {TbExternalLink} from "react-icons/tb"
 import {SiFarcaster} from "react-icons/si";
 import {BsChatDotsFill} from "react-icons/bs";
 import {useQuery} from '@tanstack/react-query'
-import {useNavigate} from 'react-router-dom';
+import {Link as RouterLink, useNavigate} from 'react-router-dom';
 
 import {appUrl, degenContractAddress} from '../../util/constants'
 import {Community} from '../../queries/communities'
@@ -48,6 +48,7 @@ const lastPollVote = (poll: Poll): string => {
 }
 
 export const CommunitiesView = ({community}: CommunitiesViewProps) => {
+
   const {bfetch, profile, isAuthenticated} = useAuth()
   const {data: communityPolls, refetch} = useQuery<Poll[], Error>({
     queryKey: ['communityPolls', community?.id],
@@ -150,7 +151,10 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
             <Tbody>
               {communityPolls?.map((poll, index) => (
                 <Tr key={index}>
-                  <Td>{poll.title} <small>by {poll.createdByDisplayname}</small></Td>
+                  <Td>
+                    <RouterLink to={`/poll/${poll.electionId}`}>{poll.title}</RouterLink>
+                    <Text as={'p'} fontSize={'xs'} color='gray'>by {poll.createdByDisplayname}</Text>
+                  </Td>
                   <Td isNumeric>{poll.censusParticipantsCount}</Td>
                   <Td isNumeric>{poll.voteCount}</Td>
                   <Td isNumeric>{`${poll.turnout}%`}</Td>
@@ -167,11 +171,11 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
 
 export const CommunityAdmins = ({community}: CommunitiesViewProps) => {
   return community.admins.map((admin, k) => (
-    <>
+    <Fragment key={k}>
       <Link isExternal href={`https://warpcast.com/${admin.username}`}>
         {admin.displayName || admin.username}
       </Link>
       {k === community.admins.length - 2 ? ' & ' : k < community.admins.length - 2 ? ', ' : ''}
-    </>
+    </Fragment>
   ))
 }
