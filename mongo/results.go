@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
@@ -32,6 +33,23 @@ func (ms *MongoStorage) AddFinalResults(electionID types.HexBytes, finalPNG []by
 	}
 	log.Debugw("stored PNG results", "electionID", electionID.String())
 	return nil
+}
+
+// Results retrieves the final results of an election.
+func (ms *MongoStorage) Results(electionID types.HexBytes) (*Results, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var results Results
+	err := ms.results.FindOne(ctx, bson.M{"_id": electionID.String()}).Decode(&results)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrElectionUnknown
+		}
+		return nil, fmt.Errorf("error retrieving results for electionID %s: %w", electionID.String(), err)
+	}
+
+	return &results, nil
 }
 
 // FinalResultsPNG returns the final results of an election in PNG format.

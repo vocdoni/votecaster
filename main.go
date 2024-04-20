@@ -472,6 +472,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/poll/info/{electionID}", http.MethodGet, "public", handler.electionFullInfo); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/poll/{electionID}", http.MethodPost, "public", handler.showElection); err != nil {
 		log.Fatal(err)
 	}

@@ -18,6 +18,7 @@ func (ms *MongoStorage) AddElection(
 	source string,
 	question string,
 	usersCount, usersCountInitial, tokenDecimals uint32,
+	endTime time.Time,
 	community *ElectionCommunity,
 ) error {
 	ms.keysLock.Lock()
@@ -27,6 +28,7 @@ func (ms *MongoStorage) AddElection(
 		UserID:                userFID,
 		ElectionID:            electionID.String(),
 		CreatedTime:           time.Now(),
+		EndTime:               endTime,
 		Source:                source,
 		FarcasterUserCount:    usersCount,
 		InitialAddressesCount: usersCountInitial,

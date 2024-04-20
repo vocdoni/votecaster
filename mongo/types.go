@@ -59,6 +59,7 @@ type Election struct {
 	CastedVotes           uint64             `json:"castedVotes" bson:"castedVotes"`
 	LastVoteTime          time.Time          `json:"lastVoteTime" bson:"lastVoteTime"`
 	CreatedTime           time.Time          `json:"createdTime" bson:"createdTime"`
+	EndTime               time.Time          `json:"endTime" bson:"endTime"`
 	Source                string             `json:"source" bson:"source"`
 	FarcasterUserCount    uint32             `json:"farcasterUserCount" bson:"farcasterUserCount"`
 	InitialAddressesCount uint32             `json:"initialAddressesCount" bson:"initialAddressesCount"`
