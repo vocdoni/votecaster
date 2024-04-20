@@ -1,9 +1,7 @@
 import {lazy} from 'react'
 import {createHashRouter, RouterProvider} from 'react-router-dom'
-import {useAuth} from '../components/Auth/useAuth'
 import {Layout} from '../components/Layout'
 import {SuspenseLoader} from './SuspenseLoader'
-import {degenContractAddress, electionResultsContract} from "../util/constants.ts";
 
 const About = lazy(() => import('../pages/About'))
 const App = lazy(() => import('../pages/App'))
@@ -11,6 +9,7 @@ const Communities = lazy(() => import('../pages/communities'))
 const CommunitiesNew = lazy(() => import('../pages/communities/new'))
 const Leaderboards = lazy(() => import('../pages/Leaderboards'))
 const Poll = lazy(() => import('../pages/Poll'))
+const CommunityPoll = lazy(() => import('../pages/CommunityPoll'))
 const Profile = lazy(() => import('../pages/Profile'))
 
 const FarcasterAccountProtectedRoute = lazy(() => import('./FarcasterAccountProtectedRoute'))
@@ -18,7 +17,6 @@ const ProtectedRoute = lazy(() => import('./ProtectedRoute'))
 const Community = lazy(() => import('../pages/communities/view'))
 
 export const Router = () => {
-  const {bfetch} = useAuth()
   const router = createHashRouter([
     {
       path: '/',
@@ -69,6 +67,14 @@ export const Router = () => {
           element: (
             <SuspenseLoader>
               <Community/>
+            </SuspenseLoader>
+          ),
+        },
+        {
+          path: '/communities/:id/poll/:pid',
+          element: (
+            <SuspenseLoader>
+              <CommunityPoll/>
             </SuspenseLoader>
           ),
         },
