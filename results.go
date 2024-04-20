@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/api"
@@ -122,6 +123,44 @@ func (v *vocdoniHandler) finalizeElectionResults(election *api.Election, electio
 			return
 		}
 		log.Infow("final results image built ondemand", "electionID", election.ElectionID.String())
+
+		// check if community exists in the smart contract
+		comm, err := v.comhub.Community(electiondb.Community.ID)
+		if err != nil || comm == nil {
+			log.Errorw(err, "failed to fetch community from the community hub")
+			return
+		}
+
+		hubResults := &communityhub.HubResults{
+			Question:   electiondb.Question,
+			Options:    choices,
+			Date:       election.EndDate.String(),
+			CensusRoot: election.Census.CensusRoot,
+			CensusURI:  election.Census.CensusURL,
+		}
+
+		hubResults.Tally = make([][]*big.Int, 0)
+		for _, option := range election.Results[0] {
+			opt := new(big.Int).Set(option.MathBigInt())
+			hubResults.Tally[0] = append(hubResults.Tally[0], opt)
+		}
+
+		census, err := v.db.CensusFromElection(election.ElectionID)
+		if err != nil {
+			log.Errorw(err, "failed to fetch census from the database")
+			return
+		}
+
+		tvp, _ := new(big.Int).SetString(census.TotalWeight, 10)
+		hubResults.TotalVotingPower = tvp
+
+		hubResults.Turnout = big.NewInt(int64(electiondb.FarcasterUserCount / uint32(len(votes)))) // ?
+
+		// hubResults.Participants = census.Participants // This should be changed in the smart contract for storing participant names and not fids.
+
+		if err := v.comhub.SetResults(electiondb.Community.ID, election.ElectionID, hubResults); err != nil {
+			log.Errorw(err, "failed to set results on the community hub")
+		}
 	}()
 	return id, nil
 }
