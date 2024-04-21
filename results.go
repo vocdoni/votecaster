@@ -151,14 +151,14 @@ func (v *vocdoniHandler) finalizeElectionResults(election *api.Election, electio
 			log.Errorw(err, "failed to fetch census from the database")
 			return
 		}
+
 		totalVotingPower, _ := new(big.Int).SetString(census.TotalWeight, 10)
-		turnout := big.NewInt(int64(electiondb.FarcasterUserCount / uint32(len(votes)))) // ?
 		hubResults := &communityhub.HubResults{
 			Question:         electiondb.Question,
 			Options:          choices,
 			Date:             election.EndDate.String(),
 			Tally:            tally,
-			Turnout:          turnout,
+			Turnout:          calculateTurnout(census.TotalWeight, electiondb.CastedWeight),
 			TotalVotingPower: totalVotingPower,
 			Participants:     participants,
 			CensusRoot:       election.Census.CensusRoot,
@@ -205,4 +205,29 @@ func extractResults(election *api.Election, censusTokenDecimals uint32) (choices
 		results = append(results, value)
 	}
 	return choices, results
+}
+
+// calculateTurnout computes the turnout percentage from two big.Int strings.
+// If the strings are not valid numbers, it returns zero.
+func calculateTurnout(totalWeightStr, castedWeightStr string) *big.Int {
+	totalWeight := new(big.Int)
+	castedWeight := new(big.Int)
+
+	_, ok := totalWeight.SetString(totalWeightStr, 10)
+	if !ok {
+		return big.NewInt(0)
+	}
+
+	_, ok = castedWeight.SetString(castedWeightStr, 10)
+	if !ok {
+		return big.NewInt(0)
+	}
+
+	// Multiply castedWeight by 100 to preserve integer properties during division
+	castedWeightMul := new(big.Int).Mul(castedWeight, big.NewInt(100))
+
+	// Compute the turnout percentage as an integer
+	turnoutPercentage := new(big.Int).Div(castedWeightMul, totalWeight)
+
+	return turnoutPercentage
 }

@@ -288,7 +288,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		Question:                dbElection.Question,
 		CastedVotes:             dbElection.CastedVotes,
 		CensusParticipantsCount: uint64(dbElection.FarcasterUserCount),
-		Turnout:                 dbElection.Turnout,
+		Turnout:                 int(calculateTurnout(census.TotalWeight, dbElection.CastedWeight).Int64()),
 		Username:                username,
 		Displayname:             displayname,
 		TotalWeight:             census.TotalWeight,

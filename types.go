@@ -47,7 +47,7 @@ type ElectionInfo struct {
 	CastedVotes             uint64    `json:"voteCount"`
 	CastedWeight            string    `json:"castedWeight,omitempty"`
 	CensusParticipantsCount uint64    `json:"censusParticipantsCount"`
-	Turnout                 float32   `json:"turnout"`
+	Turnout                 int       `json:"turnout"`
 	Username                string    `json:"createdByUsername,omitempty"`
 	Displayname             string    `json:"createdByDisplayname,omitempty"`
 	TotalWeight             string    `json:"totalWeight,omitempty"`

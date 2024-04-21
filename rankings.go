@@ -70,7 +70,6 @@ func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httproute
 		Question                string    `json:"title"`
 		CastedVotes             uint64    `json:"voteCount"`
 		CensusParticipantsCount uint64    `json:"censusParticipantsCount"`
-		Turnout                 float32   `json:"turnout"`
 		Username                string    `json:"createdByUsername"`
 		Displayname             string    `json:"createdByDisplayname"`
 	}
@@ -94,7 +93,6 @@ func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httproute
 			dbElections[i].Question,
 			dbElections[i].CastedVotes,
 			uint64(dbElections[i].FarcasterUserCount),
-			dbElections[i].Turnout,
 			username,
 			displayname,
 		})
@@ -140,7 +138,6 @@ func (v *vocdoniHandler) electionsByCommunityHandler(_ *apirest.APIdata, ctx *ht
 			Question:                dbElections[i].Question,
 			CastedVotes:             dbElections[i].CastedVotes,
 			CensusParticipantsCount: uint64(dbElections[i].FarcasterUserCount),
-			Turnout:                 dbElections[i].Turnout,
 			Username:                username,
 			Displayname:             displayname,
 			Finalized:               time.Now().After(dbElections[i].EndTime), // return true if EndTime is in the past
