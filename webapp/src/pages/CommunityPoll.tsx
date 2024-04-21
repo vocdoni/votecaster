@@ -20,7 +20,7 @@ const mockedResults: PollResult = {
   participants: [237855, 308972, 10080],
   question: 'Whats your favorite love movie?',
   tally: [[1, 2], [], [], []],
-  totalVotingPower: 3,
+  voteCount: 3,
   turnout: 100,
 }
 
@@ -134,7 +134,7 @@ const Poll = () => {
                   <Box>
                     <AlertTitle fontSize={'sm'}>Results verifiable on Degenchain</AlertTitle>
                     <AlertDescription fontSize={'sm'}>
-                      This poll has ended. The results are definitive and have been settked on the 🎩 Degenchain.
+                      This poll has ended. The results are definitive and have been settled on the 🎩 Degenchain.
                     </AlertDescription>
                   </Box>
                 </Alert>
