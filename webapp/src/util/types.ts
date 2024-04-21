@@ -24,9 +24,11 @@ export type Poll = {
   createdByDisplayname: string
   voteCount: number
   createdTime: Date
+  endTime: Date
   lastVoteTime: Date,
   turnout: number
   censusParticipantsCount: number
+  finalized: boolean
 }
 
 export type PollResult = {
@@ -40,7 +42,6 @@ export type PollResult = {
   turnout: number
   voteCount: number
 }
-
 
 export type PollInfo = {
   createdTime: string

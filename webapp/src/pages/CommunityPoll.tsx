@@ -1,4 +1,18 @@
-import { Alert, AlertDescription, Box, Heading, Image, Flex, Link, Skeleton, Progress, VStack, Text, AlertTitle, Button, HStack } from '@chakra-ui/react'
+import { 
+  Alert, 
+  AlertDescription, 
+  AlertTitle, 
+  Box, 
+  Button,
+  Flex, 
+  Heading, 
+  Image, 
+  Link, 
+  Skeleton, 
+  Progress, 
+  VStack, 
+  Text, 
+} from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { FaDownload } from 'react-icons/fa6'
@@ -6,7 +20,8 @@ import { ethers } from 'ethers'
 
 import { useAuth } from '../components/Auth/useAuth'
 import { toArrayBuffer } from '../util/hex'
-import { PollResult } from '../util/types'
+import type { PollResult } from '../util/types'
+import { humanDate } from '../util/strings'
 import { CsvGenerator } from '../generator'
 import { CommunityHub__factory } from '../typechain'
 import { appUrl, degenChainRpc, degenContractAddress, electionResultsContract } from '../util/constants'
@@ -22,18 +37,6 @@ const mockedResults: PollResult = {
   tally: [[1, 2], [], [], []],
   voteCount: 3,
   turnout: 100,
-}
-
-const fDate = (date?: Date): string => {
-  if (!date) return ''
-  const days = date.getDate().toString().padStart(2, '0');
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const month = months[date.getMonth()];
-  const year = date.getFullYear().toString();
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-
-  return `${days} ${month}, ${year} ${hours}:${minutes}`;
 }
 
 const Poll = () => {
@@ -139,7 +142,6 @@ const Poll = () => {
             <Heading size='md'>Results</Heading>
             <Skeleton isLoaded={!loading}>
               <VStack px={4} alignItems='left'>
-                <Text fontSize={'xs'} color={'gray'}>Results</Text>
                 <Heading size='sm' fontWeight={'semibold'}>{results?.question}</Heading>
                 <Alert status='success' variant='left-accent' rounded={4}>
                   <Box>
@@ -172,7 +174,7 @@ const Poll = () => {
           <Skeleton isLoaded={!loading}>
             <VStack spacing={6} alignItems='left' fontSize={'sm'}>
               <Text>
-                This poll ended on {`${fDate(results?.endTime)}`}. Check the Vocdoni blockchain explorer for <Link textDecoration={'underline'} isExternal href={`https://stg.explorer.vote/processes/show/#/${electionID}`}>more information</Link>.
+                This poll ended on {`${humanDate(results?.endTime)}`}. Check the Vocdoni blockchain explorer for <Link textDecoration={'underline'} isExternal href={`https://stg.explorer.vote/processes/show/#/${electionID}`}>more information</Link>.
               </Text>
               {voters.length > 0 && <>
                 <Text>You can download the list of users who casted their votes.</Text>

@@ -1,5 +1,6 @@
 import {
   Avatar,
+  Badge,
   Box,
   Flex,
   Grid,
@@ -28,6 +29,7 @@ import {Community} from '../../queries/communities'
 import {fetchPollsByCommunity} from '../../queries/tops'
 import {useAuth} from '../Auth/useAuth'
 import {Poll} from '../../util/types';
+import {humanDate} from '../../util/strings'
 import {MdHowToVote} from "react-icons/md";
 
 export type CommunitiesViewProps = {
@@ -40,15 +42,7 @@ const WhiteBox = ({children}: PropsWithChildren) => (
   </Flex>
 )
 
-const lastPollVote = (poll: Poll): string => {
-  if (poll.voteCount === 0) {
-    return 'Never'
-  }
-  return (new Date(poll.lastVoteTime)).toDateString()
-}
-
 export const CommunitiesView = ({community}: CommunitiesViewProps) => {
-
   const {bfetch, profile, isAuthenticated} = useAuth()
   const {data: communityPolls, refetch} = useQuery<Poll[], Error>({
     queryKey: ['communityPolls', community?.id],
@@ -142,10 +136,11 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
             <Thead>
               <Tr>
                 <Th>Question</Th>
-                <Th isNumeric>Census size</Th>
                 <Th isNumeric>Votes</Th>
+                <Th isNumeric>Census size</Th>
                 <Th isNumeric>Turnout(%)</Th>
                 <Th>Last vote</Th>
+                <Th>Status</Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -155,10 +150,11 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
                     <RouterLink to={`poll/${poll.electionId}`}>{poll.question}</RouterLink>
                     <Text as={'p'} fontSize={'xs'} color='gray'>by {poll.createdByDisplayname}</Text>
                   </Td>
-                  <Td isNumeric>{poll.censusParticipantsCount}</Td>
                   <Td isNumeric>{poll.voteCount}</Td>
+                  <Td isNumeric>{poll.censusParticipantsCount}</Td>
                   <Td isNumeric>{`${poll.turnout}%`}</Td>
-                  <Td textAlign='center'>{lastPollVote(poll)}</Td>
+                  <Td>{humanDate(poll.lastVoteTime) || 'Never' }</Td>
+                  <Td>{poll.finalized ? <Badge>Ended</Badge> : <Badge colorScheme='green'>Ongoing</Badge>}</Td>
                 </Tr>
               ))}
             </Tbody>
