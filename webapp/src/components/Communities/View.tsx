@@ -152,7 +152,7 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
               {communityPolls?.map((poll, index) => (
                 <Tr key={index}>
                   <Td>
-                    <RouterLink to={`poll/${poll.electionId}`}>{poll.title}</RouterLink>
+                    <RouterLink to={`poll/${poll.electionId}`}>{poll.question}</RouterLink>
                     <Text as={'p'} fontSize={'xs'} color='gray'>by {poll.createdByDisplayname}</Text>
                   </Td>
                   <Td isNumeric>{poll.censusParticipantsCount}</Td>

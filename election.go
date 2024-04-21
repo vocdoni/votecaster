@@ -270,13 +270,13 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 	}
 
 	// Fetch participants
-	participantUsernames := []string{}
+	participantFIDS := []uint64{}
 	participants, err := v.db.VotersOfElection(electionID)
 	if err != nil {
 		log.Warnw("failed to fetch participants", "error", err)
 	} else {
 		for _, p := range participants {
-			participantUsernames = append(participantUsernames, p.Username)
+			participantFIDS = append(participantFIDS, p.UserID)
 		}
 	}
 
@@ -293,7 +293,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		Displayname:             displayname,
 		TotalWeight:             census.TotalWeight,
 		CastedWeight:            dbElection.CastedWeight,
-		Participants:            participantUsernames,
+		Participants:            participantFIDS,
 		Choices:                 results.Choices,
 		Votes:                   results.Votes,
 		Finalized:               results.Finalized,

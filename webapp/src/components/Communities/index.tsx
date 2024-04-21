@@ -9,8 +9,7 @@ import {FaUsers, FaRegStar} from "react-icons/fa";
 import {useCallback, useState} from "react";
 
 export const CommunitiesList = () => {
-  const {bfetch} = useAuth()
-  const {profile} = useAuth()
+  const {bfetch, profile, isAuthenticated } = useAuth()
 
   // state to show only the communities the user is part of
   const [showMyCommunities, setShowMyCommunities] = useState(false)
@@ -32,8 +31,9 @@ export const CommunitiesList = () => {
   return (
     <VStack spacing={4} w='full' alignItems='start'>
       <Heading size='md'>Communities</Heading>
-      <ToggleStateComponent state={showMyCommunities} toggleState={toggleMyCommunities} state1text={"All communities"}
-                            state2text={"My communities"}/>
+
+      {isAuthenticated && <ToggleStateComponent state={showMyCommunities} toggleState={toggleMyCommunities} state1text={"All communities"}
+                            state2text={"My communities" }/>}
       <SimpleGrid gap={4} w='full' alignItems='start' columns={{base: 1, md: 2, lg: 4}}>
         {filteredData &&
           filteredData.map((community, k) => (

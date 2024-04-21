@@ -19,7 +19,7 @@ export type Profile = {
 
 export type Poll = {
   electionId: string
-  title: string
+  question: string
   createdByUsername: string
   createdByDisplayname: string
   voteCount: number
@@ -41,23 +41,23 @@ export type PollResult = {
   turnout: number
 }
 
+
 export type PollInfo = {
-  CreatedTime: Date
-  ElectionID: string
-  LastVoteTime: Date
-  EndTime: Date
-  Question: string
-  CastedVotes: number
-  CastedWeight: string
-  CensusParticipantsCount: number
-  Turnout: number
-  Username: string
-  Displayname: string
-  TotalWeight: string
-  Participants: string[]
-  Options: string[]
-  Votes: string[]
-  Finalized: boolean
+  createdTime: string
+  electionId: string
+  lastVoteTime: string
+  endTime: string
+  question: string
+  voteCount: number
+  censusParticipantsCount: number
+  turnout: number
+  createdByUsername: string
+  createdByDisplayname: string
+  totalWeight: string
+  options: string[]
+  tally: string[]
+  finalized: boolean
+  participants: number[]
 }
 
 export interface HTTPErrorResponse {

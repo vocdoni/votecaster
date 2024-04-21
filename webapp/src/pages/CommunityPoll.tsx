@@ -4,13 +4,13 @@ import { useParams } from 'react-router-dom'
 import { FaDownload } from 'react-icons/fa6'
 import { ethers } from 'ethers'
 
+import { useAuth } from '../components/Auth/useAuth'
 import { toArrayBuffer } from '../util/hex'
 import { PollResult } from '../util/types'
 import { CsvGenerator } from '../generator'
 import { CommunityHub__factory } from '../typechain'
 import { appUrl, degenChainRpc, degenContractAddress, electionResultsContract } from '../util/constants'
-
-
+import { fetchPollInfo } from '../queries/polls'
 
 const mockedResults: PollResult = {
   censusRoot: 'a989f2e94f9f7954c96ba2cef784525c5ce5c3cba90f0b3da14349a93f3e7dde',
@@ -26,6 +26,7 @@ const mockedResults: PollResult = {
 
 
 const Poll = () => {
+  const { bfetch } = useAuth()
   const { pid: electionID, id: communityID } = useParams()
   const [voters, setVoters] = useState([])
   const [loaded, setLoaded] = useState<boolean>(false)
@@ -41,24 +42,48 @@ const Poll = () => {
           const provider = new ethers.JsonRpcProvider(degenChainRpc)
           const communityHubContract = CommunityHub__factory.connect(degenContractAddress, provider)
           const contractData = await communityHubContract.getResult(communityID, toArrayBuffer(electionID))
-          // if (contractData.date !== "") {
-          const participants = contractData.participants.map((p) => parseInt(p.toString()))
-          const tally = contractData.tally.map((t) => t.map((v) => parseInt(v.toString())))
-          const results: PollResult = {
-            censusRoot: contractData.censusRoot,
-            censusURI: contractData.censusURI,
-            createdTime: new Date(contractData.date),
-            options: contractData.options,
-            participants: participants,
-            question: contractData.question,
-            tally: tally,
-            totalVotingPower: parseInt(contractData.totalVotingPower.toString()),
-            turnout: parseFloat(contractData.turnout.toString()),
+          let results: PollResult
+          if (contractData.date !== "") {
+            const participants = contractData.participants.map((p) => parseInt(p.toString()))
+            const tally = contractData.tally.map((t) => t.map((v) => parseInt(v.toString())))
+            results = {
+              censusRoot: contractData.censusRoot,
+              censusURI: contractData.censusURI,
+              createdTime: new Date(contractData.date),
+              options: contractData.options,
+              participants: participants,
+              question: contractData.question,
+              tally: tally,
+              totalVotingPower: parseInt(contractData.totalVotingPower.toString()),
+              turnout: parseFloat(contractData.turnout.toString()),
+            }
+            console.log("results from contract")
+          } else {
+            try {
+              const apiData = await fetchPollInfo(bfetch)(electionID)
+              const tally: number[][] = [[]]
+              apiData.tally?.forEach((t) => {
+                tally[0].push(parseInt(t))
+              })
+              results = {
+                censusRoot: "",
+                censusURI: "",
+                createdTime: new Date(apiData.createdTime),
+                options: apiData.options,
+                participants: apiData.participants,
+                question: apiData.question,
+                tally: tally,
+                totalVotingPower: parseInt(apiData.totalWeight),
+                turnout: apiData.turnout,
+              }
+              console.log("results from api")
+            } catch (e) {
+              console.error(e)
+              results = mockedResults
+              console.log("mocked results")
+            }
+            setResults(results)
           }
-          console.log(results)
-          // setResults(results)
-          // TODO: remove this 
-          setResults(mockedResults)
           // get the voters
           const response = await fetch(`${import.meta.env.APP_URL}/votersOf/${electionID}`)
           const data = await response.json()
@@ -138,10 +163,12 @@ const Poll = () => {
               <Text>
                 This poll started on {`${results?.createdTime}`}. Check the Vocdoni blockchain explorer for <Link textDecoration={'underline'} isExternal href={`https://stg.explorer.vote/processes/show/#/${electionID}`}>more information</Link>.
               </Text>
-              <Text>You can download the list of users who casted their votes.</Text>
-              <Link href={usersfile.url} download={'voters-list.csv'}>
-                <Button colorScheme='blue' size='sm' rightIcon={<FaDownload />}>Download users</Button>
-              </Link>
+              {voters.length > 0 && <>
+                <Text>You can download the list of users who casted their votes.</Text>
+                <Link href={usersfile.url} download={'voters-list.csv'}>
+                  <Button colorScheme='blue' size='sm' rightIcon={<FaDownload />}>Download voters</Button>
+                </Link>
+              </>}
             </VStack>
           </Skeleton>
         </Box>

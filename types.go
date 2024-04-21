@@ -43,7 +43,7 @@ type ElectionInfo struct {
 	ElectionID              string    `json:"electionId"`
 	LastVoteTime            time.Time `json:"lastVoteTime"`
 	EndTime                 time.Time `json:"endTime"`
-	Question                string    `json:"title"`
+	Question                string    `json:"question"`
 	CastedVotes             uint64    `json:"voteCount"`
 	CastedWeight            string    `json:"castedWeight,omitempty"`
 	CensusParticipantsCount uint64    `json:"censusParticipantsCount"`
@@ -51,9 +51,9 @@ type ElectionInfo struct {
 	Username                string    `json:"createdByUsername,omitempty"`
 	Displayname             string    `json:"createdByDisplayname,omitempty"`
 	TotalWeight             string    `json:"totalWeight,omitempty"`
-	Participants            []string  `json:"participants,omitempty"`
+	Participants            []uint64  `json:"participants,omitempty"`
 	Choices                 []string  `json:"options,omitempty"`
-	Votes                   []string  `json:"votes,omitempty"`
+	Votes                   []string  `json:"tally,omitempty"`
 	Finalized               bool      `json:"finalized"`
 }
 
