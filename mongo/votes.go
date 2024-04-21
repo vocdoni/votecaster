@@ -155,7 +155,6 @@ func (ms *MongoStorage) updateVotersList(ctx context.Context, electionID types.H
 
 func (ms *MongoStorage) updateTurnout(ctx context.Context, electionID types.HexBytes, election *Election) error {
 	census, err := ms.censusFromElection(electionID)
-
 	if err != nil {
 		// skip it census does not exist
 		log.Warnw("failed to get census to update turnout", "electionID", electionID.String(), "err", err)
@@ -165,7 +164,8 @@ func (ms *MongoStorage) updateTurnout(ctx context.Context, electionID types.HexB
 		castedWeight, _ := new(big.Int).SetString(election.CastedWeight, 10)
 		totalWeight, _ := new(big.Int).SetString(census.TotalWeight, 10)
 		if castedWeight != nil && totalWeight != nil && totalWeight.Uint64() > 0 {
-			turnout := float64(castedWeight.Uint64()) / float64(totalWeight.Uint64()) * 100
+			turnout := float32(castedWeight.Uint64()) / float32(totalWeight.Uint64()) * 100
+			log.Infow("update turnout", "electionID", electionID.String(), "turnout", turnout)
 			_, err := ms.elections.UpdateOne(ctx, bson.M{"_id": electionID}, bson.M{"$set": bson.M{"turnout": turnout}})
 			if err != nil {
 				return fmt.Errorf("failed to update turnout: %w", err)
