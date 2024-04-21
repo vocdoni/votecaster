@@ -10,12 +10,15 @@ import {
   Link, 
   Skeleton, 
   Progress, 
-  VStack, 
-  Text, 
+  VStack,
+  Tag, 
+  TagLeftIcon,
+  TagLabel,
+  Text,
 } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { FaDownload } from 'react-icons/fa6'
+import { FaDownload, FaArrowUp, FaRegCircleStop, FaPlay } from 'react-icons/fa6'
 import { ethers } from 'ethers'
 
 import { useAuth } from '../components/Auth/useAuth'
@@ -37,6 +40,7 @@ const mockedResults: PollResult = {
   tally: [[1, 2], [], [], []],
   voteCount: 3,
   turnout: 100,
+  finalized: true,
 }
 
 const Poll = () => {
@@ -70,6 +74,7 @@ const Poll = () => {
               tally: tally,
               turnout: parseFloat(contractData.turnout.toString()),
               voteCount: parseInt(contractData.totalVotingPower.toString()),
+              finalized: true,
             }
             console.log("results from contract")
           } else {
@@ -89,6 +94,7 @@ const Poll = () => {
                 tally: tally,
                 turnout: apiData.turnout,
                 voteCount: apiData.voteCount,
+                finalized: apiData.finalized,
               }
               console.log("results from api")
             } catch (e) {
@@ -135,6 +141,22 @@ const Poll = () => {
       <Box flex={1} bg='white' p={6} pb={12} boxShadow='md' borderRadius='md'>
         <VStack spacing={8} alignItems='left'>
           <VStack spacing={4} alignItems='left'>
+            <Flex gap={4}>
+              {results?.finalized ? 
+                <Tag>
+                  <TagLeftIcon as={FaRegCircleStop}></TagLeftIcon>
+                  <TagLabel>Ended</TagLabel>
+                </Tag> : 
+                <Tag colorScheme='green'>
+                  <TagLeftIcon as={FaPlay}></TagLeftIcon>
+                  <TagLabel>Ongoing</TagLabel>
+                </Tag>
+                }
+              {results?.finalized && <Tag colorScheme='cyan'>
+                  <TagLeftIcon as={FaArrowUp}></TagLeftIcon>
+                  <TagLabel>Live</TagLabel>
+                </Tag>}
+            </Flex>
             <Image src={`${import.meta.env.APP_URL}/preview/${electionID}`} fallback={<Skeleton height={200} />} />
             <Link fontSize={'sm'} color={'gray'} onClick={() => copyToClipboard(`${appUrl}/${electionID}`)}>Copy link to the frame</Link>
           </VStack>
@@ -174,7 +196,7 @@ const Poll = () => {
           <Skeleton isLoaded={!loading}>
             <VStack spacing={6} alignItems='left' fontSize={'sm'}>
               <Text>
-                This poll ended on {`${humanDate(results?.endTime)}`}. Check the Vocdoni blockchain explorer for <Link textDecoration={'underline'} isExternal href={`https://stg.explorer.vote/processes/show/#/${electionID}`}>more information</Link>.
+                This poll { results?.finalized ? 'has ended' : 'ends'} on {`${humanDate(results?.endTime)}`}. Check the Vocdoni blockchain explorer for <Link textDecoration={'underline'} isExternal href={`https://stg.explorer.vote/processes/show/#/${electionID}`}>more information</Link>.
               </Text>
               {voters.length > 0 && <>
                 <Text>You can download the list of users who casted their votes.</Text>

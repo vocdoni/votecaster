@@ -1,7 +1,7 @@
 import {
   Avatar,
-  Badge,
   Box,
+  Button,
   Flex,
   Grid,
   GridItem,
@@ -11,16 +11,21 @@ import {
   Text,
   HStack,
   Table,
+  Tag, 
+  TagLeftIcon,
+  TagLabel,
   Thead,
   Tr,
   Td,
   Th,
-  Tbody, Button
+  Tbody, 
+  VStack
 } from '@chakra-ui/react'
 import {PropsWithChildren, ReactElement, Fragment} from 'react'
 import {TbExternalLink} from "react-icons/tb"
 import {SiFarcaster} from "react-icons/si";
 import {BsChatDotsFill} from "react-icons/bs";
+import {FaRegCircleStop, FaPlay} from 'react-icons/fa6'
 import {useQuery} from '@tanstack/react-query'
 import {Link as RouterLink, useNavigate} from 'react-router-dom';
 
@@ -153,8 +158,21 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
                   <Td isNumeric>{poll.voteCount}</Td>
                   <Td isNumeric>{poll.censusParticipantsCount}</Td>
                   <Td isNumeric>{`${poll.turnout}%`}</Td>
-                  <Td>{humanDate(poll.lastVoteTime) || 'Never' }</Td>
-                  <Td>{poll.finalized ? <Badge>Ended</Badge> : <Badge colorScheme='green'>Ongoing</Badge>}</Td>
+                  <Td>{poll.voteCount > 0 ? humanDate(poll.lastVoteTime) : '-'}</Td>
+                  <Td>
+                    <VStack>
+                      {poll.finalized ? 
+                      <Tag>
+                        <TagLeftIcon as={FaRegCircleStop}></TagLeftIcon>
+                        <TagLabel>Ended</TagLabel>
+                      </Tag> : 
+                      <Tag colorScheme='green'>
+                        <TagLeftIcon as={FaPlay}></TagLeftIcon>
+                        <TagLabel>Ongoing</TagLabel>
+                      </Tag>}
+                      {poll.finalized && <Text fontSize={'xs'} color={'gray'}>{humanDate(poll.endTime)}</Text>}
+                    </VStack>
+                  </Td>
                 </Tr>
               ))}
             </Tbody>

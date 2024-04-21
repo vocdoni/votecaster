@@ -41,6 +41,7 @@ export type PollResult = {
   tally: number[][]
   turnout: number
   voteCount: number
+  finalized: boolean
 }
 
 export type PollInfo = {
