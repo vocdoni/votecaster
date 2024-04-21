@@ -207,7 +207,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 			text = append(text, fmt.Sprintf("Farcaster elegible users %d", dbElection.FarcasterUserCount))
 		}
 		text = append(text, fmt.Sprintf("Last vote at %s", dbElection.LastVoteTime.Format("2006-01-02 15:04:05")))
-		text = append(text, fmt.Sprintf("Total turnout %.2f", dbElection.Turnout))
+		text = append(text, fmt.Sprintf("Cast votes %d", dbElection.CastedVotes))
 
 		title = dbElection.Question
 	}
