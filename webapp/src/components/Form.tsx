@@ -75,7 +75,7 @@ const Form: React.FC = (props: FlexProps) => {
   const methods = useForm<FormValues>({
     defaultValues: {
       choices: [{choice: ''}, {choice: ''}],
-      censusType: 'farcaster',
+      censusType: 'community',
     },
   })
   const {
