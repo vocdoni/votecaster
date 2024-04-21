@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -22,6 +23,9 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 		return err
 	}
 	user.CastedVotes++
+	if err := ms.updateUser(user); err != nil {
+		return err
+	}
 
 	election, err := ms.getElection(electionID)
 	if err != nil {
@@ -30,7 +34,7 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 			election = &Election{
 				UserID:       userFID,
 				CastedVotes:  0,
-				CastedWeight: "0",
+				CastedWeight: new(big.Int).SetUint64(0).String(),
 				ElectionID:   electionID.String(),
 				CreatedTime:  time.Now(),
 			}
@@ -49,73 +53,11 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 	}
 	election.CastedWeight = new(big.Int).Add(accCastedWeight, weight).String()
 
-	if err := ms.updateUser(user); err != nil {
+	if err := ms.updateElection(election); err != nil {
 		return err
 	}
-	if err := ms.addVoterToElection(electionID, userFID); err != nil {
-		return err
-	}
-	return ms.updateElection(election)
-}
 
-func (ms *MongoStorage) addVoterToElection(electionID types.HexBytes, userFID uint64) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	log.Debugw("add voter to election", "userID", userFID, "electionID", electionID.String())
-	election, err := ms.getElection(electionID)
-	if err != nil {
-		return fmt.Errorf("failed to get election: %w", err)
-	}
-	voters, err := ms.votersOfElection(electionID)
-	if err != nil {
-		if errors.Is(err, ErrElectionUnknown) {
-			// Create a new voters list if not found
-			voters = &VotersOfElection{
-				ElectionID: electionID.String(),
-				Voters:     []uint64{userFID},
-			}
-			_, err := ms.voters.InsertOne(ctx, voters)
-			if err != nil {
-				return fmt.Errorf("failed to insert new voters list: %w", err)
-			}
-		} else {
-			return fmt.Errorf("error retrieving voters: %w", err)
-		}
-	} else {
-		// Append the new voter if they're not already in the list
-		for _, v := range voters.Voters {
-			if v == userFID {
-				return nil // Voter already in list, no update needed
-			}
-		}
-		voters.Voters = append(voters.Voters, userFID)
-		_, err = ms.voters.ReplaceOne(ctx, bson.M{"_id": electionID.String()}, voters)
-		if err != nil {
-			return fmt.Errorf("failed to update voters list: %w", err)
-		}
-	}
-
-	// Calculate the turnout
-	if election.CastedWeight != "" {
-		census, err := ms.CensusFromElection(electionID)
-		if err != nil {
-			log.Errorw(err, fmt.Sprintf("failed to get census from election %x", electionID.String()))
-		} else {
-			castedWeight, _ := new(big.Int).SetString(election.CastedWeight, 10)
-			totalWeight, _ := new(big.Int).SetString(census.TotalWeight, 10)
-			if castedWeight != nil && totalWeight != nil && totalWeight.Uint64() > 0 {
-				turnout := float32(castedWeight.Uint64()*100) / float32(totalWeight.Uint64())
-				// Update the turnout in the Election document
-				_, err = ms.elections.UpdateOne(ctx, bson.M{"_id": electionID}, bson.M{"$set": bson.M{"turnout": turnout}})
-				if err != nil {
-					return fmt.Errorf("failed to update turnout: %w", err)
-				}
-			}
-		}
-	}
-
-	return nil
+	return ms.addVoterToElection(election, userFID)
 }
 
 // VotersOfElection returns the list of voters of an election (usernames).
@@ -149,4 +91,85 @@ func (ms *MongoStorage) votersOfElection(electionID types.HexBytes) (*VotersOfEl
 		return nil, ErrElectionUnknown
 	}
 	return &voters, nil
+}
+
+// addVoterToElection adds a voter to the list of voters of an election and updates the turnout.
+func (ms *MongoStorage) addVoterToElection(election *Election, userFID uint64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	log.Debugw("add voter to election", "userID", userFID, "electionID", election.ElectionID)
+	eid, err := hex.DecodeString(election.ElectionID)
+	if err != nil {
+		return fmt.Errorf("invalid election ID: %w", err)
+	}
+	voters, err := ms.votersOfElection(eid)
+	if err != nil {
+		if errors.Is(err, ErrElectionUnknown) {
+			return ms.createVotersList(ctx, eid, userFID)
+		} else {
+			return fmt.Errorf("error retrieving voters: %w", err)
+		}
+	}
+
+	if ms.isUserVoter(voters, userFID) {
+		return nil // Voter already in list, no update needed
+	}
+
+	if err := ms.updateVotersList(ctx, eid, voters, userFID); err != nil {
+		return err
+	}
+
+	return ms.updateTurnout(ctx, eid, election)
+}
+
+func (ms *MongoStorage) createVotersList(ctx context.Context, electionID types.HexBytes, userFID uint64) error {
+	voters := &VotersOfElection{
+		ElectionID: electionID.String(),
+		Voters:     []uint64{userFID},
+	}
+	_, err := ms.voters.InsertOne(ctx, voters)
+	if err != nil {
+		return fmt.Errorf("failed to insert new voters list: %w", err)
+	}
+	return nil
+}
+
+func (ms *MongoStorage) isUserVoter(voters *VotersOfElection, userFID uint64) bool {
+	for _, v := range voters.Voters {
+		if v == userFID {
+			return true
+		}
+	}
+	return false
+}
+
+func (ms *MongoStorage) updateVotersList(ctx context.Context, electionID types.HexBytes, voters *VotersOfElection, userFID uint64) error {
+	voters.Voters = append(voters.Voters, userFID)
+	_, err := ms.voters.ReplaceOne(ctx, bson.M{"_id": electionID.String()}, voters)
+	if err != nil {
+		return fmt.Errorf("failed to update voters list: %w", err)
+	}
+	return nil
+}
+
+func (ms *MongoStorage) updateTurnout(ctx context.Context, electionID types.HexBytes, election *Election) error {
+	census, err := ms.CensusFromElection(electionID)
+	if err != nil {
+		// skip it census does not exist
+		log.Warnw("failed to get census to update turnout", "electionID", electionID.String(), "err", err)
+		return nil
+	}
+	if election.CastedWeight != "" && census.TotalWeight != "" {
+		castedWeight, _ := new(big.Int).SetString(election.CastedWeight, 10)
+		totalWeight, _ := new(big.Int).SetString(census.TotalWeight, 10)
+		if castedWeight != nil && totalWeight != nil && totalWeight.Uint64() > 0 {
+			turnout := float64(castedWeight.Uint64()) / float64(totalWeight.Uint64()) * 100
+			_, err := ms.elections.UpdateOne(ctx, bson.M{"_id": electionID}, bson.M{"$set": bson.M{"turnout": turnout}})
+			if err != nil {
+				return fmt.Errorf("failed to update turnout: %w", err)
+			}
+		}
+	}
+	return nil
 }
