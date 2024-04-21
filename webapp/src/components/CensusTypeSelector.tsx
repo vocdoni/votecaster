@@ -1,6 +1,6 @@
 import {
   Alert,
-  AlertDescription,
+  AlertDescription, Avatar,
   Button,
   Flex,
   FormControl,
@@ -23,14 +23,14 @@ import {
   UnorderedList,
 } from '@chakra-ui/react'
 import {useQuery} from '@tanstack/react-query'
-import {Select as RSelect} from 'chakra-react-select'
+import {chakraComponents, Select as RSelect} from 'chakra-react-select'
 import {useEffect} from 'react'
 import {Controller, useFieldArray, useFormContext} from 'react-hook-form'
 import {BiTrash} from 'react-icons/bi'
 import {MdArrowDropDown} from 'react-icons/md'
 import Airstack from '../assets/airstack.svg?react'
 import {fetchAirstackBlockchains} from '../queries/census'
-import {Community, fetchCommunities, fetchCommunitiesByAdmin} from '../queries/communities'
+import {Community, fetchCommunitiesByAdmin} from '../queries/communities'
 import {appUrl} from '../util/constants'
 import {cleanChannel, ucfirst} from '../util/strings'
 import {Address} from '../util/types'
@@ -136,6 +136,7 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
                 options={communities}
                 getOptionLabel={(option: Community) => option.name}
                 getOptionValue={(option: Community) => option.id.toString()}
+                components={communitySelector}
                 {...field}
               />
             )}
@@ -262,3 +263,11 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
 }
 
 export default CensusTypeSelector
+
+const communitySelector = {
+  Option: ({children, ...props}) => (
+    <chakraComponents.Option {...props}>
+      <Avatar size={'sm'} src={(props.data as Community).logoURL} mr={2}/> {children}
+    </chakraComponents.Option>
+  ),
+};
