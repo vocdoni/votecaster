@@ -2,24 +2,15 @@ import { Alert, AlertDescription, Box, Heading, Image, Flex, Link, Skeleton, Pro
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { FaDownload } from 'react-icons/fa6'
+import { ethers } from 'ethers'
 
+import { toArrayBuffer } from '../util/hex'
+import { PollResult } from '../util/types'
 import { CsvGenerator } from '../generator'
 import { CommunityHub__factory } from '../typechain'
 import { appUrl, degenChainRpc, degenContractAddress, electionResultsContract } from '../util/constants'
-import { toArrayBuffer } from '../util/hex'
-import { ethers } from 'ethers'
 
-export type PollResult = {
-  censusRoot: string
-  censusURI: string
-  createdTime: Date
-  options: string[]
-  participants: number[]
-  question: string
-  tally: number[][]
-  totalVotingPower: number
-  turnout: number
-}
+
 
 const mockedResults: PollResult = {
   censusRoot: 'a989f2e94f9f7954c96ba2cef784525c5ce5c3cba90f0b3da14349a93f3e7dde',

@@ -29,6 +29,37 @@ export type Poll = {
   censusParticipantsCount: number
 }
 
+export type PollResult = {
+  censusRoot: string
+  censusURI: string
+  createdTime: Date
+  options: string[]
+  participants: number[]
+  question: string
+  tally: number[][]
+  totalVotingPower: number
+  turnout: number
+}
+
+export type PollInfo = {
+  CreatedTime: Date
+  ElectionID: string
+  LastVoteTime: Date
+  EndTime: Date
+  Question: string
+  CastedVotes: number
+  CastedWeight: string
+  CensusParticipantsCount: number
+  Turnout: number
+  Username: string
+  Displayname: string
+  TotalWeight: string
+  Participants: string[]
+  Options: string[]
+  Votes: string[]
+  Finalized: boolean
+}
+
 export interface HTTPErrorResponse {
   response?: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

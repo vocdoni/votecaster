@@ -52,7 +52,7 @@ type ElectionInfo struct {
 	Displayname             string    `json:"createdByDisplayname,omitempty"`
 	TotalWeight             string    `json:"totalWeight,omitempty"`
 	Participants            []string  `json:"participants,omitempty"`
-	Choices                 []string  `json:"choices,omitempty"`
+	Choices                 []string  `json:"options,omitempty"`
 	Votes                   []string  `json:"votes,omitempty"`
 	Finalized               bool      `json:"finalized"`
 }
