@@ -54,8 +54,8 @@ const Poll = () => {
               participants: participants,
               question: contractData.question,
               tally: tally,
-              totalVotingPower: parseInt(contractData.totalVotingPower.toString()),
               turnout: parseFloat(contractData.turnout.toString()),
+              voteCount: parseInt(contractData.totalVotingPower.toString()),
             }
             console.log("results from contract")
           } else {
@@ -73,8 +73,8 @@ const Poll = () => {
                 participants: apiData.participants,
                 question: apiData.question,
                 tally: tally,
-                totalVotingPower: parseInt(apiData.totalWeight),
                 turnout: apiData.turnout,
+                voteCount: apiData.voteCount,
               }
               console.log("results from api")
             } catch (e) {
@@ -146,7 +146,7 @@ const Poll = () => {
                         <Text>{option}</Text>
                         <Text>{results?.tally[0][index]} votes</Text>
                       </Flex>
-                      <Progress size='sm' rounded={50} value={results?.tally[0][index] / results?.totalVotingPower * 100} />
+                      <Progress size='sm' rounded={50} value={results?.tally[0][index] / results?.voteCount * 100} />
                     </Box>
                   ))}
                 </VStack>
@@ -177,7 +177,7 @@ const Poll = () => {
             <Heading pb={4} size='sm'>Votes turnout</Heading>
             <Flex alignItems={'end'} gap={2}>
               <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{results?.tally[0].reduce((a,b)=>a+b, 0)}</Text>
-              <Text>/{results?.totalVotingPower}</Text>
+              <Text>/{results?.voteCount}</Text>
               <Text fontSize={'xl'}>({results?.turnout}%)</Text>
             </Flex>
           </Box>

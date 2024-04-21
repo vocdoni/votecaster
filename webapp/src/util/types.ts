@@ -37,8 +37,8 @@ export type PollResult = {
   participants: number[]
   question: string
   tally: number[][]
-  totalVotingPower: number
   turnout: number
+  voteCount: number
 }
 
 
