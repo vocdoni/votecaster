@@ -1,14 +1,18 @@
-FROM node:16 AS web
+FROM node:20-slim AS web
 
 ARG APP_URL=${APP_URL}
 ENV BASE_URL=/app
 ENV APP_URL=${APP_URL}
 
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
 WORKDIR /app
 COPY webapp /app
 
-RUN npm install -f
-RUN npm run build
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm run -r build
 
 FROM golang:1.22 AS builder
 
