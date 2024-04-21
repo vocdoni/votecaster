@@ -580,12 +580,12 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 				}
 				election, err := v.cli.Election(electionIDbytes)
 				if err != nil {
-					log.Errorw(err, "failed to get election")
+					log.Errorw(err, fmt.Sprintf("failed to get election %s", electionID))
 					continue
 				}
 				electionMeta, err := v.db.Election(electionIDbytes)
 				if err != nil {
-					log.Errorw(err, "failed to get election")
+					log.Errorw(err, "failed to get election from database")
 					continue
 				}
 				if election.FinalResults {
