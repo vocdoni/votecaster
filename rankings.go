@@ -143,6 +143,7 @@ func (v *vocdoniHandler) electionsByCommunityHandler(_ *apirest.APIdata, ctx *ht
 			Turnout:                 dbElections[i].Turnout,
 			Username:                username,
 			Displayname:             displayname,
+			Finalized:               time.Now().After(dbElections[i].EndTime), // return true if EndTime is in the past
 		})
 	}
 	jresponse, err := json.Marshal(map[string]any{
