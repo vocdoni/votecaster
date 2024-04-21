@@ -148,22 +148,24 @@ const Poll = () => {
       <Box flex={1} bg='white' p={6} pb={12} boxShadow='md' borderRadius='md'>
         <VStack spacing={8} alignItems='left'>
           <VStack spacing={4} alignItems='left'>
-            <Flex gap={4}>
-              {results?.finalized ? 
-                <Tag>
-                  <TagLeftIcon as={FaRegCircleStop}></TagLeftIcon>
-                  <TagLabel>Ended</TagLabel>
-                </Tag> : 
-                <Tag colorScheme='green'>
-                  <TagLeftIcon as={FaPlay}></TagLeftIcon>
-                  <TagLabel>Ongoing</TagLabel>
-                </Tag>
-                }
-              {results?.finalized && <Tag colorScheme='cyan'>
-                  <TagLeftIcon as={FaArrowUp}></TagLeftIcon>
-                  <TagLabel>Live</TagLabel>
-                </Tag>}
-            </Flex>
+            <Skeleton isLoaded={!loading}>
+              <Flex gap={4}>
+                {results?.finalized ? 
+                  <Tag>
+                    <TagLeftIcon as={FaRegCircleStop}></TagLeftIcon>
+                    <TagLabel>Ended</TagLabel>
+                  </Tag> : 
+                  <Tag colorScheme='green'>
+                    <TagLeftIcon as={FaPlay}></TagLeftIcon>
+                    <TagLabel>Ongoing</TagLabel>
+                  </Tag>
+                  }
+                {results?.finalized && <Tag colorScheme='cyan'>
+                    <TagLeftIcon as={FaArrowUp}></TagLeftIcon>
+                    <TagLabel>Live</TagLabel>
+                  </Tag>}
+              </Flex>
+            </Skeleton>
             <Image src={`${import.meta.env.APP_URL}/preview/${electionID}`} fallback={<Skeleton height={200} />} />
             <Link fontSize={'sm'} color={'gray'} onClick={() => copyToClipboard(`${appUrl}/${electionID}`)}>Copy link to the frame</Link>
           </VStack>
@@ -172,14 +174,14 @@ const Poll = () => {
             <Skeleton isLoaded={!loading}>
               <VStack px={4} alignItems='left'>
                 <Heading size='sm' fontWeight={'semibold'}>{results?.question}</Heading>
-                <Alert status='success' variant='left-accent' rounded={4}>
+                {results?.finalized && <Alert status='success' variant='left-accent' rounded={4}>
                   <Box>
                     <AlertTitle fontSize={'sm'}>Results verifiable on Degenchain</AlertTitle>
                     <AlertDescription fontSize={'sm'}>
                       This poll has ended. The results are definitive and have been settled on the 🎩 Degenchain.
                     </AlertDescription>
                   </Box>
-                </Alert>
+                </Alert>}
                 <Link fontSize={'xs'} color='gray' textAlign={'right'} isExternal href={`https://explorer.degen.tips/address/${electionResultsContract}`}>View contract</Link>
                 <VStack spacing={6} alignItems='left'>
                   {results?.options.map((option, index) => (
@@ -216,19 +218,23 @@ const Poll = () => {
         </Box>
         <Flex gap={6}>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
-            <Heading pb={4} size='sm'>Participation</Heading>
-            <Flex alignItems={'end'} gap={2}>
-              <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{results?.voteCount}</Text>
-              <Text>/{results?.censusParticipantsCount}</Text>
-              <Text fontSize={'xl'}>{participationPercentage}%</Text>
-            </Flex>
+            <Skeleton isLoaded={!loading}>
+              <Heading pb={4} size='sm'>Participation</Heading>
+              <Flex alignItems={'end'} gap={2}>
+                <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{results?.voteCount}</Text>
+                <Text>/{results?.censusParticipantsCount}</Text>
+                <Text fontSize={'xl'}>{participationPercentage}%</Text>
+              </Flex>
+            </Skeleton>
           </Box>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
-            <Heading pb={4} size='sm'>Turnout</Heading>
-            <Flex alignItems={'end'} gap={2}>
-              <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{results?.turnout}</Text>
-              <Text>%</Text>
-            </Flex>
+            <Skeleton isLoaded={!loading}>
+              <Heading pb={4} size='sm'>Turnout</Heading>
+              <Flex alignItems={'end'} gap={2}>
+                <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{results?.turnout}</Text>
+                <Text>%</Text>
+              </Flex>
+            </Skeleton>
           </Box>
         </Flex>
       </Flex>
