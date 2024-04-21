@@ -154,7 +154,8 @@ func (ms *MongoStorage) updateVotersList(ctx context.Context, electionID types.H
 }
 
 func (ms *MongoStorage) updateTurnout(ctx context.Context, electionID types.HexBytes, election *Election) error {
-	census, err := ms.CensusFromElection(electionID)
+	census, err := ms.censusFromElection(electionID)
+
 	if err != nil {
 		// skip it census does not exist
 		log.Warnw("failed to get census to update turnout", "electionID", electionID.String(), "err", err)

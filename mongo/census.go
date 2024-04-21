@@ -110,7 +110,11 @@ func (ms *MongoStorage) CensusFromRoot(root types.HexBytes) (*Census, error) {
 func (ms *MongoStorage) CensusFromElection(electionID types.HexBytes) (*Census, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
+	return ms.censusFromElection(electionID)
+}
 
+// censusFromRoot retrieves a Census document by its root. It does not adquire the keysLock.
+func (ms *MongoStorage) censusFromElection(electionID types.HexBytes) (*Census, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
