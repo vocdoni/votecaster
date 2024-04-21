@@ -54,6 +54,7 @@ export const Meta = () => {
               isMulti
               isClearable
               size='sm'
+              formatCreateLabel={(input) => `Add '${input}'`}
               noOptionsMessage={() => 'Add users by their username'}
               isLoading={loading}
               placeholder='Add users'
