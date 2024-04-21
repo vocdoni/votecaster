@@ -116,11 +116,7 @@ func (ms *MongoStorage) addVoterToElection(election *Election, userFID uint64) e
 		return nil // Voter already in list, no update needed
 	}
 
-	if err := ms.updateVotersList(ctx, eid, voters, userFID); err != nil {
-		return err
-	}
-
-	return ms.updateTurnout(ctx, eid, election)
+	return ms.updateVotersList(ctx, eid, voters, userFID)
 }
 
 func (ms *MongoStorage) createVotersList(ctx context.Context, electionID types.HexBytes, userFID uint64) error {
@@ -149,28 +145,6 @@ func (ms *MongoStorage) updateVotersList(ctx context.Context, electionID types.H
 	_, err := ms.voters.ReplaceOne(ctx, bson.M{"_id": electionID.String()}, voters)
 	if err != nil {
 		return fmt.Errorf("failed to update voters list: %w", err)
-	}
-	return nil
-}
-
-func (ms *MongoStorage) updateTurnout(ctx context.Context, electionID types.HexBytes, election *Election) error {
-	census, err := ms.censusFromElection(electionID)
-	if err != nil {
-		// skip it census does not exist
-		log.Warnw("failed to get census to update turnout", "electionID", electionID.String(), "err", err)
-		return nil
-	}
-	if election.CastedWeight != "" && census.TotalWeight != "" {
-		castedWeight, _ := new(big.Int).SetString(election.CastedWeight, 10)
-		totalWeight, _ := new(big.Int).SetString(census.TotalWeight, 10)
-		if castedWeight != nil && totalWeight != nil && totalWeight.Uint64() > 0 {
-			turnout := float32(castedWeight.Uint64()) / float32(totalWeight.Uint64()) * 100
-			log.Infow("update turnout", "electionID", electionID.String(), "turnout", turnout)
-			_, err := ms.elections.UpdateOne(ctx, bson.M{"_id": electionID}, bson.M{"$set": bson.M{"turnout": turnout}})
-			if err != nil {
-				return fmt.Errorf("failed to update turnout: %w", err)
-			}
-		}
 	}
 	return nil
 }

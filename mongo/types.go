@@ -65,7 +65,6 @@ type Election struct {
 	InitialAddressesCount uint32             `json:"initialAddressesCount" bson:"initialAddressesCount"`
 	Question              string             `json:"question" bson:"question"`
 	Community             *ElectionCommunity `json:"community" bson:"community"`
-	Turnout               float32            `json:"turnout" bson:"turnout"`
 	CastedWeight          string             `json:"castedWeight" bson:"castedWeight"`
 }
 
