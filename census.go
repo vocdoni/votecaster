@@ -321,7 +321,12 @@ func (v *vocdoniHandler) censusChannelExists(_ *apirest.APIdata, ctx *httprouter
 // the census includes fetching the users FIDs from the farcaster API and
 // querying the database to get the users signer keys. The census is created
 // from the participants and the progress is updated in the queue.
-func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+func (v *vocdoniHandler) censusChannel(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// extract userFID from auth token
+	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
+	if err != nil {
+		return fmt.Errorf("cannot get user from auth token: %w", err)
+	}
 	// check if channelID is provided, it is required so if it's not provided
 	// return a BadRequest error
 	channelID := ctx.URLParam("channelID")
@@ -342,7 +347,7 @@ func (v *vocdoniHandler) censusChannel(_ *apirest.APIdata, ctx *httprouter.HTTPC
 	if err != nil {
 		return err
 	}
-	data, err := v.censusWarpcastChannel(censusID, channelID)
+	data, err := v.censusWarpcastChannel(censusID, channelID, userFID)
 	if err != nil {
 		log.Warnf("error creating census for the chanel: %s: %v", channelID, err)
 		return ctx.Send([]byte("error creating channel census"), http.StatusInternalServerError)
@@ -466,7 +471,7 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 		// if the census type is a channel, create the census from the users who
 		// follow the channel, the process is async so return add the censusID
 		// to the queue and return it to the client
-		data, err := v.censusWarpcastChannel(censusID, community.Census.Channel)
+		data, err := v.censusWarpcastChannel(censusID, community.Census.Channel, userFID)
 		if err != nil {
 			log.Warnf("error creating census for the chanel: %s: %v", community.Census.Channel, err)
 			return ctx.Send([]byte("error creating channel census"), http.StatusInternalServerError)
@@ -758,8 +763,11 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 // censusWarpcastChannel helper method creates a new census from a Warpcast
 // Channel. The process is async and returns the json encoded censusID. It
 // updates the progress in the queue and the result when it's ready.
-func (v *vocdoniHandler) censusWarpcastChannel(censusID types.HexBytes, channelID string) ([]byte, error) {
+func (v *vocdoniHandler) censusWarpcastChannel(censusID types.HexBytes, channelID string, authorFID uint64) ([]byte, error) {
 	v.censusCreationMap.Store(censusID.String(), CensusInfo{})
+	if err := v.db.AddCensus(censusID, authorFID); err != nil {
+		return nil, fmt.Errorf("cannot add census to database: %w", err)
+	}
 	// run a goroutine to create the census, update the queue with the progress,
 	// and update the queue result when it's ready
 	go func() {

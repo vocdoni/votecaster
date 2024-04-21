@@ -130,41 +130,50 @@ func (v *vocdoniHandler) finalizeElectionResults(election *api.Election, electio
 			log.Errorw(err, "failed to fetch community from the community hub")
 			return
 		}
-
-		hubResults := &communityhub.HubResults{
-			Question:   electiondb.Question,
-			Options:    choices,
-			Date:       election.EndDate.String(),
-			CensusRoot: election.Census.CensusRoot,
-			CensusURI:  election.Census.CensusURL,
+		voters, err := v.db.VotersOfElection(election.ElectionID)
+		if err != nil {
+			log.Errorw(err, "failed to fetch voters from the database")
+			return
 		}
-
-		hubResults.Tally = make([][]*big.Int, 0)
-		for _, option := range election.Results[0] {
-			opt := new(big.Int).Set(option.MathBigInt())
-			if len(hubResults.Tally) == 0 {
-				hubResults.Tally = append(hubResults.Tally, []*big.Int{opt})
-				continue
+		participants := []*big.Int{}
+		for _, voter := range voters {
+			participants = append(participants, new(big.Int).SetUint64(voter.UserID))
+		}
+		tally := make([][]*big.Int, len(election.Results))
+		for i, values := range election.Results {
+			tally[i] = make([]*big.Int, len(values))
+			for j, option := range values {
+				tally[i][j] = option.MathBigInt()
 			}
-			hubResults.Tally[0] = append(hubResults.Tally[0], opt)
 		}
-
 		census, err := v.db.CensusFromElection(election.ElectionID)
 		if err != nil {
 			log.Errorw(err, "failed to fetch census from the database")
 			return
 		}
-
-		tvp, _ := new(big.Int).SetString(census.TotalWeight, 10)
-		hubResults.TotalVotingPower = tvp
-
-		hubResults.Turnout = big.NewInt(int64(electiondb.FarcasterUserCount / uint32(len(votes)))) // ?
-
-		// hubResults.Participants = census.Participants // This should be changed in the smart contract for storing participant names and not fids.
-
+		totalVotingPower, _ := new(big.Int).SetString(census.TotalWeight, 10)
+		turnout := big.NewInt(int64(electiondb.FarcasterUserCount / uint32(len(votes)))) // ?
+		hubResults := &communityhub.HubResults{
+			Question:         electiondb.Question,
+			Options:          choices,
+			Date:             election.EndDate.String(),
+			Tally:            tally,
+			Turnout:          turnout,
+			TotalVotingPower: totalVotingPower,
+			Participants:     participants,
+			CensusRoot:       election.Census.CensusRoot,
+			CensusURI:        election.Census.CensusURL,
+		}
+		log.Infow("results",
+			"electionID", election.ElectionID.String(),
+			"communityID", electiondb.Community.ID,
+			"hubResults", hubResults)
 		if err := v.comhub.SetResults(electiondb.Community.ID, election.ElectionID, hubResults); err != nil {
 			log.Errorw(err, "failed to set results on the community hub")
 		}
+		log.Infow("final results sent to the community hub",
+			"communityID", electiondb.Community.ID,
+			"electionID", election.ElectionID.String())
 	}()
 	return id, nil
 }

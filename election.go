@@ -199,9 +199,13 @@ func (v *vocdoniHandler) votersForElection(msg *apirest.APIdata, ctx *httprouter
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
-	usernames, err := v.db.VotersOfElection(electionID)
+	users, err := v.db.VotersOfElection(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to get voters of election: %w", err)
+	}
+	usernames := []string{}
+	for _, u := range users {
+		usernames = append(usernames, u.Username)
 	}
 	data, err := json.Marshal(map[string][]string{"voters": usernames})
 	if err != nil {

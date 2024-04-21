@@ -119,7 +119,7 @@ func (ms *MongoStorage) addVoterToElection(electionID types.HexBytes, userFID ui
 }
 
 // VotersOfElection returns the list of voters of an election (usernames).
-func (ms *MongoStorage) VotersOfElection(electionID types.HexBytes) ([]string, error) {
+func (ms *MongoStorage) VotersOfElection(electionID types.HexBytes) ([]*User, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -127,16 +127,16 @@ func (ms *MongoStorage) VotersOfElection(electionID types.HexBytes) ([]string, e
 	if err != nil {
 		return nil, err
 	}
-	var usernames []string
+	var users []*User
 	for _, voter := range voters.Voters {
 		u, err := ms.userData(voter)
 		if err != nil {
 			log.Warnw("failed to get user", "userID", voter, "err", err)
 			continue
 		}
-		usernames = append(usernames, u.Username)
+		users = append(users, u)
 	}
-	return usernames, nil
+	return users, nil
 }
 
 func (ms *MongoStorage) votersOfElection(electionID types.HexBytes) (*VotersOfElection, error) {
