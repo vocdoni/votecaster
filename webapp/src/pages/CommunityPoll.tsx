@@ -15,7 +15,7 @@ import { fetchPollInfo } from '../queries/polls'
 const mockedResults: PollResult = {
   censusRoot: 'a989f2e94f9f7954c96ba2cef784525c5ce5c3cba90f0b3da14349a93f3e7dde',
   censusURI: 'https://census.com',
-  createdTime: new Date("2024-04-20T14:28:51.228+00:00"),
+  endTime: new Date("2024-04-20T14:28:51.228+00:00"),
   options: ['Option 1', 'Option 2'],
   participants: [237855, 308972, 10080],
   question: 'Whats your favorite love movie?',
@@ -24,6 +24,17 @@ const mockedResults: PollResult = {
   turnout: 100,
 }
 
+const fDate = (date?: Date): string => {
+  if (!date) return ''
+  const days = date.getDate().toString().padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[date.getMonth()];
+  const year = date.getFullYear().toString();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+
+  return `${days} ${month}, ${year} ${hours}:${minutes}`;
+}
 
 const Poll = () => {
   const { bfetch } = useAuth()
@@ -49,7 +60,7 @@ const Poll = () => {
             results = {
               censusRoot: contractData.censusRoot,
               censusURI: contractData.censusURI,
-              createdTime: new Date(contractData.date),
+              endTime: new Date(contractData.date),
               options: contractData.options,
               participants: participants,
               question: contractData.question,
@@ -68,7 +79,7 @@ const Poll = () => {
               results = {
                 censusRoot: "",
                 censusURI: "",
-                createdTime: new Date(apiData.createdTime),
+                endTime: new Date(apiData.endTime),
                 options: apiData.options,
                 participants: apiData.participants,
                 question: apiData.question,
@@ -161,7 +172,7 @@ const Poll = () => {
           <Skeleton isLoaded={!loading}>
             <VStack spacing={6} alignItems='left' fontSize={'sm'}>
               <Text>
-                This poll started on {`${results?.createdTime}`}. Check the Vocdoni blockchain explorer for <Link textDecoration={'underline'} isExternal href={`https://stg.explorer.vote/processes/show/#/${electionID}`}>more information</Link>.
+                This poll ended on {`${fDate(results?.endTime)}`}. Check the Vocdoni blockchain explorer for <Link textDecoration={'underline'} isExternal href={`https://stg.explorer.vote/processes/show/#/${electionID}`}>more information</Link>.
               </Text>
               {voters.length > 0 && <>
                 <Text>You can download the list of users who casted their votes.</Text>

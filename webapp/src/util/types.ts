@@ -32,7 +32,7 @@ export type Poll = {
 export type PollResult = {
   censusRoot: string
   censusURI: string
-  createdTime: Date
+  endTime: Date
   options: string[]
   participants: number[]
   question: string
