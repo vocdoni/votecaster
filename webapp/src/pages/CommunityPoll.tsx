@@ -75,6 +75,7 @@ const Poll = () => {
               turnout: parseFloat(contractData.turnout.toString()),
               voteCount: parseInt(contractData.totalVotingPower.toString()),
               finalized: true,
+              censusParticipantsCount: 0, // TODO: get this from the contract or api
             }
             console.log("results from contract")
           } else {
@@ -95,6 +96,7 @@ const Poll = () => {
                 turnout: apiData.turnout,
                 voteCount: apiData.voteCount,
                 finalized: apiData.finalized,
+                censusParticipantsCount: apiData.censusParticipantsCount,
               }
               console.log("results from api")
             } catch (e) {
@@ -131,6 +133,11 @@ const Poll = () => {
       navigator.clipboard.writeText(input).catch(console.error);
     }else console.error('clipboard API not available');
   };
+
+  const participationPercentage = useMemo(() => {
+    if (!results) return 0
+    return (results.voteCount / results.censusParticipantsCount * 100).toFixed(1)
+  }, [results])
 
   return (
     <Box
@@ -209,14 +216,20 @@ const Poll = () => {
         </Box>
         <Flex gap={6}>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
-            <Heading pb={4} size='sm'>Votes turnout</Heading>
+            <Heading pb={4} size='sm'>Participation</Heading>
             <Flex alignItems={'end'} gap={2}>
-              <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{results?.tally[0].reduce((a,b)=>a+b, 0)}</Text>
-              <Text>/{results?.voteCount}</Text>
-              <Text fontSize={'xl'}>({results?.turnout}%)</Text>
+              <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{results?.voteCount}</Text>
+              <Text>/{results?.censusParticipantsCount}</Text>
+              <Text fontSize={'xl'}>{participationPercentage}%</Text>
             </Flex>
           </Box>
-          <Box flex={1}></Box>
+          <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
+            <Heading pb={4} size='sm'>Turnout</Heading>
+            <Flex alignItems={'end'} gap={2}>
+              <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{results?.turnout}</Text>
+              <Text>%</Text>
+            </Flex>
+          </Box>
         </Flex>
       </Flex>
     </Box>

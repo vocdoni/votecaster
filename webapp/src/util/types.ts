@@ -37,6 +37,7 @@ export type PollResult = {
   endTime: Date
   options: string[]
   participants: number[]
+  censusParticipantsCount: number
   question: string
   tally: number[][]
   turnout: number

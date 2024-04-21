@@ -143,7 +143,7 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
                 <Th>Question</Th>
                 <Th isNumeric>Votes</Th>
                 <Th isNumeric>Census size</Th>
-                <Th isNumeric>Turnout(%)</Th>
+                <Th isNumeric>Participation(%)</Th>
                 <Th>Last vote</Th>
                 <Th>Status</Th>
               </Tr>
@@ -157,7 +157,7 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
                   </Td>
                   <Td isNumeric>{poll.voteCount}</Td>
                   <Td isNumeric>{poll.censusParticipantsCount}</Td>
-                  <Td isNumeric>{`${poll.turnout}%`}</Td>
+                  <Td isNumeric>{`${(poll.voteCount/poll.censusParticipantsCount*100).toFixed(1)}%`}</Td>
                   <Td>{poll.voteCount > 0 ? humanDate(poll.lastVoteTime) : '-'}</Td>
                   <Td>
                     <VStack>

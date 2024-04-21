@@ -24,7 +24,7 @@ export const Layout = () => {
           to='https://warpcast.com/vocdoni'
           target='_blank'
         >
-          <Image src={logo} alt='powered by vocdoni' width='50%' />
+          <Image src={logo} alt='powered by vocdoni' width='50%' my={6} />
         </Flex>
       </Flex>
     </>
