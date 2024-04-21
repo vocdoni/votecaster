@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,10 +12,10 @@ import (
 	"go.vocdoni.io/dvote/types"
 )
 
-func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBytes) error {
+func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBytes, weight *big.Int) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
-	log.Debugw("increase vote count", "userID", userFID, "electionID", electionID.String())
+	log.Debugw("increase vote count", "userID", userFID, "electionID", electionID.String(), "weight", weight.String())
 
 	user, err := ms.userData(userFID)
 	if err != nil {
@@ -27,10 +28,11 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 		if errors.Is(err, ErrElectionUnknown) {
 			log.Warnw("creating fallback election", "electionID", electionID.String(), "userFID", userFID)
 			election = &Election{
-				UserID:      userFID,
-				CastedVotes: 0,
-				ElectionID:  electionID.String(),
-				CreatedTime: time.Now(),
+				UserID:       userFID,
+				CastedVotes:  0,
+				CastedWeight: "0",
+				ElectionID:   electionID.String(),
+				CreatedTime:  time.Now(),
 			}
 			if err := ms.addElection(election); err != nil {
 				return err
@@ -41,6 +43,11 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 	}
 	election.CastedVotes++
 	election.LastVoteTime = time.Now()
+	accCastedWeight, _ := new(big.Int).SetString(election.CastedWeight, 10)
+	if accCastedWeight == nil {
+		accCastedWeight = new(big.Int).SetUint64(0)
+	}
+	election.CastedWeight = new(big.Int).Add(accCastedWeight, weight).String()
 
 	if err := ms.updateUser(user); err != nil {
 		return err
@@ -56,6 +63,10 @@ func (ms *MongoStorage) addVoterToElection(electionID types.HexBytes, userFID ui
 	defer cancel()
 
 	log.Debugw("add voter to election", "userID", userFID, "electionID", electionID.String())
+	election, err := ms.getElection(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to get election: %w", err)
+	}
 	voters, err := ms.votersOfElection(electionID)
 	if err != nil {
 		if errors.Is(err, ErrElectionUnknown) {
@@ -85,20 +96,23 @@ func (ms *MongoStorage) addVoterToElection(electionID types.HexBytes, userFID ui
 		}
 	}
 
-	// Get the census participants count to update the turnout
-	censusParticipantsCount, err := ms.censusParticipantsCount(electionID)
-	if err != nil {
-		return fmt.Errorf("failed to get census participants count: %w", err)
-	}
-	turnout := float32(0)
-	if censusParticipantsCount > 0 {
-		turnout = (100 * float32(len(voters.Voters))) / float32(censusParticipantsCount)
-	}
-
-	// Update the turnout in the Election document
-	_, err = ms.elections.UpdateOne(ctx, bson.M{"_id": electionID}, bson.M{"$set": bson.M{"turnout": turnout}})
-	if err != nil {
-		return fmt.Errorf("failed to update turnout: %w", err)
+	// Calculate the turnout
+	if election.CastedWeight != "" {
+		census, err := ms.CensusFromElection(electionID)
+		if err != nil {
+			log.Errorw(err, fmt.Sprintf("failed to get census from election %x", electionID.String()))
+		} else {
+			castedWeight, _ := new(big.Int).SetString(election.CastedWeight, 10)
+			totalWeight, _ := new(big.Int).SetString(census.TotalWeight, 10)
+			if castedWeight != nil && totalWeight != nil && totalWeight.Uint64() > 0 {
+				turnout := float32(castedWeight.Uint64()*100) / float32(totalWeight.Uint64())
+				// Update the turnout in the Election document
+				_, err = ms.elections.UpdateOne(ctx, bson.M{"_id": electionID}, bson.M{"$set": bson.M{"turnout": turnout}})
+				if err != nil {
+					return fmt.Errorf("failed to update turnout: %w", err)
+				}
+			}
+		}
 	}
 
 	return nil

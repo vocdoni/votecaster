@@ -66,6 +66,7 @@ type Election struct {
 	Question              string             `json:"question" bson:"question"`
 	Community             *ElectionCommunity `json:"community" bson:"community"`
 	Turnout               float32            `json:"turnout" bson:"turnout"`
+	CastedWeight          string             `json:"castedWeight" bson:"castedWeight"`
 }
 
 // Census stores the census of an election ready to be used for voting on farcaster.

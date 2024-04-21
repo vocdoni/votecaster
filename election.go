@@ -254,10 +254,22 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 			// Update LRU cached election
 			evicted := v.electionLRU.Add(fmt.Sprintf("%x", electionID), election)
 			log.Debugw("updated election cache", "electionID", fmt.Sprintf("%x", electionID), "evicted", evicted)
+			results = &mongo.Results{
+				Choices:   choices,
+				Votes:     votes,
+				Finalized: false,
+			}
 		} else {
 			log.Warnw("failed to fetch results", "error", err)
 			results = new(mongo.Results)
 		}
+	}
+
+	// Fetch participants
+	participants, err := v.db.VotersOfElection(electionID)
+	if err != nil {
+		log.Warnw("failed to fetch participants", "error", err)
+		participants = []string{}
 	}
 
 	election := &ElectionInfo{
@@ -272,7 +284,8 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		Username:                username,
 		Displayname:             displayname,
 		TotalWeight:             census.TotalWeight,
-		Participants:            census.Participants,
+		CastedWeight:            dbElection.CastedWeight,
+		Participants:            participants,
 		Choices:                 results.Choices,
 		Votes:                   results.Votes,
 		Finalized:               results.Finalized,
