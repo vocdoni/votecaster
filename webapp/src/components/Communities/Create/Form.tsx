@@ -28,7 +28,6 @@ export const CommunitiesCreateForm = () => {
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tx, setTx] = useState<string | null>(null)
-  const [communityId, setCommunityId] = useState<string | null>(null)
   const {data: walletClient} = useWalletClient()
   const {address} = useAccount()
 
@@ -48,12 +47,16 @@ export const CommunitiesCreateForm = () => {
       const census: ICommunityHub.CensusStruct = {
         censusType: censusTypeToEnum(data.censusType), // Census type
         tokens: data.addresses?.filter(({_, address}) => address !== '')
-          .map(({blockchain, address}) => [blockchain, address]) ?? [], // tokens
+          .map(({blockchain, address: contractAddress}) => {
+            return {
+              blockchain, contractAddress
+            } as ICommunityHub.TokenStruct
+          }) ?? [] as ICommunityHub.TokenStruct[],  // tokens
         channel: data.channel ?? '' // channel
       }
 
       const guardians = data.admins.map((admin) => BigInt(admin.value))
-      const createElectionPermission = BigInt(0)
+      const createElectionPermission = 0
 
       console.info('Degen contract address', degenContractAddress)
       console.info('mapped for contract write:', [
@@ -92,13 +95,16 @@ export const CommunitiesCreateForm = () => {
         throw Error("Cannot get community log")
       }
       const parsedLog = communityHubInterface.parseLog(log)
-      const communityId = parsedLog?.args['communityId']
-      if (!communityId) {
-        throw Error("Cannot get community id")
-      }
-      console.log("Commnuity id found", communityId, tx.hash)
+
+      // this stop working after last contract update
+      // const communityId = parsedLog?.args['communityId']
+      // if (!communityId) {
+      //   throw Error("Cannot get community id")
+      // }
+      // console.log("Commnuity id found", communityId, tx.hash)
+      // setCommunityId(communityId)
+
       setTx(tx.hash)
-      setCommunityId(communityId)
     } catch (e) {
       console.error('could not create community:', e)
       if (e instanceof Error) {
