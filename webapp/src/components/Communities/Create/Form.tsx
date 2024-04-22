@@ -40,7 +40,7 @@ export const CommunitiesCreateForm = () => {
         name: data.name, // name
         imageURI: data.logo, // logo uri
         groupChatURL: data.groupChat ?? '', // groupChatURL
-        channels: data.channels.map((chan) => chan.value) ?? [],  // channels
+        channels: data.channels?.map((chan) => chan.value) ?? [],  // channels
         notifications: true // notifications
       }
 
@@ -94,9 +94,8 @@ export const CommunitiesCreateForm = () => {
       if (!log) {
         throw Error("Cannot get community log")
       }
-      const parsedLog = communityHubInterface.parseLog(log)
-
       // this stop working after last contract update
+      // const parsedLog = communityHubInterface.parseLog(log)
       // const communityId = parsedLog?.args['communityId']
       // if (!communityId) {
       //   throw Error("Cannot get community id")
