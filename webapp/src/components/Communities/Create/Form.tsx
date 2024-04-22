@@ -8,7 +8,7 @@ import {Channels} from './Channels'
 import {Confirm} from './Confirm'
 import {CommunityMetaFormValues, Meta} from './Meta'
 import {censusTypeToEnum} from "../../../util/types.ts";
-import {useCallback, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {CommunityHub__factory} from '../../../typechain'
 import {CommunityHubInterface, ICommunityHub} from "../../../typechain/src/CommunityHub.ts";
 import {BrowserProvider} from "ethers";
@@ -30,11 +30,43 @@ export const CommunitiesCreateForm = () => {
   const [tx, setTx] = useState<string | null>(null)
   const {data: walletClient} = useWalletClient()
   const {address} = useAccount()
+  const [isLoadingPrice, setIsLoadingPrice] = useState(false)
+  const [price, setPrice] = useState<bigint | null>()
+  const calcPrice = price ? (Number(price) / 10 ** 18).toString() : ""
+
+  useEffect(() => {
+    if (!walletClient || !address) {
+      return
+    }
+    ;(async () => {
+      try {
+        setIsLoadingPrice(true)
+        // todo(kon): put this code on a provider and get the contract instance from there
+        let signer: any
+        if (walletClient && address && walletClient.account.address === address) {
+          signer = await walletClientToSigner(walletClient)
+        }
+        if (!signer) throw Error("Can't get the signer")
+
+        const communityHubContract = CommunityHub__factory.connect(degenContractAddress, signer)
+
+        // todo(kon): move this to a reactQuery?
+        const price = await communityHubContract.getCreateCommunityPrice()
+
+        setPrice(price)
+      } catch (e) {
+        console.error('could not create community:', e)
+      } finally {
+        setIsLoadingPrice(false)
+      }
+    })();
+  }, [walletClient, address])
 
   const onSubmit: SubmitHandler<CommunityFormValues> = useCallback(async (data) => {
     if (isPending) return;
     setError(null)
     try {
+      if (!price) throw Error('Price is not calculated yet')
       setIsPending(true)
       const metadata: ICommunityHub.CommunityMetadataStruct = {
         name: data.name, // name
@@ -65,6 +97,7 @@ export const CommunitiesCreateForm = () => {
         guardians,
         electionResultsContract,
         createElectionPermission,
+        "price: " + price
       ])
 
       // todo(kon): put this code on a provider and get the contract instance from there
@@ -78,7 +111,7 @@ export const CommunitiesCreateForm = () => {
 
       // todo(kon): can this be moved to a reactQuery?
       const tx = await communityHubContract.createCommunity(
-        metadata, census, guardians, electionResultsContract, createElectionPermission, {value: BigInt("100000000000000000000")})
+        metadata, census, guardians, electionResultsContract, createElectionPermission, {value: price,})
 
       const receipt = await tx.wait()
 
@@ -113,7 +146,7 @@ export const CommunitiesCreateForm = () => {
       setIsPending(false)
 
     }
-  }, [walletClient, address, isPending])
+  }, [walletClient, address, isPending, price])
 
   return (
     <Box display='flex' flexDir='column' gap={1}>
@@ -144,7 +177,7 @@ export const CommunitiesCreateForm = () => {
                   <GroupChat/>
                 </Box>
                 <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-                  <Confirm isLoading={isPending}/>
+                  <Confirm isLoading={isPending || isLoadingPrice} price={calcPrice}/>
                 </Box>
               </Flex>
             </Box>
