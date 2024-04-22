@@ -37,8 +37,6 @@ export const CommunitiesCreateForm = () => {
     setError(null)
     try {
       setIsPending(true)
-      console.info('received form data:', data)
-
       const metadata: ICommunityHub.CommunityMetadataStruct = {
         name: data.name, // name
         imageURI: data.logo, // logo uri
@@ -54,7 +52,7 @@ export const CommunitiesCreateForm = () => {
         channel: data.channel ?? '' // channel
       }
 
-      const guardians = data.admins.map((admin) => admin.value)
+      const guardians = data.admins.map((admin) => BigInt(admin.value))
       const createElectionPermission = BigInt(0)
 
       console.info('Degen contract address', degenContractAddress)
