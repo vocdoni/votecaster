@@ -48,9 +48,7 @@ export const Confirm = (props: ButtonProps) => {
       }
     })();
   }, [walletClient, address])
-
-  console.log('price:', price)
-
+  
   return (
     <Box display='flex' gap={4} flexDir='column'>
       <Heading size='sm'>Create your community</Heading>

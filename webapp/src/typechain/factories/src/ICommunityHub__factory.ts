@@ -157,6 +157,32 @@ const _abi = [
       {
         indexed: false,
         internalType: "uint256",
+        name: "communityId",
+        type: "uint256",
+      },
+    ],
+    name: "CommunityDisabled",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "communityId",
+        type: "uint256",
+      },
+    ],
+    name: "CommunityEnabled",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
         name: "price",
         type: "uint256",
       },
