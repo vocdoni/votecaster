@@ -20,9 +20,9 @@ const viteconfig = ({mode}) => {
     define: {
       'import.meta.env.APP_URL': JSON.stringify(process.env.APP_URL || 'https://dev.farcaster.vote'),
       'import.meta.env.VOCDONI_DEGENCHAINRPC': JSON.stringify(process.env.VOCDONI_DEGENCHAINRPC || 'https://rpc.degen.tips'),
-      'import.meta.env.VOCDONI_COMMUNITYHUBADDRESS': JSON.stringify(process.env.VOCDONI_COMMUNITYHUBADDRESS || '0x013320A5E5052E05CEE868A78b9C5C4708d26217'),
+      'import.meta.env.VOCDONI_COMMUNITYHUBADDRESS': JSON.stringify(process.env.VOCDONI_COMMUNITYHUBADDRESS || '0xd7A7cD53520Eaaad1331E4c88A97B74754C5BE61'),
       'import.meta.env.VOCDONI_COMMUNITYRESULTSADDRESS': JSON.stringify(
-        process.env.VOCDONI_COMMUNITYRESULTSADDRESS || '0x904FeEd341410bfA457023d737CC9928DB95f90b'
+        process.env.VOCDONI_COMMUNITYRESULTSADDRESS || '0x91759D2ae49Ec11283c230F842095bFA2Ab5D911'
       ),
     },
     plugins: [
