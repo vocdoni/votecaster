@@ -11,14 +11,14 @@ import {
   Text,
   HStack,
   Table,
-  Tag, 
+  Tag,
   TagLeftIcon,
   TagLabel,
   Thead,
   Tr,
   Td,
   Th,
-  Tbody, 
+  Tbody,
   VStack
 } from '@chakra-ui/react'
 import {PropsWithChildren, ReactElement, Fragment} from 'react'
@@ -42,7 +42,8 @@ export type CommunitiesViewProps = {
 }
 
 const WhiteBox = ({children}: PropsWithChildren) => (
-  <Flex alignItems='start' gap={4} padding={6} bg='white' boxShadow='sm' borderRadius='md' flexWrap='wrap' h='100%'>
+  <Flex alignItems='start' gap={4} padding={6} bg='white' boxShadow='sm' borderRadius='md' flexWrap='wrap' h='100%'
+        maxW={'100vw'} overflowX={'auto'}>
     {children}
   </Flex>
 )
@@ -137,7 +138,7 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
       {!!communityPolls && <GridItem gridArea='polls'>
         <WhiteBox>
           <Heading size={'md'} mb={4}>Community Polls</Heading>
-          <Table>
+          <Table style={{overflowX: 'auto'}} maxW="100%">
             <Thead>
               <Tr>
                 <Th>Question</Th>
@@ -157,19 +158,19 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
                   </Td>
                   <Td isNumeric>{poll.voteCount}</Td>
                   <Td isNumeric>{poll.censusParticipantsCount}</Td>
-                  <Td isNumeric>{`${(poll.voteCount/poll.censusParticipantsCount*100).toFixed(1)}%`}</Td>
+                  <Td isNumeric>{`${(poll.voteCount / poll.censusParticipantsCount * 100).toFixed(1)}%`}</Td>
                   <Td>{poll.voteCount > 0 ? humanDate(poll.lastVoteTime) : '-'}</Td>
                   <Td>
                     <VStack>
-                      {poll.finalized ? 
-                      <Tag>
-                        <TagLeftIcon as={FaRegCircleStop}></TagLeftIcon>
-                        <TagLabel>Ended</TagLabel>
-                      </Tag> : 
-                      <Tag colorScheme='green'>
-                        <TagLeftIcon as={FaPlay}></TagLeftIcon>
-                        <TagLabel>Ongoing</TagLabel>
-                      </Tag>}
+                      {poll.finalized ?
+                        <Tag>
+                          <TagLeftIcon as={FaRegCircleStop}></TagLeftIcon>
+                          <TagLabel>Ended</TagLabel>
+                        </Tag> :
+                        <Tag colorScheme='green'>
+                          <TagLeftIcon as={FaPlay}></TagLeftIcon>
+                          <TagLabel>Ongoing</TagLabel>
+                        </Tag>}
                       {poll.finalized && <Text fontSize={'xs'} color={'gray'}>{humanDate(poll.endTime)}</Text>}
                     </VStack>
                   </Td>
