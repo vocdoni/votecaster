@@ -376,11 +376,11 @@ func (l *CommunityHub) authTransactOpts() (*bind.TransactOpts, error) {
 		return nil, errors.Join(ErrSendingTx, err)
 	}
 	auth.Nonce = new(big.Int).SetUint64(nonce)
-	// set the gas price
-	if auth.GasPrice, err = l.w3cli.SuggestGasPrice(ctx); err != nil {
+	// set the gas tip cap
+	if auth.GasTipCap, err = l.w3cli.SuggestGasTipCap(ctx); err != nil {
 		return nil, errors.Join(ErrSendingTx, err)
 	}
 	// set the gas limit
-	auth.GasLimit = 0
+	auth.GasLimit = 10000000
 	return auth, nil
 }
