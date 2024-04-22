@@ -1,9 +1,9 @@
-import { FormControl, FormErrorMessage, FormLabel, Heading, Text } from '@chakra-ui/react'
-import { AsyncSelect } from 'chakra-react-select'
-import { useState } from 'react'
-import { Controller, useFormContext } from 'react-hook-form'
-import { fetchChannelQuery } from '../../../queries/channels'
-import { useAuth } from '../../Auth/useAuth'
+import {FormControl, FormErrorMessage, FormLabel, Heading, Text} from '@chakra-ui/react'
+import {AsyncSelect} from 'chakra-react-select'
+import {useState} from 'react'
+import {Controller, useFormContext} from 'react-hook-form'
+import {fetchChannelQuery} from '../../../queries/channels'
+import {useAuth} from '../../Auth/useAuth'
 
 export type ChannelsFormValues = {
   channels: { label: string; value: string }[]
@@ -11,21 +11,21 @@ export type ChannelsFormValues = {
 
 export const Channels = () => {
   const {
-    formState: { errors },
+    formState: {errors},
     setError,
   } = useFormContext<ChannelsFormValues>()
   const [loading, setLoading] = useState<boolean>(false)
-  const { bfetch } = useAuth()
+  const {bfetch} = useAuth()
 
   return (
-    <FormControl display='flex' flexDir='column' gap={4} isInvalid={!!errors.channels} isRequired>
+    <FormControl display='flex' flexDir='column' gap={4} isInvalid={!!errors.channels}>
       <Heading as={FormLabel} size='sm'>
         Add Farcaster Channels
       </Heading>
       <Text>Add the farcaster channels used by your community</Text>
       <Controller
         name='channels'
-        render={({ field }) => (
+        render={({field}) => (
           <AsyncSelect
             id='channels'
             isMulti
@@ -44,7 +44,7 @@ export const Channels = () => {
               } catch (e) {
                 console.error('Could not fetch channels:', e)
                 if (e instanceof Error) {
-                  setError('channels', { message: e.message })
+                  setError('channels', {message: e.message})
                 }
               } finally {
                 setLoading(false)
