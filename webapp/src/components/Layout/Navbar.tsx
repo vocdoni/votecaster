@@ -19,8 +19,8 @@ const links: NavbarLink[] = [
     to: '/',
   },
   {
-    name: 'About',
-    to: '/about',
+    name: 'Communities',
+    to: '/communities',
   },
   {
     name: 'Leaderboards',
@@ -32,8 +32,8 @@ const links: NavbarLink[] = [
     private: true,
   },
   {
-    name: 'Communities',
-    to: '/communities',
+    name: 'About',
+    to: '/about',
   },
 ]
 

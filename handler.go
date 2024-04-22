@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -19,6 +20,7 @@ import (
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
+	"github.com/vocdoni/vote-frame/shortener"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/httprouter"
@@ -263,4 +265,21 @@ func (v *vocdoniHandler) whitelistHandler(_ *apirest.APIdata, ctx *httprouter.HT
 		return fmt.Errorf("failed to get whitelist: %w", err)
 	}
 	return ctx.Send(nil, http.StatusOK)
+}
+
+// shortURLHanlder is a handler to shorten a URL.
+func (v *vocdoniHandler) shortURLHanlder(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	url := ctx.Request.URL.Query().Get("url")
+	if url == "" {
+		return ctx.Send([]byte("missing URL"), http.StatusBadRequest)
+	}
+	shortURL, err := shortener.ShortURL(ctx.Request.Context(), url)
+	if err != nil {
+		return fmt.Errorf("failed to shorten URL: %w", err)
+	}
+	res, err := json.Marshal(map[string]string{"result": shortURL})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	return ctx.Send(res, http.StatusOK)
 }

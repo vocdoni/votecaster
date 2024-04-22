@@ -22,6 +22,7 @@ import { FaDownload, FaArrowUp, FaRegCircleStop, FaPlay } from 'react-icons/fa6'
 import { ethers } from 'ethers'
 
 import { useAuth } from '../components/Auth/useAuth'
+import { fetchShortURL } from '../queries/common'
 import { toArrayBuffer } from '../util/hex'
 import type { PollResult } from '../util/types'
 import { humanDate } from '../util/strings'
@@ -41,19 +42,28 @@ const mockedResults: PollResult = {
   voteCount: 3,
   turnout: 100,
   finalized: true,
+  censusParticipantsCount: 3,
 }
 
-const Poll = () => {
+const CommunityPoll = () => {
   const { bfetch } = useAuth()
   const { pid: electionID, id: communityID } = useParams()
   const [voters, setVoters] = useState([])
   const [loaded, setLoaded] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
   const [results, setResults] = useState<PollResult | null>(null)
+  const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${electionID}`)
 
   useEffect(() => {
     if (loaded || loading || !electionID || !communityID) return
       ; (async () => {
+        try {
+          const url = await fetchShortURL(bfetch)(electionURL)
+          setElectionURL(url)
+        } catch(e) {
+          console.log("error getting short url, using default", e)
+        }
+
         try {
           setLoading(true)
           // get results from the contract
@@ -167,7 +177,7 @@ const Poll = () => {
               </Flex>
             </Skeleton>
             <Image src={`${import.meta.env.APP_URL}/preview/${electionID}`} fallback={<Skeleton height={200} />} />
-            <Link fontSize={'sm'} color={'gray'} onClick={() => copyToClipboard(`${appUrl}/${electionID}`)}>Copy link to the frame</Link>
+            <Link fontSize={'sm'} color={'gray'} onClick={() => copyToClipboard(electionURL)}>Copy link to the frame</Link>
           </VStack>
           <VStack spacing={4} alignItems='left'>
             <Heading size='md'>Results</Heading>
@@ -242,4 +252,4 @@ const Poll = () => {
   )
 }
 
-export default Poll
+export default CommunityPoll

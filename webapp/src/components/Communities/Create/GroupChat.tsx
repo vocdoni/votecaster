@@ -2,7 +2,6 @@ import {
   Box,
   FormControl,
   FormErrorMessage,
-  FormLabel,
   Heading,
   Input,
   Text
@@ -24,6 +23,7 @@ export const GroupChat = () => {
         gate it with Farcaster or Collab.Land to avoid spam)</Text>
       <FormControl isInvalid={!!errors.groupChat}>
         <Input
+          placeholder='Insert your group chat URL here'
           {...register('groupChat', {
             validate: (val) => {
               if (!val) return true
