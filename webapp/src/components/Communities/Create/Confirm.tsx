@@ -22,9 +22,10 @@ export const Confirm = (props: ButtonProps) => {
   const {address} = useAccount()
 
   useEffect(() => {
-    if (!walletClient || !address) return
-      ;
-    (async () => {
+    if (!walletClient || !address) {
+      return
+    }
+    ;(async () => {
       try {
         setIsLoading(true)
         // todo(kon): put this code on a provider and get the contract instance from there
@@ -39,7 +40,7 @@ export const Confirm = (props: ButtonProps) => {
         // todo(kon): move this to a reactQuery?
         const price = await communityHubContract.getCreateCommunityPrice()
 
-        setPrice(price.toString())
+        setPrice((Number(price) / 10 ** 18).toString())
       } catch (e) {
         console.error('could not create community:', e)
       } finally {
@@ -47,6 +48,8 @@ export const Confirm = (props: ButtonProps) => {
       }
     })();
   }, [walletClient, address])
+
+  console.log('price:', price)
 
   return (
     <Box display='flex' gap={4} flexDir='column'>
