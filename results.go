@@ -226,7 +226,11 @@ func calculateTurnout(totalWeightStr, castedWeightStr string) *big.Int {
 	// Multiply castedWeight by 100 to preserve integer properties during division
 	castedWeightMul := new(big.Int).Mul(castedWeight, big.NewInt(100))
 
-	// Compute the turnout percentage as an integer
+	// Compute the turnout percentage as an integer if the total weight is not zero
+	if totalWeight.Cmp(big.NewInt(0)) == 0 {
+		log.Error("total weight is zero")
+		return big.NewInt(0)
+	}
 	turnoutPercentage := new(big.Int).Div(castedWeightMul, totalWeight)
 
 	return turnoutPercentage
