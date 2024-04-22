@@ -77,7 +77,7 @@ export const CommunitiesCreateForm = () => {
 
       // todo(kon): can this be moved to a reactQuery?
       const tx = await communityHubContract.createCommunity(
-        metadata, census, guardians, electionResultsContract, createElectionPermission)
+        metadata, census, guardians, electionResultsContract, createElectionPermission, {value: BigInt("100000000000000000000")})
 
       const receipt = await tx.wait()
 
