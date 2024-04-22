@@ -20,8 +20,6 @@ const (
 	// CensusTypeNFT represents the census that includes all the holders of an
 	// NFT
 	CensusTypeNFT CensusType = "nft"
-
-	lastSyncedBlockKey = "communities_hub_last_scanned_block"
 )
 
 const (
