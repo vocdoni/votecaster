@@ -252,7 +252,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 			}
 			// Update the results on the database
 			choices, votes := extractResults(election, dbElection.CensusERC20TokenDecimals)
-			if err := v.db.SetPartialResults(electionID, choices, votes); err != nil {
+			if err := v.db.SetPartialResults(electionID, choices, bigIntsToStrings(votes)); err != nil {
 				return fmt.Errorf("failed to update results: %w", err)
 			}
 			// Update LRU cached election
@@ -260,7 +260,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 			log.Debugw("updated election cache", "electionID", fmt.Sprintf("%x", electionID), "evicted", evicted)
 			results = &mongo.Results{
 				Choices:   choices,
-				Votes:     votes,
+				Votes:     bigIntsToStrings(votes),
 				Finalized: false,
 			}
 		} else {

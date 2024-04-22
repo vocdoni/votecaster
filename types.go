@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"math/big"
+	"time"
+)
 
 const (
 	maxElectionDuration = 24 * time.Hour * 15
@@ -117,4 +120,18 @@ type Community struct {
 // CommunityList defines the list of communities
 type CommunityList struct {
 	Communities []*Community `json:"communities"`
+}
+
+// bigIntsToStrings converts a slice of *big.Int to a slice of their string representations.
+// It safely handles nil pointers within the input slice.
+func bigIntsToStrings(bigInts []*big.Int) []string {
+	strings := make([]string, len(bigInts))
+	for i, bigInt := range bigInts {
+		if bigInt == nil {
+			strings[i] = "nil" // Represent nil pointers as "nil" in the output
+		} else {
+			strings[i] = bigInt.String()
+		}
+	}
+	return strings
 }
