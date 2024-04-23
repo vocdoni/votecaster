@@ -102,7 +102,7 @@ const Form: React.FC = (props: FlexProps) => {
   const censusType = watch('censusType')
   const notify = watch('notify')
 
-  const notifyAllowed = ['custom', 'nft', 'erc20', 'community']
+  const notifyAllowed = ['community']
 
   // reset shortened when no pid received
   useEffect(() => {
