@@ -1,7 +1,6 @@
 package communityhub
 
 import (
-	"errors"
 	"math/big"
 
 	comhub "github.com/vocdoni/vote-frame/communityhub/contracts/communityhubtoken"
@@ -50,7 +49,7 @@ func contractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, 
 			})
 		}
 	default:
-		return nil, errors.Join(ErrDecodingCommunity, ErrUnknownCensusType)
+		return nil, ErrUnknownCensusType
 	}
 	return community, nil
 }

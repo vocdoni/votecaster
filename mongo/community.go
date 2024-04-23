@@ -99,11 +99,12 @@ func (ms *MongoStorage) NextCommunityID() (uint64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	opts := options.FindOne().SetSort(bson.M{"_id": -1})
+	// find the last community ID
 	var community Community
-	if err := ms.communitites.FindOne(ctx, bson.M{}, opts).Decode(&community); err != nil {
-		if strings.Contains(err.Error(), "no documents in result") {
-			return 0, nil
-		}
+	err := ms.communitites.FindOne(ctx, bson.M{}, opts).Decode(&community)
+	if err != nil && !strings.Contains(err.Error(), "no documents in result") {
+		// if there is an error and it is not because there are no documents
+		// in the result, return the error and 0 (invalid ID)
 		return 0, err
 	}
 	return community.ID + 1, nil
