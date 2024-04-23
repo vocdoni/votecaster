@@ -127,6 +127,8 @@ type Notification struct {
 	Username       string           `json:"username" bson:"username"`
 	AuthorID       uint64           `json:"authorId" bson:"authorId"`
 	AuthorUsername string           `json:"authorUsername" bson:"authorUsername"`
+	CommunityID    uint64           `json:"communityId" bson:"communityId"`
+	CommunityName  string           `json:"communityName" bson:"communityName"`
 	ElectionID     string           `json:"electionId" bson:"electionId"`
 	FrameUrl       string           `json:"frameUrl" bson:"frameUrl"`
 	CustomText     string           `json:"customText" bson:"customText"`

@@ -16,23 +16,29 @@ const (
 	DefaultListenCoolDown       = 30 * time.Second
 	DefaultSendCoolDown         = 500 * time.Millisecond
 	DefaultNotificationDeadline = 24 * time.Hour
-	DefaultPermissionMessage    = `👋 Hey @%s ! 
+	// Requires <userName>, <authorName> and <communityName>
+	// Mentions <userName>
+	DefaultPermissionMessage = `👋 Hey @%s ! 
 
-I'm the alert bot for Farcaster.vote, where community decisions are made. You're getting this because a community you're in has a new poll. 
+%s has created a new poll for the community “%s” in which you can vote.
 
-Let us know if you want to be alerted about new polls, you can turn off notifications anytime.`
+To receive the Frame to vote in this poll and from others from communities you belong to, please allow the notifications in the frame below.`
+	// Requires <userName>, <authorName>, <communityName>, <botUserName> and <authorName>
+	// Mentions <userName> and <botUserName>
 	DefaultNotificationMessage = `👋 Hey @%s !
 
-%s created a new poll 🗳 and you're eligible to vote!
+%s created a new poll 🗳 for the community "%s" and you're eligible to vote!!
 
-To stop receiving notifications for new polls from %s, reply '@%s mute' to this cast.`
+(reply '@%s mute' to stop receiving alerts from %s)`
+	// Requires <userName>, <authorName>, <communityName>, <customText>, <botUserName> and <authorName>
+	// Mentions <userName> and <botUserName>
 	DefaultCustomNotificationMessage = `👋 Hey @%s !
 
-%s created a new poll 🗳 and you're eligible to vote!
+%s created a new poll 🗳 for the community "%s" and you're eligible to vote!
 
 %s
 
-(reply '@%s mute' to ignore future %s polls)`
+(reply '@%s mute' to stop receiving alerts from %s)`
 )
 
 // notificationThread is the parent cast to reply to when sending a notification
@@ -177,7 +183,7 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 		go func(n mongo.Notification) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			allowed, err := nm.checkOrReqPermission(n.UserID, n.Username)
+			allowed, err := nm.checkOrReqPermission(n.UserID, n.Username, n.AuthorUsername, n.CommunityName)
 			if err != nil {
 				if errors.Is(err, mongo.ErrUserUnknown) {
 					log.Debugw("user not found", "user", n.UserID)
@@ -225,10 +231,10 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 				}
 				return
 			}
-			// retrieve the current user data from the API
+			// retrieve the current user bot data from the API
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
-			userdata, err := nm.api.UserDataByFID(ctx, nm.api.FID())
+			botdata, err := nm.api.UserDataByFID(ctx, nm.api.FID())
 			if err != nil {
 				errCh <- fmt.Errorf("error retrieving bot user data: %s", err)
 				return
@@ -241,12 +247,12 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 			var mentions []uint64
 			if n.CustomText == "" {
 				// default message
-				msg = fmt.Sprintf(nm.notificationMsg, n.Username, n.AuthorUsername, n.AuthorUsername, userdata.Username)
-				mentions = []uint64{n.UserID, userdata.FID}
+				msg = fmt.Sprintf(nm.notificationMsg, n.Username, n.AuthorUsername, n.CommunityName, botdata.Username, n.AuthorUsername)
+				mentions = []uint64{n.UserID, botdata.FID}
 			} else {
 				// message with custom text
-				msg = fmt.Sprintf(nm.customNotificationMsg, n.Username, n.AuthorUsername, n.CustomText, userdata.Username, n.AuthorUsername)
-				mentions = []uint64{n.UserID, userdata.FID}
+				msg = fmt.Sprintf(nm.customNotificationMsg, n.Username, n.AuthorUsername, n.CommunityName, n.CustomText, botdata.Username, n.AuthorUsername)
+				mentions = []uint64{n.UserID, botdata.FID}
 			}
 			// send the notification and remove it from the database
 			if err := nm.api.Reply(nm.ctx, notificationThread, msg, mentions, n.FrameUrl); err != nil {
@@ -277,7 +283,7 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 // It also updates the access profile with the notification requested status. If
 // the user has not accepted the notifications, it returns false, otherwise, it
 // returns true. If an error occurs, it returns the error.
-func (nm *NotificationManager) checkOrReqPermission(userID uint64, username string) (bool, error) {
+func (nm *NotificationManager) checkOrReqPermission(userID uint64, username, author, community string) (bool, error) {
 	alreadyRequested := false
 
 	profile, err := nm.db.UserAccessProfile(userID)
@@ -295,7 +301,7 @@ func (nm *NotificationManager) checkOrReqPermission(userID uint64, username stri
 	log.Debugw("notifications not requested, requesting...", "user", userID)
 	// if the user has not been requested for notifications yet, send the
 	// notification request with the permission message and the frame URL
-	msg := fmt.Sprintf(nm.permissionMsg, username)
+	msg := fmt.Sprintf(nm.permissionMsg, username, author, community)
 	if err := nm.api.Publish(nm.ctx, msg, []uint64{userID}, nm.frameURL); err != nil {
 		return false, fmt.Errorf("error sending notification request: %s", err)
 	}
