@@ -511,16 +511,16 @@ func main() {
 	if err := uAPI.Endpoint.RegisterMethod("/census/csv", http.MethodPost, "private", handler.censusCSV); err != nil {
 		log.Fatal(err)
 	}
-
-	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}/exists", http.MethodGet, "private", handler.censusChannelExists); err != nil {
-		log.Fatal(err)
-	}
-
+	
 	if err := uAPI.Endpoint.RegisterMethod("/census/followers/{userFid}", http.MethodPost, "private", handler.censusFollowers); err != nil {
 		log.Fatal(err)
 	}
-
+	
 	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}", http.MethodPost, "private", handler.censusChannel); err != nil {
+		log.Fatal(err)
+	}
+	
+	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}/exists", http.MethodGet, "private", handler.censusChannelExists); err != nil {
 		log.Fatal(err)
 	}
 
