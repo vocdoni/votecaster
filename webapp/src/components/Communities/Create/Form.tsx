@@ -1,14 +1,14 @@
 import {Alert, Box, Heading, Text, VStack, AlertDescription, Flex} from '@chakra-ui/react'
 import {FormProvider, SubmitHandler, useForm} from 'react-hook-form'
 import {useAccount, useWalletClient, useBalance, type UseWalletClientReturnType} from 'wagmi'
-import {degenContractAddress, electionResultsContract} from '../../../util/constants'
+import {degenContractAddress} from '../../../util/constants'
 import {CensusFormValues} from '../../CensusTypeSelector'
 import {CensusSelector} from './CensusSelector'
 import {Channels} from './Channels'
 import {Confirm} from './Confirm'
 import {CommunityMetaFormValues, Meta} from './Meta'
 import {censusTypeToEnum} from "../../../util/types.ts";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {CommunityHub__factory} from '../../../typechain'
 import {CommunityHubInterface, ICommunityHub} from "../../../typechain/src/CommunityHub.ts";
 import {BrowserProvider} from "ethers";
@@ -101,7 +101,6 @@ export const CommunitiesCreateForm = () => {
         metadata,
         census,
         guardians,
-        electionResultsContract,
         createElectionPermission,
         "price: " + price
       ])
@@ -117,7 +116,7 @@ export const CommunitiesCreateForm = () => {
 
       // todo(kon): can this be moved to a reactQuery?
       const tx = await communityHubContract.createCommunity(
-        metadata, census, guardians, electionResultsContract, createElectionPermission, {value: price,})
+        metadata, census, guardians, createElectionPermission, {value: price})
 
       const receipt = await tx.wait()
 

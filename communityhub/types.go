@@ -79,10 +79,9 @@ type HubCommunity struct {
 	Channels       []string // warpcast channels ids
 	Admins         []uint64 // farcaster users fids
 	Notifications  bool
+	Disabled       bool
 	// internal
-	electionResultsContract  common.Address
 	createElectionPermission uint8
-	disabled                 bool
 	funds                    *big.Int
 }
 
@@ -97,4 +96,6 @@ type HubResults struct {
 	Participants     []*big.Int
 	CensusRoot       []byte
 	CensusURI        string
+	Disabled         bool
+	VoteCount        *big.Int
 }

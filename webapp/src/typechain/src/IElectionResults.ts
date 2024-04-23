@@ -22,7 +22,7 @@ import type {
   TypedContractMethod,
 } from "../common";
 
-export declare namespace IElectionResults {
+export declare namespace IResult {
   export type ResultStruct = {
     question: string;
     options: string[];
@@ -30,7 +30,7 @@ export declare namespace IElectionResults {
     tally: BigNumberish[][];
     turnout: BigNumberish;
     totalVotingPower: BigNumberish;
-    participants: string[];
+    participants: BigNumberish[];
     censusRoot: BytesLike;
     censusURI: string;
   };
@@ -42,7 +42,7 @@ export declare namespace IElectionResults {
     tally: bigint[][],
     turnout: bigint,
     totalVotingPower: bigint,
-    participants: string[],
+    participants: bigint[],
     censusRoot: string,
     censusURI: string
   ] & {
@@ -52,7 +52,7 @@ export declare namespace IElectionResults {
     tally: bigint[][];
     turnout: bigint;
     totalVotingPower: bigint;
-    participants: string[];
+    participants: bigint[];
     censusRoot: string;
     censusURI: string;
   };
@@ -69,7 +69,7 @@ export interface IElectionResultsInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "setResult",
-    values: [BigNumberish, BytesLike, IElectionResults.ResultStruct]
+    values: [BigNumberish, BytesLike, IResult.ResultStruct]
   ): string;
 
   decodeFunctionResult(functionFragment: "getResult", data: BytesLike): Result;
@@ -134,7 +134,7 @@ export interface IElectionResults extends BaseContract {
 
   getResult: TypedContractMethod<
     [_communityId: BigNumberish, _electionId: BytesLike],
-    [IElectionResults.ResultStructOutput],
+    [IResult.ResultStructOutput],
     "view"
   >;
 
@@ -142,7 +142,7 @@ export interface IElectionResults extends BaseContract {
     [
       _communityId: BigNumberish,
       _electionId: BytesLike,
-      _result: IElectionResults.ResultStruct
+      _result: IResult.ResultStruct
     ],
     [void],
     "nonpayable"
@@ -156,7 +156,7 @@ export interface IElectionResults extends BaseContract {
     nameOrSignature: "getResult"
   ): TypedContractMethod<
     [_communityId: BigNumberish, _electionId: BytesLike],
-    [IElectionResults.ResultStructOutput],
+    [IResult.ResultStructOutput],
     "view"
   >;
   getFunction(
@@ -165,7 +165,7 @@ export interface IElectionResults extends BaseContract {
     [
       _communityId: BigNumberish,
       _electionId: BytesLike,
-      _result: IElectionResults.ResultStruct
+      _result: IResult.ResultStruct
     ],
     [void],
     "nonpayable"

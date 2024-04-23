@@ -76,7 +76,6 @@ export declare namespace ICommunityHub {
     metadata: ICommunityHub.CommunityMetadataStruct;
     census: ICommunityHub.CensusStruct;
     guardians: BigNumberish[];
-    electionResultsContract: AddressLike;
     createElectionPermission: BigNumberish;
     disabled: boolean;
     funds: BigNumberish;
@@ -86,7 +85,6 @@ export declare namespace ICommunityHub {
     metadata: ICommunityHub.CommunityMetadataStructOutput,
     census: ICommunityHub.CensusStructOutput,
     guardians: bigint[],
-    electionResultsContract: string,
     createElectionPermission: bigint,
     disabled: boolean,
     funds: bigint
@@ -94,14 +92,13 @@ export declare namespace ICommunityHub {
     metadata: ICommunityHub.CommunityMetadataStructOutput;
     census: ICommunityHub.CensusStructOutput;
     guardians: bigint[];
-    electionResultsContract: string;
     createElectionPermission: bigint;
     disabled: boolean;
     funds: bigint;
   };
 }
 
-export declare namespace IElectionResults {
+export declare namespace IResult {
   export type ResultStruct = {
     question: string;
     options: string[];
@@ -109,7 +106,7 @@ export declare namespace IElectionResults {
     tally: BigNumberish[][];
     turnout: BigNumberish;
     totalVotingPower: BigNumberish;
-    participants: string[];
+    participants: BigNumberish[];
     censusRoot: BytesLike;
     censusURI: string;
   };
@@ -121,7 +118,7 @@ export declare namespace IElectionResults {
     tally: bigint[][],
     turnout: bigint,
     totalVotingPower: bigint,
-    participants: string[],
+    participants: bigint[],
     censusRoot: string,
     censusURI: string
   ] & {
@@ -131,7 +128,7 @@ export declare namespace IElectionResults {
     tally: bigint[][];
     turnout: bigint;
     totalVotingPower: bigint;
-    participants: string[];
+    participants: bigint[];
     censusRoot: string;
     censusURI: string;
   };
@@ -143,13 +140,11 @@ export interface CommunityHubInterface extends Interface {
       | "addGuardian"
       | "adminManageCommunity"
       | "adminSetCommunityPrice"
-      | "adminSetDefaultElectionResultsContract"
       | "adminSetPricePerElection"
       | "createCommunity"
       | "deposit"
       | "getCommunity"
       | "getCreateCommunityPrice"
-      | "getDefaultElectionResultsContract"
       | "getNextCommunityId"
       | "getPricePerElection"
       | "getResult"
@@ -158,7 +153,6 @@ export interface CommunityHubInterface extends Interface {
       | "renounceOwnership"
       | "setCensus"
       | "setCreateElectionPermission"
-      | "setElectionResultsContract"
       | "setMetadata"
       | "setNotifiableElections"
       | "setResult"
@@ -176,9 +170,7 @@ export interface CommunityHubInterface extends Interface {
       | "CommunityEnabled"
       | "CreateCommunityPriceSet"
       | "CreateElectionPermissionSet"
-      | "DefaultElectionResultsContractSet"
       | "Deposit"
-      | "ElectionResultsContractSet"
       | "GuardianAdded"
       | "GuardianRemoved"
       | "MetadataSet"
@@ -200,7 +192,6 @@ export interface CommunityHubInterface extends Interface {
       ICommunityHub.CommunityMetadataStruct,
       ICommunityHub.CensusStruct,
       BigNumberish[],
-      AddressLike,
       BigNumberish,
       boolean
     ]
@@ -208,10 +199,6 @@ export interface CommunityHubInterface extends Interface {
   encodeFunctionData(
     functionFragment: "adminSetCommunityPrice",
     values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "adminSetDefaultElectionResultsContract",
-    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "adminSetPricePerElection",
@@ -223,7 +210,6 @@ export interface CommunityHubInterface extends Interface {
       ICommunityHub.CommunityMetadataStruct,
       ICommunityHub.CensusStruct,
       BigNumberish[],
-      AddressLike,
       BigNumberish
     ]
   ): string;
@@ -237,10 +223,6 @@ export interface CommunityHubInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getCreateCommunityPrice",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getDefaultElectionResultsContract",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -273,10 +255,6 @@ export interface CommunityHubInterface extends Interface {
     values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "setElectionResultsContract",
-    values: [BigNumberish, AddressLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setMetadata",
     values: [BigNumberish, ICommunityHub.CommunityMetadataStruct]
   ): string;
@@ -286,7 +264,7 @@ export interface CommunityHubInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "setResult",
-    values: [BigNumberish, BytesLike, IElectionResults.ResultStruct]
+    values: [BigNumberish, BytesLike, IResult.ResultStruct]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
@@ -307,10 +285,6 @@ export interface CommunityHubInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "adminSetDefaultElectionResultsContract",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "adminSetPricePerElection",
     data: BytesLike
   ): Result;
@@ -325,10 +299,6 @@ export interface CommunityHubInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getCreateCommunityPrice",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getDefaultElectionResultsContract",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -352,10 +322,6 @@ export interface CommunityHubInterface extends Interface {
   decodeFunctionResult(functionFragment: "setCensus", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setCreateElectionPermission",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setElectionResultsContract",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -495,43 +461,12 @@ export namespace CreateElectionPermissionSetEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace DefaultElectionResultsContractSetEvent {
-  export type InputTuple = [electionResultsContract: AddressLike];
-  export type OutputTuple = [electionResultsContract: string];
-  export interface OutputObject {
-    electionResultsContract: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
 export namespace DepositEvent {
   export type InputTuple = [sender: AddressLike, amount: BigNumberish];
   export type OutputTuple = [sender: string, amount: bigint];
   export interface OutputObject {
     sender: string;
     amount: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace ElectionResultsContractSetEvent {
-  export type InputTuple = [
-    communityId: BigNumberish,
-    electionResultsContract: AddressLike
-  ];
-  export type OutputTuple = [
-    communityId: bigint,
-    electionResultsContract: string
-  ];
-  export interface OutputObject {
-    communityId: bigint;
-    electionResultsContract: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -706,7 +641,6 @@ export interface CommunityHub extends BaseContract {
       _metadata: ICommunityHub.CommunityMetadataStruct,
       _census: ICommunityHub.CensusStruct,
       _guardians: BigNumberish[],
-      _electionResultsContract: AddressLike,
       _createElectionPermission: BigNumberish,
       _disabled: boolean
     ],
@@ -716,12 +650,6 @@ export interface CommunityHub extends BaseContract {
 
   adminSetCommunityPrice: TypedContractMethod<
     [_price: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  adminSetDefaultElectionResultsContract: TypedContractMethod<
-    [_electionResultsContract: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -737,10 +665,9 @@ export interface CommunityHub extends BaseContract {
       _metadata: ICommunityHub.CommunityMetadataStruct,
       _census: ICommunityHub.CensusStruct,
       _guardians: BigNumberish[],
-      _electionResultsContract: AddressLike,
       _createElectionPermission: BigNumberish
     ],
-    [bigint],
+    [void],
     "payable"
   >;
 
@@ -754,15 +681,13 @@ export interface CommunityHub extends BaseContract {
 
   getCreateCommunityPrice: TypedContractMethod<[], [bigint], "view">;
 
-  getDefaultElectionResultsContract: TypedContractMethod<[], [string], "view">;
-
   getNextCommunityId: TypedContractMethod<[], [bigint], "view">;
 
   getPricePerElection: TypedContractMethod<[], [bigint], "view">;
 
   getResult: TypedContractMethod<
     [_communityId: BigNumberish, _electionId: BytesLike],
-    [IElectionResults.ResultStructOutput],
+    [IResult.ResultStructOutput],
     "view"
   >;
 
@@ -788,12 +713,6 @@ export interface CommunityHub extends BaseContract {
     "nonpayable"
   >;
 
-  setElectionResultsContract: TypedContractMethod<
-    [_communityId: BigNumberish, _electionResultsContract: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-
   setMetadata: TypedContractMethod<
     [
       _communityId: BigNumberish,
@@ -813,7 +732,7 @@ export interface CommunityHub extends BaseContract {
     [
       _communityId: BigNumberish,
       _electionId: BytesLike,
-      _result: IElectionResults.ResultStruct
+      _result: IResult.ResultStruct
     ],
     [void],
     "nonpayable"
@@ -846,7 +765,6 @@ export interface CommunityHub extends BaseContract {
       _metadata: ICommunityHub.CommunityMetadataStruct,
       _census: ICommunityHub.CensusStruct,
       _guardians: BigNumberish[],
-      _electionResultsContract: AddressLike,
       _createElectionPermission: BigNumberish,
       _disabled: boolean
     ],
@@ -857,13 +775,6 @@ export interface CommunityHub extends BaseContract {
     nameOrSignature: "adminSetCommunityPrice"
   ): TypedContractMethod<[_price: BigNumberish], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "adminSetDefaultElectionResultsContract"
-  ): TypedContractMethod<
-    [_electionResultsContract: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
     nameOrSignature: "adminSetPricePerElection"
   ): TypedContractMethod<[_price: BigNumberish], [void], "nonpayable">;
   getFunction(
@@ -873,10 +784,9 @@ export interface CommunityHub extends BaseContract {
       _metadata: ICommunityHub.CommunityMetadataStruct,
       _census: ICommunityHub.CensusStruct,
       _guardians: BigNumberish[],
-      _electionResultsContract: AddressLike,
       _createElectionPermission: BigNumberish
     ],
-    [bigint],
+    [void],
     "payable"
   >;
   getFunction(
@@ -893,9 +803,6 @@ export interface CommunityHub extends BaseContract {
     nameOrSignature: "getCreateCommunityPrice"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
-    nameOrSignature: "getDefaultElectionResultsContract"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
     nameOrSignature: "getNextCommunityId"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
@@ -905,7 +812,7 @@ export interface CommunityHub extends BaseContract {
     nameOrSignature: "getResult"
   ): TypedContractMethod<
     [_communityId: BigNumberish, _electionId: BytesLike],
-    [IElectionResults.ResultStructOutput],
+    [IResult.ResultStructOutput],
     "view"
   >;
   getFunction(
@@ -936,13 +843,6 @@ export interface CommunityHub extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "setElectionResultsContract"
-  ): TypedContractMethod<
-    [_communityId: BigNumberish, _electionResultsContract: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
     nameOrSignature: "setMetadata"
   ): TypedContractMethod<
     [
@@ -965,7 +865,7 @@ export interface CommunityHub extends BaseContract {
     [
       _communityId: BigNumberish,
       _electionId: BytesLike,
-      _result: IElectionResults.ResultStruct
+      _result: IResult.ResultStruct
     ],
     [void],
     "nonpayable"
@@ -1034,25 +934,11 @@ export interface CommunityHub extends BaseContract {
     CreateElectionPermissionSetEvent.OutputObject
   >;
   getEvent(
-    key: "DefaultElectionResultsContractSet"
-  ): TypedContractEvent<
-    DefaultElectionResultsContractSetEvent.InputTuple,
-    DefaultElectionResultsContractSetEvent.OutputTuple,
-    DefaultElectionResultsContractSetEvent.OutputObject
-  >;
-  getEvent(
     key: "Deposit"
   ): TypedContractEvent<
     DepositEvent.InputTuple,
     DepositEvent.OutputTuple,
     DepositEvent.OutputObject
-  >;
-  getEvent(
-    key: "ElectionResultsContractSet"
-  ): TypedContractEvent<
-    ElectionResultsContractSetEvent.InputTuple,
-    ElectionResultsContractSetEvent.OutputTuple,
-    ElectionResultsContractSetEvent.OutputObject
   >;
   getEvent(
     key: "GuardianAdded"
@@ -1200,17 +1086,6 @@ export interface CommunityHub extends BaseContract {
       CreateElectionPermissionSetEvent.OutputObject
     >;
 
-    "DefaultElectionResultsContractSet(address)": TypedContractEvent<
-      DefaultElectionResultsContractSetEvent.InputTuple,
-      DefaultElectionResultsContractSetEvent.OutputTuple,
-      DefaultElectionResultsContractSetEvent.OutputObject
-    >;
-    DefaultElectionResultsContractSet: TypedContractEvent<
-      DefaultElectionResultsContractSetEvent.InputTuple,
-      DefaultElectionResultsContractSetEvent.OutputTuple,
-      DefaultElectionResultsContractSetEvent.OutputObject
-    >;
-
     "Deposit(address,uint256)": TypedContractEvent<
       DepositEvent.InputTuple,
       DepositEvent.OutputTuple,
@@ -1220,17 +1095,6 @@ export interface CommunityHub extends BaseContract {
       DepositEvent.InputTuple,
       DepositEvent.OutputTuple,
       DepositEvent.OutputObject
-    >;
-
-    "ElectionResultsContractSet(uint256,address)": TypedContractEvent<
-      ElectionResultsContractSetEvent.InputTuple,
-      ElectionResultsContractSetEvent.OutputTuple,
-      ElectionResultsContractSetEvent.OutputObject
-    >;
-    ElectionResultsContractSet: TypedContractEvent<
-      ElectionResultsContractSetEvent.InputTuple,
-      ElectionResultsContractSetEvent.OutputTuple,
-      ElectionResultsContractSetEvent.OutputObject
     >;
 
     "GuardianAdded(uint256,uint256)": TypedContractEvent<

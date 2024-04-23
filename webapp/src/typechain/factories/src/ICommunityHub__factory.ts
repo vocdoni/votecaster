@@ -215,19 +215,6 @@ const _abi = [
       {
         indexed: false,
         internalType: "address",
-        name: "electionResultsContract",
-        type: "address",
-      },
-    ],
-    name: "DefaultElectionResultsContractSet",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
         name: "sender",
         type: "address",
       },
@@ -239,25 +226,6 @@ const _abi = [
       },
     ],
     name: "Deposit",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "communityId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "electionResultsContract",
-        type: "address",
-      },
-    ],
-    name: "ElectionResultsContractSet",
     type: "event",
   },
   {
@@ -492,11 +460,6 @@ const _abi = [
         type: "uint256[]",
       },
       {
-        internalType: "address",
-        name: "_electionResultsContract",
-        type: "address",
-      },
-      {
         internalType: "enum ICommunityHub.CreateElectionPermission",
         name: "_createElectionPermission",
         type: "uint8",
@@ -521,19 +484,6 @@ const _abi = [
       },
     ],
     name: "adminSetCommunityPrice",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_electionResultsContract",
-        type: "address",
-      },
-    ],
-    name: "adminSetDefaultElectionResultsContract",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -625,24 +575,13 @@ const _abi = [
         type: "uint256[]",
       },
       {
-        internalType: "address",
-        name: "_electionResultsContract",
-        type: "address",
-      },
-      {
         internalType: "enum ICommunityHub.CreateElectionPermission",
         name: "_createElectionPermission",
         type: "uint8",
       },
     ],
     name: "createCommunity",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [],
     stateMutability: "payable",
     type: "function",
   },
@@ -743,11 +682,6 @@ const _abi = [
             type: "uint256[]",
           },
           {
-            internalType: "address",
-            name: "electionResultsContract",
-            type: "address",
-          },
-          {
             internalType: "enum ICommunityHub.CreateElectionPermission",
             name: "createElectionPermission",
             type: "uint8",
@@ -779,19 +713,6 @@ const _abi = [
         internalType: "uint256",
         name: "",
         type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "getDefaultElectionResultsContract",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
       },
     ],
     stateMutability: "view",
@@ -902,24 +823,6 @@ const _abi = [
       },
     ],
     name: "setCreateElectionPermission",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_communityId",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "_electionResultsContract",
-        type: "address",
-      },
-    ],
-    name: "setElectionResultsContract",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

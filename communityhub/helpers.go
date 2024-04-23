@@ -10,11 +10,6 @@ import (
 // contractToHub converts a contract community struct (ICommunityHubCommunity)
 // to a internal community struct (HubCommunity)
 func contractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, error) {
-	// check if the community is not found in the contract, to do that, compare
-	// the election results contract address with the zero address
-	if cc.ElectionResultsContract.String() == zeroHexAddr {
-		return nil, ErrCommunityNotFound
-	}
 	// check if the community is disabled
 	if cc.Disabled {
 		return nil, ErrDisabledCommunity
@@ -33,10 +28,9 @@ func contractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, 
 		Channels:      cc.Metadata.Channels,
 		Admins:        admins,
 		Notifications: cc.Metadata.Notifications,
+		Disabled:      cc.Disabled,
 		// interanl
-		electionResultsContract:  cc.ElectionResultsContract,
 		createElectionPermission: cc.CreateElectionPermission,
-		disabled:                 cc.Disabled,
 		funds:                    cc.Funds,
 	}
 	community.CensusType = internalCensusTypes[cc.Census.CensusType]
@@ -105,9 +99,8 @@ func hubToContract(hub *HubCommunity) (comhub.ICommunityHubCommunity, error) {
 			Channel:    hub.CensusChannel,
 			Tokens:     censusTokens,
 		},
-		ElectionResultsContract:  hub.electionResultsContract,
+		Disabled:                 hub.Disabled,
 		CreateElectionPermission: hub.createElectionPermission,
-		Disabled:                 hub.disabled,
 		Funds:                    hub.funds,
 	}, nil
 }

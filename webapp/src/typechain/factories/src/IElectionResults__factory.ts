@@ -76,9 +76,9 @@ const _abi = [
             type: "uint256",
           },
           {
-            internalType: "string[]",
+            internalType: "uint256[]",
             name: "participants",
-            type: "string[]",
+            type: "uint256[]",
           },
           {
             internalType: "bytes32",
@@ -91,8 +91,8 @@ const _abi = [
             type: "string",
           },
         ],
-        internalType: "struct IElectionResults.Result",
-        name: "",
+        internalType: "struct IResult.Result",
+        name: "result",
         type: "tuple",
       },
     ],
@@ -144,9 +144,9 @@ const _abi = [
             type: "uint256",
           },
           {
-            internalType: "string[]",
+            internalType: "uint256[]",
             name: "participants",
-            type: "string[]",
+            type: "uint256[]",
           },
           {
             internalType: "bytes32",
@@ -159,7 +159,7 @@ const _abi = [
             type: "string",
           },
         ],
-        internalType: "struct IElectionResults.Result",
+        internalType: "struct IResult.Result",
         name: "_result",
         type: "tuple",
       },

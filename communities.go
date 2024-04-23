@@ -251,7 +251,7 @@ func (v *vocdoniHandler) disableCommunityHanler(msg *apirest.APIdata, ctx *httpr
 	}
 	// disable the community in the community hub contract and delete it from
 	// the database
-	if err := v.comhub.DisableCommunity(community.ID); err != nil {
+	if err := v.comhub.DisableCommunity(community.ID, true); err != nil {
 		return ctx.Send([]byte("error disabling community"), http.StatusInternalServerError)
 	}
 	if err := v.db.DelCommunity(community.ID); err != nil {

@@ -49,15 +49,15 @@ const CommunityPoll = () => {
             results = {
               censusRoot: contractData.censusRoot,
               censusURI: contractData.censusURI,
-              endTime: new Date(contractData.date),
+              endTime: new Date(contractData.date.replace(/CEST m=\+[\d.]+$/, '')),
               options: contractData.options,
               participants: participants,
               question: contractData.question,
               tally: tally,
               turnout: parseFloat(contractData.turnout.toString()),
-              voteCount: parseInt(contractData.totalVotingPower.toString()),
+              voteCount: contractData.participants.length,
               finalized: true,
-              censusParticipantsCount: 0, // TODO: get this from the contract or api
+              censusParticipantsCount: Number(contractData.totalVotingPower), // TODO: get this from the contract or api
             }
             console.log("results from contract")
           } else {
@@ -86,8 +86,8 @@ const CommunityPoll = () => {
               results = mockedResults
               console.log("mocked results")
             }
-            setResults(results)
           }
+          setResults(results)
         } catch (e) {
           console.error(e)
         } finally {

@@ -207,6 +207,14 @@ func (l *CommunityHub) Stop() {
 // It returns the community data, and if something goes wrong, it returns an
 // error.
 func (l *CommunityHub) Community(communityID uint64) (*HubCommunity, error) {
+	// check if the community ID provided exists in the contract
+	bNextID, err := l.contract.GetNextCommunityId(nil)
+	if err != nil {
+		return nil, errors.Join(ErrGettingCommunity, err)
+	}
+	if communityID >= bNextID.Uint64() {
+		return nil, ErrCommunityNotFound
+	}
 	// get the community data from the contract
 	cc, err := l.contract.GetCommunity(nil, new(big.Int).SetUint64(communityID))
 	if err != nil {
@@ -261,10 +269,11 @@ func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results
 	copy(bCensusRoot[:], results.CensusRoot)
 	// set the election results in the contract
 	if _, err := l.contract.SetResult(transactOpts, bCommunityID, bElectionID,
-		comhub.IElectionResultsResult{
+		comhub.IResultResult{
 			Question:         results.Question,
 			Options:          results.Options,
 			Date:             results.Date,
+			Tally:            results.Tally,
 			Turnout:          results.Turnout,
 			TotalVotingPower: results.TotalVotingPower,
 			Participants:     results.Participants,
@@ -279,7 +288,7 @@ func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results
 // DisableCommunity method disables the community in the contract by the
 // community ID provided. If something goes wrong disabling the community in
 // the contract, it returns an error.
-func (l *CommunityHub) DisableCommunity(communityID uint64) error {
+func (l *CommunityHub) DisableCommunity(communityID uint64, disabled bool) error {
 	transactOpts, err := l.authTransactOpts()
 	if err != nil {
 		return err
@@ -297,9 +306,8 @@ func (l *CommunityHub) DisableCommunity(communityID uint64) error {
 		community.Metadata,
 		community.Census,
 		community.Guardians,
-		community.ElectionResultsContract,
 		community.CreateElectionPermission,
-		true)
+		disabled)
 	if err != nil {
 		return err
 	}

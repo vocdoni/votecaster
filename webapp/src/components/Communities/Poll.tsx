@@ -24,7 +24,7 @@ import { fetchShortURL } from '../../queries/common'
 import type { PollResult } from '../../util/types'
 import { humanDate } from '../../util/strings'
 import { CsvGenerator } from '../../generator'
-import { appUrl, electionResultsContract } from '../../util/constants'
+import { appUrl, degenContractAddress } from '../../util/constants'
 
 
 export type CommunitiyPollViewProps = {
@@ -125,15 +125,15 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
                     </AlertDescription>
                   </Box>
                 </Alert>}
-                <Link fontSize={'xs'} color='gray' textAlign={'right'} isExternal href={`https://explorer.degen.tips/address/${electionResultsContract}`}>View contract</Link>
+                <Link fontSize={'xs'} color='gray' textAlign={'right'} isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`}>View contract</Link>
                 <VStack spacing={6} alignItems='left'>
                   {poll?.options.map((option, index) => (
                     <Box key={index} w='full'>
                       <Flex justifyContent='space-between' w='full'>
                         <Text>{option}</Text>
-                        <Text>{poll?.tally[0][index]} votes</Text>
+                        {!!poll?.tally[0] && <Text>{poll?.tally[0][index]} votes</Text>}
                       </Flex>
-                      <Progress size='sm' rounded={50} value={poll?.tally[0][index] / poll?.voteCount * 100} />
+                      {!!poll?.tally[0] && <Progress size='sm' rounded={50} value={poll?.tally[0][index] / poll?.voteCount * 100} />}
                     </Box>
                   ))}
                 </VStack>
@@ -162,7 +162,10 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
         <Flex gap={6}>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
             <Skeleton isLoaded={!loading}>
-              <Heading pb={4} size='sm'>Participation</Heading>
+              <Box pb={4}>
+                <Heading size='sm'>Participation</Heading>
+                <Text fontSize={'sm'} color={'gray'}>Number of voters vs participants.</Text>
+              </Box>
               <Flex alignItems={'end'} gap={2}>
                 <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{poll?.voteCount}</Text>
                 <Text>/{poll?.censusParticipantsCount}</Text>
@@ -172,7 +175,10 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
           </Box>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
             <Skeleton isLoaded={!loading}>
-              <Heading pb={4} size='sm'>Turnout</Heading>
+              <Box pb={4}>
+                <Heading size='sm'>Vote turnout</Heading>
+                <Text fontSize={'sm'} color={'gray'}>Voting power used by voters.</Text>
+              </Box>
               <Flex alignItems={'end'} gap={2}>
                 <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{poll?.turnout}</Text>
                 <Text>%</Text>
