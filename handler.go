@@ -192,24 +192,24 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		// election found in the database, so we use the information from the database
 		text = append(text, fmt.Sprintf("\nStarted at %s UTC", dbElection.CreatedTime.Format("2006-01-02 15:04:05")))
 		if time.Now().Before(dbElection.EndTime) {
-			text = append(text, fmt.Sprintf("Remaining time %s", time.Until(dbElection.EndTime).Round(time.Minute).String()))
+			text = append(text, fmt.Sprintf("Remaining time: %s", time.Until(dbElection.EndTime).Round(time.Minute).String()))
 		} else {
 			text = append(text, fmt.Sprintf("The poll finalized at %s", dbElection.EndTime.Format("2006-01-02 15:04:05")))
 		}
 		if dbElection.Community != nil {
-			text = append(text, fmt.Sprintf("Community %s", dbElection.Community.Name))
+			text = append(text, fmt.Sprintf("Community: %s", dbElection.Community.Name))
 		}
 		owner, err := v.db.User(dbElection.UserID)
 		if err == nil {
-			text = append(text, fmt.Sprintf("Owner %s", owner.Username))
+			text = append(text, fmt.Sprintf("Owner: %s", owner.Username))
 		}
-		text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
+		text = append(text, fmt.Sprintf("Executed on network: %s", v.cli.ChainID()))
 
 		if dbElection.FarcasterUserCount > 0 {
-			text = append(text, fmt.Sprintf("Farcaster elegible users %d", dbElection.FarcasterUserCount))
+			text = append(text, fmt.Sprintf("Elegible users: %d", dbElection.FarcasterUserCount))
 		}
-		text = append(text, fmt.Sprintf("Last vote at %s", dbElection.LastVoteTime.Format("2006-01-02 15:04:05")))
-		text = append(text, fmt.Sprintf("Cast votes %d", dbElection.CastedVotes))
+		text = append(text, fmt.Sprintf("Last vote: %s", dbElection.LastVoteTime.Format("2006-01-02 15:04:05")))
+		text = append(text, fmt.Sprintf("Cast votes: %d", dbElection.CastedVotes))
 
 		title = dbElection.Question
 	}

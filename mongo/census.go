@@ -29,7 +29,7 @@ func (ms *MongoStorage) AddCensus(censusID types.HexBytes, userFID uint64) error
 
 // AddParticipantsToCensus updates a census document with participants and their associated values.
 func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, participants map[string]string,
-	fromTotalAddresses uint32, totalWeight *big.Int, tokenDecimals uint32,
+	fromTotalAddresses uint32, totalWeight *big.Int, tokenDecimals uint32, censusURI string,
 ) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
@@ -43,6 +43,7 @@ func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, partici
 			"fromTotalAddresses": fromTotalAddresses,
 			"tokenDecimals":      tokenDecimals,
 			"totalWeight":        totalWeight.String(),
+			"url":                censusURI,
 		},
 	}
 

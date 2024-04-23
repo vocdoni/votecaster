@@ -285,7 +285,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		v.censusCreationMap.Store(censusID.String(), *ci)
 
 		// add participants to the census in the database
-		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, totalWeight, 0); err != nil {
+		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, totalWeight, 0, ci.Url); err != nil {
 			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
 		}
 	}()
@@ -679,7 +679,6 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 		return nil, fmt.Errorf("cannot add census to database: %w", err)
 	}
 	v.censusCreationMap.Store(censusID.String(), CensusInfo{})
-	totalAddresses := uint32(0)
 	go func() {
 		startTime := time.Now()
 		log.Debugw("building Airstack based census", "censusID", censusID)
@@ -697,7 +696,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 		// create census from token holders
 		var participants []*FarcasterParticipant
 		v.trackStepProgress(censusID, 2, 3, func(progress chan int) {
-			participants, totalAddresses, err = v.processCensusRecords(holders, progress)
+			participants, _, err = v.processCensusRecords(holders, progress)
 		})
 		if err != nil {
 			log.Warnw("failed to build census from NFT", "err", err.Error())
@@ -737,19 +736,26 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType, t
 			uniqueParticipants = append(uniqueParticipants, k)
 		}
 		ci.Usernames = uniqueParticipants
-		ci.FromTotalAddresses = totalAddresses
+		ci.FromTotalAddresses = uint32(len(holders))
 		log.Infow("census created from Airstack",
 			"censusID", censusID.String(),
 			"size", len(ci.Usernames),
 			"totalWeight", totalWeight.String(),
 			"duration", time.Since(startTime),
-			"totalAddresses", totalAddresses,
+			"totalAddresses", ci.FromTotalAddresses,
 			"participants", len(ci.Usernames),
 		)
 		// store the census info in the memory map
 		v.censusCreationMap.Store(censusID.String(), *ci)
 		// add participants to the census in the database
-		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, totalWeight, uint32(tokenDecimals)); err != nil {
+		if err := v.db.AddParticipantsToCensus(
+			censusID,
+			uniqueParticipantsMap,
+			ci.FromTotalAddresses,
+			totalWeight,
+			uint32(tokenDecimals),
+			ci.Url,
+		); err != nil {
 			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
 		}
 	}()
@@ -818,7 +824,7 @@ func (v *vocdoniHandler) censusWarpcastChannel(censusID types.HexBytes, channelI
 		for username := range uniqueParticipantsMap {
 			censusInfo.Usernames = append(censusInfo.Usernames, username)
 		}
-		censusInfo.FromTotalAddresses = uint32(len(participants))
+		censusInfo.FromTotalAddresses = uint32(len(users))
 		v.censusCreationMap.Store(censusID.String(), *censusInfo)
 		// add participants to the census in the database
 		if err := v.db.AddParticipantsToCensus(
@@ -827,6 +833,7 @@ func (v *vocdoniHandler) censusWarpcastChannel(censusID types.HexBytes, channelI
 			censusInfo.FromTotalAddresses,
 			new(big.Int).SetUint64(uint64(len(uniqueParticipantsMap))),
 			0,
+			censusInfo.Url,
 		); err != nil {
 			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
 		}

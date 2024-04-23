@@ -78,6 +78,7 @@ type Census struct {
 	FromTotalAddresses uint32            `json:"fromTotalAddresses" bson:"fromTotalAddresses"`
 	CreatedBy          uint64            `json:"createdBy" bson:"createdBy"`
 	TotalWeight        string            `json:"totalWeight" bson:"totalWeight"`
+	URL                string            `json:"url" bson:"url"`
 }
 
 // ElectionMeta stores non related election information that is useful
