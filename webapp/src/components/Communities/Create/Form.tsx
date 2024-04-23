@@ -1,6 +1,6 @@
 import {Alert, Box, Heading, Text, VStack, AlertDescription, Flex} from '@chakra-ui/react'
 import {FormProvider, SubmitHandler, useForm} from 'react-hook-form'
-import {useAccount, useWalletClient, type UseWalletClientReturnType} from 'wagmi'
+import {useAccount, useWalletClient, useBalance, type UseWalletClientReturnType} from 'wagmi'
 import {degenContractAddress, electionResultsContract} from '../../../util/constants'
 import {CensusFormValues} from '../../CensusTypeSelector'
 import {CensusSelector} from './CensusSelector'
@@ -8,7 +8,7 @@ import {Channels} from './Channels'
 import {Confirm} from './Confirm'
 import {CommunityMetaFormValues, Meta} from './Meta'
 import {censusTypeToEnum} from "../../../util/types.ts";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {CommunityHub__factory} from '../../../typechain'
 import {CommunityHubInterface, ICommunityHub} from "../../../typechain/src/CommunityHub.ts";
 import {BrowserProvider} from "ethers";
@@ -33,6 +33,9 @@ export const CommunitiesCreateForm = () => {
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [price, setPrice] = useState<bigint | null>()
   const calcPrice = price ? (Number(price) / 10 ** 18).toString() : ""
+  
+  const { data: balanceResult, isLoading: isBalanceLoading, error: balanceError } = useBalance({address})
+  const [userBalance, setUserBalance] = useState<string | null>(null)
 
   useEffect(() => {
     if (!walletClient || !address) {
@@ -48,6 +51,9 @@ export const CommunitiesCreateForm = () => {
         }
         if (!signer) throw Error("Can't get the signer")
 
+        if (!isBalanceLoading) {
+          setUserBalance(balanceResult ? (Number(balanceResult.value) / 10 ** balanceResult.decimals).toString() : "0")
+        }
         const communityHubContract = CommunityHub__factory.connect(degenContractAddress, signer)
 
         // todo(kon): move this to a reactQuery?
@@ -60,7 +66,7 @@ export const CommunitiesCreateForm = () => {
         setIsLoadingPrice(false)
       }
     })();
-  }, [walletClient, address])
+  }, [walletClient, address, isBalanceLoading, balanceResult, balanceError])
 
   const onSubmit: SubmitHandler<CommunityFormValues> = useCallback(async (data) => {
     if (isPending) return;
@@ -177,7 +183,7 @@ export const CommunitiesCreateForm = () => {
                   <GroupChat/>
                 </Box>
                 <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-                  <Confirm isLoading={isPending || isLoadingPrice} price={calcPrice}/>
+                  <Confirm isLoading={isPending || isLoadingPrice || isBalanceLoading} price={calcPrice} balance={userBalance}/>
                 </Box>
               </Flex>
             </Box>
