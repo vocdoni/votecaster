@@ -181,6 +181,20 @@ func (ms *MongoStorage) IsCommunityAdmin(userID, communityID uint64) bool {
 	return count > 0
 }
 
+// IsCommunityDisabled checks if the community with the given ID is disabled.
+func (ms *MongoStorage) IsCommunityDisabled(communityID uint64) bool {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var community Community
+	if err := ms.communitites.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
+		log.Errorf("error getting community %d: %v", communityID, err)
+		return false
+	}
+	return community.Disabled
+}
+
 // SetCommunityStatus sets the disabled status of the community with the given ID.
 func (ms *MongoStorage) SetCommunityStatus(communityID uint64, disabled bool) error {
 	ms.keysLock.Lock()

@@ -22,19 +22,19 @@ import {
   Stack,
   UnorderedList,
 } from '@chakra-ui/react'
-import {useQuery} from '@tanstack/react-query'
-import {chakraComponents, Select as RSelect} from 'chakra-react-select'
-import {useEffect} from 'react'
-import {Controller, useFieldArray, useFormContext} from 'react-hook-form'
-import {BiTrash} from 'react-icons/bi'
-import {MdArrowDropDown} from 'react-icons/md'
+import { useQuery } from '@tanstack/react-query'
+import { chakraComponents, Select as RSelect } from 'chakra-react-select'
+import { useEffect } from 'react'
+import { Controller, useFieldArray, useFormContext } from 'react-hook-form'
+import { BiTrash } from 'react-icons/bi'
+import { MdArrowDropDown } from 'react-icons/md'
 import Airstack from '../assets/airstack.svg?react'
-import {fetchAirstackBlockchains} from '../queries/census'
-import {Community, fetchCommunitiesByAdmin} from '../queries/communities'
-import {appUrl} from '../util/constants'
-import {cleanChannel, ucfirst} from '../util/strings'
-import {Address} from '../util/types'
-import {useAuth} from './Auth/useAuth'
+import { fetchAirstackBlockchains } from '../queries/census'
+import { fetchCommunitiesByAdmin } from '../queries/communities'
+import { appUrl } from '../util/constants'
+import { cleanChannel, ucfirst } from '../util/strings'
+import type { Address, Community } from '../util/types'
+import { useAuth } from './Auth/useAuth'
 
 export type CensusType = 'farcaster' | 'channel' | 'followers' | 'custom' | 'erc20' | 'nft' | 'community'
 
@@ -45,12 +45,12 @@ export type CensusFormValues = {
   csv?: File | undefined
 }
 
-const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?: boolean }) => {
-  const {bfetch, profile} = useAuth()
+const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complete?: boolean }) => {
+  const { bfetch, profile } = useAuth()
 
   const {
     watch,
-    formState: {errors},
+    formState: { errors },
     setValue,
     control,
     register,
@@ -63,11 +63,11 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
     control,
     name: 'addresses',
   })
-  const {data: blockchains, isLoading: bloading} = useQuery({
+  const { data: blockchains, isLoading: bloading } = useQuery({
     queryKey: ['blockchains'],
     queryFn: fetchAirstackBlockchains(bfetch),
   })
-  const {data: communities, isLoading: cloading} = useQuery({
+  const { data: communities, isLoading: cloading } = useQuery({
     queryKey: ['communities', 'byAdmin'],
     queryFn: () => fetchCommunitiesByAdmin(bfetch, profile!),
     enabled: profile != null
@@ -82,7 +82,7 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
       setValue('addresses', [])
       // Add one field by default
       for (let i = 0; i < 1; i++) {
-        appendAddress({address: '', blockchain: 'base'})
+        appendAddress({ address: '', blockchain: 'base' })
       }
     }
   }, [censusType, appendAddress, removeAddress])
@@ -114,10 +114,10 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
               </>
             )}
             <Radio value='nft'>
-              <Icon as={Airstack}/> NFT based via airstack
+              <Icon as={Airstack} /> NFT based via airstack
             </Radio>
             <Radio value='erc20'>
-              <Icon as={Airstack}/> ERC20 based via airstack
+              <Icon as={Airstack} /> ERC20 based via airstack
             </Radio>
           </Stack>
         </RadioGroup>
@@ -128,12 +128,12 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
           <Controller
             name='community'
             control={control}
-            render={({field}) => (
+            render={({ field }) => (
               <RSelect
                 placeholder='Choose a community'
                 cacheOptions
                 isLoading={cloading}
-                options={communities}
+                options={communities?.filter((c) => !c.disabled) || []}
                 getOptionLabel={(option: Community) => option.name}
                 getOptionValue={(option: Community) => option.id.toString()}
                 components={communitySelector}
@@ -151,10 +151,10 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
             </FormLabel>
             <Flex>
               <Select
-                {...register(`addresses.${index}.blockchain`, {required})}
+                {...register(`addresses.${index}.blockchain`, { required })}
                 defaultValue='ethereum'
                 w='auto'
-                icon={bloading ? <Spinner/> : <MdArrowDropDown/>}
+                icon={bloading ? <Spinner /> : <MdArrowDropDown />}
               >
                 {blockchains &&
                   blockchains.map((blockchain, key) => (
@@ -164,12 +164,12 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
                   ))}
               </Select>
               <InputGroup>
-                <Input placeholder='Smart contract address' {...register(`addresses.${index}.address`, {required})} />
+                <Input placeholder='Smart contract address' {...register(`addresses.${index}.address`, { required })} />
                 {addressFields.length > 1 && (
                   <InputRightElement>
                     <IconButton
                       aria-label='Remove address'
-                      icon={<BiTrash/>}
+                      icon={<BiTrash />}
                       onClick={() => removeAddress(index)}
                       size='sm'
                     />
@@ -180,7 +180,7 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
           </FormControl>
         ))}
       {censusType === 'nft' && addressFields.length < 3 && (
-        <Button variant='ghost' onClick={() => appendAddress({address: '', blockchain: 'ethereum'})}>
+        <Button variant='ghost' onClick={() => appendAddress({ address: '', blockchain: 'ethereum' })}>
           Add address
         </Button>
       )}
@@ -265,9 +265,9 @@ const CensusTypeSelector = ({complete, ...props}: FormControlProps & { complete?
 export default CensusTypeSelector
 
 const communitySelector = {
-  Option: ({children, ...props}) => (
+  Option: ({ children, ...props }) => (
     <chakraComponents.Option {...props}>
-      <Avatar size={'sm'} src={(props.data as Community).logoURL} mr={2}/> {children}
+      <Avatar size={'sm'} src={(props.data as Community).logoURL} mr={2} /> {children}
     </chakraComponents.Option>
   ),
 };

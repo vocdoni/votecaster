@@ -69,9 +69,17 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		log.Infow("user creating election", "username", user.Username, "fid", fid)
 	}
 
-	// check if the user is admin of the community
-	if req.CommunityID != nil && !v.db.IsCommunityAdmin(fid, *req.CommunityID) {
-		return fmt.Errorf("user is not an admin of the community")
+	// if the poll is for a community, check if the user is an admin of the
+	// community and if the community is disabled
+	if req.CommunityID != nil {
+		// check if the user is an admin of the community
+		if !v.db.IsCommunityAdmin(fid, *req.CommunityID) {
+			return fmt.Errorf("user is not an admin of the community")
+		}
+		// check if the community is disabled
+		if v.db.IsCommunityDisabled(*req.CommunityID) {
+			return fmt.Errorf("community is disabled")
+		}
 	}
 	// if notifications are enabled, check if the poll is for a community
 	if req.NotifyUsers && req.CommunityID == nil {
