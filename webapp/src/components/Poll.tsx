@@ -19,29 +19,29 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { FaDownload, FaCheck, FaRegCircleStop, FaPlay } from 'react-icons/fa6'
 
-import { useAuth } from '../Auth/useAuth'
-import { fetchShortURL } from '../../queries/common'
-import type { PollResult } from '../../util/types'
-import { humanDate } from '../../util/strings'
-import { CsvGenerator } from '../../generator'
-import { appUrl, degenContractAddress } from '../../util/constants'
+import { useAuth } from './Auth/useAuth'
+import { fetchShortURL } from '../queries/common'
+import type { PollResult } from '../util/types'
+import { humanDate } from '../util/strings'
+import { CsvGenerator } from '../generator'
+import { appUrl, degenContractAddress } from '../util/constants'
 
 
-export type CommunitiyPollViewProps = {
+export type PollViewProps = {
   electionId: string | undefined,
-  communityId: string | undefined,
   poll: PollResult | null,
   loading: boolean | false,
   loaded: boolean | false,
+  errorMessage: string | null
 }
 
-export const CommunityPollView = ({poll, electionId, loading, loaded}: CommunitiyPollViewProps) => {
+export const PollView = ({poll, electionId, loading, loaded, errorMessage}: PollViewProps) => {
   const { bfetch } = useAuth()
   const [voters, setVoters] = useState([])
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${electionId}`)
 
   useEffect(() => {
-    if (loaded || loading || !electionId || !poll) return
+    if (loaded || loading || !poll || !electionId ) return
       ; (async () => {
         // get the short url
         try {
@@ -81,6 +81,8 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
     if (!poll) return 0
     return (poll.voteCount / poll.censusParticipantsCount * 100).toFixed(1)
   }, [poll])
+
+  if (errorMessage) return <Text>{errorMessage}</Text>
 
   return (
     <Box
