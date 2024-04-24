@@ -287,11 +287,17 @@ func (v *vocdoniHandler) updateAndFetchResultsFromDatabase(
 ) (*mongo.Results, error) {
 	if election == nil {
 		var err error
-		election, err = v.election(electionID)
+		election, err = v.cli.Election(electionID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch election: %w", err)
 		}
 	}
+
+	// Update LRU cached election
+	_ = v.electionLRU.Add(fmt.Sprintf("%x", electionID), election)
+
+	// Generate the PNG image with the results in the background
+	go resultsPNGfile(election, erc20TokenDecimals)
 
 	// Update the results on the database
 	choices, votes := extractResults(election, erc20TokenDecimals)
@@ -301,17 +307,11 @@ func (v *vocdoniHandler) updateAndFetchResultsFromDatabase(
 		return nil, fmt.Errorf("failed to update results: %w", err)
 	}
 
-	// Update LRU cached election
-	_ = v.electionLRU.Add(fmt.Sprintf("%x", electionID), election)
-
 	// Fetch results from the database to return them in the response
 	results, err := v.db.Results(electionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch results: %w", err)
 	}
-
-	// Generate the PNG image with the results in the background
-	go resultsPNGfile(election, erc20TokenDecimals)
 
 	return results, nil
 }
