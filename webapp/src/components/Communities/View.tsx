@@ -30,10 +30,9 @@ import {useQuery} from '@tanstack/react-query'
 import {Link as RouterLink, useNavigate} from 'react-router-dom';
 
 import {appUrl, degenContractAddress} from '../../util/constants'
-import {Community} from '../../queries/communities'
 import {fetchPollsByCommunity} from '../../queries/tops'
 import {useAuth} from '../Auth/useAuth'
-import {Poll} from '../../util/types';
+import {Poll, Community} from '../../util/types';
 import {humanDate} from '../../util/strings'
 import {MdHowToVote} from "react-icons/md";
 
@@ -75,9 +74,9 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
 
   const disableCommunity = async () => {
     try {
-      await bfetch(`${appUrl}/communities/${community.id}`, {method: 'DELETE'}).then(() => refetch())
+      await bfetch(`${appUrl}/communities/${community.id}/disable?disabled=${!community.disabled}`, {method: 'PUT'}).then(() => refetch())
     } catch (e) {
-      console.error('could not unmute user', e)
+      console.error('could not disable the community', e)
     } finally {
       navigate('/communities')
     }
@@ -102,8 +101,8 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
               as={'u'}>🎩 DegenChain</Text></Link>
             </Text>
             {!!imAdmin && <Flex mt={4} gap={4}>
-              <Button onClick={disableCommunity} colorScheme={'red'}>
-                <Text>Disable community</Text>
+              <Button onClick={disableCommunity} colorScheme={community.disabled ? 'blue' : 'red'}>
+                {community.disabled ? <Text>Enable community</Text> : <Text>Disable community</Text>}
               </Button>
               <Button onClick={() => navigate('/')} leftIcon={<MdHowToVote/>}>Create vote</Button></Flex>
             }

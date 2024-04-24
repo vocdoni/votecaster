@@ -1,4 +1,4 @@
-import {Avatar, Badge, Flex, HStack, Link, LinkProps, Text} from '@chakra-ui/react'
+import {Avatar, Badge, Flex, HStack, VStack, Link, LinkProps, Text} from '@chakra-ui/react'
 import {Link as RouterLink} from 'react-router-dom'
 import {useAuth} from "../Auth/useAuth.ts";
 import {Profile} from "../../util/types.ts";
@@ -8,8 +8,9 @@ type CommunityCardProps = LinkProps & {
   slug?: string
   pfpUrl: string
   admins?: Profile[]
+  disabled?: boolean
 }
-export const CommunityCard = ({name, slug, pfpUrl, admins}: CommunityCardProps) => {
+export const CommunityCard = ({name, slug, pfpUrl, admins, disabled}: CommunityCardProps) => {
   const {profile} = useAuth()
   const adminsFid = admins?.map((admin) => admin.fid) ?? []
   const isAdmin = profile && adminsFid.includes(profile.fid)
@@ -25,15 +26,19 @@ export const CommunityCard = ({name, slug, pfpUrl, admins}: CommunityCardProps) 
     borderRadius='lg'
     bg='white'
     _hover={{boxShadow: 'none', bg: 'purple.100'}}
+    color={disabled ? 'gray.400' : 'black'}
   >
     <HStack>
-      <Avatar src={pfpUrl}/>
-      <Flex mx={2} w={'full'} justifyItems={'start'} alignItems={'start'} justifyContent={'space-between'}>
+      <Avatar src={pfpUrl} filter={disabled ? 'grayscale(1)': '' }/>
+      <Flex mx={2} w={'full'} justifyItems={'start'} alignItems={'center'} justifyContent={'space-between'}>
         <Text fontWeight='bold'>
           {name}
         </Text>
-        {isAdmin && <Badge ml='1' colorScheme='green'>Admin</Badge>}
-
+        
+        <VStack>
+          {isAdmin && <Badge colorScheme='green'>Admin</Badge>}
+          {disabled && <Text fontSize={'xs'}>Disabled</Text>}
+        </VStack>
       </Flex>
     </HStack>
   </Link>

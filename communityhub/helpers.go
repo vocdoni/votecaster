@@ -9,10 +9,6 @@ import (
 // contractToHub converts a contract community struct (ICommunityHubCommunity)
 // to a internal community struct (HubCommunity)
 func contractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, error) {
-	// check if the community is disabled
-	if cc.Disabled {
-		return nil, ErrDisabledCommunity
-	}
 	// decode admins
 	admins := []uint64{}
 	for _, bAdmin := range cc.Guardians {

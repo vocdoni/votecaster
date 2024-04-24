@@ -115,6 +115,7 @@ type Community struct {
 	CensusAddresses []*CensusAddress `json:"censusAddresses,omitempty"`
 	CensusChannel   *Channel         `json:"censusChannel,omitempty"`
 	Channels        []string         `json:"channels"`
+	Disabled        bool             `json:"disabled"`
 }
 
 // CommunityList defines the list of communities

@@ -1,7 +1,9 @@
 import {Box, Button, Heading, Link, SimpleGrid, Text, VStack, Stack} from '@chakra-ui/react'
 import {useQuery} from '@tanstack/react-query'
 import {Link as RouterLink} from 'react-router-dom'
-import {fetchCommunities} from '../../queries/communities'
+import {fetchCommunities, fetchCommunitiesByAdmin} from '../../queries/communities'
+import {Community} from '../../util/types'
+
 import {useAuth} from '../Auth/useAuth'
 import {Check} from '../Check'
 import {CommunityCard} from './Card'
@@ -19,14 +21,17 @@ export const CommunitiesList = () => {
     setShowMyCommunities(!showMyCommunities)
   }, [showMyCommunities])
 
-  const {data, error, isLoading} = useQuery({
+  const {data: allCommunities, error: allCommunitiesError, isLoading: isAllCommunitiesLoading} = useQuery({
     queryKey: ['communities'],
     queryFn: fetchCommunities(bfetch),
   })
-
+  const {data: myCommunities, error: myCommunitiesError, isLoading: isMyCommunitiesLoading} = useQuery({
+    queryKey: ['communities', 'byAdmin'],
+    queryFn: () => fetchCommunitiesByAdmin(bfetch, profile!),
+    enabled: profile != null,
+  })
   // Filter by community admins fid in case showMyCommunities is true
-  const filteredData = showMyCommunities ?
-    data?.filter(community => community.admins.map((admin) => admin.fid).includes(profile?.fid)) : data
+  const filteredData = showMyCommunities ? myCommunities : allCommunities
 
   return (
     <VStack spacing={4} w='full' alignItems='start'>
@@ -36,13 +41,11 @@ export const CommunitiesList = () => {
         <ToggleStateComponent state={showMyCommunities} toggleState={toggleMyCommunities} state1text={"All communities"}
                               state2text={"My communities"}/>}
       <SimpleGrid gap={4} w='full' alignItems='start' columns={{base: 1, md: 2, lg: 4}}>
-        {filteredData &&
-          filteredData.map((community, k) => (
-            <CommunityCard name={community.name} slug={community.id.toString()} key={k} pfpUrl={community.logoURL}
-                           admins={community.admins}/>
-          ))}
+        {filteredData && filteredData.map((community: Community, k: number) => (
+            <CommunityCard name={community.name} slug={community.id.toString()} key={k} pfpUrl={community.logoURL} admins={community.admins} disabled={community.disabled}/>
+        ))}
       </SimpleGrid>
-      <Check error={error} isLoading={isLoading}/>
+      <Check error={allCommunitiesError || myCommunitiesError} isLoading={isAllCommunitiesLoading || isMyCommunitiesLoading}/>
       <Box
         w='full'
         boxShadow='sm'

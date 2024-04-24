@@ -1,17 +1,5 @@
 import {appUrl} from '../util/constants'
-import {Address, FetchFunction, Profile} from '../util/types'
-
-export type Community = {
-  id: number
-  name: string
-  logoURL: string
-  admins: Profile[]
-  notifications: boolean
-  censusType: string
-  censusAddresses: Address[]
-  channels: string[]
-  groupChat: string
-}
+import {Community, FetchFunction, Profile} from '../util/types'
 
 export const fetchCommunities = (bfetch: FetchFunction) => async () => {
   const response = await bfetch(`${appUrl}/communities`)
