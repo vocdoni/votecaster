@@ -4,6 +4,7 @@ import { PropsWithChildren } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { fetchLatestPolls, fetchPollsByVotes, fetchTopCreators, fetchTopVoters, UserRanking } from '../queries/tops'
 import type { Poll } from '../util/types'
+import { appUrl } from '../util/constants'
 import { useAuth } from './Auth/useAuth'
 import { Check } from './Check'
 
@@ -80,7 +81,7 @@ export const TopPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: stri
       {polls.map((poll, index) => (
         <Link
           key={index}
-          href={`https://warpcast.com/${poll.createdByUsername}`}
+          href={`${appUrl}/${poll.electionId}`}
           isExternal
           _hover={{
             textDecoration: 'none',
