@@ -80,6 +80,7 @@ const CommunityPoll = () => {
   return <PollView 
           loaded={loaded}
           loading={loading}
+          onChain={true}
           poll={pollResults}
           errorMessage={error}
           electionId={electionId} />

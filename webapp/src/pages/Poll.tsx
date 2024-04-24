@@ -50,6 +50,7 @@ const Poll = () => {
 
   return <PollView 
           loaded={loaded}
+          onChain={false}
           loading={loading}
           poll={pollResults}
           errorMessage={error}

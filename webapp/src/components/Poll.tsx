@@ -29,13 +29,14 @@ import { appUrl, degenContractAddress } from '../util/constants'
 
 export type PollViewProps = {
   electionId: string | undefined,
+  onChain: boolean,
   poll: PollResult | null,
   loading: boolean | false,
   loaded: boolean | false,
   errorMessage: string | null
 }
 
-export const PollView = ({poll, electionId, loading, loaded, errorMessage}: PollViewProps) => {
+export const PollView = ({poll, electionId, loading, loaded, errorMessage, onChain}: PollViewProps) => {
   const { bfetch } = useAuth()
   const [voters, setVoters] = useState([])
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${electionId}`)
@@ -105,7 +106,7 @@ export const PollView = ({poll, electionId, loading, loaded, errorMessage}: Poll
                     <TagLabel>Ongoing</TagLabel>
                   </Tag>
                 }
-                {poll?.finalized && <Tag colorScheme='cyan'>
+                {poll?.finalized && onChain && <Tag colorScheme='cyan'>
                   <TagLeftIcon as={FaCheck}></TagLeftIcon>
                   <TagLabel>Results settled on-chain</TagLabel>
                 </Tag>}
@@ -119,7 +120,7 @@ export const PollView = ({poll, electionId, loading, loaded, errorMessage}: Poll
             <Skeleton isLoaded={!loading}>
               <VStack px={4} alignItems='left'>
                 <Heading size='sm' fontWeight={'semibold'}>{poll?.question}</Heading>
-                {poll?.finalized && <Alert status='success' variant='left-accent' rounded={4}>
+                {poll?.finalized && onChain && <Alert status='success' variant='left-accent' rounded={4}>
                   <Box>
                     <AlertTitle fontSize={'sm'}>Results verifiable on Degenchain</AlertTitle>
                     <AlertDescription fontSize={'sm'}>
