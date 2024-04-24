@@ -39,7 +39,14 @@ const Poll = () => {
             finalized: apiData.finalized,
             censusParticipantsCount: apiData.censusParticipantsCount,
           })
-          setVoters(await fetchPollsVoters(bfetch)(electionId))
+          // get voters
+          if (apiData.voteCount > 0) {
+            try {
+              setVoters(await fetchPollsVoters(bfetch)(electionId))
+            } catch (e) {
+              console.log("error fetching voters", e)
+            }
+          }
         } catch (e) {
           setError("Error fetching poll results")
           console.error(e)

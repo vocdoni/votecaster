@@ -30,6 +30,7 @@ const CommunityPoll = () => {
           const provider = new ethers.JsonRpcProvider(degenChainRpc)
           const communityHubContract = CommunityHub__factory.connect(degenContractAddress, provider)
           const contractData = await communityHubContract.getResult(communityId, toArrayBuffer(electionId))
+          let voteCount = 0
           if (contractData.date !== "") {
             const participants = contractData.participants.map((p) => parseInt(p.toString()))
             const tally = contractData.tally.map((t) => t.map((v) => parseInt(v.toString())))
@@ -46,6 +47,7 @@ const CommunityPoll = () => {
               finalized: true,
               censusParticipantsCount: Number(contractData.totalVotingPower), // TODO: get this from the contract or api
             })
+            voteCount = contractData.participants.length
             console.log("results from contract")
           } else {
             const apiData = await fetchPollInfo(bfetch)(electionId)
@@ -66,9 +68,17 @@ const CommunityPoll = () => {
               finalized: apiData.finalized,
               censusParticipantsCount: apiData.censusParticipantsCount,
             })
+            voteCount = apiData.voteCount
             console.log("results from api")
           }
-          setVoters(await fetchPollsVoters(bfetch)(electionId))
+         // get voters
+          if (voteCount > 0) {
+            try {
+              setVoters(await fetchPollsVoters(bfetch)(electionId))
+            } catch (e) {
+              console.log("error fetching voters", e)
+            }
+          }
         } catch (e) {
           setError("Error fetching poll results")
           console.error(e)

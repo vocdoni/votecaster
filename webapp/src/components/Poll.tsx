@@ -123,9 +123,9 @@ export const PollView = ({poll, voters, electionId, loading, loaded, errorMessag
                     <Box key={index} w='full'>
                       <Flex justifyContent='space-between' w='full'>
                         <Text>{option}</Text>
-                        {!!poll?.tally[0] && <Text>{poll?.tally[0][index]} votes</Text>}
+                        {!!poll.voteCount && !!poll?.tally[0] && <Text>{poll?.tally[0][index]} votes</Text>}
                       </Flex>
-                      {!!poll?.tally[0] && <Progress size='sm' rounded={50} value={poll?.tally[0][index] / poll?.voteCount * 100} />}
+                      {!!poll.voteCount && !!poll?.tally[0] && <Progress size='sm' rounded={50} value={poll?.tally[0][index] / poll?.voteCount * 100} />}
                     </Box>
                   ))}
                 </VStack>
