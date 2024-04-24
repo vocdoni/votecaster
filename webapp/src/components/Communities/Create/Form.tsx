@@ -1,4 +1,4 @@
-import {Alert, Box, Heading, Text, VStack, AlertDescription, Flex} from '@chakra-ui/react'
+import {Alert, AlertDescription, Box, Flex, Heading, Text, VStack} from '@chakra-ui/react'
 import {FormProvider, SubmitHandler, useForm} from 'react-hook-form'
 import {useAccount, useWalletClient, useBalance, type UseWalletClientReturnType} from 'wagmi'
 import {degenContractAddress} from '../../../util/constants'
@@ -172,14 +172,18 @@ export const CommunitiesCreateForm = () => {
             >
               <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
                 <VStack spacing={8} alignItems='left'>
+                  <Text fontSize='sm' color={'purple.500'}>Required information</Text>
                   <Meta/>
                   <CensusSelector/>
-                  <Channels/>
                 </VStack>
               </Box>
               <Flex direction={'column'} gap={4}>
                 <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-                  <GroupChat/>
+                  <VStack spacing={8} alignItems='left'>
+                    <Text fontSize='sm' color={'purple.500'}>Social information</Text>
+                    <Channels/>
+                    <GroupChat/>
+                  </VStack>
                 </Box>
                 <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
                   <Confirm isLoading={isPending || isLoadingPrice || isBalanceLoading} price={calcPrice} balance={userBalance}/>
