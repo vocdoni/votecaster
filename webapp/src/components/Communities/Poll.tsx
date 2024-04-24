@@ -17,7 +17,7 @@ import {
   Text,
 } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
-import { FaDownload, FaArrowUp, FaRegCircleStop, FaPlay } from 'react-icons/fa6'
+import { FaDownload, FaCheck, FaRegCircleStop, FaPlay } from 'react-icons/fa6'
 
 import { useAuth } from '../Auth/useAuth'
 import { fetchShortURL } from '../../queries/common'
@@ -104,8 +104,8 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
                   </Tag>
                 }
                 {poll?.finalized && <Tag colorScheme='cyan'>
-                  <TagLeftIcon as={FaArrowUp}></TagLeftIcon>
-                  <TagLabel>Live</TagLabel>
+                  <TagLeftIcon as={FaCheck}></TagLeftIcon>
+                  <TagLabel>Results settled on-chain</TagLabel>
                 </Tag>}
               </Flex>
             </Skeleton>
