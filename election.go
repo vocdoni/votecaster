@@ -253,24 +253,9 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 	}
 
 	if !finalized { // election is not finalized, so we need to fetch the results from the Vochain API and update the database
-		election, err := v.election(electionID)
+		results, err = v.updateAndFetchResultsFromDatabase(electionID, dbElection.CensusERC20TokenDecimals, nil)
 		if err != nil {
-			return fmt.Errorf("failed to fetch election: %w", err)
-		}
-
-		// Update the results on the database
-		choices, votes := extractResults(election, dbElection.CensusERC20TokenDecimals)
-		if err := v.db.SetPartialResults(electionID, choices, bigIntsToStrings(votes)); err != nil {
-			return fmt.Errorf("failed to update results: %w", err)
-		}
-
-		// Update LRU cached election
-		_ = v.electionLRU.Add(fmt.Sprintf("%x", electionID), election)
-
-		// Fetch results from the database to return them in the response
-		results, err = v.db.Results(electionID)
-		if err != nil {
-			return fmt.Errorf("failed to fetch results: %w", err)
+			return fmt.Errorf("failed to update/fetch results: %w", err)
 		}
 	}
 

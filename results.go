@@ -72,16 +72,6 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		tokenDecimals = electiondb.CensusERC20TokenDecimals
 	}
 
-	// Update the results on the database
-	choices, votes := extractResults(election, tokenDecimals)
-	if err := v.db.SetPartialResults(electionIDbytes, choices, bigIntsToStrings(votes)); err != nil {
-		return fmt.Errorf("failed to update results: %w", err)
-	}
-
-	// Update LRU cached election
-	evicted := v.electionLRU.Add(electionID, election)
-	log.Debugw("updated election cache", "electionID", electionID, "evicted", evicted)
-
 	// if final results, create the static PNG image with the results
 	if election.FinalResults {
 		id, err := v.finalizeElectionResults(election, electiondb)
@@ -94,10 +84,15 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
+	} else {
+		_, err := v.updateAndFetchResultsFromDatabase(electionIDbytes, tokenDecimals, election)
+		if err != nil {
+			return fmt.Errorf("failed to update/fetch results: %w", err)
+		}
 	}
 
 	// if not final results, create the dynamic PNG image with the results
-	response := strings.ReplaceAll(frame(frameResults), "{image}", resultsPNGfile(election, electiondb.CensusERC20TokenDecimals))
+	response := strings.ReplaceAll(frame(frameResults), "{image}", resultsPNGfile(election, tokenDecimals))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
@@ -285,4 +280,42 @@ func calculateTurnout(totalWeightStr, castedWeightStr string) *big.Int {
 	turnoutPercentage := new(big.Int).Div(castedWeightMul, totalWeight)
 
 	return turnoutPercentage
+}
+
+// updateAndFetchResultsFromDatabase updates the results on the database and returns them updated.
+// It also updates the LRU cached election and generates the PNG image with the results in the background.
+// If election is nil, it fetches it from the vochain API.
+func (v *vocdoniHandler) updateAndFetchResultsFromDatabase(
+	electionID types.HexBytes,
+	erc20TokenDecimals uint32,
+	election *api.Election,
+) (*mongo.Results, error) {
+	log.Infow("updating partial results", "electionID", electionID.String())
+	if election == nil {
+		var err error
+		election, err = v.election(electionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch election: %w", err)
+		}
+	}
+
+	// Update the results on the database
+	choices, votes := extractResults(election, erc20TokenDecimals)
+	if err := v.db.SetPartialResults(electionID, choices, bigIntsToStrings(votes)); err != nil {
+		return nil, fmt.Errorf("failed to update results: %w", err)
+	}
+
+	// Update LRU cached election
+	_ = v.electionLRU.Add(fmt.Sprintf("%x", electionID), election)
+
+	// Fetch results from the database to return them in the response
+	results, err := v.db.Results(electionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch results: %w", err)
+	}
+
+	// Generate the PNG image with the results in the background
+	go resultsPNGfile(election, erc20TokenDecimals)
+
+	return results, nil
 }
