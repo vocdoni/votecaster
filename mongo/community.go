@@ -181,12 +181,22 @@ func (ms *MongoStorage) IsCommunityAdmin(userID, communityID uint64) bool {
 	return count > 0
 }
 
-// SetDisabled sets the disabled status of the community with the given ID.
-func (ms *MongoStorage) CommunityDisabled(communityID uint64, disabled bool) error {
+// SetCommunityStatus sets the disabled status of the community with the given ID.
+func (ms *MongoStorage) SetCommunityStatus(communityID uint64, disabled bool) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := ms.communitites.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"disabled": disabled}})
+	return err
+}
+
+// SetCommunityNotifications sets the disabled status of the community with the given ID.
+func (ms *MongoStorage) SetCommunityNotifications(communityID uint64, enabled bool) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := ms.communitites.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"notifications": enabled}})
 	return err
 }

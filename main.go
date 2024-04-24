@@ -622,7 +622,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}/disable", http.MethodPut, "private", handler.disableCommunityHanler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}/status", http.MethodPut, "private", handler.communityStatusHanler); err != nil {
+		log.Fatal(err)
+	}
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}/notifications", http.MethodPut, "private", handler.communityNotificationsHanler); err != nil {
 		log.Fatal(err)
 	}
 
