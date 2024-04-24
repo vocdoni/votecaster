@@ -214,7 +214,7 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 // disableCommunityHanler allows to an admin of a community to disable it.
 func (v *vocdoniHandler) disableCommunityHanler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	var err error
-	disabled := false
+	var disabled bool
 	if disabledValue := ctx.Request.URL.Query().Get("disabled"); disabledValue == "" {
 		return ctx.Send([]byte("no disabled value provided"), http.StatusBadRequest)
 	} else {
