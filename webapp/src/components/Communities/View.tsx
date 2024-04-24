@@ -131,49 +131,51 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
       </GridItem>
       {!!communityPolls && <GridItem gridArea='polls'>
         <WhiteBox>
-          <Heading size={'md'} mb={4}>Community Polls</Heading>
-          <TableContainer>
-            <Table style={{ overflowX: 'auto' }} maxW="100%">
-              <Thead>
-                <Tr>
-                  <Th>Question</Th>
-                  <Th isNumeric>Votes</Th>
-                  <Th isNumeric>Census size</Th>
-                  <Th isNumeric>Participation(%)</Th>
-                  <Th>Last vote</Th>
-                  <Th>Status</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {communityPolls?.map((poll, index) => (
-                  <Tr key={index}>
-                    <Td>
-                      <RouterLink to={`poll/${poll.electionId}`}>{poll.question}</RouterLink>
-                      <Text as={'p'} fontSize={'xs'} color='gray'>by {poll.createdByDisplayname}</Text>
-                    </Td>
-                    <Td isNumeric>{poll.voteCount}</Td>
-                    <Td isNumeric>{poll.censusParticipantsCount}</Td>
-                    <Td isNumeric>{`${(poll.voteCount / poll.censusParticipantsCount * 100).toFixed(1)}%`}</Td>
-                    <Td>{poll.voteCount > 0 ? humanDate(poll.lastVoteTime) : '-'}</Td>
-                    <Td>
-                      <VStack>
-                        {poll.finalized ?
-                          <Tag>
-                            <TagLeftIcon as={FaRegCircleStop}></TagLeftIcon>
-                            <TagLabel>Ended</TagLabel>
-                          </Tag> :
-                          <Tag colorScheme='green'>
-                            <TagLeftIcon as={FaPlay}></TagLeftIcon>
-                            <TagLabel>Ongoing</TagLabel>
-                          </Tag>}
-                        {poll.finalized && <Text fontSize={'xs'} color={'gray'}>{humanDate(poll.endTime)}</Text>}
-                      </VStack>
-                    </Td>
+          <VStack width={'100%'} alignItems={'start'} gap={4}>
+            <Heading size={'md'}>Community Polls</Heading>
+            <TableContainer width={'100%'}>
+              <Table style={{ overflowX: 'auto' }} maxW="100%">
+                <Thead>
+                  <Tr>
+                    <Th>Question</Th>
+                    <Th isNumeric>Votes</Th>
+                    <Th isNumeric>Census size</Th>
+                    <Th isNumeric>Participation(%)</Th>
+                    <Th>Last vote</Th>
+                    <Th>Status</Th>
                   </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </TableContainer>
+                </Thead>
+                <Tbody>
+                  {communityPolls?.map((poll, index) => (
+                    <Tr key={index}>
+                      <Td>
+                        <RouterLink to={`poll/${poll.electionId}`}>{poll.question}</RouterLink>
+                        <Text as={'p'} fontSize={'xs'} color='gray'>by {poll.createdByDisplayname}</Text>
+                      </Td>
+                      <Td isNumeric>{poll.voteCount}</Td>
+                      <Td isNumeric>{poll.censusParticipantsCount}</Td>
+                      <Td isNumeric>{`${(poll.voteCount / poll.censusParticipantsCount * 100).toFixed(1)}%`}</Td>
+                      <Td>{poll.voteCount > 0 ? humanDate(poll.lastVoteTime) : '-'}</Td>
+                      <Td>
+                        <VStack>
+                          {poll.finalized ?
+                            <Tag>
+                              <TagLeftIcon as={FaRegCircleStop}></TagLeftIcon>
+                              <TagLabel>Ended</TagLabel>
+                            </Tag> :
+                            <Tag colorScheme='green'>
+                              <TagLeftIcon as={FaPlay}></TagLeftIcon>
+                              <TagLabel>Ongoing</TagLabel>
+                            </Tag>}
+                          {poll.finalized && <Text fontSize={'xs'} color={'gray'}>{humanDate(poll.endTime)}</Text>}
+                        </VStack>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </VStack>
         </WhiteBox>
       </GridItem>}
     </Grid>
