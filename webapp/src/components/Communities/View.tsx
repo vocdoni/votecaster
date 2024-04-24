@@ -21,7 +21,7 @@ import {
   Tbody,
   VStack
 } from '@chakra-ui/react'
-import {PropsWithChildren, ReactElement, Fragment} from 'react'
+import {PropsWithChildren, ReactElement, Fragment, useMemo} from 'react'
 import {TbExternalLink} from "react-icons/tb"
 import {SiFarcaster} from "react-icons/si";
 import {BsChatDotsFill} from "react-icons/bs";
@@ -56,21 +56,8 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
     enabled: !!community,
   })
   const navigate = useNavigate() // Hook to control navigation
-
+  const imAdmin = useMemo(() => isAuthenticated && community.admins.some(admin => admin.fid == profile?.fid), [isAuthenticated, community, profile]);
   if (!community) return;
-
-
-  const imAdmin = isAuthenticated && community.admins.some(admin => admin.fid == profile?.fid);
-
-  const disableCommunity = async () => {
-    try {
-      await bfetch(`${appUrl}/communities/${community.id}`, {method: 'DELETE'}).then(() => refetch())
-    } catch (e) {
-      console.error('could not unmute user', e)
-    } finally {
-      navigate('/communities')
-    }
-  }
 
   const channelLinks: ReactElement[] = [];
   community.channels.forEach((channel, index) => {
@@ -86,6 +73,15 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
     }
   });
 
+  const disableCommunity = async () => {
+    try {
+      await bfetch(`${appUrl}/communities/${community.id}`, {method: 'DELETE'}).then(() => refetch())
+    } catch (e) {
+      console.error('could not unmute user', e)
+    } finally {
+      navigate('/communities')
+    }
+  }
   return (
     <Grid
       w='full'
@@ -118,20 +114,23 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
         <WhiteBox>
           <Box>
             <Heading size={'sm'} mb={2}>Community Engagement</Heading>
-            <HStack spacing={2} align='center'>
-              <Icon as={SiFarcaster} size={8}/>
-              <Text fontWeight={'semibold'} fontSize={'sm'}>Farcaster channels</Text>
-            </HStack>
-            <Box ml={6} mb={2}>
-              {channelLinks}
-            </Box>
-            <Link isExternal href={community.groupChat}>
+            {!!channelLinks.length && <>
+              <HStack spacing={2} align='center'>
+                <Icon as={SiFarcaster} size={8}/>
+                <Text fontWeight={'semibold'} fontSize={'sm'}>Farcaster channels</Text>
+              </HStack>
+              <Box ml={6} mb={2}>
+                {channelLinks}
+              </Box>
+            </>}
+            {!!community.groupChat && <Link isExternal href={community.groupChat}>
               <HStack spacing={2} align='center'>
                 <Icon as={BsChatDotsFill}/>
                 <Heading size='xs'><Text as='u'>Group chat</Text></Heading>
                 <Icon as={TbExternalLink} size={4}/>
               </HStack>
-            </Link>
+            </Link>}
+            {!channelLinks.length && !community.groupChat && <Text>There is no aditional information for this community.</Text>}
           </Box>
         </WhiteBox>
       </GridItem>
