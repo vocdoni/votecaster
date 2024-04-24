@@ -214,40 +214,35 @@ func resultsPNGfile(election *api.Election, tokenDecimals uint32) string {
 	return imageLink(id)
 }
 
+// extractResults extracts the choices and results from an election. It returns nil if there is an issue processing the data.
 func extractResults(election *api.Election, censusTokenDecimals uint32) (choices []string, results []*big.Int) {
 	if election == nil || election.Metadata == nil || election.Results == nil {
 		return nil, nil // Return nil if the main structures are nil
 	}
 
-	questions := election.Metadata.Questions
-	if len(questions) == 0 || len(questions[0].Choices) == 0 || len(election.Results) == 0 {
-		return nil, nil // Return nil if there are no questions or choices or results
+	apiQuestions := election.Metadata.Questions
+	apiResults := election.Results
+	if len(apiQuestions) == 0 || len(apiQuestions[0].Choices) == 0 ||
+		len(apiResults) == 0 || len(apiResults[0]) < len(apiQuestions[0].Choices) {
+		return nil, nil
 	}
 
-	firstQuestionChoices := questions[0].Choices
-	firstResult := election.Results[0]
-	if len(firstResult) == 0 {
-		return nil, nil // Return nil if the results for the first question are empty
-	}
-
-	for _, option := range firstQuestionChoices {
-		defaultTitle, ok := option.Title["default"]
+	for _, question := range apiQuestions[0].Choices {
+		t, ok := question.Title["default"]
 		if !ok {
 			continue // Skip if there's no default title
 		}
-		choices = append(choices, defaultTitle)
-
-		if option.Value >= uint32(len(firstResult)) || firstResult[option.Value] == nil {
-			results = append(results, nil) // Append nil if the index is out of range or the result is nil
+		// check for the index in the results array
+		if len(apiResults[0]) <= int(question.Value) {
 			continue
 		}
-
-		bigIntResult := firstResult[option.Value].MathBigInt()
+		bigIntResult := apiResults[0][question.Value].MathBigInt()
 		if censusTokenDecimals > 0 {
 			// Scale the result down based on the number of decimals
 			scalingFactor := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(censusTokenDecimals)), nil)
 			bigIntResult = new(big.Int).Div(bigIntResult, scalingFactor)
 		}
+		choices = append(choices, t)
 		results = append(results, bigIntResult)
 	}
 	return choices, results
@@ -290,7 +285,6 @@ func (v *vocdoniHandler) updateAndFetchResultsFromDatabase(
 	erc20TokenDecimals uint32,
 	election *api.Election,
 ) (*mongo.Results, error) {
-	log.Infow("updating partial results", "electionID", electionID.String())
 	if election == nil {
 		var err error
 		election, err = v.election(electionID)
@@ -301,7 +295,9 @@ func (v *vocdoniHandler) updateAndFetchResultsFromDatabase(
 
 	// Update the results on the database
 	choices, votes := extractResults(election, erc20TokenDecimals)
-	if err := v.db.SetPartialResults(electionID, choices, bigIntsToStrings(votes)); err != nil {
+	votesString := bigIntsToStrings(votes)
+	log.Infow("updating partial results", "electionID", electionID.String(), "choices", choices, "votes", votesString)
+	if err := v.db.SetPartialResults(electionID, choices, votesString); err != nil {
 		return nil, fmt.Errorf("failed to update results: %w", err)
 	}
 

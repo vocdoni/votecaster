@@ -19,29 +19,30 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { FaDownload, FaCheck, FaRegCircleStop, FaPlay } from 'react-icons/fa6'
 
-import { useAuth } from '../Auth/useAuth'
-import { fetchShortURL } from '../../queries/common'
-import type { PollResult } from '../../util/types'
-import { humanDate } from '../../util/strings'
-import { CsvGenerator } from '../../generator'
-import { appUrl, degenContractAddress } from '../../util/constants'
+import { useAuth } from './Auth/useAuth'
+import { fetchShortURL } from '../queries/common'
+import type { PollResult } from '../util/types'
+import { humanDate } from '../util/strings'
+import { CsvGenerator } from '../generator'
+import { appUrl, degenContractAddress } from '../util/constants'
 
 
-export type CommunitiyPollViewProps = {
+export type PollViewProps = {
   electionId: string | undefined,
-  communityId: string | undefined,
+  onChain: boolean,
   poll: PollResult | null,
   loading: boolean | false,
   loaded: boolean | false,
+  errorMessage: string | null
 }
 
-export const CommunityPollView = ({poll, electionId, loading, loaded}: CommunitiyPollViewProps) => {
+export const PollView = ({poll, electionId, loading, loaded, errorMessage, onChain}: PollViewProps) => {
   const { bfetch } = useAuth()
   const [voters, setVoters] = useState([])
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${electionId}`)
 
   useEffect(() => {
-    if (loaded || loading || !electionId || !poll) return
+    if (loaded || loading || !poll || !electionId ) return
       ; (async () => {
         // get the short url
         try {
@@ -82,6 +83,8 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
     return (poll.voteCount / poll.censusParticipantsCount * 100).toFixed(1)
   }, [poll])
 
+  if (errorMessage) return <Text>{errorMessage}</Text>
+
   return (
     <Box
       gap={4}
@@ -103,7 +106,7 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
                     <TagLabel>Ongoing</TagLabel>
                   </Tag>
                 }
-                {poll?.finalized && <Tag colorScheme='cyan'>
+                {poll?.finalized && onChain && <Tag colorScheme='cyan'>
                   <TagLeftIcon as={FaCheck}></TagLeftIcon>
                   <TagLabel>Results settled on-chain</TagLabel>
                 </Tag>}
@@ -117,7 +120,7 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
             <Skeleton isLoaded={!loading}>
               <VStack px={4} alignItems='left'>
                 <Heading size='sm' fontWeight={'semibold'}>{poll?.question}</Heading>
-                {poll?.finalized && <Alert status='success' variant='left-accent' rounded={4}>
+                {poll?.finalized && onChain && <Alert status='success' variant='left-accent' rounded={4}>
                   <Box>
                     <AlertTitle fontSize={'sm'}>Results verifiable on Degenchain</AlertTitle>
                     <AlertDescription fontSize={'sm'}>
@@ -164,7 +167,7 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
             <Skeleton isLoaded={!loading}>
               <Box pb={4}>
                 <Heading size='sm'>Participant Turnout</Heading>
-                <Text fontSize={'sm'} color={'gray'}>Members who voted vs. total members in the census.</Text>
+                <Text fontSize={'sm'} color={'gray'}>Ratio of unique voters to total elegible participants.</Text>
               </Box>
               <Flex alignItems={'end'} gap={2}>
                 <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{poll?.voteCount}</Text>
@@ -177,7 +180,7 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
             <Skeleton isLoaded={!loading}>
               <Box pb={4}>
                 <Heading size='sm'>Voting Power Turnout</Heading>
-                <Text fontSize={'sm'} color={'gray'}>Total votes cast versus total vote weight.</Text>
+                <Text fontSize={'sm'} color={'gray'}>Proportion of voting power used relative to the total available.</Text>
               </Box>
               <Flex alignItems={'end'} gap={2}>
                 <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{poll?.turnout}</Text>
