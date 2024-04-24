@@ -1,4 +1,4 @@
-import {Box, Button, Heading, Link, SimpleGrid, Text, VStack, Stack, Flex} from '@chakra-ui/react'
+import {Box, Button, Flex, Heading, HStack, Link, SimpleGrid, Text, VStack } from '@chakra-ui/react'
 import {useQuery} from '@tanstack/react-query'
 import {Link as RouterLink} from 'react-router-dom'
 import {fetchCommunities, fetchCommunitiesByAdmin} from '../../queries/communities'
@@ -35,8 +35,8 @@ export const CommunitiesList = () => {
 
   return (
     <VStack spacing={4} w='full' alignItems='start'>
-      <Flex my={4} w='full' justifyContent='space-between' alignItems='center'>
-        <Heading size='md'>Communities</Heading>
+      <Flex my={4} w='full' justifyContent='space-between' alignItems='center' wrap={'wrap'}>
+        <Heading size='md' m={4}>Communities</Heading>
       
         {isAuthenticated && <ToggleStateComponent 
           state={showMyCommunities} 
@@ -45,7 +45,7 @@ export const CommunitiesList = () => {
           state2text={"My communities"}/>}
       </Flex>
 
-      <SimpleGrid gap={4} w='full' alignItems='start' columns={{base: 1, md: 2, lg: 4}}>
+      <SimpleGrid gap={4} w='full' alignItems='start' columns={{base: 1, md: 2, lg: 3, xl: 4}}>
         {filteredData && filteredData.map((community: Community, k: number) => (
             <CommunityCard name={community.name} slug={community.id.toString()} key={k} pfpUrl={community.logoURL} admins={community.admins} disabled={community.disabled}/>
         ))}
@@ -85,7 +85,7 @@ interface IToggleStateComponentProps {
 
 export const ToggleStateComponent = ({state, toggleState, state1text, state2text}: IToggleStateComponentProps) => {
   return (
-    <Stack direction='row' align='center' gap={4}>
+    <HStack m={4} align='center' gap={4}>
       <Button size={'sm'} onClick={() => {
         if (!state) toggleState()
       }} leftIcon={<FaRegStar/>} variant={state ? 'solid' : 'ghost'}>
@@ -96,7 +96,7 @@ export const ToggleStateComponent = ({state, toggleState, state1text, state2text
       }} leftIcon={<FaUsers/>} variant={!state ? 'solid' : 'ghost'}>
         {state1text}
       </Button>
-    </Stack>
+    </HStack>
   )
 
 }

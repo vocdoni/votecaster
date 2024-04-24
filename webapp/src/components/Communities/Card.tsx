@@ -30,8 +30,8 @@ export const CommunityCard = ({name, slug, pfpUrl, admins, disabled}: CommunityC
   >
     <HStack>
       <Avatar src={pfpUrl} filter={disabled ? 'grayscale(1)': '' }/>
-      <Flex mx={2} w={'full'} justifyItems={'start'} alignItems={'center'} justifyContent={'space-between'}>
-        <Text fontWeight='bold'>
+      <Flex mx={2} w={'full'} justifyItems={'start'} alignItems={'center'} justifyContent={'space-between'} flexWrap={'wrap'}>
+        <Text fontWeight='bold' noOfLines={1}>
           {name}
         </Text>
         
