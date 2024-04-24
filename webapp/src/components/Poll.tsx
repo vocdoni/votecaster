@@ -167,7 +167,7 @@ export const PollView = ({poll, electionId, loading, loaded, errorMessage, onCha
             <Skeleton isLoaded={!loading}>
               <Box pb={4}>
                 <Heading size='sm'>Participant Turnout</Heading>
-                <Text fontSize={'sm'} color={'gray'}>Members who voted vs. total members in the census.</Text>
+                <Text fontSize={'sm'} color={'gray'}>Ratio of unique voters to total elegible participants.</Text>
               </Box>
               <Flex alignItems={'end'} gap={2}>
                 <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{poll?.voteCount}</Text>
@@ -180,7 +180,7 @@ export const PollView = ({poll, electionId, loading, loaded, errorMessage, onCha
             <Skeleton isLoaded={!loading}>
               <Box pb={4}>
                 <Heading size='sm'>Voting Power Turnout</Heading>
-                <Text fontSize={'sm'} color={'gray'}>Total votes cast versus total vote weight.</Text>
+                <Text fontSize={'sm'} color={'gray'}>Proportion of voting power used relative to the total available.</Text>
               </Box>
               <Flex alignItems={'end'} gap={2}>
                 <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{poll?.turnout}</Text>
