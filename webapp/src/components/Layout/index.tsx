@@ -26,10 +26,10 @@ export const Layout = () => {
             <Image src={logo} alt='powered by vocdoni' />
           </Link>
           <Flex gap={8} justifyContent='center' color={'gray.600'}>
-              <Link isExternal href='https://chat.vocdoni.io/'><Icon as={FaDiscord}/></Link>
               <Link isExternal href='https://github.com/vocdoni'><Icon as={FaGithub}/></Link>
-              <Link isExternal href='https://x.com/vocdoni'><Icon as={FaXTwitter}/></Link>
               <Link isExternal href='https://warpcast.com/vocdoni'><Icon as={SiFarcaster}/></Link>
+              <Link isExternal href='https://x.com/vocdoni'><Icon as={FaXTwitter}/></Link>
+              <Link isExternal href='https://chat.vocdoni.io/'><Icon as={FaDiscord}/></Link>
           </Flex>
         </VStack>
       </Flex>
