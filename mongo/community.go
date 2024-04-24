@@ -12,7 +12,7 @@ import (
 )
 
 func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl, groupChatUrl string,
-	census CommunityCensus, channels []string, admins []uint64, notifications bool,
+	census CommunityCensus, channels []string, admins []uint64, notifications, disabled bool,
 ) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
@@ -25,6 +25,7 @@ func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl, groupChatUrl str
 		GroupChatURL:  groupChatUrl,
 		Admins:        admins,
 		Notifications: notifications,
+		Disabled:      disabled,
 	}
 	log.Infow("added new community", "id", id, "name", name, "admins", admins)
 	return ms.addCommunity(&community)
@@ -41,7 +42,7 @@ func (ms *MongoStorage) ListCommunities() ([]Community, error) {
 	defer ms.keysLock.RUnlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	cursor, err := ms.communitites.Find(ctx, bson.M{})
+	cursor, err := ms.communitites.Find(ctx, bson.M{"disabled": false})
 	if err != nil {
 		if strings.Contains(err.Error(), "no documents in result") {
 			return nil, nil
@@ -123,6 +124,9 @@ func (ms *MongoStorage) ListCommunitiesByAdminUsername(username string) ([]Commu
 // DelCommunity removes the community with the specified ID from the database.
 // If an error occurs, it returns the error.
 func (ms *MongoStorage) DelCommunity(communityID uint64) error {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := ms.communitites.DeleteOne(ctx, bson.M{"_id": communityID})
@@ -176,4 +180,14 @@ func (ms *MongoStorage) IsCommunityAdmin(userID, communityID uint64) bool {
 		return false
 	}
 	return count > 0
+}
+
+// SetDisabled sets the disabled status of the community with the given ID.
+func (ms *MongoStorage) CommunityDisabled(communityID uint64, disabled bool) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := ms.communitites.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"disabled": disabled}})
+	return err
 }

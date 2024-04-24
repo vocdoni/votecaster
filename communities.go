@@ -137,6 +137,7 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 			CensusAddresses: cAddresses,
 			CensusChannel:   cChannel,
 			Channels:        c.Channels,
+			Disabled:        c.Disabled,
 		})
 	}
 	res, err := json.Marshal(communities)
@@ -202,6 +203,7 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 		CensusAddresses: cAddresses,
 		CensusChannel:   cChannel,
 		Channels:        dbCommunity.Channels,
+		Disabled:        dbCommunity.Disabled,
 	})
 	if err != nil {
 		return ctx.Send([]byte("error encoding community"), http.StatusInternalServerError)
@@ -211,6 +213,15 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 
 // disableCommunityHanler allows to an admin of a community to disable it.
 func (v *vocdoniHandler) disableCommunityHanler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	var err error
+	disabled := false
+	if disabledValue := ctx.Request.URL.Query().Get("disabled"); disabledValue == "" {
+		return ctx.Send([]byte("no disabled value provided"), http.StatusBadRequest)
+	} else {
+		if disabled, err = strconv.ParseBool(disabledValue); err != nil {
+			return ctx.Send([]byte("invalid disabled value"), http.StatusBadRequest)
+		}
+	}
 	// extract userFID from auth token
 	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
 	if err != nil {
@@ -246,11 +257,11 @@ func (v *vocdoniHandler) disableCommunityHanler(msg *apirest.APIdata, ctx *httpr
 	}
 	// disable the community in the community hub contract and delete it from
 	// the database
-	if err := v.comhub.DisableCommunity(community.ID, true); err != nil {
-		return ctx.Send([]byte("error disabling community"), http.StatusInternalServerError)
+	if err := v.comhub.DisableCommunity(community.ID, disabled); err != nil {
+		return ctx.Send([]byte("error setting community disable status in the contract"), http.StatusInternalServerError)
 	}
-	if err := v.db.DelCommunity(community.ID); err != nil {
-		return ctx.Send([]byte("error deleting community"), http.StatusInternalServerError)
+	if err := v.db.CommunityDisabled(community.ID, disabled); err != nil {
+		return ctx.Send([]byte("error setting community disable status in the database"), http.StatusInternalServerError)
 	}
 	return ctx.Send([]byte("ok"), http.StatusOK)
 }

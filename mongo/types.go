@@ -203,6 +203,7 @@ type Community struct {
 	GroupChatURL  string          `json:"groupChatURL" bson:"groupChatURL"`
 	Admins        []uint64        `json:"owners" bson:"owners"`
 	Notifications bool            `json:"notifications" bson:"notifications"`
+	Disabled      bool            `json:"disabled" bson:"disabled"`
 }
 
 const (

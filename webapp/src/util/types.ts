@@ -63,6 +63,19 @@ export type PollInfo = {
   participants: number[]
 }
 
+export type Community = {
+  id: number
+  name: string
+  logoURL: string
+  admins: Profile[]
+  notifications: boolean
+  censusType: string
+  censusAddresses: Address[]
+  channels: string[]
+  groupChat: string
+  disabled: boolean
+}
+
 export interface HTTPErrorResponse {
   response?: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

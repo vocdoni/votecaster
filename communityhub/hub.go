@@ -150,8 +150,6 @@ func (l *CommunityHub) ScanNewCommunities() {
 					// next community ID, otherwise log the error unless the
 					// community is not found
 					switch err {
-					case ErrDisabledCommunity:
-						l.nextCommunityID.Add(1)
 					case ErrCommunityNotFound:
 						break
 					default:
@@ -166,7 +164,8 @@ func (l *CommunityHub) ScanNewCommunities() {
 					"name", newCommunity.Name,
 					"censusType", newCommunity.CensusType,
 					"censusChannel", newCommunity.CensusChannel,
-					"censusAddresses", newCommunity.CensusAddesses)
+					"censusAddresses", newCommunity.CensusAddesses,
+					"disabled", newCommunity.Disabled)
 				if err := l.storeCommunity(newCommunity); err != nil {
 					// return if database is closed
 					if err == ErrClosedDB {
@@ -352,7 +351,7 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) error {
 	}
 	// create community in the database
 	if err := l.db.AddCommunity(c.ID, c.Name, c.ImageURL, c.GroupChatURL,
-		dbCensus, c.Channels, c.Admins, c.Notifications,
+		dbCensus, c.Channels, c.Admins, c.Notifications, c.Disabled,
 	); err != nil {
 		if err == mongo.ErrClientDisconnected {
 			return ErrClosedDB
