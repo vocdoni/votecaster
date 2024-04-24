@@ -1,4 +1,4 @@
-import {Box, Button, Heading, Link, SimpleGrid, Text, VStack, Stack} from '@chakra-ui/react'
+import {Box, Button, Heading, Link, SimpleGrid, Text, VStack, Stack, Flex} from '@chakra-ui/react'
 import {useQuery} from '@tanstack/react-query'
 import {Link as RouterLink} from 'react-router-dom'
 import {fetchCommunities, fetchCommunitiesByAdmin} from '../../queries/communities'
@@ -35,11 +35,16 @@ export const CommunitiesList = () => {
 
   return (
     <VStack spacing={4} w='full' alignItems='start'>
-      <Heading size='md'>Communities</Heading>
+      <Flex my={4} w='full' justifyContent='space-between' alignItems='center'>
+        <Heading size='md'>Communities</Heading>
+      
+        {isAuthenticated && <ToggleStateComponent 
+          state={showMyCommunities} 
+          toggleState={toggleMyCommunities} 
+          state1text={"All communities"}
+          state2text={"My communities"}/>}
+      </Flex>
 
-      {isAuthenticated &&
-        <ToggleStateComponent state={showMyCommunities} toggleState={toggleMyCommunities} state1text={"All communities"}
-                              state2text={"My communities"}/>}
       <SimpleGrid gap={4} w='full' alignItems='start' columns={{base: 1, md: 2, lg: 4}}>
         {filteredData && filteredData.map((community: Community, k: number) => (
             <CommunityCard name={community.name} slug={community.id.toString()} key={k} pfpUrl={community.logoURL} admins={community.admins} disabled={community.disabled}/>
@@ -80,16 +85,16 @@ interface IToggleStateComponentProps {
 
 export const ToggleStateComponent = ({state, toggleState, state1text, state2text}: IToggleStateComponentProps) => {
   return (
-    <Stack direction='row' align='center'>
-      <Button onClick={() => {
-        if (state) toggleState()
-      }} colorScheme='gray' size='xs' leftIcon={<FaUsers/>} variant={!state ? 'solid' : 'outline'}>
-        {state1text}
-      </Button>
-      <Button onClick={() => {
+    <Stack direction='row' align='center' gap={4}>
+      <Button size={'sm'} onClick={() => {
         if (!state) toggleState()
-      }} colorScheme='gray' size='xs' leftIcon={<FaRegStar/>} variant={state ? 'solid' : 'outline'}>
+      }} leftIcon={<FaRegStar/>} variant={state ? 'solid' : 'ghost'}>
         {state2text}
+      </Button>
+      <Button size={'sm'} onClick={() => {
+        if (state) toggleState()
+      }} leftIcon={<FaUsers/>} variant={!state ? 'solid' : 'ghost'}>
+        {state1text}
       </Button>
     </Stack>
   )

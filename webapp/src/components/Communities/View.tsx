@@ -19,22 +19,24 @@ import {
   Td,
   Th,
   Tbody,
-  VStack
+  VStack,
+  useDisclosure
 } from '@chakra-ui/react'
 import {PropsWithChildren, ReactElement, Fragment, useMemo} from 'react'
 import {TbExternalLink} from "react-icons/tb"
 import {SiFarcaster} from "react-icons/si";
 import {BsChatDotsFill} from "react-icons/bs";
-import {FaRegCircleStop, FaPlay} from 'react-icons/fa6'
+import {FaRegCircleStop, FaPlay, FaSliders} from 'react-icons/fa6'
 import {useQuery} from '@tanstack/react-query'
 import {Link as RouterLink, useNavigate} from 'react-router-dom';
 
-import {appUrl, degenContractAddress} from '../../util/constants'
+import {degenContractAddress} from '../../util/constants'
 import {fetchPollsByCommunity} from '../../queries/tops'
 import {useAuth} from '../Auth/useAuth'
 import {Poll, Community} from '../../util/types';
 import {humanDate} from '../../util/strings'
 import {MdHowToVote} from "react-icons/md";
+import { ManageCommunity } from './Manage';
 
 export type CommunitiesViewProps = {
   community: Community
@@ -49,7 +51,8 @@ const WhiteBox = ({children}: PropsWithChildren) => (
 
 export const CommunitiesView = ({community}: CommunitiesViewProps) => {
   const {bfetch, profile, isAuthenticated} = useAuth()
-  const {data: communityPolls, refetch} = useQuery<Poll[], Error>({
+  const { onOpen: openManageModal, ...modalProps } = useDisclosure()
+  const {data: communityPolls } = useQuery<Poll[], Error>({
     queryKey: ['communityPolls', community?.id],
     queryFn: fetchPollsByCommunity(bfetch, community as Community),
     enabled: !!community,
@@ -72,15 +75,6 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
     }
   });
 
-  const disableCommunity = async () => {
-    try {
-      await bfetch(`${appUrl}/communities/${community.id}/disable?disabled=${!community.disabled}`, {method: 'PUT'}).then(() => refetch())
-    } catch (e) {
-      console.error('could not disable the community', e)
-    } finally {
-      navigate('/communities')
-    }
-  }
   return (
     <Grid
       w='full'
@@ -101,9 +95,10 @@ export const CommunitiesView = ({community}: CommunitiesViewProps) => {
               as={'u'}>🎩 DegenChain</Text></Link>
             </Text>
             {!!imAdmin && <Flex mt={4} gap={4}>
-              <Button onClick={disableCommunity} colorScheme={community.disabled ? 'blue' : 'red'}>
-                {community.disabled ? <Text>Enable community</Text> : <Text>Disable community</Text>}
-              </Button>
+              <Button leftIcon={<FaSliders />} onClick={openManageModal} variant={'outline'}>Manage</Button>
+              <ManageCommunity 
+                {...modalProps} 
+                communityID={community.id} />
               <Button onClick={() => navigate('/')} leftIcon={<MdHowToVote/>}>Create vote</Button></Flex>
             }
           </Box>
