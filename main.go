@@ -287,6 +287,7 @@ func main() {
 			log.Fatal(err)
 		}
 		comHub.ScanNewCommunities()
+		comHub.ListenDisableEvents()
 		defer comHub.Stop()
 	}
 

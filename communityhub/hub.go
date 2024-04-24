@@ -391,3 +391,104 @@ func (l *CommunityHub) authTransactOpts() (*bind.TransactOpts, error) {
 	auth.GasLimit = 10000000
 	return auth, nil
 }
+
+// ListenDisableEvents method listens for the disable events in the contract and
+// disables the communities in the database. It creates a struct and a chan to
+// manage both types of the events. It parses the events from the contract and
+// sends them to the chan, no matter if they are enable or disable events. It
+// listens for the events in the chan to enable or disable the communities. If
+// something goes wrong getting the current last network block, getting the logs
+// from the contract for enable and disable events, or disabling the community in
+// the database, it logs an error and continues with the next iteration.
+func (l *CommunityHub) ListenDisableEvents() {
+	// create a struct and a chan to manage both types of the events
+	type event struct {
+		disabled    bool
+		communityID uint64
+	}
+	eventsCh := make(chan event)
+	// parse the events from the contract and send them to the chan, no matter
+	// if they are enable or disable events
+	handleEnables := func(iter *comhub.CommunityHubTokenCommunityEnabledIterator) {
+		for iter.Next() {
+			eventsCh <- event{
+				disabled:    false,
+				communityID: iter.Event.CommunityId.Uint64(),
+			}
+		}
+	}
+	handleDisables := func(iter *comhub.CommunityHubTokenCommunityDisabledIterator) {
+		for iter.Next() {
+			eventsCh <- event{
+				disabled:    false,
+				communityID: iter.Event.CommunityId.Uint64(),
+			}
+		}
+	}
+	// listen for the events in the chan to enable or disable the communities
+	l.waiter.Add(1)
+	go func() {
+		defer l.waiter.Done()
+		for e := range eventsCh {
+			log.Debugw("new disable event received", "disabled", e.disabled, "communityID", e.communityID)
+			if err := l.db.CommunityDisabled(e.communityID, e.disabled); err != nil {
+				log.Warnw("failed to disable community",
+					"error", err,
+					"communityID", e.communityID,
+					"disabled", e.disabled)
+				continue
+			}
+			log.Debugf("community %d disabled: %t", e.communityID, e.disabled)
+		}
+	}()
+	// listen for the events in the contract from the last block
+	ctx, cancel := context.WithTimeout(l.ctx, 5*time.Second)
+	defer cancel()
+	lastBlock, err := l.w3cli.BlockNumber(ctx)
+	if err != nil {
+		log.Warnw("failed to get the current last network block", "error", err)
+		return
+	}
+	l.waiter.Add(1)
+	go func() {
+		defer l.waiter.Done()
+		defer close(eventsCh)
+
+		ctx, cancel := context.WithCancel(l.ctx)
+		defer cancel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				endBlock, err := l.w3cli.BlockNumber(ctx)
+				if err != nil {
+					log.Warnw("failed to get the current last network block", "error", err)
+					continue
+				}
+				if endBlock <= lastBlock {
+					continue
+				}
+				log.Debugw("scanning for community disable events",
+					"from", lastBlock,
+					"to", endBlock)
+				opts := &bind.FilterOpts{Start: lastBlock, End: &endBlock}
+				// get the logs from the contract for enable and disable events
+				creationsIter, err := l.contract.FilterCommunityEnabled(opts)
+				if err != nil {
+					log.Warnw("failed to get the community created logs", "error", err)
+					continue
+				}
+				go handleEnables(creationsIter)
+				disablesIter, err := l.contract.FilterCommunityDisabled(opts)
+				if err != nil {
+					log.Warnw("failed to get the community disabled logs", "error", err)
+					continue
+				}
+				go handleDisables(disablesIter)
+				lastBlock = endBlock
+				time.Sleep(time.Second * 5)
+			}
+		}
+	}()
+}

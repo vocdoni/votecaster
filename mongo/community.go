@@ -27,7 +27,6 @@ func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl, groupChatUrl str
 		Notifications: notifications,
 		Disabled:      disabled,
 	}
-	log.Infow("added new community", "id", id, "name", name, "admins", admins)
 	return ms.addCommunity(&community)
 }
 
