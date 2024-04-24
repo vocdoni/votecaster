@@ -126,9 +126,6 @@ func (ms *MongoStorage) SetPartialResults(electionID types.HexBytes, choices, vo
 			"title": choices,
 			"votes": votes,
 		},
-		"$setOnInsert": bson.M{
-			"finalized": false, // Ensure new documents are not finalized
-		},
 	}
 
 	// Prepare the filter with an additional check for not finalized
@@ -147,7 +144,5 @@ func (ms *MongoStorage) SetPartialResults(electionID types.HexBytes, choices, vo
 	if err != nil {
 		return fmt.Errorf("cannot update choices and votes: %w", err)
 	}
-
-	log.Debugw("updated partial results", "electionID", electionID.String())
 	return nil
 }

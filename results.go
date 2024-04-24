@@ -290,7 +290,6 @@ func (v *vocdoniHandler) updateAndFetchResultsFromDatabase(
 	erc20TokenDecimals uint32,
 	election *api.Election,
 ) (*mongo.Results, error) {
-	log.Infow("updating partial results", "electionID", electionID.String())
 	if election == nil {
 		var err error
 		election, err = v.election(electionID)
@@ -301,7 +300,9 @@ func (v *vocdoniHandler) updateAndFetchResultsFromDatabase(
 
 	// Update the results on the database
 	choices, votes := extractResults(election, erc20TokenDecimals)
-	if err := v.db.SetPartialResults(electionID, choices, bigIntsToStrings(votes)); err != nil {
+	votesString := bigIntsToStrings(votes)
+	log.Infow("updating partial results", "electionID", electionID.String(), "choices", choices, "votes", votesString)
+	if err := v.db.SetPartialResults(electionID, choices, votesString); err != nil {
 		return nil, fmt.Errorf("failed to update results: %w", err)
 	}
 
