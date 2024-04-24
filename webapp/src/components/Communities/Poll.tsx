@@ -121,11 +121,11 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
                   <Box>
                     <AlertTitle fontSize={'sm'}>Results verifiable on Degenchain</AlertTitle>
                     <AlertDescription fontSize={'sm'}>
-                      This poll has ended. The results are definitive and have been settled on the 🎩 Degenchain.
+                      <Text>This poll has ended. The results are definitive and have been settled on the 🎩 Degenchain.</Text>
+                      <Link fontSize={'xs'} color='gray' textAlign={'right'} isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`}>View contract</Link>
                     </AlertDescription>
                   </Box>
                 </Alert>}
-                <Link fontSize={'xs'} color='gray' textAlign={'right'} isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`}>View contract</Link>
                 <VStack spacing={6} alignItems='left'>
                   {poll?.options.map((option, index) => (
                     <Box key={index} w='full'>
