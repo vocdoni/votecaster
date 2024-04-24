@@ -9,7 +9,7 @@ import type { PollResult } from '../../util/types'
 import { toArrayBuffer } from '../../util/hex'
 import { CommunityHub__factory } from '../../typechain'
 import { degenChainRpc, degenContractAddress } from '../../util/constants'
-import { fetchPollInfo } from '../../queries/polls'
+import { fetchPollInfo, fetchPollsVoters } from '../../queries/polls'
 
 const CommunityPoll = () => {
   const { pid: electionId, id: communityId } = useParams()
@@ -19,6 +19,7 @@ const CommunityPoll = () => {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [pollResults, setResults] = useState<PollResult | null>(null)
+  const [voters, setVoters] = useState<string[]>([])
 
   useEffect(() => {
     if (loaded || loading || !electionId || !communityId) return
@@ -67,6 +68,7 @@ const CommunityPoll = () => {
             })
             console.log("results from api")
           }
+          setVoters(await fetchPollsVoters(bfetch)(electionId))
         } catch (e) {
           setError("Error fetching poll results")
           console.error(e)
@@ -82,6 +84,7 @@ const CommunityPoll = () => {
           loading={loading}
           onChain={true}
           poll={pollResults}
+          voters={voters}
           errorMessage={error}
           electionId={electionId} />
 }

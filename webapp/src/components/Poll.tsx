@@ -26,19 +26,18 @@ import { humanDate } from '../util/strings'
 import { CsvGenerator } from '../generator'
 import { appUrl, degenContractAddress } from '../util/constants'
 
-
 export type PollViewProps = {
   electionId: string | undefined,
   onChain: boolean,
   poll: PollResult | null,
   loading: boolean | false,
   loaded: boolean | false,
+  voters: string[],
   errorMessage: string | null
 }
 
-export const PollView = ({poll, electionId, loading, loaded, errorMessage, onChain}: PollViewProps) => {
+export const PollView = ({poll, voters, electionId, loading, loaded, errorMessage, onChain}: PollViewProps) => {
   const { bfetch } = useAuth()
-  const [voters, setVoters] = useState([])
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${electionId}`)
 
   useEffect(() => {
@@ -50,16 +49,6 @@ export const PollView = ({poll, electionId, loading, loaded, errorMessage, onCha
           setElectionURL(url)
         } catch (e) {
           console.log("error getting short url, using default", e)
-        }
-        // get the voters if there are any
-        if (poll.voteCount > 0) {
-          try {
-            const response = await fetch(`${import.meta.env.APP_URL}/votersOf/${electionId}`)
-            const data = await response.json()
-            setVoters(data.voters)
-          } catch (e) {
-            console.error("error geting election voters", e)
-          }
         }
       })()
   }, [])
@@ -153,7 +142,7 @@ export const PollView = ({poll, electionId, loading, loaded, errorMessage, onCha
               <Text>
                 This poll {poll?.finalized ? 'has ended' : 'ends'} on {`${humanDate(poll?.endTime)}`}. Check the Vocdoni blockchain explorer for <Link textDecoration={'underline'} isExternal href={`https://stg.explorer.vote/processes/show/#/${electionId}`}>more information</Link>.
               </Text>
-              {voters.length > 0 && <>
+              {!!voters.length && <>
                 <Text>You can download the list of users who casted their votes.</Text>
                 <Link href={usersfile.url} download={'voters-list.csv'}>
                   <Button colorScheme='blue' size='sm' rightIcon={<FaDownload />}>Download voters</Button>
