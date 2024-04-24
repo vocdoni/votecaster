@@ -42,7 +42,7 @@ const (
 	neynarVerificationsByFID  = NeynarHubEndpoint + "/verificationsByFid?fid=%d"
 	warpcastChannelInfo       = WarpcastClientEndpoint + "/channel?key=%s"
 
-	MaxAddressesPerRequest = 300
+	MaxAddressesPerRequest = 200
 
 	// timeouts
 	getBotUsernameTimeout   = 10 * time.Second

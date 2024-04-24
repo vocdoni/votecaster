@@ -1181,7 +1181,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 			if errors.Is(err, farcasterapi.ErrNoDataFound) {
 				break
 			}
-			return nil, 0, err
+			log.Errorw(err, "error fetching users from Neynar API")
 		}
 		for _, userData := range usersData {
 			// Add or update the user on the database
