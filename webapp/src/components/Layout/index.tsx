@@ -1,7 +1,12 @@
-import { Flex, Image } from '@chakra-ui/react'
-import { Link, Outlet } from 'react-router-dom'
+import { Flex, Icon, Image, Link, VStack } from '@chakra-ui/react'
+import { Outlet } from 'react-router-dom'
 import { Navbar } from './Navbar'
 import logo from '/poweredby.svg'
+
+import { SiFarcaster } from "react-icons/si";
+import { FaDiscord, FaGithub, FaXTwitter } from "react-icons/fa6";
+
+
 
 export const Layout = () => {
   return (
@@ -16,16 +21,17 @@ export const Layout = () => {
         maxW='1980px'
       >
         <Outlet />
-        <Flex
-          as={Link}
-          mt={4}
-          fontSize='.8em'
-          justifyContent='center'
-          to='https://warpcast.com/vocdoni'
-          target='_blank'
-        >
-          <Image src={logo} alt='powered by vocdoni' width='50%' my={6} />
-        </Flex>
+        <VStack my={24} spacing={12}>
+          <Link isExternal href="https://vocdoni.io" width='80%'>
+            <Image src={logo} alt='powered by vocdoni' />
+          </Link>
+          <Flex gap={8} justifyContent='center' color={'gray.600'}>
+              <Link isExternal href='https://chat.vocdoni.io/'><Icon as={FaDiscord}/></Link>
+              <Link isExternal href='https://github.com/vocdoni'><Icon as={FaGithub}/></Link>
+              <Link isExternal href='https://x.com/vocdoni'><Icon as={FaXTwitter}/></Link>
+              <Link isExternal href='https://warpcast.com/vocdoni'><Icon as={SiFarcaster}/></Link>
+          </Flex>
+        </VStack>
       </Flex>
     </>
   )
