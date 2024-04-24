@@ -163,8 +163,8 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
             <Skeleton isLoaded={!loading}>
               <Box pb={4}>
-                <Heading size='sm'>Participation</Heading>
-                <Text fontSize={'sm'} color={'gray'}>Number of voters vs participants.</Text>
+                <Heading size='sm'>Participant Turnout</Heading>
+                <Text fontSize={'sm'} color={'gray'}>Members who voted vs. total members in the census.</Text>
               </Box>
               <Flex alignItems={'end'} gap={2}>
                 <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{poll?.voteCount}</Text>
@@ -176,8 +176,8 @@ export const CommunityPollView = ({poll, electionId, loading, loaded}: Communiti
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
             <Skeleton isLoaded={!loading}>
               <Box pb={4}>
-                <Heading size='sm'>Vote turnout</Heading>
-                <Text fontSize={'sm'} color={'gray'}>Voting power used by voters.</Text>
+                <Heading size='sm'>Voting Power Turnout</Heading>
+                <Text fontSize={'sm'} color={'gray'}>Total votes cast versus total vote weight.</Text>
               </Box>
               <Flex alignItems={'end'} gap={2}>
                 <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{poll?.turnout}</Text>
