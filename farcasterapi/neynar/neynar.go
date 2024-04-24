@@ -357,10 +357,14 @@ func (n *NeynarAPI) UserFollowers(ctx context.Context, fid uint64) ([]uint64, er
 // Channel method returns the details of a channel given its channelID. If
 // something goes wrong it returns an error.
 func (n *NeynarAPI) Channel(ctx context.Context, channelID string) (*farcasterapi.Channel, error) {
+	if channelID == "" {
+		return nil, nil
+	}
 	// create request with the channel id provided
 	url := fmt.Sprintf(neynarChannelDataByID, channelID)
 	res, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
+		log.Warnw("error getting channel", "channel", channelID, "error", err)
 		if strings.Contains(err.Error(), "404") {
 			return nil, farcasterapi.ErrChannelNotFound
 		}
