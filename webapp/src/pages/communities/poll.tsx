@@ -49,7 +49,7 @@ const CommunityPoll = () => {
             results = {
               censusRoot: contractData.censusRoot,
               censusURI: contractData.censusURI,
-              endTime: new Date(contractData.date.replace(/CEST m=\+[\d.]+$/, '')),
+              endTime: new Date(contractData.date.replace(/m=\+[\d.]+$/, '')),
               options: contractData.options,
               participants: participants,
               question: contractData.question,
