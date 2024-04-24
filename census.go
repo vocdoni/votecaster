@@ -1187,9 +1187,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 			// Add or update the user on the database
 			dbUser, err := v.db.User(userData.FID)
 			if err != nil {
-				if !errors.Is(err, mongo.ErrUserUnknown) {
-					return nil, 0, err
-				}
+				log.Debugw("adding new user to database", "fid", userData.FID)
 				if err := v.db.AddUser(
 					userData.FID,
 					userData.Username,
@@ -1202,6 +1200,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 					return nil, 0, err
 				}
 			} else {
+				log.Debugw("updating user on database", "fid", userData.FID)
 				dbUser.Addresses = userData.VerificationsAddresses
 				dbUser.Username = userData.Username
 				dbUser.Signers = userData.Signers
