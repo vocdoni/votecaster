@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/vocdoni/vote-frame/features"
+	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
 	"github.com/vocdoni/vote-frame/shortener"
@@ -292,7 +293,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		Question:                dbElection.Question,
 		CastedVotes:             dbElection.CastedVotes,
 		CensusParticipantsCount: uint64(dbElection.FarcasterUserCount),
-		Turnout:                 int(calculateTurnout(census.TotalWeight, dbElection.CastedWeight).Int64()),
+		Turnout:                 int(helpers.CalculateTurnout(census.TotalWeight, dbElection.CastedWeight).Int64()),
 		Username:                username,
 		Displayname:             displayname,
 		TotalWeight:             census.TotalWeight,

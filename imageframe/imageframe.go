@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
-	"math/big"
 	"net/http"
 	"os"
 	"path"
@@ -14,6 +12,8 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/vocdoni/vote-frame/helpers"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/log"
 )
@@ -92,8 +92,9 @@ type ImageRequest struct {
 	Question      string   `json:"question,omitempty"`
 	Choices       []string `json:"choices,omitempty"`
 	Results       []string `json:"results,omitempty"`
-	VoteCount     int      `json:"voteCount,omitempty"`
-	MaxCensusSize int      `json:"maxCensusSize,omitempty"`
+	VoteCount     uint64   `json:"voteCount"`
+	Participation uint32   `json:"participation"`
+	Turnout       uint32   `json:"turnout"`
 }
 
 // ErrorImage creates an image representing an error message.
@@ -170,7 +171,10 @@ func QuestionImage(election *api.Election) (string, error) {
 }
 
 // ResultsImage creates an image showing the results of a poll.
-func ResultsImage(election *api.Election, censusTokenDecimals uint32) (string, error) {
+// It returns the image id that can be fetch using FromCache(id).
+// The totalWeightStr is the total weight of the census, if empty Turnout is not calculated.
+// The electiondb is the election data from the database, if nil the participation is not calculated.
+func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeightStr string) (string, error) {
 	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
 		return "", fmt.Errorf("election has no questions")
 	}
@@ -179,33 +183,38 @@ func ResultsImage(election *api.Election, censusTokenDecimals uint32) (string, e
 		return id, nil
 	}
 
-	title := election.Metadata.Questions[0].Title["default"]
+	censusTokenDecimals := uint32(0)
+	participation := uint32(0)
+	turnout := uint32(0)
 
-	choices := []string{}
-	results := []string{}
-	for _, option := range election.Metadata.Questions[0].Choices {
-		choices = append(choices, option.Title["default"])
-		value := ""
-		if censusTokenDecimals > 0 {
-			resultsValueFloat := new(big.Float).Quo(
-				new(big.Float).SetInt(election.Results[0][option.Value].MathBigInt()),
-				new(big.Float).SetInt(big.NewInt(int64(math.Pow(10, float64(censusTokenDecimals))))),
-			)
-			value = fmt.Sprintf("%.2f", resultsValueFloat)
-		} else {
-			value = election.Results[0][option.Value].MathBigInt().String()
+	if electiondb != nil {
+		censusTokenDecimals = electiondb.CensusERC20TokenDecimals
+		if electiondb.FarcasterUserCount > 0 {
+			participation = (uint32(election.VoteCount) * 100) / electiondb.FarcasterUserCount
 		}
-		results = append(results, value)
+		turnout = uint32(helpers.CalculateTurnout(totalWeightStr, electiondb.CastedWeight).Uint64())
 	}
+
+	title := election.Metadata.Questions[0].Title["default"]
+	choices, results := helpers.ExtractResults(election, censusTokenDecimals)
 
 	requestData := ImageRequest{
 		Type:          "results",
 		Question:      title,
 		Choices:       choices,
-		Results:       results,
-		VoteCount:     int(election.VoteCount),
-		MaxCensusSize: int(election.Census.MaxCensusSize),
+		Results:       helpers.BigIntsToStrings(results),
+		VoteCount:     election.VoteCount,
+		Participation: participation,
+		Turnout:       turnout,
 	}
+	log.Debugw("requesting results image",
+		"type", requestData.Type,
+		"question", requestData.Question,
+		"choices", requestData.Choices,
+		"results", requestData.Results,
+		"voteCount", requestData.VoteCount,
+		"participation", requestData.Participation,
+		"turnout", requestData.Turnout)
 
 	go func() {
 		png, err := makeRequest(requestData)
