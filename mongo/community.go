@@ -205,6 +205,21 @@ func (ms *MongoStorage) SetCommunityStatus(communityID uint64, disabled bool) er
 	return err
 }
 
+// CommunityAllowNotifications checks if the community with the given ID has
+// notifications enabled.
+func (ms *MongoStorage) CommunityAllowNotifications(communityID uint64) bool {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var community Community
+	if err := ms.communitites.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
+		log.Errorf("error getting community %d: %v", communityID, err)
+		return false
+	}
+	return community.Notifications
+}
+
 // SetCommunityNotifications sets the disabled status of the community with the given ID.
 func (ms *MongoStorage) SetCommunityNotifications(communityID uint64, enabled bool) error {
 	ms.keysLock.Lock()

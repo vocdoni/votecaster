@@ -82,12 +82,18 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		}
 	}
 	// if notifications are enabled, check if the poll is for a community
-	if req.NotifyUsers && req.CommunityID == nil {
-		return ctx.Send([]byte("notifications are only available for community polls"), http.StatusBadRequest)
-	}
-	// check if the user has enough reputation to notify voters
-	if req.NotifyUsers && !features.IsAllowed(features.NOTIFY_USERS, accessProfile.Reputation) {
-		return ctx.Send([]byte("user does not have enough reputation to notify voters"), http.StatusBadRequest)
+	if req.NotifyUsers {
+		if req.CommunityID == nil {
+			return ctx.Send([]byte("notifications are only available for community polls"), http.StatusBadRequest)
+		}
+		// check if the user has enough reputation to notify voters
+		if !features.IsAllowed(features.NOTIFY_USERS, accessProfile.Reputation) {
+			return ctx.Send([]byte("user does not have enough reputation to notify voters"), http.StatusBadRequest)
+		}
+		// check if the community allows notifications
+		if !v.db.CommunityAllowNotifications(*req.CommunityID) {
+			return fmt.Errorf("community does not allow notifications")
+		}
 	}
 	// use the request census or use the one hardcoded for all farcaster users
 	census := req.Census
