@@ -1,5 +1,4 @@
-import type { FetchFunction, Poll } from '../util/types'
-import type { Community } from '../util/types'
+import type { Community, FetchFunction, Poll } from '../util/types'
 
 export const fetchPollsByVotes = (bfetch: FetchFunction) => async (): Promise<Poll[]> => {
   const response = await bfetch(`${import.meta.env.APP_URL}/rankings/pollsByVotes`)

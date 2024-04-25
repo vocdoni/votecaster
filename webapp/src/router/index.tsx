@@ -1,32 +1,31 @@
-import {lazy} from 'react'
-import {createHashRouter, RouterProvider} from 'react-router-dom'
-import {Layout} from '../components/Layout'
-import {SuspenseLoader} from './SuspenseLoader'
+import { lazy } from 'react'
+import { createHashRouter, RouterProvider } from 'react-router-dom'
+import { Layout } from '../components/Layout'
+import { SuspenseLoader } from './SuspenseLoader'
 
 const About = lazy(() => import('../pages/About'))
 const App = lazy(() => import('../pages/App'))
 const Communities = lazy(() => import('../pages/communities'))
 const CommunitiesNew = lazy(() => import('../pages/communities/new'))
+const Community = lazy(() => import('../pages/communities/view'))
 const CommunityPoll = lazy(() => import('../pages/communities/poll'))
+const FarcasterAccountProtectedRoute = lazy(() => import('./FarcasterAccountProtectedRoute'))
 const Leaderboards = lazy(() => import('../pages/Leaderboards'))
 const Poll = lazy(() => import('../pages/Poll'))
 const Profile = lazy(() => import('../pages/Profile'))
-
-const FarcasterAccountProtectedRoute = lazy(() => import('./FarcasterAccountProtectedRoute'))
 const ProtectedRoute = lazy(() => import('./ProtectedRoute'))
-const Community = lazy(() => import('../pages/communities/view'))
 
 export const Router = () => {
   const router = createHashRouter([
     {
       path: '/',
-      element: <Layout/>,
+      element: <Layout />,
       children: [
         {
           path: '/',
           element: (
             <SuspenseLoader>
-              <App/>
+              <App />
             </SuspenseLoader>
           ),
         },
@@ -34,7 +33,7 @@ export const Router = () => {
           path: '/about',
           element: (
             <SuspenseLoader>
-              <About/>
+              <About />
             </SuspenseLoader>
           ),
         },
@@ -42,7 +41,7 @@ export const Router = () => {
           path: '/leaderboards',
           element: (
             <SuspenseLoader>
-              <Leaderboards/>
+              <Leaderboards />
             </SuspenseLoader>
           ),
         },
@@ -50,7 +49,7 @@ export const Router = () => {
           path: '/poll/:pid',
           element: (
             <SuspenseLoader>
-              <Poll/>
+              <Poll />
             </SuspenseLoader>
           ),
         },
@@ -58,7 +57,7 @@ export const Router = () => {
           path: '/communities',
           element: (
             <SuspenseLoader>
-              <Communities/>
+              <Communities />
             </SuspenseLoader>
           ),
         },
@@ -66,7 +65,7 @@ export const Router = () => {
           path: '/communities/:id',
           element: (
             <SuspenseLoader>
-              <Community/>
+              <Community />
             </SuspenseLoader>
           ),
         },
@@ -74,14 +73,14 @@ export const Router = () => {
           path: '/communities/:id/poll/:pid',
           element: (
             <SuspenseLoader>
-              <CommunityPoll/>
+              <CommunityPoll />
             </SuspenseLoader>
           ),
         },
         {
           element: (
             <SuspenseLoader>
-              <ProtectedRoute/>
+              <ProtectedRoute />
             </SuspenseLoader>
           ),
           children: [
@@ -89,7 +88,7 @@ export const Router = () => {
               path: '/profile',
               element: (
                 <SuspenseLoader>
-                  <Profile/>
+                  <Profile />
                 </SuspenseLoader>
               ),
             },
@@ -98,7 +97,7 @@ export const Router = () => {
         {
           element: (
             <SuspenseLoader>
-              <FarcasterAccountProtectedRoute/>
+              <FarcasterAccountProtectedRoute />
             </SuspenseLoader>
           ),
           children: [
@@ -106,7 +105,7 @@ export const Router = () => {
               path: '/communities/new',
               element: (
                 <SuspenseLoader>
-                  <CommunitiesNew/>
+                  <CommunitiesNew />
                 </SuspenseLoader>
               ),
             },
@@ -116,5 +115,5 @@ export const Router = () => {
     },
   ])
 
-  return <RouterProvider router={router}/>
+  return <RouterProvider router={router} />
 }

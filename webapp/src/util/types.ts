@@ -1,4 +1,4 @@
-import {CensusType} from "../components/CensusTypeSelector.tsx";
+import { CensusType } from '../components/CensusTypeSelector.tsx'
 
 export type FetchFunction = (input: RequestInfo, init?: RequestInit) => Promise<Response>
 
@@ -25,7 +25,7 @@ export type Poll = {
   voteCount: number
   createdTime: Date
   endTime: Date
-  lastVoteTime: Date,
+  lastVoteTime: Date
   turnout: number
   censusParticipantsCount: number
   finalized: boolean
@@ -89,12 +89,12 @@ export const isErrorWithHTTPResponse = (error: any): error is HTTPErrorResponse 
 
 // This enum comes from the contract repo
 enum ContractCensusType {
-  FC,         /// All Farcaster users.
-  CHANNEL,    /// Users in a specific channel.
-  FOLLOWERS,  /// Users following a specific account.
-  CSV,        /// Users in a CSV file.
-  ERC20,      /// Users holding a specific ERC20 token.
-  NFT         /// Users holding a specific NFT.
+  FC, /// All Farcaster users.
+  CHANNEL, /// Users in a specific channel.
+  FOLLOWERS, /// Users following a specific account.
+  CSV, /// Users in a CSV file.
+  ERC20, /// Users holding a specific ERC20 token.
+  NFT, /// Users holding a specific NFT.
 }
 
 export const censusTypeToEnum = (census: CensusType) => {

@@ -1,6 +1,7 @@
 import {
   Alert,
-  AlertDescription, Avatar,
+  AlertDescription,
+  Avatar,
   Button,
   Flex,
   FormControl,
@@ -70,7 +71,7 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
   const { data: communities, isLoading: cloading } = useQuery({
     queryKey: ['communities', 'byAdmin'],
     queryFn: () => fetchCommunitiesByAdmin(bfetch, profile!),
-    enabled: profile != null
+    enabled: profile != null,
   })
 
   const censusType = watch('censusType')
@@ -97,12 +98,12 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
       <FormControl {...props}>
         <FormLabel>Census/voters</FormLabel>
         <RadioGroup onChange={(val: CensusType) => setValue('censusType', val)} value={censusType} id='census-type'>
-          {complete &&
+          {complete && (
             <>
               <FormHelperText mb={2}>Use a community census:</FormHelperText>
               <Radio value='community'>🏘️ Community based</Radio>
             </>
-          }
+          )}
           <Stack direction='column' flexWrap='wrap'>
             {complete && <FormHelperText my={2}>Or set a custom census:</FormHelperText>}
             {complete && <Radio value='farcaster'>🌐 All farcaster users</Radio>}
@@ -270,4 +271,4 @@ const communitySelector = {
       <Avatar size={'sm'} src={(props.data as Community).logoURL} mr={2} /> {children}
     </chakraComponents.Option>
   ),
-};
+}

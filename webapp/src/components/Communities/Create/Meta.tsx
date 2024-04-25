@@ -1,11 +1,11 @@
-import {FormHelperText, Box, FormControl, FormErrorMessage, FormLabel, Heading, Input, VStack} from '@chakra-ui/react'
-import {AsyncCreatableSelect} from 'chakra-react-select'
-import {useEffect, useState} from 'react'
-import {Controller, useFormContext} from 'react-hook-form'
-import {appUrl} from '../../../util/constants'
-import {useAuth} from '../../Auth/useAuth'
-import {CommunityCard} from '../Card'
-import {urlValidation} from "../../../util/strings.ts";
+import { Box, FormControl, FormErrorMessage, FormHelperText, FormLabel, Heading, Input, VStack } from '@chakra-ui/react'
+import { AsyncCreatableSelect } from 'chakra-react-select'
+import { useEffect, useState } from 'react'
+import { Controller, useFormContext } from 'react-hook-form'
+import { appUrl } from '../../../util/constants'
+import { urlValidation } from '../../../util/strings.ts'
+import { useAuth } from '../../Auth/useAuth'
+import { CommunityCard } from '../Card'
 
 export type CommunityMetaFormValues = {
   name: string
@@ -18,24 +18,30 @@ export const Meta = () => {
   const {
     register,
     watch,
-    formState: {errors},
+    formState: { errors },
     clearErrors,
     setError,
     setValue,
   } = useFormContext<CommunityMetaFormValues>()
-  const {bfetch, profile} = useAuth()
+  const { bfetch, profile } = useAuth()
   const logo = watch('logo')
   const name = watch('name')
   const [loading, setLoading] = useState<boolean>(false)
 
   useEffect(() => {
     if (profile?.username) {
-      setValue('admins', [{
-        label: profile.displayName,
-        value: profile.fid
-      }], {shouldValidate: true});
+      setValue(
+        'admins',
+        [
+          {
+            label: profile.displayName,
+            value: profile.fid,
+          },
+        ],
+        { shouldValidate: true }
+      )
     }
-  }, [profile?.username]);
+  }, [profile?.username])
 
   return (
     <VStack spacing={4} w='full' alignItems='start'>
@@ -48,7 +54,7 @@ export const Meta = () => {
         <FormLabel htmlFor='admins'>Admins</FormLabel>
         <Controller
           name='admins'
-          render={({field}) => (
+          render={({ field }) => (
             <AsyncCreatableSelect
               id='admins'
               isMulti
@@ -59,24 +65,24 @@ export const Meta = () => {
               isLoading={loading}
               placeholder='Add users'
               {...field}
-              onChange={async (values, {action, option}) => {
+              onChange={async (values, { action, option }) => {
                 // remove previous errors
                 clearErrors('admins')
                 if (action === 'create-option') {
                   try {
                     setLoading(true)
                     const res = await bfetch(`${appUrl}/profile/user/${option.value}`)
-                    const {user} = await res.json()
+                    const { user } = await res.json()
                     if (!user) {
                       throw new Error('User not found')
                     }
                     // adding always adds the final value, should be safe to remove it
                     values = values.slice(0, -1)
 
-                    field.onChange([...values, {label: user.username, value: user.userID.toString()}])
+                    field.onChange([...values, { label: user.username, value: user.userID.toString() }])
                   } catch (e) {
                     if (e instanceof Error) {
-                      setError('admins', {message: e.message})
+                      setError('admins', { message: e.message })
                     } else {
                       console.error('unknown error while fetching user:', e)
                     }
@@ -97,12 +103,12 @@ export const Meta = () => {
         <FormHelperText>Add the logo of your community</FormHelperText>
         <Input
           mt={3}
-          placeholder={"Insert URL here"}
-          {...register('logo', {validate: (val) => urlValidation(val) || 'Must be a valid image link'})}
+          placeholder={'Insert URL here'}
+          {...register('logo', { validate: (val) => urlValidation(val) || 'Must be a valid image link' })}
         />
         <FormErrorMessage>{errors.logo?.message?.toString()}</FormErrorMessage>
       </FormControl>
-      <CommunityCard pfpUrl={logo} name={name}/>
+      <CommunityCard pfpUrl={logo} name={name} />
       <Box></Box>
     </VStack>
   )

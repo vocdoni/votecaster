@@ -1,27 +1,26 @@
 import {
+  Flex,
+  HStack,
+  Icon,
   Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
   ModalBody,
   ModalCloseButton,
+  ModalContent,
+  ModalHeader,
+  ModalOverlay,
+  Progress,
+  Switch,
   Text,
   UseModalProps,
   VStack,
-  Flex,
-  HStack,
-  Switch,
-  Icon,
-  Progress,
 } from '@chakra-ui/react'
-import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query'
-import { FaEyeSlash, FaBell } from 'react-icons/fa6';
-
-import { appUrl } from '../../util/constants';
-import { useAuth } from '../Auth/useAuth';
-import { fetchCommunity } from '../../queries/communities';
-import type { Community } from '../../util/types';
+import { useMemo, useState } from 'react'
+import { FaBell, FaEyeSlash } from 'react-icons/fa6'
+import { fetchCommunity } from '../../queries/communities'
+import { appUrl } from '../../util/constants'
+import type { Community } from '../../util/types'
+import { useAuth } from '../Auth/useAuth'
 
 export type ManageCommunityProps = {
   communityID: number
@@ -39,16 +38,18 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
 
   const isLoading = useMemo(() => loadingStatus || loadingNotifications, [loadingStatus, loadingNotifications])
 
-  if (!isAuthenticated) return null;
-  if (!community) return null;
-  if (!props.isOpen) return null;
-  if (!props.onClose) return null;
+  if (!isAuthenticated) return null
+  if (!community) return null
+  if (!props.isOpen) return null
+  if (!props.onClose) return null
 
   const switchNotifications = async () => {
     console.log('switching notifications')
     try {
       setLoadingNotifications(true)
-      await bfetch(`${appUrl}/communities/${community.id}/notifications?enabled=${!community.notifications}`, { method: 'PUT' }).then(() => refetch())
+      await bfetch(`${appUrl}/communities/${community.id}/notifications?enabled=${!community.notifications}`, {
+        method: 'PUT',
+      }).then(() => refetch())
       setLoadingNotifications(false)
     } catch (e) {
       console.error('could not swithc the community notifications', e)
@@ -59,7 +60,9 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
     console.log('switching status')
     try {
       setLoadingStatus(true)
-      await bfetch(`${appUrl}/communities/${community.id}/status?disabled=${!community.disabled}`, { method: 'PUT' }).then(() => refetch())
+      await bfetch(`${appUrl}/communities/${community.id}/status?disabled=${!community.disabled}`, {
+        method: 'PUT',
+      }).then(() => refetch())
       setLoadingStatus(false)
     } catch (e) {
       console.error('could not switch the community status', e)
@@ -67,10 +70,14 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
   }
 
   return (
-    <Modal size={'xl'} {...props} onClose={() => {
-      props.onClose()
-      refetch()
-    }}>
+    <Modal
+      size={'xl'}
+      {...props}
+      onClose={() => {
+        props.onClose()
+        refetch()
+      }}
+    >
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>{community.name} settings</ModalHeader>
@@ -84,11 +91,19 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
                   <Icon as={FaBell} />
                   <Text>Notifications</Text>
                 </HStack>
-                <Text fontSize={'xs'} color={'gray'}>Allow to notify community members about new polls.</Text>
+                <Text fontSize={'xs'} color={'gray'}>
+                  Allow to notify community members about new polls.
+                </Text>
               </VStack>
               <HStack gap={2} alignItems={'center'}>
                 <Text fontSize={'xs'}>Disabled</Text>
-                <Switch key={'notifications'} disabled={loadingNotifications} onChange={switchNotifications} isChecked={community.notifications} colorScheme='green' />
+                <Switch
+                  key={'notifications'}
+                  disabled={loadingNotifications}
+                  onChange={switchNotifications}
+                  isChecked={community.notifications}
+                  colorScheme='green'
+                />
                 <Text fontSize={'xs'}>Enabled</Text>
               </HStack>
             </Flex>
@@ -98,11 +113,19 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
                   <Icon as={FaEyeSlash} />
                   <Text>Status</Text>
                 </HStack>
-                <Text fontSize={'xs'} color={'gray'}>Disabled communities are hidden and won't be used to create polls.</Text>
+                <Text fontSize={'xs'} color={'gray'}>
+                  Disabled communities are hidden and won't be used to create polls.
+                </Text>
               </VStack>
               <HStack gap={2} alignItems={'center'}>
                 <Text fontSize={'xs'}>Disabled</Text>
-                <Switch key={'status'} disabled={loadingStatus} onChange={switchStatus} isChecked={!community.disabled} colorScheme='green' />
+                <Switch
+                  key={'status'}
+                  disabled={loadingStatus}
+                  onChange={switchStatus}
+                  isChecked={!community.disabled}
+                  colorScheme='green'
+                />
                 <Text fontSize={'xs'}>Enabled</Text>
               </HStack>
             </Flex>

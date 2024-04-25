@@ -1,16 +1,16 @@
-import {appUrl} from '../util/constants'
-import {Community, FetchFunction, Profile} from '../util/types'
+import { appUrl } from '../util/constants'
+import { Community, FetchFunction, Profile } from '../util/types'
 
 export const fetchCommunities = (bfetch: FetchFunction) => async () => {
   const response = await bfetch(`${appUrl}/communities`)
-  const {communities} = (await response.json()) as { communities: Community[] }
+  const { communities } = (await response.json()) as { communities: Community[] }
 
   return communities
 }
 
 export const fetchCommunitiesByAdmin = async (bfetch: FetchFunction, profile: Profile) => {
   const response = await bfetch(`${appUrl}/communities?byAdminFID=${profile.fid}`)
-  const {communities} = (await response.json()) as { communities: Community[] }
+  const { communities } = (await response.json()) as { communities: Community[] }
 
   return communities
 }

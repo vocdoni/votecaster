@@ -8,49 +8,48 @@ import {
   Heading,
   Image,
   Link,
-  Skeleton,
   Progress,
-  VStack,
+  Skeleton,
   Tag,
-  TagLeftIcon,
   TagLabel,
+  TagLeftIcon,
   Text,
+  VStack,
 } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
-import { FaDownload, FaCheck, FaRegCircleStop, FaPlay } from 'react-icons/fa6'
-
-import { useAuth } from './Auth/useAuth'
-import { fetchShortURL } from '../queries/common'
-import type { PollResult } from '../util/types'
-import { humanDate } from '../util/strings'
+import { FaCheck, FaDownload, FaPlay, FaRegCircleStop } from 'react-icons/fa6'
 import { CsvGenerator } from '../generator'
+import { fetchShortURL } from '../queries/common'
 import { appUrl, degenContractAddress } from '../util/constants'
+import { humanDate } from '../util/strings'
+import type { PollResult } from '../util/types'
+import { useAuth } from './Auth/useAuth'
 
 export type PollViewProps = {
-  electionId: string | undefined,
-  onChain: boolean,
-  poll: PollResult | null,
-  loading: boolean | false,
-  loaded: boolean | false,
-  voters: string[],
+  electionId: string | undefined
+  onChain: boolean
+  poll: PollResult | null
+  loading: boolean | false
+  loaded: boolean | false
+  voters: string[]
   errorMessage: string | null
 }
 
-export const PollView = ({poll, voters, electionId, loading, loaded, errorMessage, onChain}: PollViewProps) => {
+export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessage, onChain }: PollViewProps) => {
   const { bfetch } = useAuth()
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${electionId}`)
 
   useEffect(() => {
-    if (loaded || loading || !poll || !electionId ) return
-      ; (async () => {
-        // get the short url
-        try {
-          const url = await fetchShortURL(bfetch)(electionURL)
-          setElectionURL(url)
-        } catch (e) {
-          console.log("error getting short url, using default", e)
-        }
-      })()
+    if (loaded || loading || !poll || !electionId) return
+    ;(async () => {
+      // get the short url
+      try {
+        const url = await fetchShortURL(bfetch)(electionURL)
+        setElectionURL(url)
+      } catch (e) {
+        console.log('error getting short url, using default', e)
+      }
+    })()
   }, [])
 
   const usersfile = useMemo(() => {
@@ -63,61 +62,76 @@ export const PollView = ({poll, voters, electionId, loading, loaded, errorMessag
 
   const copyToClipboard = (input: string) => {
     if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(input).catch(console.error);
-    } else console.error('clipboard API not available');
-  };
+      navigator.clipboard.writeText(input).catch(console.error)
+    } else console.error('clipboard API not available')
+  }
 
   const participationPercentage = useMemo(() => {
     if (!poll) return 0
-    return (poll.voteCount / poll.censusParticipantsCount * 100).toFixed(1)
+    return ((poll.voteCount / poll.censusParticipantsCount) * 100).toFixed(1)
   }, [poll])
 
   if (errorMessage) return <Text>{errorMessage}</Text>
 
   return (
-    <Box
-      gap={4}
-      display='flex'
-      flexDir={['column', 'column', 'row']}
-      alignItems='start'>
+    <Box gap={4} display='flex' flexDir={['column', 'column', 'row']} alignItems='start'>
       <Box flex={1} bg='white' p={6} pb={12} boxShadow='md' borderRadius='md'>
         <VStack spacing={8} alignItems='left'>
           <VStack spacing={4} alignItems='left'>
             <Skeleton isLoaded={!loading}>
               <Flex gap={4}>
-                {poll?.finalized ?
+                {poll?.finalized ? (
                   <Tag>
                     <TagLeftIcon as={FaRegCircleStop}></TagLeftIcon>
                     <TagLabel>Ended</TagLabel>
-                  </Tag> :
+                  </Tag>
+                ) : (
                   <Tag colorScheme='green'>
                     <TagLeftIcon as={FaPlay}></TagLeftIcon>
                     <TagLabel>Ongoing</TagLabel>
                   </Tag>
-                }
-                {poll?.finalized && onChain && <Tag colorScheme='cyan'>
-                  <TagLeftIcon as={FaCheck}></TagLeftIcon>
-                  <TagLabel>Results settled on-chain</TagLabel>
-                </Tag>}
+                )}
+                {poll?.finalized && onChain && (
+                  <Tag colorScheme='cyan'>
+                    <TagLeftIcon as={FaCheck}></TagLeftIcon>
+                    <TagLabel>Results settled on-chain</TagLabel>
+                  </Tag>
+                )}
               </Flex>
             </Skeleton>
             <Image src={`${import.meta.env.APP_URL}/preview/${electionId}`} fallback={<Skeleton height={200} />} />
-            <Link fontSize={'sm'} color={'gray'} onClick={() => copyToClipboard(electionURL)}>Copy link to the frame</Link>
+            <Link fontSize={'sm'} color={'gray'} onClick={() => copyToClipboard(electionURL)}>
+              Copy link to the frame
+            </Link>
           </VStack>
           <VStack spacing={4} alignItems='left'>
             <Heading size='md'>Results</Heading>
             <Skeleton isLoaded={!loading}>
               <VStack px={4} alignItems='left'>
-                <Heading size='sm' fontWeight={'semibold'}>{poll?.question}</Heading>
-                {poll?.finalized && onChain && <Alert status='success' variant='left-accent' rounded={4}>
-                  <Box>
-                    <AlertTitle fontSize={'sm'}>Results verifiable on Degenchain</AlertTitle>
-                    <AlertDescription fontSize={'sm'}>
-                      <Text>This poll has ended. The results are definitive and have been settled on the 🎩 Degenchain.</Text>
-                      <Link fontSize={'xs'} color='gray' textAlign={'right'} isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`}>View contract</Link>
-                    </AlertDescription>
-                  </Box>
-                </Alert>}
+                <Heading size='sm' fontWeight={'semibold'}>
+                  {poll?.question}
+                </Heading>
+                {poll?.finalized && onChain && (
+                  <Alert status='success' variant='left-accent' rounded={4}>
+                    <Box>
+                      <AlertTitle fontSize={'sm'}>Results verifiable on Degenchain</AlertTitle>
+                      <AlertDescription fontSize={'sm'}>
+                        <Text>
+                          This poll has ended. The results are definitive and have been settled on the 🎩 Degenchain.
+                        </Text>
+                        <Link
+                          fontSize={'xs'}
+                          color='gray'
+                          textAlign={'right'}
+                          isExternal
+                          href={`https://explorer.degen.tips/address/${degenContractAddress}`}
+                        >
+                          View contract
+                        </Link>
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                )}
                 <VStack spacing={6} alignItems='left'>
                   {poll?.options.map((option, index) => (
                     <Box key={index} w='full'>
@@ -125,7 +139,9 @@ export const PollView = ({poll, voters, electionId, loading, loaded, errorMessag
                         <Text>{option}</Text>
                         {!!poll.voteCount && !!poll?.tally[0] && <Text>{poll?.tally[0][index]} votes</Text>}
                       </Flex>
-                      {!!poll.voteCount && !!poll?.tally[0] && <Progress size='sm' rounded={50} value={poll?.tally[0][index] / poll?.voteCount * 100} />}
+                      {!!poll.voteCount && !!poll?.tally[0] && (
+                        <Progress size='sm' rounded={50} value={(poll?.tally[0][index] / poll?.voteCount) * 100} />
+                      )}
                     </Box>
                   ))}
                 </VStack>
@@ -140,14 +156,27 @@ export const PollView = ({poll, voters, electionId, loading, loaded, errorMessag
           <Skeleton isLoaded={!loading}>
             <VStack spacing={6} alignItems='left' fontSize={'sm'}>
               <Text>
-                This poll {poll?.finalized ? 'has ended' : 'ends'} on {`${humanDate(poll?.endTime)}`}. Check the Vocdoni blockchain explorer for <Link textDecoration={'underline'} isExternal href={`https://stg.explorer.vote/processes/show/#/${electionId}`}>more information</Link>.
-              </Text>
-              {!!voters.length && <>
-                <Text>You can download the list of users who casted their votes.</Text>
-                <Link href={usersfile.url} download={'voters-list.csv'}>
-                  <Button colorScheme='blue' size='sm' rightIcon={<FaDownload />}>Download voters</Button>
+                This poll {poll?.finalized ? 'has ended' : 'ends'} on {`${humanDate(poll?.endTime)}`}. Check the Vocdoni
+                blockchain explorer for{' '}
+                <Link
+                  textDecoration={'underline'}
+                  isExternal
+                  href={`https://stg.explorer.vote/processes/show/#/${electionId}`}
+                >
+                  more information
                 </Link>
-              </>}
+                .
+              </Text>
+              {!!voters.length && (
+                <>
+                  <Text>You can download the list of users who casted their votes.</Text>
+                  <Link href={usersfile.url} download={'voters-list.csv'}>
+                    <Button colorScheme='blue' size='sm' rightIcon={<FaDownload />}>
+                      Download voters
+                    </Button>
+                  </Link>
+                </>
+              )}
             </VStack>
           </Skeleton>
         </Box>
@@ -156,10 +185,14 @@ export const PollView = ({poll, voters, electionId, loading, loaded, errorMessag
             <Skeleton isLoaded={!loading}>
               <Box pb={4}>
                 <Heading size='sm'>Participant Turnout</Heading>
-                <Text fontSize={'sm'} color={'gray'}>Ratio of unique voters to total elegible participants.</Text>
+                <Text fontSize={'sm'} color={'gray'}>
+                  Ratio of unique voters to total elegible participants.
+                </Text>
               </Box>
               <Flex alignItems={'end'} gap={2}>
-                <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{poll?.voteCount}</Text>
+                <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>
+                  {poll?.voteCount}
+                </Text>
                 <Text>/{poll?.censusParticipantsCount}</Text>
                 <Text fontSize={'xl'}>{participationPercentage}%</Text>
               </Flex>
@@ -169,10 +202,14 @@ export const PollView = ({poll, voters, electionId, loading, loaded, errorMessag
             <Skeleton isLoaded={!loading}>
               <Box pb={4}>
                 <Heading size='sm'>Voting Power Turnout</Heading>
-                <Text fontSize={'sm'} color={'gray'}>Proportion of voting power used relative to the total available.</Text>
+                <Text fontSize={'sm'} color={'gray'}>
+                  Proportion of voting power used relative to the total available.
+                </Text>
               </Box>
               <Flex alignItems={'end'} gap={2}>
-                <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>{poll?.turnout}</Text>
+                <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>
+                  {poll?.turnout}
+                </Text>
                 <Text>%</Text>
               </Flex>
             </Skeleton>

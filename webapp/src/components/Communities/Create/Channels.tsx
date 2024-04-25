@@ -1,29 +1,29 @@
-import {FormControl, FormErrorMessage, FormLabel, Heading, Image, Box, Text} from '@chakra-ui/react'
-import { components } from 'react-select';
-import {AsyncSelect} from 'chakra-react-select'
-import {useState} from 'react'
-import {Controller, useFormContext} from 'react-hook-form'
-import {fetchChannelQuery} from '../../../queries/channels'
-import {useAuth} from '../../Auth/useAuth'
+import { Box, FormControl, FormErrorMessage, FormLabel, Heading, Image, Text } from '@chakra-ui/react'
+import { AsyncSelect } from 'chakra-react-select'
+import { useState } from 'react'
+import { Controller, useFormContext } from 'react-hook-form'
+import { components } from 'react-select'
+import { fetchChannelQuery } from '../../../queries/channels'
+import { useAuth } from '../../Auth/useAuth'
 
 // CustomOption Component
 const CustomOption = (props) => {
   return (
     <components.Option {...props}>
-      <Box display="flex" alignItems="center">
+      <Box display='flex' alignItems='center'>
         <Image
-          src={props.data.image}  // Image URL from the option data
-          borderRadius="full"     // Makes the image circular
-          boxSize="20px"          // Sets the size of the image
-          objectFit="cover"       // Ensures the image covers the area properly
-          mr="8px"                // Right margin for spacing
-          alt={props.data.label}  // Alt text for accessibility
+          src={props.data.image} // Image URL from the option data
+          borderRadius='full' // Makes the image circular
+          boxSize='20px' // Sets the size of the image
+          objectFit='cover' // Ensures the image covers the area properly
+          mr='8px' // Right margin for spacing
+          alt={props.data.label} // Alt text for accessibility
         />
         <Text>{props.data.label}</Text>
       </Box>
     </components.Option>
-  );
-};
+  )
+}
 
 export type ChannelsFormValues = {
   channels: { label: string; value: string }[]
@@ -31,11 +31,11 @@ export type ChannelsFormValues = {
 
 export const Channels = () => {
   const {
-    formState: {errors},
+    formState: { errors },
     setError,
   } = useFormContext<ChannelsFormValues>()
   const [loading, setLoading] = useState<boolean>(false)
-  const {bfetch} = useAuth()
+  const { bfetch } = useAuth()
 
   return (
     <FormControl display='flex' flexDir='column' gap={4} isInvalid={!!errors.channels}>
@@ -45,7 +45,7 @@ export const Channels = () => {
       <Text>Add the farcaster channels used by your community</Text>
       <Controller
         name='channels'
-        render={({field}) => (
+        render={({ field }) => (
           <AsyncSelect
             id='channels'
             isMulti
@@ -54,7 +54,7 @@ export const Channels = () => {
             noOptionsMessage={() => 'No channels found'}
             placeholder='Search and add channels'
             {...field}
-            components={{Option: CustomOption}}
+            components={{ Option: CustomOption }}
             loadOptions={async (inputValue) => {
               try {
                 setLoading(true)
@@ -66,7 +66,7 @@ export const Channels = () => {
               } catch (e) {
                 console.error('Could not fetch channels:', e)
                 if (e instanceof Error) {
-                  setError('channels', {message: e.message})
+                  setError('channels', { message: e.message })
                 }
               } finally {
                 setLoading(false)
