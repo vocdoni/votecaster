@@ -16,11 +16,11 @@ import {
 import { QRCode } from '@farcaster/auth-kit'
 import { useEffect, useState } from 'react'
 import { IoPhonePortraitOutline } from 'react-icons/io5'
-import { appUrl } from '../../util/constants'
+import { appUrl } from '~constants'
 import { FarcasterLogo } from '../FarcasterLogo'
+import { useAuth } from './useAuth'
 
 import '@farcaster/auth-kit/styles.css'
-import { useAuth } from './useAuth'
 
 export const SignInButton = (props: ButtonProps) => {
   const { login, bearer } = useAuth()

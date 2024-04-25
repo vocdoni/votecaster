@@ -24,25 +24,23 @@ import {
   UnorderedList,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
-import { chakraComponents, Select as RSelect } from 'chakra-react-select'
+import { chakraComponents, GroupBase, OptionProps, Select as RSelect } from 'chakra-react-select'
 import { useEffect } from 'react'
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { MdArrowDropDown } from 'react-icons/md'
+import { appUrl } from '~constants'
+import { fetchAirstackBlockchains } from '~queries/census'
+import { fetchCommunitiesByAdmin } from '~queries/communities'
+import { cleanChannel, ucfirst } from '~util/strings'
 import Airstack from '../assets/airstack.svg?react'
-import { fetchAirstackBlockchains } from '../queries/census'
-import { fetchCommunitiesByAdmin } from '../queries/communities'
-import { appUrl } from '../util/constants'
-import { cleanChannel, ucfirst } from '../util/strings'
-import type { Address, Community } from '../util/types'
 import { useAuth } from './Auth/useAuth'
-
-export type CensusType = 'farcaster' | 'channel' | 'followers' | 'custom' | 'erc20' | 'nft' | 'community'
 
 export type CensusFormValues = {
   censusType: CensusType
   addresses?: Address[]
   channel?: string
+  community?: Community
   csv?: File | undefined
 }
 
@@ -132,7 +130,6 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
             render={({ field }) => (
               <RSelect
                 placeholder='Choose a community'
-                cacheOptions
                 isLoading={cloading}
                 options={communities?.filter((c) => !c.disabled) || []}
                 getOptionLabel={(option: Community) => option.name}
@@ -266,7 +263,7 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
 export default CensusTypeSelector
 
 const communitySelector = {
-  Option: ({ children, ...props }) => (
+  Option: ({ children, ...props }: OptionProps<any, false, GroupBase<any>>) => (
     <chakraComponents.Option {...props}>
       <Avatar size={'sm'} src={(props.data as Community).logoURL} mr={2} /> {children}
     </chakraComponents.Option>

@@ -3,10 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { FaRegStar, FaUsers } from 'react-icons/fa'
 import { Link as RouterLink } from 'react-router-dom'
-import { fetchCommunities, fetchCommunitiesByAdmin } from '../../queries/communities'
-import { Community } from '../../util/types'
-import { useAuth } from '../Auth/useAuth'
-import { Check } from '../Check'
+import { useAuth } from '~components/Auth/useAuth'
+import { Check } from '~components/Check'
+import { fetchCommunities, fetchCommunitiesByAdmin } from '~queries/communities'
 import { CommunityCard } from './Card'
 
 export const CommunitiesList = () => {

@@ -1,5 +1,4 @@
-import { appUrl } from '../util/constants'
-import { Community, FetchFunction, Profile } from '../util/types'
+import { appUrl } from '~constants'
 
 export const fetchCommunities = (bfetch: FetchFunction) => async () => {
   const response = await bfetch(`${appUrl}/communities`)

@@ -3,7 +3,7 @@ import { useFormContext } from 'react-hook-form'
 import { FaExternalLinkAlt } from 'react-icons/fa'
 import { MdHowToVote } from 'react-icons/md'
 import { useNavigate } from 'react-router-dom'
-import { CommunityMetaFormValues } from './Meta.tsx'
+import { CommunityMetaFormValues } from './Meta'
 
 type DoneProps = {
   tx: string

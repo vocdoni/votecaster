@@ -17,10 +17,9 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { FaBell, FaEyeSlash } from 'react-icons/fa6'
-import { fetchCommunity } from '../../queries/communities'
-import { appUrl } from '../../util/constants'
-import type { Community } from '../../util/types'
-import { useAuth } from '../Auth/useAuth'
+import { useAuth } from '~components/Auth/useAuth'
+import { appUrl } from '~constants'
+import { fetchCommunity } from '~queries/communities'
 
 export type ManageCommunityProps = {
   communityID: number

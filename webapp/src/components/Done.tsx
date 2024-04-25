@@ -2,10 +2,10 @@ import { Box, Button, Code, Icon, IconButton, Image, Link, Text, useClipboard } 
 import { Dispatch, SetStateAction, useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { FaCheck, FaDownload, FaRegCopy } from 'react-icons/fa6'
+import { appUrl } from '~constants'
 import { CsvGenerator } from '../generator'
 import { FarcasterLogo } from './FarcasterLogo'
 
-const appUrl = import.meta.env.APP_URL
 const pollUrl = (pid: string) => `${appUrl}/${pid}`
 const cast = (uri: string) => window.open(`https://warpcast.com/~/compose?embeds[]=${encodeURIComponent(uri)}`)
 
@@ -39,6 +39,7 @@ export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords, shor
           {shortened ?? pollUrl(pid)}
         </Code>
         <IconButton
+          aria-label='Copy to clipboard'
           colorScheme='purple'
           icon={hasCopied ? <FaCheck /> : <FaRegCopy />}
           size='xs'
@@ -60,7 +61,7 @@ export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords, shor
       >
         Cast it!
       </Button>
-      <Box fontSize='xs' align='right'>
+      <Box fontSize='xs' textAlign='right'>
         or{' '}
         <Button
           variant='text'

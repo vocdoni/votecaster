@@ -1,19 +1,18 @@
 import { Grid, GridItem, Show, Spacer } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
-import { ReputationCard } from '../components/Auth/Reputation'
-import { useAuth } from '../components/Auth/useAuth'
-import { Check } from '../components/Check'
-import { MutedUsersList } from '../components/MutedUsersList'
-import { UserPolls } from '../components/Top'
-import { fetchUserPolls } from '../queries/profile'
-import type { Poll, Profile as TProfile } from '../util/types'
+import { ReputationCard } from '~components/Auth/Reputation'
+import { useAuth } from '~components/Auth/useAuth'
+import { Check } from '~components/Check'
+import { MutedUsersList } from '~components/MutedUsersList'
+import { UserPolls } from '~components/Top'
+import { fetchUserPolls } from '~queries/profile'
 
 const Profile = () => {
   const { bfetch, profile } = useAuth()
   // Utilizing React Query to fetch polls
   const { isLoading, error, data } = useQuery<Poll[], Error>({
     queryKey: ['polls'],
-    queryFn: fetchUserPolls(bfetch, profile as TProfile),
+    queryFn: fetchUserPolls(bfetch, profile as Profile),
   })
 
   if (isLoading || error) {

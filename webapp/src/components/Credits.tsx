@@ -93,7 +93,7 @@ export const Credits = (props: FlexProps) => {
             Do you want to create more flexible Web3 votes? <br />
             Check our Web3 voting UI 👇
           </Text>
-          <Box align='center'>
+          <Box textAlign='center'>
             <Link href='https://onvote.app' target='_blank'>
               <Image src={logo} alt='onvote.app' maxW='50%' />
             </Link>
@@ -127,6 +127,7 @@ export const Credits = (props: FlexProps) => {
                 0x988A5a452D40aEB67B405eC7Dda6E28fe789646d
               </Code>
               <IconButton
+                aria-label='Copy to clipboard'
                 colorScheme='purple'
                 icon={hasCopied ? <FaCheck /> : <FaRegCopy />}
                 size='xs'

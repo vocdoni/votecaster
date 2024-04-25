@@ -1,7 +1,6 @@
 import { Avatar, Badge, Flex, HStack, Link, LinkProps, Text, VStack } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
-import { Profile } from '../../util/types.ts'
-import { useAuth } from '../Auth/useAuth.ts'
+import { useAuth } from '~components/Auth/useAuth'
 
 type CommunityCardProps = LinkProps & {
   name: string

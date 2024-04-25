@@ -1,4 +1,4 @@
-import { Credits } from '../components/Credits'
+import { Credits } from '~components/Credits'
 
 const About = () => <Credits />
 

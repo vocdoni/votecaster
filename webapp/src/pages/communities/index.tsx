@@ -1,4 +1,4 @@
-import { CommunitiesList } from '../../components/Communities'
+import { CommunitiesList } from '~components/Communities'
 
 const Communities = () => <CommunitiesList />
 

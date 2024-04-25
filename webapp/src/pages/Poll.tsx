@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useAuth } from '../components/Auth/useAuth'
-import { PollView } from '../components/Poll'
-import { fetchPollInfo, fetchPollsVoters } from '../queries/polls'
-import type { PollResult } from '../util/types'
+import { useAuth } from '~components/Auth/useAuth'
+import { PollView } from '~components/Poll'
+import { fetchPollInfo, fetchPollsVoters } from '~queries/polls'
 
 const Poll = () => {
   const { pid: electionId } = useParams()
@@ -26,17 +25,11 @@ const Poll = () => {
           tally[0].push(parseInt(t))
         })
         setResults({
+          ...apiData,
           censusRoot: '',
           censusURI: '',
           endTime: new Date(apiData.endTime),
-          options: apiData.options,
-          participants: apiData.participants,
-          question: apiData.question,
           tally: tally,
-          turnout: apiData.turnout,
-          voteCount: apiData.voteCount,
-          finalized: apiData.finalized,
-          censusParticipantsCount: apiData.censusParticipantsCount,
         })
         // get voters
         if (apiData.voteCount > 0) {

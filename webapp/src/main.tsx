@@ -5,11 +5,11 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { WagmiProvider } from 'wagmi'
 import { AuthProvider } from './components/Auth/AuthContext'
+import { Router } from './router'
 import { theme } from './theme'
 import { config } from './util/rainbow'
 
 import '@rainbow-me/rainbowkit/styles.css'
-import { Router } from './router'
 
 const queryClient = new QueryClient()
 const rootElement = document.getElementById('root')

@@ -1,5 +1,5 @@
 import { Box, FormLabel, Text } from '@chakra-ui/react'
-import CensusTypeSelector from '../../CensusTypeSelector'
+import CensusTypeSelector from '~components/CensusTypeSelector'
 
 export const CensusSelector = () => {
   return (

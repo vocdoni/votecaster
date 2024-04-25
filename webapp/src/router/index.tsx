@@ -1,18 +1,18 @@
 import { lazy } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
-import { Layout } from '../components/Layout'
+import { Layout } from '~components/Layout'
 import { SuspenseLoader } from './SuspenseLoader'
 
-const About = lazy(() => import('../pages/About'))
-const App = lazy(() => import('../pages/App'))
-const Communities = lazy(() => import('../pages/communities'))
-const CommunitiesNew = lazy(() => import('../pages/communities/new'))
-const Community = lazy(() => import('../pages/communities/view'))
-const CommunityPoll = lazy(() => import('../pages/communities/poll'))
+const About = lazy(() => import('~pages/About'))
+const App = lazy(() => import('~pages/App'))
+const Communities = lazy(() => import('~pages/communities'))
+const CommunitiesNew = lazy(() => import('~pages/communities/new'))
+const Community = lazy(() => import('~pages/communities/view'))
+const CommunityPoll = lazy(() => import('~pages/communities/poll'))
 const FarcasterAccountProtectedRoute = lazy(() => import('./FarcasterAccountProtectedRoute'))
-const Leaderboards = lazy(() => import('../pages/Leaderboards'))
-const Poll = lazy(() => import('../pages/Poll'))
-const Profile = lazy(() => import('../pages/Profile'))
+const Leaderboards = lazy(() => import('~pages/Leaderboards'))
+const Poll = lazy(() => import('~pages/Poll'))
+const Profile = lazy(() => import('~pages/Profile'))
 const ProtectedRoute = lazy(() => import('./ProtectedRoute'))
 
 export const Router = () => {

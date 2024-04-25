@@ -1,5 +1,4 @@
-import { appUrl } from '../util/constants'
-import { FetchFunction } from '../util/types'
+import { appUrl } from '~constants'
 
 type Channel = {
   description: string

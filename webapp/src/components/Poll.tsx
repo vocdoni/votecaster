@@ -18,11 +18,10 @@ import {
 } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import { FaCheck, FaDownload, FaPlay, FaRegCircleStop } from 'react-icons/fa6'
+import { appUrl, degenContractAddress } from '~constants'
+import { fetchShortURL } from '~queries/common'
+import { humanDate } from '~util/strings'
 import { CsvGenerator } from '../generator'
-import { fetchShortURL } from '../queries/common'
-import { appUrl, degenContractAddress } from '../util/constants'
-import { humanDate } from '../util/strings'
-import type { PollResult } from '../util/types'
 import { useAuth } from './Auth/useAuth'
 
 export type PollViewProps = {
@@ -99,7 +98,7 @@ export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessa
                 )}
               </Flex>
             </Skeleton>
-            <Image src={`${import.meta.env.APP_URL}/preview/${electionId}`} fallback={<Skeleton height={200} />} />
+            <Image src={`${appUrl}/preview/${electionId}`} fallback={<Skeleton height={200} />} />
             <Link fontSize={'sm'} color={'gray'} onClick={() => copyToClipboard(electionURL)}>
               Copy link to the frame
             </Link>
@@ -156,16 +155,11 @@ export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessa
           <Skeleton isLoaded={!loading}>
             <VStack spacing={6} alignItems='left' fontSize={'sm'}>
               <Text>
-                This poll {poll?.finalized ? 'has ended' : 'ends'} on {`${humanDate(poll?.endTime)}`}. Check the Vocdoni
-                blockchain explorer for{' '}
-                <Link
-                  textDecoration={'underline'}
-                  isExternal
-                  href={`https://stg.explorer.vote/processes/show/#/${electionId}`}
-                >
-                  more information
+                This poll {poll?.finalized ? 'has ended' : 'ends'} on {`${humanDate(poll?.endTime)}`}.{` `}
+                <Link variant='primary' isExternal href={`https://stg.explorer.vote/processes/show/#/${electionId}`}>
+                  Check the Vocdoni blockchain explorer
                 </Link>
-                .
+                {` `}for more information.
               </Text>
               {!!voters.length && (
                 <>

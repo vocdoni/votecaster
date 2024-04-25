@@ -1,5 +1,4 @@
-import { appUrl } from '../util/constants'
-import type { FetchFunction, PollInfo } from '../util/types'
+import { appUrl } from '~constants'
 
 export const fetchPollInfo =
   (bfetch: FetchFunction) =>

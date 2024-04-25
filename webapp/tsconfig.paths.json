@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "~components/*": ["components/*"],
+      "~constants": ["util/constants.ts"],
+      "~util/*": ["util/*"],
+      "~pages/*": ["pages/*"],
+      "~queries/*": ["queries/*"],
+      "~typechain": ["typechain/index.ts"],
+      "~typechain/*": ["typechain/*"],
+      "~src/*": ["./*"]
+    }
+  }
+}

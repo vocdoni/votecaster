@@ -34,6 +34,7 @@
     "sort-by": "^1.2.0",
     "viem": "^2.9.26",
     "vite-plugin-html": "^3.2.2",
+    "vite-tsconfig-paths": "^4.3.2",
     "wagmi": "^2.5.20"
   },
   "devDependencies": {

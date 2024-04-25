@@ -1,5 +1,5 @@
 import { Grid, GridItem } from '@chakra-ui/react'
-import { LatestPolls, TopCreators, TopTenPolls, TopVoters } from '../components/Top'
+import { LatestPolls, TopCreators, TopTenPolls, TopVoters } from '~components/Top'
 
 const Leaderboards = () => (
   <Grid

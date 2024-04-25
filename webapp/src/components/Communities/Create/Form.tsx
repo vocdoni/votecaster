@@ -4,16 +4,16 @@ import { BrowserProvider, ContractTransactionReceipt } from 'ethers'
 import { useCallback, useEffect, useState } from 'react'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
 import { useAccount, useBalance, useWalletClient, type UseWalletClientReturnType } from 'wagmi'
-import { CommunityHub__factory } from '../../../typechain'
-import { CommunityHubInterface, ICommunityHub } from '../../../typechain/src/CommunityHub.ts'
-import { degenContractAddress } from '../../../util/constants'
-import { censusTypeToEnum } from '../../../util/types.ts'
-import { CensusFormValues } from '../../CensusTypeSelector'
+import { CensusFormValues } from '~components/CensusTypeSelector'
+import { degenContractAddress } from '~constants'
+import { CommunityHub__factory, ICommunityHub } from '~typechain'
+import { CommunityHubInterface } from '~typechain/src/CommunityHub'
+import { censusTypeToEnum } from '~util/types'
 import { CensusSelector } from './CensusSelector'
 import { Channels } from './Channels'
 import { Confirm } from './Confirm'
-import CommunityDone from './Done.tsx'
-import { GroupChat } from './GroupChat.tsx'
+import CommunityDone from './Done'
+import { GroupChat } from './GroupChat'
 import { CommunityMetaFormValues, Meta } from './Meta'
 
 export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusType' | 'channel'> &
@@ -86,7 +86,7 @@ export const CommunitiesCreateForm = () => {
           censusType: censusTypeToEnum(data.censusType), // Census type
           tokens:
             data.addresses
-              ?.filter(({ _, address }) => address !== '')
+              ?.filter(({ address }) => address !== '')
               .map(({ blockchain, address: contractAddress }) => {
                 return {
                   blockchain,
@@ -197,7 +197,7 @@ export const CommunitiesCreateForm = () => {
                   <Confirm
                     isLoading={isPending || isLoadingPrice || isBalanceLoading}
                     price={calcPrice}
-                    balance={userBalance}
+                    balance={userBalance as string}
                   />
                 </Box>
               </Flex>

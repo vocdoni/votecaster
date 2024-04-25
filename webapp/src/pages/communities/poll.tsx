@@ -1,13 +1,12 @@
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useAuth } from '../../components/Auth/useAuth'
-import { PollView } from '../../components/Poll'
-import { fetchPollInfo, fetchPollsVoters } from '../../queries/polls'
-import { CommunityHub__factory } from '../../typechain'
-import { degenChainRpc, degenContractAddress } from '../../util/constants'
-import { toArrayBuffer } from '../../util/hex'
-import type { PollResult } from '../../util/types'
+import { useAuth } from '~components/Auth/useAuth'
+import { PollView } from '~components/Poll'
+import { degenChainRpc, degenContractAddress } from '~constants'
+import { fetchPollInfo, fetchPollsVoters } from '~queries/polls'
+import { CommunityHub__factory } from '~typechain'
+import { toArrayBuffer } from '~util/hex'
 
 const CommunityPoll = () => {
   const { pid: electionId, id: communityId } = useParams()
