@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	maxFollowersReputation = 9
-	maxElectionsReputation = 9
-	maxVotesReputation     = 27
+	maxFollowersReputation = 10
+	maxElectionsReputation = 10
+	maxVotesReputation     = 25
 	maxCastedReputation    = 45
 	maxCommunityReputation = 10
 	maxReputation          = 100
