@@ -1145,11 +1145,6 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 				}
 			}
 
-			if weight.Uint64() == 0 {
-				log.Warnf("weight not found for user %s", user.Username)
-				return
-			}
-
 			for _, signer := range user.Signers {
 				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
 				if err != nil {
@@ -1227,10 +1222,6 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 				}
 			}
 
-			if weight.Uint64() == 0 {
-				log.Warnf("weight not found for user %s with address %v", userData.Username, userData.VerificationsAddresses)
-				continue
-			}
 			// Add the user to the participants list (with all the signers)
 			for _, signer := range userData.Signers {
 				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
