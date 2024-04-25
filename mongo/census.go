@@ -40,7 +40,7 @@ func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, partici
 		"$set": bson.M{
 			"participants":       participants,
 			"fromTotalAddresses": fromTotalAddresses,
-			"totalWeight":        totalWeight,
+			"totalWeight":        totalWeight.String(),
 			"url":                censusURI,
 		},
 	}
