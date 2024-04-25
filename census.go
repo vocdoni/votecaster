@@ -109,6 +109,7 @@ type FarcasterParticipant struct {
 	PubKey   []byte   `json:"pubkey"`
 	Weight   *big.Int `json:"weight"`
 	Username string   `json:"username"`
+	FID      uint64   `json:"fid"`
 }
 
 // CreateCensus creates a new census from a list of participants.
@@ -254,17 +255,14 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			return
 		}
 		// since each participant can have multiple signers, we need to get the unique usernames
-		uniqueParticipantsMap := make(map[string]string)
+		uniqueParticipantsMap := make(map[string]*big.Int)
 		totalWeight := new(big.Int).SetUint64(0)
 		for _, p := range participants {
 			if _, ok := uniqueParticipantsMap[p.Username]; ok {
-				// if the username is already in the map, skip
+				// if the username is already in the map, continue
 				continue
 			}
-			if p.Weight == nil {
-				p.Weight = big.NewInt(1)
-			}
-			uniqueParticipantsMap[p.Username] = p.Weight.String()
+			uniqueParticipantsMap[p.Username] = p.Weight
 			totalWeight.Add(totalWeight, p.Weight)
 		}
 		uniqueParticipants := []string{}
@@ -705,18 +703,15 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType in
 		}
 
 		// since each participant can have multiple signers, we need to get the unique usernames
-		uniqueParticipantsMap := make(map[string]string)
+		uniqueParticipantsMap := make(map[string]*big.Int)
 		totalWeight := new(big.Int).SetUint64(0)
 		for _, p := range participants {
 			if _, ok := uniqueParticipantsMap[p.Username]; ok {
-				// if the username is already in the map, skip
+				// if the username is already in the map, continue
 				continue
 			}
-			if p.Weight == nil {
-				p.Weight = big.NewInt(1)
-			}
+			uniqueParticipantsMap[p.Username] = p.Weight
 			totalWeight.Add(totalWeight, p.Weight)
-			uniqueParticipantsMap[p.Username] = p.Weight.String()
 		}
 		uniqueParticipants := []string{}
 		for k := range uniqueParticipantsMap {
@@ -801,10 +796,10 @@ func (v *vocdoniHandler) censusWarpcastChannel(censusID types.HexBytes, channelI
 			v.censusCreationMap.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		uniqueParticipantsMap := map[string]string{}
+		uniqueParticipantsMap := make(map[string]*big.Int)
 		for _, p := range participants {
 			if _, ok := uniqueParticipantsMap[p.Username]; !ok {
-				uniqueParticipantsMap[p.Username] = "1"
+				uniqueParticipantsMap[p.Username] = new(big.Int).SetUint64(1)
 			}
 		}
 		for username := range uniqueParticipantsMap {
@@ -1039,6 +1034,10 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 			log.Warnf("invalid record: %v", record)
 			continue
 		}
+		// If the weight is not provided, set it to 1
+		if weightRecord == "" {
+			weightRecord = "1"
+		}
 		weight, ok = new(big.Int).SetString(weightRecord, 10)
 		if !ok {
 			log.Warnf("invalid weight for address %s: %s", address, weightRecord)
@@ -1135,6 +1134,22 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 				pendingAddressesCh <- addr
 				return
 			}
+
+			// find the addres on the map to get the weight
+			// the weight is the sum of the weights of all the addresses of the user
+			weight := new(big.Int).SetUint64(0)
+			for _, addr := range user.Addresses {
+				weightAddress, ok := addressMap[common.HexToAddress(addr).Hex()]
+				if ok {
+					weight = weight.Add(weight, weightAddress)
+				}
+			}
+
+			if weight.Uint64() == 0 {
+				log.Warnf("weight not found for user %s", user.Username)
+				return
+			}
+
 			for _, signer := range user.Signers {
 				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
 				if err != nil {
@@ -1143,8 +1158,9 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 				}
 				participantsCh <- &FarcasterParticipant{
 					PubKey:   signerBytes,
-					Weight:   addressMap[addr],
+					Weight:   weight,
 					Username: user.Username,
+					FID:      user.UserID,
 				}
 			}
 			processedAddresses.Add(1)
@@ -1202,16 +1218,16 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 				}
 			}
 			// find the addres on the map to get the weight
-			var weight *big.Int
-			var ok bool
+			// the weight is the sum of the weights of all the addresses of the user
+			weight := new(big.Int).SetUint64(0)
 			for _, addr := range userData.VerificationsAddresses {
-				weight, ok = addressMap[common.HexToAddress(addr).Hex()]
+				weightAddress, ok := addressMap[common.HexToAddress(addr).Hex()]
 				if ok {
-					break
+					weight = weight.Add(weight, weightAddress)
 				}
 			}
 
-			if weight == nil {
+			if weight.Uint64() == 0 {
 				log.Warnf("weight not found for user %s with address %v", userData.Username, userData.VerificationsAddresses)
 				continue
 			}
@@ -1226,6 +1242,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 					PubKey:   signerBytes,
 					Weight:   weight,
 					Username: userData.Username,
+					FID:      userData.FID,
 				})
 			}
 			count++
