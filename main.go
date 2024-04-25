@@ -82,7 +82,7 @@ func main() {
 	// Airstack flags
 	flag.String("airstackAPIEndpoint", "https://api.airstack.xyz/gql", "The Airstack API endpoint to use")
 	flag.String("airstackAPIKey", "", "The Airstack API key to use")
-	flag.String("airstackBlockchains", "ethereum,base,zora,polygon", "Supported Airstack networks")
+	flag.String("airstackBlockchains", "ethereum,base,zora,gold,degen", "Supported Airstack networks")
 	flag.Int("airstackMaxHolders", 10000, "The maximum number of holders to be retrieved from the Airstack API")
 	flag.String("airstackSupportAPIEndpoint", "", "Airstack support API endpoint")
 	flag.String("airstackTokenWhitelist", "", "Airstack token whitelist")

@@ -22,9 +22,10 @@ const (
 // add new blockchains if airstack schema changed and bindings regenerated
 var airstackSupportedBlockchains = map[string]gql.TokenBlockchain{
 	"ethereum": gql.TokenBlockchainEthereum,
-	"polygon":  gql.TokenBlockchainPolygon,
+	"gold":     gql.TokenBlockchainGold,
 	"base":     gql.TokenBlockchainBase,
 	"zora":     gql.TokenBlockchainZora,
+	"degen":    gql.TokenBlockchainDegen,
 }
 
 type httpTransportWithAuth struct {

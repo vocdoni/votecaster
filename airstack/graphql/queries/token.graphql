@@ -1,11 +1,13 @@
 query GetTokenDetails($tokenAddress: Address!, $blockchain: TokenBlockchain!) {
-  Token(
-    input: {address: $tokenAddress, blockchain: $blockchain}
+  Tokens(
+    input: {filter: {address: {_eq: $tokenAddress}}, blockchain: $blockchain}
   ) {
-    name
-    symbol
-    decimals
-    totalSupply
+    Token {
+      name
+      symbol
+      decimals
+      totalSupply
+    }
   }
 }
 

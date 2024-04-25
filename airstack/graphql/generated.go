@@ -280,14 +280,24 @@ func (v *GetTokenBalancesTokenBalancesTokenBalancesOutputTokenBalanceOwnerWallet
 
 // GetTokenDetailsResponse is returned by GetTokenDetails on success.
 type GetTokenDetailsResponse struct {
-	Token GetTokenDetailsToken `json:"Token"`
+	Tokens GetTokenDetailsTokensTokensOutput `json:"Tokens"`
 }
 
-// GetToken returns GetTokenDetailsResponse.Token, and is useful for accessing the field via an interface.
-func (v *GetTokenDetailsResponse) GetToken() GetTokenDetailsToken { return v.Token }
+// GetTokens returns GetTokenDetailsResponse.Tokens, and is useful for accessing the field via an interface.
+func (v *GetTokenDetailsResponse) GetTokens() GetTokenDetailsTokensTokensOutput { return v.Tokens }
 
-// GetTokenDetailsToken includes the requested fields of the GraphQL type Token.
-type GetTokenDetailsToken struct {
+// GetTokenDetailsTokensTokensOutput includes the requested fields of the GraphQL type TokensOutput.
+type GetTokenDetailsTokensTokensOutput struct {
+	Token []GetTokenDetailsTokensTokensOutputToken `json:"Token"`
+}
+
+// GetToken returns GetTokenDetailsTokensTokensOutput.Token, and is useful for accessing the field via an interface.
+func (v *GetTokenDetailsTokensTokensOutput) GetToken() []GetTokenDetailsTokensTokensOutputToken {
+	return v.Token
+}
+
+// GetTokenDetailsTokensTokensOutputToken includes the requested fields of the GraphQL type Token.
+type GetTokenDetailsTokensTokensOutputToken struct {
 	// Name of the token, mirrored from the smart contract
 	Name string `json:"name"`
 	// Symbol of the token, mirrored from the smart contract
@@ -298,25 +308,26 @@ type GetTokenDetailsToken struct {
 	TotalSupply string `json:"totalSupply"`
 }
 
-// GetName returns GetTokenDetailsToken.Name, and is useful for accessing the field via an interface.
-func (v *GetTokenDetailsToken) GetName() string { return v.Name }
+// GetName returns GetTokenDetailsTokensTokensOutputToken.Name, and is useful for accessing the field via an interface.
+func (v *GetTokenDetailsTokensTokensOutputToken) GetName() string { return v.Name }
 
-// GetSymbol returns GetTokenDetailsToken.Symbol, and is useful for accessing the field via an interface.
-func (v *GetTokenDetailsToken) GetSymbol() string { return v.Symbol }
+// GetSymbol returns GetTokenDetailsTokensTokensOutputToken.Symbol, and is useful for accessing the field via an interface.
+func (v *GetTokenDetailsTokensTokensOutputToken) GetSymbol() string { return v.Symbol }
 
-// GetDecimals returns GetTokenDetailsToken.Decimals, and is useful for accessing the field via an interface.
-func (v *GetTokenDetailsToken) GetDecimals() int { return v.Decimals }
+// GetDecimals returns GetTokenDetailsTokensTokensOutputToken.Decimals, and is useful for accessing the field via an interface.
+func (v *GetTokenDetailsTokensTokensOutputToken) GetDecimals() int { return v.Decimals }
 
-// GetTotalSupply returns GetTokenDetailsToken.TotalSupply, and is useful for accessing the field via an interface.
-func (v *GetTokenDetailsToken) GetTotalSupply() string { return v.TotalSupply }
+// GetTotalSupply returns GetTokenDetailsTokensTokensOutputToken.TotalSupply, and is useful for accessing the field via an interface.
+func (v *GetTokenDetailsTokensTokensOutputToken) GetTotalSupply() string { return v.TotalSupply }
 
 type TokenBlockchain string
 
 const (
 	TokenBlockchainEthereum TokenBlockchain = "ethereum"
-	TokenBlockchainPolygon  TokenBlockchain = "polygon"
 	TokenBlockchainBase     TokenBlockchain = "base"
 	TokenBlockchainZora     TokenBlockchain = "zora"
+	TokenBlockchainGold     TokenBlockchain = "gold"
+	TokenBlockchainDegen    TokenBlockchain = "degen"
 )
 
 // __GetFarcasterUsersByChannelInput is used internally by genqlient
@@ -536,11 +547,13 @@ func GetTokenBalances(
 // The query or mutation executed by GetTokenDetails.
 const GetTokenDetails_Operation = `
 query GetTokenDetails ($tokenAddress: Address!, $blockchain: TokenBlockchain!) {
-	Token(input: {address:$tokenAddress,blockchain:$blockchain}) {
-		name
-		symbol
-		decimals
-		totalSupply
+	Tokens(input: {filter:{address:{_eq:$tokenAddress}},blockchain:$blockchain}) {
+		Token {
+			name
+			symbol
+			decimals
+			totalSupply
+		}
 	}
 }
 `
