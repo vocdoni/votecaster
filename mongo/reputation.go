@@ -155,7 +155,7 @@ func (ms *MongoStorage) getCommunitiesCountForUser(userID uint64) (uint64, error
 	defer cancel()
 
 	pipeline := mongo.Pipeline{
-		bson.D{{Key: "$match", Value: bson.M{"admins": userID}}},
+		bson.D{{Key: "$match", Value: bson.M{"owners": userID}}},
 		bson.D{{Key: "$count", Value: "count"}},
 	}
 
