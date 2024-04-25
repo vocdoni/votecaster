@@ -1,7 +1,7 @@
 import { Grid, GridItem } from '@chakra-ui/react'
 import { LatestPolls, TopCreators, TopTenPolls, TopVoters } from '../components/Top'
 
-export const Leaderboards = () => (
+const Leaderboards = () => (
   <Grid
     gap={3}
     templateAreas={{
@@ -26,3 +26,5 @@ export const Leaderboards = () => (
     </GridItem>
   </Grid>
 )
+
+export default Leaderboards

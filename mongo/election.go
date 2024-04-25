@@ -17,7 +17,10 @@ func (ms *MongoStorage) AddElection(
 	userFID uint64,
 	source string,
 	question string,
-	usersCount, usersCountInitial, tokenDecimals uint32) error {
+	usersCount, usersCountInitial, tokenDecimals uint32,
+	endTime time.Time,
+	community *ElectionCommunity,
+) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
@@ -25,6 +28,7 @@ func (ms *MongoStorage) AddElection(
 		UserID:                userFID,
 		ElectionID:            electionID.String(),
 		CreatedTime:           time.Now(),
+		EndTime:               endTime,
 		Source:                source,
 		FarcasterUserCount:    usersCount,
 		InitialAddressesCount: usersCountInitial,
@@ -32,6 +36,7 @@ func (ms *MongoStorage) AddElection(
 		ElectionMeta: ElectionMeta{
 			CensusERC20TokenDecimals: tokenDecimals,
 		},
+		Community: community,
 	}
 	log.Infow("added new election", "electionID", electionID.String(), "userID", userFID, "question", question)
 	return ms.addElection(&election)
@@ -64,7 +69,7 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 			continue
 		}
 
-		user, err := ms.getUserData(election.UserID)
+		user, err := ms.userData(election.UserID)
 		if err != nil {
 			log.Warn(err)
 			continue
@@ -99,6 +104,37 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 			CreatedByDisplayname: user.Displayname,
 		})
 	}
+	return elections, nil
+}
+
+// ElectionsByCommunity returns all the elections created by the community with the ID.
+func (ms *MongoStorage) ElectionsByCommunity(communityID uint64) ([]*Election, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Specify the sorting order for the query
+	opts := options.Find().SetSort(bson.D{{Key: "createdTime", Value: -1}})
+
+	cursor, err := ms.elections.Find(ctx, bson.M{"community.id": communityID}, opts)
+	if err != nil {
+		log.Warn(err)
+		return nil, fmt.Errorf("failed to find elections by community ID: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var elections []*Election
+	for cursor.Next(ctx) {
+		var election Election
+		if err := cursor.Decode(&election); err != nil {
+			log.Warn("failed to decode election: ", err)
+			continue
+		}
+		elections = append(elections, &election)
+	}
+
 	return elections, nil
 }
 

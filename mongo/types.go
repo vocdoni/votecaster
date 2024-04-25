@@ -30,6 +30,7 @@ type User struct {
 	Signers        []string  `json:"signers" bson:"signers"`
 	Followers      uint64    `json:"followers" bson:"followers"`
 	LastUpdated    time.Time `json:"lastUpdated" bson:"lastUpdated"`
+	Avatar         string    `json:"avatar" bson:"avatar"`
 }
 
 // UserAccessProfile holds the user's access profile data, used by our backend to determine the user's access level.
@@ -44,18 +45,27 @@ type UserAccessProfile struct {
 	NotificationsMutedUsers []uint64 `json:"notificationsMutedUsers" bson:"notificationsMutedUsers"`
 }
 
+// ElectionCommunity represents the community used to create an election.
+type ElectionCommunity struct {
+	ID   uint64 `json:"id" bson:"id"`
+	Name string `json:"name" bson:"name"`
+}
+
 // Election represents an election and its details owned by a user.
 type Election struct {
 	ElectionMeta
-	ElectionID            string    `json:"electionId" bson:"_id"`
-	UserID                uint64    `json:"userId" bson:"userId"`
-	CastedVotes           uint64    `json:"castedVotes" bson:"castedVotes"`
-	LastVoteTime          time.Time `json:"lastVoteTime" bson:"lastVoteTime"`
-	CreatedTime           time.Time `json:"createdTime" bson:"createdTime"`
-	Source                string    `json:"source" bson:"source"`
-	FarcasterUserCount    uint32    `json:"farcasterUserCount" bson:"farcasterUserCount"`
-	InitialAddressesCount uint32    `json:"initialAddressesCount" bson:"initialAddressesCount"`
-	Question              string    `json:"question" bson:"question"`
+	ElectionID            string             `json:"electionId" bson:"_id"`
+	UserID                uint64             `json:"userId" bson:"userId"`
+	CastedVotes           uint64             `json:"castedVotes" bson:"castedVotes"`
+	LastVoteTime          time.Time          `json:"lastVoteTime" bson:"lastVoteTime"`
+	CreatedTime           time.Time          `json:"createdTime" bson:"createdTime"`
+	EndTime               time.Time          `json:"endTime" bson:"endTime"`
+	Source                string             `json:"source" bson:"source"`
+	FarcasterUserCount    uint32             `json:"farcasterUserCount" bson:"farcasterUserCount"`
+	InitialAddressesCount uint32             `json:"initialAddressesCount" bson:"initialAddressesCount"`
+	Question              string             `json:"question" bson:"question"`
+	Community             *ElectionCommunity `json:"community" bson:"community"`
+	CastedWeight          string             `json:"castedWeight" bson:"castedWeight"`
 }
 
 // Census stores the census of an election ready to be used for voting on farcaster.
@@ -67,6 +77,8 @@ type Census struct {
 	Participants       map[string]string `json:"participants" bson:"participants"`
 	FromTotalAddresses uint32            `json:"fromTotalAddresses" bson:"fromTotalAddresses"`
 	CreatedBy          uint64            `json:"createdBy" bson:"createdBy"`
+	TotalWeight        string            `json:"totalWeight" bson:"totalWeight"`
+	URL                string            `json:"url" bson:"url"`
 }
 
 // ElectionMeta stores non related election information that is useful
@@ -79,8 +91,11 @@ type ElectionMeta struct {
 
 // Results represents the final results of an election.
 type Results struct {
-	ElectionID string `json:"electionId" bson:"_id"`
-	FinalPNG   []byte `json:"finalPNG" bson:"finalPNG"`
+	ElectionID string   `json:"electionId" bson:"_id"`
+	FinalPNG   []byte   `json:"finalPNG" bson:"finalPNG"`
+	Choices    []string `json:"title" bson:"title"`
+	Votes      []string `json:"votes" bson:"votes"`
+	Finalized  bool     `json:"finalized" bson:"finalized"`
 }
 
 // VotersOfElection represents the list of voters of an election.
@@ -112,6 +127,8 @@ type Notification struct {
 	Username       string           `json:"username" bson:"username"`
 	AuthorID       uint64           `json:"authorId" bson:"authorId"`
 	AuthorUsername string           `json:"authorUsername" bson:"authorUsername"`
+	CommunityID    uint64           `json:"communityId" bson:"communityId"`
+	CommunityName  string           `json:"communityName" bson:"communityName"`
 	ElectionID     string           `json:"electionId" bson:"electionId"`
 	FrameUrl       string           `json:"frameUrl" bson:"frameUrl"`
 	CustomText     string           `json:"customText" bson:"customText"`
@@ -125,6 +142,7 @@ type Collection struct {
 	ResultsCollection
 	VotersOfElectionCollection
 	CensusCollection
+	CommunitiesCollection
 }
 
 // UserCollection is a dataset containing several users (used for dump and import).
@@ -152,6 +170,11 @@ type VotersOfElectionCollection struct {
 	VotersOfElection []VotersOfElection `json:"votersOfElection" bson:"votersOfElection"`
 }
 
+// CommunitiesCollection is a dataset containing several communities (used for dump and import).
+type CommunitiesCollection struct {
+	Communities []Community `json:"communities" bson:"communities"`
+}
+
 // UserRanking is a user ranking entry.
 type UserRanking struct {
 	FID         uint64 `json:"fid" bson:"fid"`
@@ -168,6 +191,48 @@ type ElectionRanking struct {
 	CreatedByUsername    string `json:"createdByUsername" bson:"createdByUsername"`
 	CreatedByDisplayname string `json:"createdByDisplayname" bson:"createdByDisplayname"`
 	Title                string `json:"title" bson:"title"`
+}
+
+// Community represents a community entry.
+type Community struct {
+	ID            uint64          `json:"id" bson:"_id"`
+	Name          string          `json:"name" bson:"name"`
+	Channels      []string        `json:"channels" bson:"channels"`
+	Census        CommunityCensus `json:"census" bson:"census"`
+	ImageURL      string          `json:"imageURL" bson:"imageURL"`
+	GroupChatURL  string          `json:"groupChatURL" bson:"groupChatURL"`
+	Admins        []uint64        `json:"owners" bson:"owners"`
+	Notifications bool            `json:"notifications" bson:"notifications"`
+	Disabled      bool            `json:"disabled" bson:"disabled"`
+}
+
+const (
+	// TypeCommunityCensusChannel is the type for a community census that uses
+	// a channel as source.
+	TypeCommunityCensusChannel = "channel"
+	// TypeCommunityCensusERC20 is the type for a community census that uses
+	// ERC20 holders as source.
+	TypeCommunityCensusERC20 = "erc20"
+	// TypeCommunityCensusNFT is the type for a community census that uses
+	// NFT holders as source.
+	TypeCommunityCensusNFT = "nft"
+)
+
+// CommunityCensus represents the census of a community in the database. It
+// includes the name, type, and the census addresses (CommunityCensusAddresses)
+// or the census channel (depending on the type).
+type CommunityCensus struct {
+	Name      string                     `json:"name" bson:"name"`
+	Type      string                     `json:"type" bson:"type"`
+	Addresses []CommunityCensusAddresses `json:"addresses" bson:"addresses"`
+	Channel   string                     `json:"channel" bson:"channel"`
+}
+
+// CommunityCensusAddresses represents the addresses of a contract to be used to
+// create the census of a community.
+type CommunityCensusAddresses struct {
+	Address    string `json:"address" bson:"address"`
+	Blockchain string `json:"blockchain" bson:"blockchain"`
 }
 
 // dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.
@@ -199,7 +264,7 @@ func dynamicUpdateDocument(item interface{}, alwaysUpdateTags []string) (bson.M,
 		}
 		fieldType := typ.Field(i)
 		tag := fieldType.Tag.Get("bson")
-		if tag == "" || tag == "-" {
+		if tag == "" || tag == "-" || tag == "_id" {
 			continue
 		}
 

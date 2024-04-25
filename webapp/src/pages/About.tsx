@@ -1,3 +1,5 @@
 import { Credits } from '../components/Credits'
 
-export const About = () => <Credits />
+const About = () => <Credits />
+
+export default About

@@ -7,6 +7,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/web3"
 	"go.vocdoni.io/dvote/log"
@@ -28,18 +30,19 @@ const (
 	WarpcastClientEndpoint = "https://client.warpcast.com/v2"
 
 	// endpoints
-	neynarGetUsernameEndpoint = NeynarAPIEndpoint + "/v1/farcaster/user?fid=%d"
+	neynarGetUsernameEndpoint = NeynarAPIEndpoint + "/v2/farcaster/user/bulk?fids=%d"
 	neynarGetCastsEndpoint    = NeynarAPIEndpoint + "/v1/farcaster/mentions-and-replies?fid=%d&limit=150&cursor=%s"
 	neynarGetCastEndpoint     = NeynarAPIEndpoint + "/v2/farcaster/cast?identifier=%s&type=hash"
 	neynarReplyEndpoint       = NeynarAPIEndpoint + "/v2/farcaster/cast"
 	neynarUserByEthAddresses  = NeynarAPIEndpoint + "/v2/farcaster/user/bulk-by-address?addresses=%s"
 	neynarUserFollowers       = NeynarAPIEndpoint + "/v1/farcaster/followers?fid=%d&limit=150&cursor=%s"
 	neynarChannelDataByID     = NeynarAPIEndpoint + "/v2/farcaster/channel?id=%s"
+	neynarSuggestChannels     = NeynarAPIEndpoint + "/v2/farcaster/channel/search?q=%s"
 	neynarUsersByChannelID    = NeynarAPIEndpoint + "/v2/farcaster/channel/followers?id=%s&limit=1000&cursor=%s"
 	neynarVerificationsByFID  = NeynarHubEndpoint + "/verificationsByFid?fid=%d"
 	warpcastChannelInfo       = WarpcastClientEndpoint + "/channel?key=%s"
 
-	MaxAddressesPerRequest = 300
+	MaxAddressesPerRequest = 200
 
 	// timeouts
 	getBotUsernameTimeout   = 10 * time.Second
@@ -70,13 +73,11 @@ type NeynarAPI struct {
 	web3provider *web3.FarcasterProvider
 }
 
-func NewNeynarAPI(apiKey string, web3endpoints []string) (*NeynarAPI, error) {
-	log.Infow("starting neynar api with web3 support", "web3endpoints", len(web3endpoints))
-	web3provider := web3.NewFarcasterProvider()
-	for _, web3endpoint := range web3endpoints {
-		if err := web3provider.AddEndpoint(web3endpoint); err != nil {
-			return nil, err
-		}
+func NewNeynarAPI(apiKey string, web3Pool *c3web3.Web3Pool) (*NeynarAPI, error) {
+	log.Infow("starting neynar api with web3 support", "web3endpoints", len(web3Pool.String()))
+	web3provider, err := web3.NewFarcasterProvider(web3Pool)
+	if err != nil {
+		return nil, fmt.Errorf("error creating web3 provider: %w", err)
 	}
 	// Run a quick test to check if the web3 endpoint is working
 	signers, err := web3provider.GetAppKeysByFid(big.NewInt(3))
@@ -142,7 +143,7 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 func (n *NeynarAPI) GetCast(ctx context.Context, _ uint64, hash string) (*farcasterapi.APIMessage, error) {
 	msgResponse := &castResponseV2{}
 	url := fmt.Sprintf(neynarGetCastEndpoint, hash)
-	body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
+	body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to get the cast: %w", err)
 	}
@@ -184,12 +185,13 @@ func (n *NeynarAPI) Publish(ctx context.Context, content string, _ []uint64, emb
 		return fmt.Errorf("error marshalling request body: %w", err)
 	}
 	// create request with the bot fid and set the api key header
-	_, err = n.request(neynarReplyEndpoint, http.MethodPost, body, defaultRequestTimeout)
+	_, err = n.request(ctx, neynarReplyEndpoint, http.MethodPost, body, defaultRequestTimeout)
 	return err
 }
 
 func (n *NeynarAPI) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessage,
-	content string, _ []uint64, embeds ...string) error {
+	content string, _ []uint64, embeds ...string,
+) error {
 	if n.fid == 0 {
 		return fmt.Errorf("farcaster user not set")
 	}
@@ -215,7 +217,7 @@ func (n *NeynarAPI) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessag
 		return fmt.Errorf("error marshalling request body: %w", err)
 	}
 	// create request with the bot fid and set the api key header
-	_, err = n.request(neynarReplyEndpoint, http.MethodPost, body, 0)
+	_, err = n.request(ctx, neynarReplyEndpoint, http.MethodPost, body, 0)
 	return err
 }
 
@@ -224,27 +226,27 @@ func (n *NeynarAPI) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessag
 func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.Userdata, error) {
 	// create request with the bot fid
 	url := fmt.Sprintf(neynarGetUsernameEndpoint, fid)
-	body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
+	body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 	// decode username
-	usernameResponse := &userdataV1Response{}
+	usernameResponse := &userdataV2Result{}
 	if err := json.Unmarshal(body, usernameResponse); err != nil {
 		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 	}
-
 	// get signers
 	signers, err := n.SignersFromFID(fid)
 	if err != nil {
 		return nil, fmt.Errorf("error getting signers: %w", err)
 	}
-
 	return &farcasterapi.Userdata{
 		FID:                    fid,
-		Username:               usernameResponse.Result.User.Username,
-		CustodyAddress:         usernameResponse.Result.User.CustodyAddress,
-		VerificationsAddresses: usernameResponse.Result.User.VerificationsAddresses,
+		Username:               usernameResponse.Users[0].Username,
+		CustodyAddress:         usernameResponse.Users[0].CustodyAddress,
+		VerificationsAddresses: usernameResponse.Users[0].VerifiedAddresses.EthAddresses,
+		Avatar:                 usernameResponse.Users[0].PfpUrl,
+		Bio:                    usernameResponse.Users[0].Profile.Bio.Text,
 		Signers:                signers,
 	}, nil
 }
@@ -272,7 +274,7 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 	// Construct the URL with multiple addresses
 	url := fmt.Sprintf(neynarUserByEthAddresses, addressesStr)
 	// Make the request
-	body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
+	body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +332,7 @@ func (n *NeynarAPI) UserFollowers(ctx context.Context, fid uint64) ([]uint64, er
 	for {
 		// create request with the channel id provided
 		url := fmt.Sprintf(neynarUserFollowers, fid, cursor)
-		body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
+		body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 		if err != nil {
 			return nil, fmt.Errorf("error creating request: %w", err)
 		}
@@ -352,32 +354,52 @@ func (n *NeynarAPI) UserFollowers(ctx context.Context, fid uint64) ([]uint64, er
 	return userFIDs, nil
 }
 
+// Channel method returns the details of a channel given its channelID. If
+// something goes wrong it returns an error.
+func (n *NeynarAPI) Channel(ctx context.Context, channelID string) (*farcasterapi.Channel, error) {
+	if channelID == "" {
+		return nil, nil
+	}
+	// create request with the channel id provided
+	url := fmt.Sprintf(neynarChannelDataByID, channelID)
+	res, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
+	if err != nil {
+		log.Warnw("error getting channel", "channel", channelID, "error", err)
+		if strings.Contains(err.Error(), "404") {
+			return nil, farcasterapi.ErrChannelNotFound
+		}
+		return nil, fmt.Errorf("error getting channel from API: %w", err)
+	}
+	channelData := &warpcastChannelResult{}
+	if err := json.Unmarshal(res, channelData); err != nil {
+		return nil, fmt.Errorf("error decoding channel information: %w", err)
+	}
+	if channelData.Channel == nil {
+		return nil, fmt.Errorf("no data for this channel")
+	}
+	return &farcasterapi.Channel{
+		ID:          channelData.Channel.ID,
+		Name:        channelData.Channel.Name,
+		Description: channelData.Channel.Description,
+		Followers:   channelData.Channel.Followers,
+		Image:       channelData.Channel.ImageURL,
+		URL:         channelData.Channel.URL,
+	}, nil
+}
+
 // ChannelFIDs method returns the FIDs of the users that follow the channel with
 // the given id. If something goes wrong, it returns an error. It return an
 // specific error if the channel does not exist to be handled by the caller.
 func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress chan int) ([]uint64, error) {
 	// check if the channel exists
-	exists, err := n.ChannelExists(channelID)
+	channel, err := n.Channel(ctx, channelID)
 	if err != nil {
+		if errors.Is(err, farcasterapi.ErrChannelNotFound) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("error checking channel existence: %w", err)
 	}
-	if !exists {
-		return nil, farcasterapi.ErrChannelNotFound
-	}
-	// get the followers of the channel to update the progress
-	totalFollowers := 0
-	channelURL := fmt.Sprintf(warpcastChannelInfo, channelID)
-	body, err := n.request(channelURL, http.MethodGet, nil, defaultRequestTimeout)
-	if err != nil {
-		return nil, fmt.Errorf("error getting channel info from neynar: %w", err)
-	}
-	channelResponse := &warpcastChannelResponse{}
-	if err := json.Unmarshal(body, &channelResponse); err != nil {
-		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
-	}
-
-	totalFollowers = channelResponse.Result.Channel.Followers
-	if totalFollowers == 0 {
+	if channel.Followers == 0 {
 		return nil, fmt.Errorf("channel %s has no followers", channelID)
 	}
 	cursor := ""
@@ -386,7 +408,7 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress 
 	for {
 		// create request with the channel id provided
 		url := fmt.Sprintf(neynarUsersByChannelID, channelID, cursor)
-		body, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout)
+		body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 		if err != nil {
 			failedAttempts--
 			if failedAttempts == 0 {
@@ -404,9 +426,9 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress 
 		}
 		// update the progress calculating the percentage of the followers
 		// already processed
-		if progress != nil && totalFollowers > 0 {
+		if progress != nil && channel.Followers > 0 {
 			processedFollowers := len(userFIDs)
-			progress <- int(float64(processedFollowers) / float64(totalFollowers) * 100)
+			progress <- int(float64(processedFollowers) / float64(channel.Followers) * 100)
 		}
 		if usersResult.NextCursor == nil || usersResult.NextCursor.Cursor == "" {
 			break
@@ -422,16 +444,46 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress 
 // ChannelExists method returns a boolean indicating if the channel with the
 // given id exists. If something goes wrong checking the channel existence,
 // it returns an error.
-func (n *NeynarAPI) ChannelExists(channelID string) (bool, error) {
-	// create request with the channel id provided
-	url := fmt.Sprintf(neynarChannelDataByID, channelID)
-	if _, err := n.request(url, http.MethodGet, nil, defaultRequestTimeout); err != nil {
-		if strings.Contains(err.Error(), "404") {
+func (n *NeynarAPI) ChannelExists(ctx context.Context, channelID string) (bool, error) {
+	_, err := n.Channel(ctx, channelID)
+	if err != nil {
+		if errors.Is(err, farcasterapi.ErrChannelNotFound) {
 			return false, nil
 		}
-		return false, fmt.Errorf("error creating request: %w", err)
+		return false, fmt.Errorf("error checking channel existence: %w", err)
 	}
 	return true, nil
+}
+
+// FindChannel method returns the list of channels that match the query provided.
+// If something goes wrong, it returns an error.
+func (n *NeynarAPI) FindChannel(ctx context.Context, query string) ([]*farcasterapi.Channel, error) {
+	channels := []*farcasterapi.Channel{}
+	// create request with the channel id provided
+	url := fmt.Sprintf(neynarSuggestChannels, query)
+	log.Info(url)
+	body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+	channelsResponse := &warpcastChannelsResult{}
+	if err := json.Unmarshal(body, &channelsResponse); err != nil {
+		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
+	}
+	if len(channelsResponse.Channels) == 0 {
+		return nil, farcasterapi.ErrNoDataFound
+	}
+	for _, ch := range channelsResponse.Channels {
+		channels = append(channels, &farcasterapi.Channel{
+			ID:          ch.ID,
+			Name:        ch.Name,
+			Description: ch.Description,
+			Followers:   ch.Followers,
+			Image:       ch.ImageURL,
+			URL:         ch.URL,
+		})
+	}
+	return channels, nil
 }
 
 func (n *NeynarAPI) WebhookHandler(body []byte) error {
@@ -499,9 +551,9 @@ func (n *NeynarAPI) parseCastData(data *castWebhookData) (*farcasterapi.APIMessa
 	return message, nil
 }
 
-func (n *NeynarAPI) request(url, method string, body []byte, timeout time.Duration) ([]byte, error) {
+func (n *NeynarAPI) request(ctx context.Context, url, method string, body []byte, timeout time.Duration) ([]byte, error) {
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 		req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
 		if err != nil {

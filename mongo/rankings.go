@@ -127,7 +127,7 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 		}
 
 		username := ""
-		user, err := ms.getUserData(election.UserID)
+		user, err := ms.userData(election.UserID)
 		if err != nil {
 			log.Warn(err)
 		} else {

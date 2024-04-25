@@ -23,7 +23,6 @@ func (v *vocdoniHandler) notificationsHandler(msg *apirest.APIdata, ctx *httprou
 
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
-
 }
 
 func (v *vocdoniHandler) notificationsResponseHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -173,15 +172,24 @@ func (v *vocdoniHandler) notificationsSendHandler(_ *apirest.APIdata, ctx *httpr
 }
 
 // createNotifications creates a notification for each user in the census.
-func (v *vocdoniHandler) createNotifications(election types.HexBytes, ownerFID uint64, ownerName string,
-	usernames []string, frameURL, customText string, deadline time.Time,
+func (v *vocdoniHandler) createNotifications(electionID types.HexBytes, ownerFID uint64,
+	ownerName string, usernames []string, frameURL, customText string, deadline time.Time,
 ) error {
 	log.Infow("enqueue notifications",
 		"owner", ownerName,
-		"electionID", election.String(),
+		"electionID", electionID.String(),
 		"userCount", len(usernames),
 		"frameURL", frameURL,
 	)
+	// Get the election from the database to get the community ID and name
+	election, err := v.db.Election(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to get election: %w", err)
+	}
+	if election.Community == nil {
+		return fmt.Errorf("election has no community")
+	}
+	// Add a notification for each user in the census to the database
 	for _, username := range usernames {
 		user, err := v.db.UserByUsername(username)
 		if err != nil {
@@ -191,12 +199,12 @@ func (v *vocdoniHandler) createNotifications(election types.HexBytes, ownerFID u
 			}
 			return fmt.Errorf("failed to get user: %w", err)
 		}
-		if _, err := v.db.AddNotifications(mongo.NotificationTypeNewElection, election.String(),
-			user.UserID, ownerFID, username, ownerName, frameURL, customText, deadline,
+		if _, err := v.db.AddNotifications(mongo.NotificationTypeNewElection, electionID.String(),
+			user.UserID, ownerFID, election.Community.ID, username, ownerName, election.Community.Name,
+			frameURL, customText, deadline,
 		); err != nil {
 			return fmt.Errorf("failed to add notification: %w", err)
 		}
 	}
 	return nil
-
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -15,9 +16,11 @@ import (
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/vocdoni/vote-frame/airstack"
+	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
+	"github.com/vocdoni/vote-frame/shortener"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/httprouter"
@@ -38,6 +41,7 @@ type vocdoniHandler struct {
 	electionLRU   *lru.Cache[string, *api.Election]
 	fcapi         farcasterapi.API
 	airstack      *airstack.Airstack
+	comhub        *communityhub.CommunityHub
 
 	censusCreationMap sync.Map
 	addAuthTokenFunc  func(uint64, string)
@@ -53,6 +57,7 @@ func NewVocdoniHandler(
 	fcapi farcasterapi.API,
 	token *uuid.UUID,
 	airstack *airstack.Airstack,
+	comhub *communityhub.CommunityHub,
 ) (*vocdoniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
@@ -89,6 +94,7 @@ func NewVocdoniHandler(
 		db:            db,
 		fcapi:         fcapi,
 		airstack:      airstack,
+		comhub:        comhub,
 		electionLRU: func() *lru.Cache[string, *api.Election] {
 			lru, err := lru.New[string, *api.Election](100)
 			if err != nil {
@@ -157,38 +163,55 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		return nil
 	}
 
-	election, err := v.election(electionIDbytes)
-	if err != nil {
-		return fmt.Errorf("failed to fetch election: %w", err)
-	}
-
-	// try to get the census size from the database (number of actual farcaster users)
-	// as failing to get it, we will use the max census size
-	censusUserCount := election.Census.MaxCensusSize
-	electionInDB, err := v.db.Election(electionIDbytes)
-	if err != nil {
-		log.Debugw("election not found in db", "electionID", electionID)
-	} else {
-		censusUserCount = uint64(electionInDB.FarcasterUserCount)
-		if censusUserCount == 0 {
-			censusUserCount = election.Census.MaxCensusSize
-		}
-	}
-
 	text := []string{}
-	text = append(text, fmt.Sprintf("\nStarted at %s UTC", election.StartDate.Format("2006-01-02 15:04:05")))
-	if !election.FinalResults {
-		text = append(text, fmt.Sprintf("Remaining time %s", time.Until(election.EndDate).Round(time.Minute).String()))
+	title := ""
+	dbElection, err := v.db.Election(electionIDbytes)
+	if err != nil {
+		// election not found in the database, so we use just the information from the vochain API
+		election, err := v.election(electionIDbytes)
+		if err != nil {
+			return fmt.Errorf("failed to fetch election: %w", err)
+		}
+		censusUserCount := election.Census.MaxCensusSize
+		text = append(text, fmt.Sprintf("\nStarted at %s UTC", election.StartDate.Format("2006-01-02 15:04:05")))
+		if !election.FinalResults {
+			text = append(text, fmt.Sprintf("Remaining time %s", time.Until(election.EndDate).Round(time.Minute).String()))
+		} else {
+			text = append(text, fmt.Sprintf("The poll finalized at %s", election.EndDate.Format("2006-01-02 15:04:05")))
+		}
+		text = append(text, fmt.Sprintf("Poll id %x...", election.ElectionID[:16]))
+		text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
+		text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:12]))
+		if censusUserCount >= uint64(maxElectionSize) {
+			text = append(text, fmt.Sprintf("Allowed voters %d", censusUserCount))
+		} else {
+			text = append(text, fmt.Sprintf("Census size %d", censusUserCount))
+		}
+		title = election.Metadata.Title["default"]
 	} else {
-		text = append(text, fmt.Sprintf("The poll finalized at %s", election.EndDate.Format("2006-01-02 15:04:05")))
-	}
-	text = append(text, fmt.Sprintf("Poll id %x...", election.ElectionID[:16]))
-	text = append(text, fmt.Sprintf("Executed on network %s", v.cli.ChainID()))
-	text = append(text, fmt.Sprintf("Census hash %x...", election.Census.CensusRoot[:12]))
-	if censusUserCount >= uint64(maxElectionSize) {
-		text = append(text, fmt.Sprintf("Allowed voters %d", censusUserCount))
-	} else {
-		text = append(text, fmt.Sprintf("Census size %d", censusUserCount))
+		// election found in the database, so we use the information from the database
+		text = append(text, fmt.Sprintf("\nStarted at %s UTC", dbElection.CreatedTime.Format("2006-01-02 15:04:05")))
+		if time.Now().Before(dbElection.EndTime) {
+			text = append(text, fmt.Sprintf("Remaining time: %s", time.Until(dbElection.EndTime).Round(time.Minute).String()))
+		} else {
+			text = append(text, fmt.Sprintf("The poll finalized at %s", dbElection.EndTime.Format("2006-01-02 15:04:05")))
+		}
+		if dbElection.Community != nil {
+			text = append(text, fmt.Sprintf("Community: %s", dbElection.Community.Name))
+		}
+		owner, err := v.db.User(dbElection.UserID)
+		if err == nil {
+			text = append(text, fmt.Sprintf("Owner: %s", owner.Username))
+		}
+		text = append(text, fmt.Sprintf("Executed on network: %s", v.cli.ChainID()))
+
+		if dbElection.FarcasterUserCount > 0 {
+			text = append(text, fmt.Sprintf("Elegible users: %d", dbElection.FarcasterUserCount))
+		}
+		text = append(text, fmt.Sprintf("Last vote: %s", dbElection.LastVoteTime.Format("2006-01-02 15:04:05")))
+		text = append(text, fmt.Sprintf("Cast votes: %d", dbElection.CastedVotes))
+
+		title = dbElection.Question
 	}
 
 	png, err := imageframe.InfoImage(text)
@@ -198,7 +221,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 	// send the response
 	response := strings.ReplaceAll(frame(frameInfo), "{image}", imageLink(png))
-	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+	response = strings.ReplaceAll(response, "{title}", title)
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
@@ -242,4 +265,21 @@ func (v *vocdoniHandler) whitelistHandler(_ *apirest.APIdata, ctx *httprouter.HT
 		return fmt.Errorf("failed to get whitelist: %w", err)
 	}
 	return ctx.Send(nil, http.StatusOK)
+}
+
+// shortURLHanlder is a handler to shorten a URL.
+func (v *vocdoniHandler) shortURLHanlder(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	url := ctx.Request.URL.Query().Get("url")
+	if url == "" {
+		return ctx.Send([]byte("missing URL"), http.StatusBadRequest)
+	}
+	shortURL, err := shortener.ShortURL(ctx.Request.Context(), url)
+	if err != nil {
+		return fmt.Errorf("failed to shorten URL: %w", err)
+	}
+	res, err := json.Marshal(map[string]string{"result": shortURL})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	return ctx.Send(res, http.StatusOK)
 }

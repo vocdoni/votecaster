@@ -139,7 +139,7 @@ func (ms *MongoStorage) ListNotificationMutedUsers(ownerUserID uint64) ([]*User,
 	// Get the user data for each muted user
 	var users []*User
 	for _, userID := range profile.NotificationsMutedUsers {
-		user, err := ms.getUserData(userID)
+		user, err := ms.userData(userID)
 		if err != nil {
 			// if something goes wrong, add an unknown user to the list with the
 			// muted user ID

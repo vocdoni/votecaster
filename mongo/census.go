@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -28,7 +29,8 @@ func (ms *MongoStorage) AddCensus(censusID types.HexBytes, userFID uint64) error
 
 // AddParticipantsToCensus updates a census document with participants and their associated values.
 func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, participants map[string]string,
-	fromTotalAddresses uint32, tokenDecimals uint32) error {
+	fromTotalAddresses uint32, totalWeight *big.Int, tokenDecimals uint32, censusURI string,
+) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
@@ -40,6 +42,8 @@ func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, partici
 			"participants":       participants,
 			"fromTotalAddresses": fromTotalAddresses,
 			"tokenDecimals":      tokenDecimals,
+			"totalWeight":        totalWeight.String(),
+			"url":                censusURI,
 		},
 	}
 
@@ -107,7 +111,11 @@ func (ms *MongoStorage) CensusFromRoot(root types.HexBytes) (*Census, error) {
 func (ms *MongoStorage) CensusFromElection(electionID types.HexBytes) (*Census, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
+	return ms.censusFromElection(electionID)
+}
 
+// censusFromRoot retrieves a Census document by its root. It does not adquire the keysLock.
+func (ms *MongoStorage) censusFromElection(electionID types.HexBytes) (*Census, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

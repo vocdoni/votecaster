@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -76,7 +77,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	// cast the vote
-	nullifier, voterID, fid, err := vote(packet, electionIDbytes, election.Census.CensusRoot, v.cli)
+	nullifier, voterID, fid, weight, err := vote(packet, electionIDbytes, election.Census.CensusRoot, v.cli)
 
 	// handle the vote result
 	if errors.Is(err, ErrNotInCensus) {
@@ -122,7 +123,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 				log.Errorw(err, "failed to add user to database")
 			}
 		}
-		if err := v.db.IncreaseVoteCount(fid, electionIDbytes); err != nil {
+		if err := v.db.IncreaseVoteCount(fid, electionIDbytes, weight); err != nil {
 			log.Errorw(err, "failed to increase vote count")
 		}
 
@@ -141,15 +142,17 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 					log.Warnw("failed to fetch election", "error", err)
 					break
 				}
+				tokenDecimals := uint32(0)
 				electiondb, err := v.db.Election(electionIDbytes)
 				if err != nil {
-					log.Warnw("failed to fetch election", "error", err)
-					break
+					log.Warnw("failed to fetch election from database", "error", err)
+				} else {
+					tokenDecimals = electiondb.CensusERC20TokenDecimals
 				}
-				evicted := v.electionLRU.Add(electionID, election)
-				log.Debugw("updated election cache after vote", "electionID", electionID, "evicted", evicted)
-				resultsPNGfile(election, electiondb.CensusERC20TokenDecimals)
-				break
+				_, err = v.updateAndFetchResultsFromDatabase(electionIDbytes, tokenDecimals, election)
+				if err != nil {
+					log.Warnw("failed to update results", "error", err)
+				}
 			}
 		}
 	}()
@@ -168,11 +171,11 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 
 // vote creates a vote transaction, including the frame signature packet and sends it to the vochain.
 // It returns the nullifier of the vote (which is the unique identifier of the vote), the voterID and an error.
-func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, cli *apiclient.HTTPclient) (types.HexBytes, types.HexBytes, uint64, error) {
+func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, cli *apiclient.HTTPclient) (types.HexBytes, types.HexBytes, uint64, *big.Int, error) {
 	// fetch the public key from the signature and generate the census proof
 	actionMessage, message, pubKey, err := VerifyFrameSignature(packet)
 	if err != nil {
-		return nil, nil, 0, ErrFrameSignature
+		return nil, nil, 0, nil, ErrFrameSignature
 	}
 
 	// compute the voterID, based on the public key
@@ -185,16 +188,16 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 	// check if the voter is elegible to vote (in the census)
 	proof, err := cli.CensusGenProof(root, voterID.Address())
 	if err != nil {
-		return nil, voterID.Address(), message.Data.Fid, ErrNotInCensus
+		return nil, voterID.Address(), message.Data.Fid, nil, ErrNotInCensus
 	}
 
 	// check if the voter already voted
 	_, code, err := cli.Request("GET", nil, "votes", "verify", electionID.String(), fmt.Sprintf("%x", nullifier))
 	if err != nil {
-		return nullifier, voterID.Address(), 0, fmt.Errorf("failed to verify vote: %w", err)
+		return nullifier, voterID.Address(), 0, proof.LeafWeight, fmt.Errorf("failed to verify vote: %w", err)
 	}
 	if code == http.StatusOK {
-		return nullifier, voterID.Address(), message.Data.Fid, ErrAlreadyVoted
+		return nullifier, voterID.Address(), message.Data.Fid, proof.LeafWeight, ErrAlreadyVoted
 	}
 
 	// build the vote package
@@ -203,7 +206,7 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 	}
 	votePackageBytes, err := votePackage.Encode()
 	if err != nil {
-		return nullifier, voterID.Address(), 0, fmt.Errorf("failed to encode vote package: %w", err)
+		return nullifier, voterID.Address(), 0, proof.LeafWeight, fmt.Errorf("failed to encode vote package: %w", err)
 	}
 
 	// build the vote transaction
@@ -223,7 +226,7 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 	// build the proof for the vote transaction
 	frameSignedMessage, err := hex.DecodeString(packet.TrustedData.MessageBytes)
 	if err != nil {
-		return nullifier, voterID.Address(), 0, fmt.Errorf("failed to decode frame signed message: %w", err)
+		return nullifier, voterID.Address(), 0, proof.LeafWeight, fmt.Errorf("failed to decode frame signed message: %w", err)
 	}
 
 	arboProof := &models.ProofArbo{
@@ -248,14 +251,14 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 	stx := models.SignedTx{}
 	stx.Tx, err = proto.Marshal(&models.Tx{Payload: &models.Tx_Vote{Vote: vote}})
 	if err != nil {
-		return nullifier, voterID.Address(), 0, fmt.Errorf("failed to marshal vote transaction: %w", err)
+		return nullifier, voterID.Address(), 0, proof.LeafWeight, fmt.Errorf("failed to marshal vote transaction: %w", err)
 	}
 
 	txHash, nullifier, err := cli.SignAndSendTx(&stx)
 	if err != nil {
-		return nullifier, voterID.Address(), 0, fmt.Errorf("failed to sign and send vote transaction: %w", err)
+		return nullifier, voterID.Address(), 0, proof.LeafWeight, fmt.Errorf("failed to sign and send vote transaction: %w", err)
 	}
 
 	log.Infow("vote transaction sent", "txHash", fmt.Sprintf("%x", txHash), "nullifier", fmt.Sprintf("%x", nullifier))
-	return nullifier, voterID.Address(), message.Data.Fid, nil
+	return nullifier, voterID.Address(), message.Data.Fid, proof.LeafWeight, nil
 }

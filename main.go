@@ -13,10 +13,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	"github.com/vocdoni/vote-frame/airstack"
+	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/discover"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/hub"
@@ -57,10 +60,13 @@ func main() {
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
 	flag.String("web3",
-		"https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
-		"Web3 RPC Optimism endpoint")
+		"https://rpc.degen.tips,https://eth.llamarpc.com,https://rpc.ankr.com/eth,https://ethereum-rpc.publicnode.com,https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
+		"Web3 RPCs")
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
-
+	// community hub flags
+	flag.String("communityHubAddress", "", "The address of the CommunityHub contract")
+	flag.Uint64("communityHubChainID", 666666666, "The chain ID of the CommunityHub contract (default: DegenChain 666666666)")
+	flag.String("communityHubAdminPrivKey", "", "The private key of a wallet admin of the CommunityHub contract in hex format")
 	// bot flags
 	// DISCLAMER: Currently the bot needs a HUB with write permissions to work.
 	// It also needs a FID to impersonate to it and its private key to sign the
@@ -76,7 +82,7 @@ func main() {
 	// Airstack flags
 	flag.String("airstackAPIEndpoint", "https://api.airstack.xyz/gql", "The Airstack API endpoint to use")
 	flag.String("airstackAPIKey", "", "The Airstack API key to use")
-	flag.String("airstackBlockchains", "ethereum,base,zora,polygon", "Supported Airstack networks")
+	flag.String("airstackBlockchains", "ethereum,base,zora,gold,degen", "Supported Airstack networks")
 	flag.Int("airstackMaxHolders", 10000, "The maximum number of holders to be retrieved from the Airstack API")
 	flag.String("airstackSupportAPIEndpoint", "", "Airstack support API endpoint")
 	flag.String("airstackTokenWhitelist", "", "Airstack token whitelist")
@@ -118,6 +124,10 @@ func main() {
 	web3endpoint := strings.Split(web3endpointStr, ",")
 	neynarAPIKey := viper.GetString("neynarAPIKey")
 	indexer := viper.GetBool("indexer")
+	// community hub vars
+	communityHubAddress := viper.GetString("communityHubAddress")
+	communityHubChainID := viper.GetUint64("communityHubChainID")
+	communityHubAdminPrivKey := viper.GetString("communityHubAdminPrivKey")
 
 	// bot vars
 	botFid := viper.GetUint64("botFid")
@@ -171,6 +181,9 @@ func main() {
 		"mongoDB", mongoDB,
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
+		"communityHubAddress", communityHubAddress,
+		"communityHubChainID", communityHubChainID,
+		"communityHubAdmin", communityHubAdminPrivKey != "",
 		"botFid", botFid,
 		"botHubEndpoint", botHubEndpoint,
 		"neynarSignerUUID", neynarSignerUUID,
@@ -237,16 +250,46 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Start the discovery user profile background process
+	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
+	defer mainCtxCancel()
+
+	// Create a Web3 pool
+	web3pool, err := c3web3.NewWeb3Pool()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, endpoint := range web3endpoint {
+		if err := web3pool.AddEndpoint(endpoint); err != nil {
+			log.Warnw("failed to add web3 endpoint", "endpoint", endpoint, "error", err)
+		}
+	}
+	log.Infow("web3 pool initialized", "endpoints", web3pool.String())
+
 	// Create the Farcaster API client
-	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3endpoint)
+	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3pool)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Start the discovery user profile background process
-	mainCtx, mainCtxCancel := context.WithCancel(context.Background())
 	discover.NewFarcasterDiscover(db, neynarcli).Run(mainCtx, indexer)
-	defer mainCtxCancel()
+
+	// Create the community hub service
+	var comHub *communityhub.CommunityHub
+	if communityHubAddress != "" {
+		if comHub, err = communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
+			DB:              db,
+			ContractAddress: common.HexToAddress(communityHubAddress),
+			ChainID:         communityHubChainID,
+			PrivKey:         communityHubAdminPrivKey,
+		}); err != nil {
+			log.Fatal(err)
+		}
+		comHub.ScanNewCommunities()
+		comHub.ListenDisableEvents()
+		defer comHub.Stop()
+	}
 
 	// Create Airstack artifact
 	var as *airstack.Airstack
@@ -266,7 +309,8 @@ func main() {
 
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)
-	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo, webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as)
+	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo,
+		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, comHub)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -392,6 +436,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/rankings/pollsByCommunity/{communityID}", http.MethodGet, "public", handler.electionsByCommunityHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	// Register the API methods
 	if err := uAPI.Endpoint.RegisterMethod("/router/{electionID}", http.MethodPost, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 		electionID := ctx.URLParam("electionID")
@@ -426,6 +474,10 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/poll/{electionID}", http.MethodGet, "public", handler.showElection); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/poll/info/{electionID}", http.MethodGet, "public", handler.electionFullInfo); err != nil {
 		log.Fatal(err)
 	}
 
@@ -465,10 +517,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}/exists", http.MethodGet, "private", handler.censusChannelExists); err != nil {
-		log.Fatal(err)
-	}
-
 	if err := uAPI.Endpoint.RegisterMethod("/census/followers/{userFid}", http.MethodPost, "private", handler.censusFollowers); err != nil {
 		log.Fatal(err)
 	}
@@ -477,7 +525,23 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}/exists", http.MethodGet, "private", handler.censusChannelExists); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/community", http.MethodPost, "private", handler.censusCommunity); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/census/check/{censusID}", http.MethodGet, "private", handler.censusQueueInfo); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/exists/nft", http.MethodPost, "public", handler.checkNFTContractHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/census/exists/erc20", http.MethodPost, "public", handler.checkERC20ContractHandler); err != nil {
 		log.Fatal(err)
 	}
 
@@ -543,6 +607,33 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/profile/mutedUsers/{username}", http.MethodDelete, "private", handler.unmuteUserHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/channels", http.MethodGet, "public", handler.findChannelHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/channels/{channelID}", http.MethodGet, "public", handler.channelHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities", http.MethodGet, "public", handler.listCommunitiesHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodGet, "public", handler.communityHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}/status", http.MethodPut, "private", handler.communityStatusHanler); err != nil {
+		log.Fatal(err)
+	}
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}/notifications", http.MethodPut, "private", handler.communityNotificationsHanler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/short", http.MethodGet, "private", handler.shortURLHanlder); err != nil {
 		log.Fatal(err)
 	}
 

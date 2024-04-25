@@ -1,24 +1,53 @@
-import { Box, Button, Heading, Image, Link, SimpleGrid, Spinner, useBreakpointValue } from '@chakra-ui/react'
-import { useEffect, useMemo, useState } from 'react'
-import { FaDownload } from 'react-icons/fa6'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { CsvGenerator } from '../generator'
+import { useAuth } from '../components/Auth/useAuth'
+import { PollView } from '../components/Poll'
+import { fetchPollInfo, fetchPollsVoters } from '../queries/polls'
+import type { PollResult } from '../util/types'
 
-export const Poll = () => {
-  const { pid } = useParams()
-  const [voters, setVoters] = useState([])
+const Poll = () => {
+  const { pid: electionId } = useParams()
+  const { bfetch } = useAuth()
+
   const [loaded, setLoaded] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
+  const [pollResults, setResults] = useState<PollResult | null>(null)
+  const [voters, setVoters] = useState<string[]>([])
 
   useEffect(() => {
-    if (loaded || loading || !pid) return
+    if (loaded || loading || !electionId) return
     ;(async () => {
       try {
         setLoading(true)
-        const response = await fetch(`${import.meta.env.APP_URL}/votersOf/${pid}`)
-        const data = await response.json()
-        setVoters(data.voters)
+        const apiData = await fetchPollInfo(bfetch)(electionId)
+        const tally: number[][] = [[]]
+        apiData.tally?.forEach((t) => {
+          tally[0].push(parseInt(t))
+        })
+        setResults({
+          censusRoot: '',
+          censusURI: '',
+          endTime: new Date(apiData.endTime),
+          options: apiData.options,
+          participants: apiData.participants,
+          question: apiData.question,
+          tally: tally,
+          turnout: apiData.turnout,
+          voteCount: apiData.voteCount,
+          finalized: apiData.finalized,
+          censusParticipantsCount: apiData.censusParticipantsCount,
+        })
+        // get voters
+        if (apiData.voteCount > 0) {
+          try {
+            setVoters(await fetchPollsVoters(bfetch)(electionId))
+          } catch (e) {
+            console.log('error fetching voters', e)
+          }
+        }
       } catch (e) {
+        setError('Error fetching poll results')
         console.error(e)
       } finally {
         setLoaded(true)
@@ -26,46 +55,18 @@ export const Poll = () => {
       }
     })()
   }, [])
-  const columns = useBreakpointValue({
-    base: 1, // default is for mobile devices
-    sm: 2, // for medium screens and up
-    md: 3, // for large screens and up
-    lg: 4, // for extra large screens and up
-  })
-
-  const usersfile = useMemo(() => {
-    if (!voters.length) return { url: '', filename: '' }
-
-    return new CsvGenerator(
-      ['Username'],
-      voters.map((username) => [username])
-    )
-  }, [voters])
 
   return (
-    <Box w={{ base: 'full', lg: '50%' }} textAlign='center'>
-      <Image src={`${import.meta.env.APP_URL}/preview/${pid}`} mb={10} fallback={<Spinner />} />
-      {voters.length > 0 && (
-        <Box pt={5} px={{ base: 5, sm: 0 }} borderTop='1px solid gray' textAlign='initial'>
-          <Heading display='flex' justifyContent='space-between'>
-            Voters
-            <Link href={usersfile.url} download={'voters-list.csv'}>
-              <Button alignSelf='end' fontWeight='normal' variant='text' rightIcon={<FaDownload />}>
-                download list
-              </Button>
-            </Link>
-          </Heading>
-          <SimpleGrid columns={columns}>
-            {voters.map((username, index) => (
-              <Box key={index}>
-                <Link href={`https://warpcast.com/${username}`} isExternal>
-                  {username}
-                </Link>
-              </Box>
-            ))}
-          </SimpleGrid>
-        </Box>
-      )}
-    </Box>
+    <PollView
+      loaded={loaded}
+      onChain={false}
+      loading={loading}
+      poll={pollResults}
+      voters={voters}
+      errorMessage={error}
+      electionId={electionId}
+    />
   )
 }
+
+export default Poll

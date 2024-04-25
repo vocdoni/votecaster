@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
@@ -13,10 +14,13 @@ import (
 
 // AddFinalResults adds the final results of an election in PNG format.
 // It performs and upsert operation, so it will update the results if they already exist.
-func (ms *MongoStorage) AddFinalResults(electionID types.HexBytes, finalPNG []byte) error {
+func (ms *MongoStorage) AddFinalResults(electionID types.HexBytes, finalPNG []byte, choices, votes []string) error {
 	results := &Results{
 		ElectionID: electionID.String(),
 		FinalPNG:   finalPNG,
+		Choices:    choices,
+		Votes:      votes,
+		Finalized:  true,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -29,6 +33,23 @@ func (ms *MongoStorage) AddFinalResults(electionID types.HexBytes, finalPNG []by
 	}
 	log.Debugw("stored PNG results", "electionID", electionID.String())
 	return nil
+}
+
+// Results retrieves the final results of an election.
+func (ms *MongoStorage) Results(electionID types.HexBytes) (*Results, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var results Results
+	err := ms.results.FindOne(ctx, bson.M{"_id": electionID.String()}).Decode(&results)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrElectionUnknown
+		}
+		return nil, fmt.Errorf("error retrieving results for electionID %s: %w", electionID.String(), err)
+	}
+
+	return &results, nil
 }
 
 // FinalResultsPNG returns the final results of an election in PNG format.
@@ -89,4 +110,39 @@ func (ms *MongoStorage) ElectionsWithoutResults(ctx context.Context) ([]string, 
 	}
 
 	return electionIDs, nil
+}
+
+// SetPartialResults sets or updates the choices and votes for an election result only if it is not finalized.
+// It performs an upsert operation, so it will create the result entry if it does not exist and is not finalized.
+func (ms *MongoStorage) SetPartialResults(electionID types.HexBytes, choices, votes []string) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Prepare the update fields
+	update := bson.M{
+		"$set": bson.M{
+			"title": choices,
+			"votes": votes,
+		},
+	}
+
+	// Prepare the filter with an additional check for not finalized
+	filter := bson.M{
+		"_id":       electionID.String(),
+		"finalized": bson.M{"$ne": true},
+	}
+
+	// Options to enable upsert, i.e., insert if not exists
+	opts := options.UpdateOptions{}
+	opts.Upsert = new(bool)
+	*opts.Upsert = true
+
+	// Execute the update operation
+	_, err := ms.results.UpdateOne(ctx, filter, update, &opts)
+	if err != nil {
+		return fmt.Errorf("cannot update choices and votes: %w", err)
+	}
+	return nil
 }

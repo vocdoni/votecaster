@@ -68,9 +68,32 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		// log the user creating the election for debugging purposes
 		log.Infow("user creating election", "username", user.Username, "fid", fid)
 	}
-	// check if the user has enough reputation to notify voters
-	if req.NotifyUsers && !features.IsAllowed(features.NOTIFY_USERS, accessProfile.Reputation) {
-		return ctx.Send([]byte("user does not have enough reputation to notify voters"), http.StatusBadRequest)
+
+	// if the poll is for a community, check if the user is an admin of the
+	// community and if the community is disabled
+	if req.CommunityID != nil {
+		// check if the user is an admin of the community
+		if !v.db.IsCommunityAdmin(fid, *req.CommunityID) {
+			return fmt.Errorf("user is not an admin of the community")
+		}
+		// check if the community is disabled
+		if v.db.IsCommunityDisabled(*req.CommunityID) {
+			return fmt.Errorf("community is disabled")
+		}
+	}
+	// if notifications are enabled, check if the poll is for a community
+	if req.NotifyUsers {
+		if req.CommunityID == nil {
+			return ctx.Send([]byte("notifications are only available for community polls"), http.StatusBadRequest)
+		}
+		// check if the user has enough reputation to notify voters
+		if !features.IsAllowed(features.NOTIFY_USERS, accessProfile.Reputation) {
+			return ctx.Send([]byte("user does not have enough reputation to notify voters"), http.StatusBadRequest)
+		}
+		// check if the community allows notifications
+		if !v.db.CommunityAllowNotifications(*req.CommunityID) {
+			return fmt.Errorf("community does not allow notifications")
+		}
 	}
 	// use the request census or use the one hardcoded for all farcaster users
 	census := req.Census
@@ -92,7 +115,8 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	req.ElectionDescription.UsersCountInitial = uint32(census.FromTotalAddresses)
 	// create the election and save it in the database
 	electionID, err := v.createAndSaveElectionAndProfile(&req.ElectionDescription, census,
-		req.Profile, false, req.NotifyUsers, req.NotificationText, ElectionSourceWebApp)
+		req.Profile, false, req.NotifyUsers, req.NotificationText, ElectionSourceWebApp,
+		req.CommunityID)
 	if err != nil {
 		return fmt.Errorf("failed to create election: %v", err)
 	}
@@ -136,6 +160,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	response := strings.ReplaceAll(frame(frameVote), "{image}", imageLink(png))
 	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
+	response = strings.ReplaceAll(response, "{state}", ctx.URLParam("electionID"))
 
 	r := election.Metadata.Questions[0].Choices
 	for i := 0; i < 4; i++ {
@@ -191,15 +216,101 @@ func (v *vocdoniHandler) votersForElection(msg *apirest.APIdata, ctx *httprouter
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
-	usernames, err := v.db.VotersOfElection(electionID)
+	users, err := v.db.VotersOfElection(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to get voters of election: %w", err)
+	}
+	usernames := []string{}
+	for _, u := range users {
+		usernames = append(usernames, u.Username)
 	}
 	data, err := json.Marshal(map[string][]string{"voters": usernames})
 	if err != nil {
 		return fmt.Errorf("failed to marshal voters: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
+}
+
+func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	dbElection, err := v.db.Election(electionID)
+	if err != nil {
+		return fmt.Errorf("could not fetch election %x: %w", electionID, err)
+	}
+
+	var username, displayname string
+	user, err := v.db.User(dbElection.UserID)
+	if err != nil {
+		log.Warnw("failed to fetch user", "error", err)
+		username = "unknown"
+	} else {
+		username = user.Username
+		displayname = user.Displayname
+	}
+	census, err := v.db.CensusFromElection(electionID)
+	if err != nil {
+		log.Warnw("census not found for community election", "electionID", hex.EncodeToString(electionID))
+		census = &mongo.Census{
+			TotalWeight:  "0",
+			Participants: make(map[string]string),
+		}
+	}
+
+	// Fetch results from the database to return them in the response
+	finalized := false
+	results, err := v.db.Results(electionID)
+	if err == nil {
+		finalized = results.Finalized
+	}
+
+	if !finalized { // election is not finalized, so we need to fetch the results from the Vochain API and update the database
+		results, err = v.updateAndFetchResultsFromDatabase(electionID, dbElection.CensusERC20TokenDecimals, nil)
+		if err != nil {
+			return fmt.Errorf("failed to update/fetch results: %w", err)
+		}
+	}
+
+	// Fetch participants
+	participantFIDS := []uint64{}
+	participants, err := v.db.VotersOfElection(electionID)
+	if err != nil {
+		log.Warnw("failed to fetch participants", "error", err)
+	} else {
+		for _, p := range participants {
+			participantFIDS = append(participantFIDS, p.UserID)
+		}
+	}
+
+	electionInfo := &ElectionInfo{
+		CreatedTime:             dbElection.CreatedTime,
+		ElectionID:              dbElection.ElectionID,
+		LastVoteTime:            dbElection.LastVoteTime,
+		EndTime:                 dbElection.EndTime,
+		Question:                dbElection.Question,
+		CastedVotes:             dbElection.CastedVotes,
+		CensusParticipantsCount: uint64(dbElection.FarcasterUserCount),
+		Turnout:                 int(calculateTurnout(census.TotalWeight, dbElection.CastedWeight).Int64()),
+		Username:                username,
+		Displayname:             displayname,
+		TotalWeight:             census.TotalWeight,
+		CastedWeight:            dbElection.CastedWeight,
+		Participants:            participantFIDS,
+		Choices:                 results.Choices,
+		Votes:                   results.Votes,
+		Finalized:               results.Finalized,
+	}
+
+	jresponse, err := json.Marshal(map[string]any{
+		"poll": electionInfo,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.SetResponseContentType("application/json")
+	return ctx.Send(jresponse, http.StatusOK)
 }
 
 func newElectionDescription(description *ElectionDescription, census *CensusInfo) *api.ElectionDescription {
@@ -328,7 +439,7 @@ func ensureAccountExist(cli *apiclient.HTTPclient) error {
 // and saved in the database.
 func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescription,
 	census *CensusInfo, profile *FarcasterProfile, wait bool, notify bool,
-	customText string, source string,
+	customText string, source string, communityID *uint64,
 ) (types.HexBytes, error) {
 	// use the request census or use the one hardcoded for all farcaster users
 	if census == nil {
@@ -345,7 +456,8 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 		if err != nil {
 			return fmt.Errorf("failed to create election: %w", err)
 		}
-		if err := v.saveElectionAndProfile(election, profile, source, desc.UsersCount, desc.UsersCountInitial, census.TokenDecimals); err != nil {
+		if err := v.saveElectionAndProfile(election, profile, source, desc.UsersCount,
+			desc.UsersCountInitial, census.TokenDecimals, communityID); err != nil {
 			return fmt.Errorf("failed to save election and profile: %w", err)
 		}
 		if notify {
@@ -397,9 +509,21 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 	profile *FarcasterProfile,
 	source string,
 	usersCount, usersCountInitial, tokenDecimals uint32,
+	communityID *uint64,
 ) error {
 	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
 		return fmt.Errorf("invalid election")
+	}
+	var community *mongo.ElectionCommunity
+	if communityID != nil {
+		c, err := v.db.Community(*communityID)
+		if err != nil {
+			return fmt.Errorf("failed to get community from database: %w", err)
+		}
+		community = &mongo.ElectionCommunity{
+			ID:   c.ID,
+			Name: c.Name,
+		}
 	}
 	// add the election to the LRU cache and the database
 	v.electionLRU.Add(election.ElectionID.String(), election)
@@ -410,7 +534,9 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 		election.Metadata.Title["default"],
 		usersCount,
 		usersCountInitial,
-		tokenDecimals); err != nil {
+		tokenDecimals,
+		election.EndDate,
+		community); err != nil {
 		return fmt.Errorf("failed to add election to database: %w", err)
 	}
 	u, err := v.db.User(profile.FID)
@@ -458,22 +584,18 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 				}
 				election, err := v.cli.Election(electionIDbytes)
 				if err != nil {
-					log.Errorw(err, "failed to get election")
+					log.Errorw(err, fmt.Sprintf("failed to get election %s", electionID))
 					continue
 				}
 				electionMeta, err := v.db.Election(electionIDbytes)
 				if err != nil {
-					log.Errorw(err, "failed to get election")
+					log.Errorw(err, "failed to get election from database")
 					continue
 				}
 				if election.FinalResults {
-					png, err := imageframe.ResultsImage(election, electionMeta.CensusERC20TokenDecimals)
+					_, err := v.finalizeElectionResults(election, electionMeta)
 					if err != nil {
-						log.Errorw(err, "failed to generate results image")
-						continue
-					}
-					if err := v.db.AddFinalResults(electionIDbytes, imageframe.FromCache(png)); err != nil {
-						log.Errorw(err, "failed to add final results to database")
+						log.Errorw(err, "failed to finalize election results")
 						continue
 					}
 					log.Infow("finalized election", "electionID", electionID)
