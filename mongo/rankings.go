@@ -39,7 +39,7 @@ func (ms *MongoStorage) UsersByElectionNumber() ([]UserRanking, error) {
 			FID:         user.UserID,
 			Username:    user.Username,
 			Displayname: user.Displayname,
-			Count:       float64(user.ElectionCount),
+			Count:       user.ElectionCount,
 		})
 	}
 	return ranking, nil
@@ -73,7 +73,7 @@ func (ms *MongoStorage) UsersByVoteNumber() ([]UserRanking, error) {
 			FID:         user.UserID,
 			Username:    user.Username,
 			Displayname: user.Displayname,
-			Count:       float64(user.CastedVotes),
+			Count:       user.CastedVotes,
 		})
 	}
 	return ranking, nil
