@@ -67,11 +67,9 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return errorImageResponse(ctx, fmt.Errorf("election results not ready"))
 	}
 
-	// get the election from the database if exist, else just use tokenDecimals = 0
-	tokenDecimals := uint32(0)
 	electiondb, err := v.db.Election(electionIDbytes)
-	if err == nil {
-		tokenDecimals = electiondb.CensusERC20TokenDecimals
+	if err != nil {
+		log.Warnw("failed to fetch election from database", "error", err)
 	}
 
 	// if final results, create the static PNG image with the results
@@ -87,7 +85,7 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	} else {
-		_, err := v.updateAndFetchResultsFromDatabase(electionIDbytes, tokenDecimals, election)
+		_, err := v.updateAndFetchResultsFromDatabase(electionIDbytes, election)
 		if err != nil {
 			return fmt.Errorf("failed to update/fetch results: %w", err)
 		}
@@ -117,10 +115,6 @@ func (v *vocdoniHandler) finalizeElectionResults(election *api.Election, electio
 	if !election.FinalResults {
 		return "", fmt.Errorf("election not finalized")
 	}
-	erc20TokenDecimals := uint32(0)
-	if electiondb != nil {
-		erc20TokenDecimals = electiondb.CensusERC20TokenDecimals
-	}
 	totalWeightStr := ""
 	census, err := v.db.CensusFromElection(election.ElectionID)
 	if err == nil {
@@ -132,7 +126,7 @@ func (v *vocdoniHandler) finalizeElectionResults(election *api.Election, electio
 		return "", fmt.Errorf("failed to create image: %w", err)
 	}
 	go func() {
-		choices, votes := helpers.ExtractResults(election, erc20TokenDecimals)
+		choices, votes := helpers.ExtractResults(election, 0)
 		if err := v.db.AddFinalResults(election.ElectionID, imageframe.FromCache(id), choices, helpers.BigIntsToStrings(votes)); err != nil {
 			log.Errorw(err, "failed to add final results to database")
 			return
@@ -236,7 +230,6 @@ func resultsPNGfile(election *api.Election, electiondb *mongo.Election, totalWei
 // If election is nil, it fetches it from the vochain API.
 func (v *vocdoniHandler) updateAndFetchResultsFromDatabase(
 	electionID types.HexBytes,
-	erc20TokenDecimals uint32,
 	election *api.Election,
 ) (*mongo.Results, error) {
 	if election == nil {
@@ -251,7 +244,7 @@ func (v *vocdoniHandler) updateAndFetchResultsFromDatabase(
 	_ = v.electionLRU.Add(fmt.Sprintf("%x", electionID), election)
 
 	// Update the results on the database
-	choices, votes := helpers.ExtractResults(election, erc20TokenDecimals)
+	choices, votes := helpers.ExtractResults(election, 0)
 	votesString := helpers.BigIntsToStrings(votes)
 	log.Infow("updating partial results", "electionID", electionID.String(), "choices", choices, "votes", votesString)
 	if err := v.db.SetPartialResults(electionID, choices, votesString); err != nil {

@@ -183,12 +183,10 @@ func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeigh
 		return id, nil
 	}
 
-	censusTokenDecimals := uint32(0)
 	participation := float32(0)
 	weightTurnout := float32(0)
 
 	if electiondb != nil {
-		censusTokenDecimals = electiondb.CensusERC20TokenDecimals
 		if electiondb.FarcasterUserCount > 0 {
 			participation = (float32(election.VoteCount) * 100) / float32(electiondb.FarcasterUserCount)
 		}
@@ -196,7 +194,7 @@ func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeigh
 	}
 
 	title := election.Metadata.Questions[0].Title["default"]
-	choices, results := helpers.ExtractResults(election, censusTokenDecimals)
+	choices, results := helpers.ExtractResults(election, 0)
 
 	requestData := ImageRequest{
 		Type:          "results",

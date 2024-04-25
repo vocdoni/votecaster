@@ -142,14 +142,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 					log.Warnw("failed to fetch election", "error", err)
 					break
 				}
-				tokenDecimals := uint32(0)
-				electiondb, err := v.db.Election(electionIDbytes)
-				if err != nil {
-					log.Warnw("failed to fetch election from database", "error", err)
-				} else {
-					tokenDecimals = electiondb.CensusERC20TokenDecimals
-				}
-				_, err = v.updateAndFetchResultsFromDatabase(electionIDbytes, tokenDecimals, election)
+				_, err = v.updateAndFetchResultsFromDatabase(electionIDbytes, election)
 				if err != nil {
 					log.Warnw("failed to update results", "error", err)
 				}

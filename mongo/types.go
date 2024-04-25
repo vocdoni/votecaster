@@ -53,7 +53,6 @@ type ElectionCommunity struct {
 
 // Election represents an election and its details owned by a user.
 type Election struct {
-	ElectionMeta
 	ElectionID            string             `json:"electionId" bson:"_id"`
 	UserID                uint64             `json:"userId" bson:"userId"`
 	CastedVotes           uint64             `json:"castedVotes" bson:"castedVotes"`
@@ -73,7 +72,6 @@ type Census struct {
 	CensusID           string            `json:"censusId" bson:"_id"`
 	Root               string            `json:"root" bson:"root"`
 	ElectionID         string            `json:"electionId" bson:"electionId"`
-	TokenDecimals      uint32            `json:"tokenDecimals" bson:"tokenDecimals"`
 	Participants       map[string]string `json:"participants" bson:"participants"`
 	FromTotalAddresses uint32            `json:"fromTotalAddresses" bson:"fromTotalAddresses"`
 	CreatedBy          uint64            `json:"createdBy" bson:"createdBy"`

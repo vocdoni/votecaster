@@ -268,7 +268,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 	}
 
 	if !finalized { // election is not finalized, so we need to fetch the results from the Vochain API and update the database
-		results, err = v.updateAndFetchResultsFromDatabase(electionID, dbElection.CensusERC20TokenDecimals, nil)
+		results, err = v.updateAndFetchResultsFromDatabase(electionID, nil)
 		if err != nil {
 			return fmt.Errorf("failed to update/fetch results: %w", err)
 		}
@@ -458,7 +458,7 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 			return fmt.Errorf("failed to create election: %w", err)
 		}
 		if err := v.saveElectionAndProfile(election, profile, source, desc.UsersCount,
-			desc.UsersCountInitial, census.TokenDecimals, communityID); err != nil {
+			desc.UsersCountInitial, communityID); err != nil {
 			return fmt.Errorf("failed to save election and profile: %w", err)
 		}
 		if notify {
@@ -509,7 +509,7 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 	election *api.Election,
 	profile *FarcasterProfile,
 	source string,
-	usersCount, usersCountInitial, tokenDecimals uint32,
+	usersCount, usersCountInitial uint32,
 	communityID *uint64,
 ) error {
 	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
@@ -535,7 +535,6 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 		election.Metadata.Title["default"],
 		usersCount,
 		usersCountInitial,
-		tokenDecimals,
 		election.EndDate,
 		community); err != nil {
 		return fmt.Errorf("failed to add election to database: %w", err)

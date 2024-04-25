@@ -85,6 +85,9 @@ func BigIntsToStrings(bigInts []*big.Int) []string {
 // TruncateDecimals takes a big.Int representing a fixed-point number and truncates it
 // to a whole number by removing the specified number of decimal places.
 func TruncateDecimals(num *big.Int, numberOfDecimals uint32) *big.Int {
+	if numberOfDecimals == 0 || num == nil {
+		return num
+	}
 	// Create a big.Int from 10
 	ten := big.NewInt(10)
 
