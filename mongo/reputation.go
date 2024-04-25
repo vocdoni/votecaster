@@ -86,12 +86,12 @@ func (ms *MongoStorage) UpdateAndGetReputationForUser(userID uint64) (uint32, *U
 		return 0, nil, fmt.Errorf("error fetching user: %w", err)
 	}
 	// Fetch the total votes cast on elections created by the user
-	totalVotes, err := ms.getTotalVotesForUserElections(userID)
+	totalVotes, err := ms.totalVotesForUserElections(userID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("error fetching total votes for user elections: %w", err)
 	}
 	// Fetch the number of communities where the user is an admin
-	communitiesCount, err := ms.getCommunitiesCountForUser(userID)
+	communitiesCount, err := ms.communitiesCountForUser(userID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("error fetching communities count for user: %w", err)
 	}
@@ -111,8 +111,8 @@ func (ms *MongoStorage) UpdateAndGetReputationForUser(userID uint64) (uint32, *U
 	return newReputation, &userData, nil
 }
 
-// getTotalVotesForUserElections calculates the total number of votes casted on elections created by the user.
-func (ms *MongoStorage) getTotalVotesForUserElections(userID uint64) (uint64, error) {
+// totalVotesForUserElections calculates the total number of votes casted on elections created by the user.
+func (ms *MongoStorage) totalVotesForUserElections(userID uint64) (uint64, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -145,9 +145,9 @@ func (ms *MongoStorage) getTotalVotesForUserElections(userID uint64) (uint64, er
 	return 0, nil
 }
 
-// getCommunitiesCountForUser calculates the number of communities where the
+// communitiesCountForUser calculates the number of communities where the
 // user is an admin.
-func (ms *MongoStorage) getCommunitiesCountForUser(userID uint64) (uint64, error) {
+func (ms *MongoStorage) communitiesCountForUser(userID uint64) (uint64, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
