@@ -75,23 +75,20 @@ export const Credits = (props: FlexProps) => {
               Roadmap
             </Heading>
             <UnorderedList>
-              <ListItem>Airstack integration</ListItem>
-              <ListItem>Delegated voting</ListItem>
-              <ListItem>Multiple token strategy polls</ListItem>
               <ListItem>Better UX design</ListItem>
+              <ListItem>Delegated voting</ListItem>
+              <ListItem>Multiple token strategy</ListItem>
               <ListItem>More rankings and statistics</ListItem>
-              <ListItem>Notification on Farcaster for elegible voters</ListItem>
-              <ListItem>Gitcoin passport gated</ListItem>
+              <ListItem>Gitcoin passport integration</ListItem>
               <ListItem>POAP event gated</ListItem>
-              <ListItem>Voter rewards</ListItem>
-              <ListItem>On-chain governance with ChainLink</ListItem>
-              <ListItem>DAO integration</ListItem>
+              <ListItem>Voter rewards using $DEGEN for communities</ListItem>
+              <ListItem>On-chain voting using frame verification on $DEGEN chain</ListItem>
               <ListItem>... and more!</ListItem>
             </UnorderedList>
           </Box>
           <Text fontWeight='bold' textAlign='center'>
             Do you want to create more flexible Web3 votes? <br />
-            Check our Web3 voting UI 👇
+            Check our Web3 voting UI for Ethereum based DAOs 👇
           </Text>
           <Box textAlign='center'>
             <Link href='https://onvote.app' target='_blank'>
