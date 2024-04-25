@@ -37,7 +37,7 @@ type MongoStorage struct {
 	authentications    *mongo.Collection
 	notifications      *mongo.Collection
 	userAccessProfiles *mongo.Collection
-	communitites       *mongo.Collection
+	communities        *mongo.Collection
 }
 
 type Options struct {
@@ -104,7 +104,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.authentications = client.Database(database).Collection("authentications")
 	ms.notifications = client.Database(database).Collection("notifications")
 	ms.userAccessProfiles = client.Database(database).Collection("userAccessProfiles")
-	ms.communitites = client.Database(database).Collection("communities")
+	ms.communities = client.Database(database).Collection("communities")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
 	// else, just createIndexes
@@ -233,7 +233,7 @@ func (ms *MongoStorage) createIndexes() error {
 		Keys:    bson.D{{Key: "owners", Value: 1}}, // 1 for ascending order
 		Options: nil,
 	}
-	if _, err := ms.communitites.Indexes().CreateOne(ctx, ownersIndexModel); err != nil {
+	if _, err := ms.communities.Indexes().CreateOne(ctx, ownersIndexModel); err != nil {
 		return fmt.Errorf("failed to create index on owners for communities: %w", err)
 	}
 
@@ -357,7 +357,7 @@ func (ms *MongoStorage) String() string {
 	ctx9, cancel9 := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel9()
 	var communitites CommunitiesCollection
-	cur, err = ms.communitites.Find(ctx9, bson.D{{}})
+	cur, err = ms.communities.Find(ctx9, bson.D{{}})
 	if err != nil {
 		log.Warn(err)
 	}

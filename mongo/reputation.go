@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	maxFollowersReputation = 10
-	maxElectionsReputation = 10
-	maxVotesReputation     = 30
-	maxCastedReputation    = 50
+	maxFollowersReputation = 9
+	maxElectionsReputation = 9
+	maxVotesReputation     = 27
+	maxCastedReputation    = 45
+	maxCommunityReputation = 10
 	maxReputation          = 100
 )
 
@@ -24,6 +25,7 @@ type UserData struct {
 	ElectionsCreated              uint64 `json:"electionsCreated"`
 	CastedVotes                   uint64 `json:"castedVotes"`
 	VotesCastedOnCreatedElections uint64 `json:"participationAchievement"`
+	CommunitiesCount              uint64 `json:"communitiesCount"`
 }
 
 // calculateReputation calculates the user's reputation based on predefined criteria.
@@ -53,6 +55,12 @@ func calculateReputation(user *UserData) uint32 {
 	} else {
 		reputation += maxCastedReputation
 	}
+	// Calculate CommunitiesCount score (up to 10 points, max 5 communities)
+	if comRep := float64(user.CommunitiesCount) * 2; comRep <= maxCommunityReputation {
+		reputation += comRep
+	} else {
+		reputation += maxCommunityReputation
+	}
 	// Ensure the reputation does not exceed 100
 	if reputation > maxReputation {
 		reputation = maxReputation
@@ -77,28 +85,29 @@ func (ms *MongoStorage) UpdateAndGetReputationForUser(userID uint64) (uint32, *U
 		}
 		return 0, nil, fmt.Errorf("error fetching user: %w", err)
 	}
-
 	// Fetch the total votes cast on elections created by the user
 	totalVotes, err := ms.getTotalVotesForUserElections(userID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("error fetching total votes for user elections: %w", err)
 	}
-
+	// Fetch the number of communities where the user is an admin
+	communitiesCount, err := ms.getCommunitiesCountForUser(userID)
+	if err != nil {
+		return 0, nil, fmt.Errorf("error fetching communities count for user: %w", err)
+	}
 	userData := UserData{
 		FollowersCount:                user.Followers,
 		ElectionsCreated:              user.ElectionCount,
 		CastedVotes:                   user.CastedVotes,
 		VotesCastedOnCreatedElections: totalVotes,
+		CommunitiesCount:              communitiesCount,
 	}
-
 	// Calculate the new reputation
 	newReputation := calculateReputation(&userData)
-
 	// Update the user's reputation in the database
 	if err := ms.SetReputationForUser(userID, newReputation); err != nil {
 		return 0, nil, fmt.Errorf("error updating user reputation: %w", err)
 	}
-
 	return newReputation, &userData, nil
 }
 
@@ -133,5 +142,38 @@ func (ms *MongoStorage) getTotalVotesForUserElections(userID uint64) (uint64, er
 	}
 
 	// If there's no result, it means no elections or votes were found.
+	return 0, nil
+}
+
+// getCommunitiesCountForUser calculates the number of communities where the
+// user is an admin.
+func (ms *MongoStorage) getCommunitiesCountForUser(userID uint64) (uint64, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$match", Value: bson.M{"admins": userID}}},
+		bson.D{{Key: "$count", Value: "count"}},
+	}
+
+	cursor, err := ms.communities.Aggregate(ctx, pipeline)
+	if err != nil {
+		return 0, err
+	}
+	defer cursor.Close(ctx)
+
+	if cursor.Next(ctx) {
+		var result struct {
+			Count uint64 `bson:"count"`
+		}
+		if err := cursor.Decode(&result); err != nil {
+			return 0, err
+		}
+		return result.Count, nil
+	}
+
 	return 0, nil
 }
