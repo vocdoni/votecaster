@@ -93,8 +93,8 @@ type ImageRequest struct {
 	Choices       []string `json:"choices,omitempty"`
 	Results       []string `json:"results,omitempty"`
 	VoteCount     uint64   `json:"voteCount"`
-	Participation uint32   `json:"participation"`
-	Turnout       uint32   `json:"turnout"`
+	Participation float32  `json:"participation"`
+	Turnout       float32  `json:"turnout"`
 }
 
 // ErrorImage creates an image representing an error message.
@@ -184,15 +184,15 @@ func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeigh
 	}
 
 	censusTokenDecimals := uint32(0)
-	participation := uint32(0)
-	turnout := uint32(0)
+	participation := float32(0)
+	weightTurnout := float32(0)
 
 	if electiondb != nil {
 		censusTokenDecimals = electiondb.CensusERC20TokenDecimals
 		if electiondb.FarcasterUserCount > 0 {
-			participation = (uint32(election.VoteCount) * 100) / electiondb.FarcasterUserCount
+			participation = (float32(election.VoteCount) * 100) / float32(electiondb.FarcasterUserCount)
 		}
-		turnout = uint32(helpers.CalculateTurnout(totalWeightStr, electiondb.CastedWeight).Uint64())
+		weightTurnout = helpers.CalculateTurnout(totalWeightStr, electiondb.CastedWeight)
 	}
 
 	title := election.Metadata.Questions[0].Title["default"]
@@ -205,7 +205,7 @@ func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeigh
 		Results:       helpers.BigIntsToStrings(results),
 		VoteCount:     election.VoteCount,
 		Participation: participation,
-		Turnout:       turnout,
+		Turnout:       weightTurnout,
 	}
 	log.Debugw("requesting results image",
 		"type", requestData.Type,

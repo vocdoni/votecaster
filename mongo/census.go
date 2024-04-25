@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/vocdoni/vote-frame/helpers"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.vocdoni.io/dvote/types"
 )
@@ -36,13 +37,12 @@ func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, partici
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
 	update := bson.M{
 		"$set": bson.M{
 			"participants":       participants,
 			"fromTotalAddresses": fromTotalAddresses,
 			"tokenDecimals":      tokenDecimals,
-			"totalWeight":        totalWeight.String(),
+			"totalWeight":        helpers.TruncateDecimals(totalWeight, tokenDecimals).String(),
 			"url":                censusURI,
 		},
 	}

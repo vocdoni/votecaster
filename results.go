@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"net/http"
 	"strings"
@@ -189,6 +190,9 @@ func (v *vocdoniHandler) settleResultsIntoCommunityHub(electiondb *mongo.Electio
 		return fmt.Errorf("failed to decode census root: %w", err)
 	}
 
+	// Create a new big.Int from the truncated float
+	turnout := big.NewInt(int64(math.Trunc(float64(helpers.CalculateTurnout(census.TotalWeight, electiondb.CastedWeight)))))
+
 	// Extract the choices from the election results
 	totalVotingPower, _ := new(big.Int).SetString(census.TotalWeight, 10)
 	hubResults := &communityhub.HubResults{
@@ -196,7 +200,7 @@ func (v *vocdoniHandler) settleResultsIntoCommunityHub(electiondb *mongo.Electio
 		Options:          choices,
 		Date:             time.Now().String(),
 		Tally:            tally,
-		Turnout:          helpers.CalculateTurnout(census.TotalWeight, electiondb.CastedWeight),
+		Turnout:          turnout,
 		TotalVotingPower: totalVotingPower,
 		Participants:     participants,
 		CensusRoot:       root,

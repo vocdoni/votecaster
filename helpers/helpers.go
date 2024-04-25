@@ -31,8 +31,7 @@ func ExtractResults(election *api.Election, censusTokenDecimals uint32) (choices
 		bigIntResult := apiResults[0][question.Value].MathBigInt()
 		if censusTokenDecimals > 0 {
 			// Scale the result down based on the number of decimals
-			scalingFactor := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(censusTokenDecimals)), nil)
-			bigIntResult = new(big.Int).Div(bigIntResult, scalingFactor)
+			bigIntResult = TruncateDecimals(bigIntResult, censusTokenDecimals)
 		}
 		choices = append(choices, t)
 		results = append(results, bigIntResult)
@@ -42,30 +41,31 @@ func ExtractResults(election *api.Election, censusTokenDecimals uint32) (choices
 
 // CalculateTurnout computes the turnout percentage from two big.Int strings.
 // If the strings are not valid numbers, it returns zero.
-func CalculateTurnout(totalWeightStr, castedWeightStr string) *big.Int {
+func CalculateTurnout(totalWeightStr, castedWeightStr string) float32 {
 	totalWeight := new(big.Int)
 	castedWeight := new(big.Int)
 
 	_, ok := totalWeight.SetString(totalWeightStr, 10)
 	if !ok {
-		return big.NewInt(0)
+		return 0
 	}
 
 	_, ok = castedWeight.SetString(castedWeightStr, 10)
 	if !ok {
-		return big.NewInt(0)
+		return 0
 	}
 
 	// Multiply castedWeight by 100 to preserve integer properties during division
-	castedWeightMul := new(big.Int).Mul(castedWeight, big.NewInt(100))
+	castedWeightFloat, _ := new(big.Int).Mul(castedWeight, big.NewInt(100)).Float64()
 
 	// Compute the turnout percentage as an integer if the total weight is not zero
 	if totalWeight.Cmp(big.NewInt(0)) == 0 {
-		return big.NewInt(0)
+		return 0
 	}
-	turnoutPercentage := new(big.Int).Div(castedWeightMul, totalWeight)
+	totalWeightFloat, _ := totalWeight.Float64()
+	turnoutPercentage := castedWeightFloat / totalWeightFloat
 
-	return turnoutPercentage
+	return float32(turnoutPercentage)
 }
 
 // bigIntsToStrings converts a slice of *big.Int to a slice of their string representations.
@@ -80,4 +80,19 @@ func BigIntsToStrings(bigInts []*big.Int) []string {
 		}
 	}
 	return strings
+}
+
+// TruncateDecimals takes a big.Int representing a fixed-point number and truncates it
+// to a whole number by removing the specified number of decimal places.
+func TruncateDecimals(num *big.Int, numberOfDecimals uint32) *big.Int {
+	// Create a big.Int from 10
+	ten := big.NewInt(10)
+
+	// Calculate 10^numberOfDecimals
+	divisor := new(big.Int).Exp(ten, big.NewInt(int64(numberOfDecimals)), nil)
+
+	// Divide num by 10^numberOfDecimals to truncate the decimal part
+	result := new(big.Int).Div(num, divisor)
+
+	return result
 }

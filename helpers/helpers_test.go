@@ -101,6 +101,35 @@ func TestExtractResults(t *testing.T) {
 			expectedChoices: []string{"Choice 3", "Choice 1", "Choice 2"},
 			expectedResults: []*big.Int{big.NewInt(300), big.NewInt(100), big.NewInt(200)},
 		},
+		{
+			name: "With decimals",
+			election: &api.Election{
+				Metadata: &api.ElectionMetadata{
+					Questions: []api.Question{
+						{
+							Choices: []api.ChoiceMetadata{
+								{Title: map[string]string{"default": "Choice 1"}, Value: 0},
+								{Title: map[string]string{"default": "Choice 2"}, Value: 1},
+								{Title: map[string]string{"default": "Choice 3"}, Value: 2},
+							},
+						},
+					},
+				},
+				ElectionSummary: api.ElectionSummary{
+					Results: [][]*types.BigInt{
+						{
+							new(types.BigInt).SetUint64(100000),
+							new(types.BigInt).SetUint64(200000),
+							new(types.BigInt).SetUint64(300000),
+						},
+					},
+				},
+			},
+
+			tokenDecimals:   3,
+			expectedChoices: []string{"Choice 1", "Choice 2", "Choice 3"},
+			expectedResults: []*big.Int{big.NewInt(100), big.NewInt(200), big.NewInt(300)},
+		},
 	}
 
 	for _, tc := range testCases {

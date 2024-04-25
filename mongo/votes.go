@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/vocdoni/vote-frame/helpers"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
@@ -51,7 +52,7 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 	if accCastedWeight == nil {
 		accCastedWeight = new(big.Int).SetUint64(0)
 	}
-	election.CastedWeight = new(big.Int).Add(accCastedWeight, weight).String()
+	election.CastedWeight = new(big.Int).Add(accCastedWeight, helpers.TruncateDecimals(weight, election.CensusERC20TokenDecimals)).String()
 
 	if err := ms.updateElection(election); err != nil {
 		return err
