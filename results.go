@@ -205,6 +205,7 @@ func (v *vocdoniHandler) settleResultsIntoCommunityHub(electiondb *mongo.Electio
 		Participants:     participants,
 		CensusRoot:       root,
 		CensusURI:        census.URL,
+		VoteCount:        new(big.Int).SetUint64(electiondb.CastedVotes),
 	}
 	log.Infow("sending results transaction to community hub smart contract",
 		"electionID", electiondb.ElectionID,
