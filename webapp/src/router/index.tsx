@@ -85,7 +85,7 @@ export const Router = () => {
           ),
           children: [
             {
-              path: '/profile',
+              path: '/profile/*',
               element: (
                 <SuspenseLoader>
                   <Profile />

@@ -138,9 +138,9 @@ export const TopUsers = ({ users, title, ...rest }: { users: UserRanking[]; titl
     <Stack spacing={3}>
       {users.map((user, index) => (
         <Link
+          as={RouterLink}
           key={index}
-          href={`https://warpcast.com/${user.username}`}
-          isExternal
+          to={`/profile/${user.username}`}
           _hover={{
             textDecoration: 'none', // Prevents the default underline on hover
           }}

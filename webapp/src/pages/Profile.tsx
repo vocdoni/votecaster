@@ -1,5 +1,6 @@
 import { Grid, GridItem, Show, Spacer } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
 import { ReputationCard } from '~components/Auth/Reputation'
 import { useAuth } from '~components/Auth/useAuth'
 import { Check } from '~components/Check'
@@ -8,11 +9,13 @@ import { UserPolls } from '~components/Top'
 import { fetchUserPolls } from '~queries/profile'
 
 const Profile = () => {
+  const params = useParams()
   const { bfetch, profile } = useAuth()
+  const username = params['*'] || profile?.username
   // Utilizing React Query to fetch polls
   const { isLoading, error, data } = useQuery<Poll[], Error>({
-    queryKey: ['polls'],
-    queryFn: fetchUserPolls(bfetch, profile as Profile),
+    queryKey: ['polls', username],
+    queryFn: fetchUserPolls(bfetch, username),
   })
 
   if (isLoading || error) {
