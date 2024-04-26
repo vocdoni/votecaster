@@ -48,6 +48,8 @@ export const Channels = () => {
           <AsyncSelect
             id='channels'
             size='sm'
+            // @ts-expect-error bad typing definition (allows false or undefined but not true, which is false)
+            isMulti
             isLoading={loading}
             noOptionsMessage={() => 'No channels found'}
             placeholder='Search and add channels'
