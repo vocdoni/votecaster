@@ -6,6 +6,7 @@ import {
   Button,
   Flex,
   Heading,
+  Icon,
   Image,
   Link,
   Progress,
@@ -14,10 +15,11 @@ import {
   TagLabel,
   TagLeftIcon,
   Text,
+  useClipboard,
   VStack,
 } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
-import { FaCheck, FaDownload, FaPlay, FaRegCircleStop } from 'react-icons/fa6'
+import { FaCheck, FaDownload, FaPlay, FaRegCircleStop, FaRegCopy } from 'react-icons/fa6'
 import { appUrl, degenContractAddress } from '~constants'
 import { fetchShortURL } from '~queries/common'
 import { humanDate } from '~util/strings'
@@ -28,28 +30,31 @@ export type PollViewProps = {
   electionId: string | undefined
   onChain: boolean
   poll: PollResult | null
-  loading: boolean | false
-  loaded: boolean | false
+  loading: boolean
   voters: string[]
   errorMessage: string | null
 }
 
-export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessage, onChain }: PollViewProps) => {
+export const PollView = ({ poll, voters, electionId, loading, errorMessage, onChain }: PollViewProps) => {
   const { bfetch } = useAuth()
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${electionId}`)
+  const { setValue, onCopy, hasCopied } = useClipboard(electionURL)
 
+  // retrieve and set short URL (for copy-paste)
   useEffect(() => {
-    if (loaded || loading || !poll || !electionId) return
+    if (loading || !poll || !electionId) return // if ()
+    const re = new RegExp(electionId)
+    if (!re.test(electionURL)) return
     ;(async () => {
-      // get the short url
       try {
         const url = await fetchShortURL(bfetch)(electionURL)
         setElectionURL(url)
+        setValue(url)
       } catch (e) {
         console.info('error getting short url, using long version', e)
       }
     })()
-  }, [])
+  }, [loading, poll])
 
   const usersfile = useMemo(() => {
     if (!voters.length) return { url: '', filename: '' }
@@ -59,14 +64,9 @@ export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessa
     )
   }, [voters])
 
-  const copyToClipboard = (input: string) => {
-    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(input).catch(console.error)
-    } else console.error('clipboard API not available')
-  }
-
   const participationPercentage = useMemo(() => {
-    if (!poll) return 0
+    if (!poll || !poll.censusParticipantsCount) return 0
+
     return ((poll.voteCount / poll.censusParticipantsCount) * 100).toFixed(1)
   }, [poll])
 
@@ -99,9 +99,18 @@ export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessa
               </Flex>
             </Skeleton>
             <Image src={`${appUrl}/preview/${electionId}`} fallback={<Skeleton height={200} />} />
-            <Link fontSize={'sm'} color={'gray'} onClick={() => copyToClipboard(electionURL)}>
+            <Button
+              fontSize={'sm'}
+              onClick={onCopy}
+              colorScheme='purple'
+              alignSelf='start'
+              bg={hasCopied ? 'purple.600' : 'purple.300'}
+              color='white'
+              size='xs'
+              rightIcon={<Icon as={hasCopied ? FaCheck : FaRegCopy} />}
+            >
               Copy link to the frame
-            </Link>
+            </Button>
           </VStack>
           <VStack spacing={4} alignItems='left'>
             <Heading size='md'>Results</Heading>
@@ -132,17 +141,22 @@ export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessa
                   </Alert>
                 )}
                 <VStack spacing={6} alignItems='left'>
-                  {poll?.options.map((option, index) => (
-                    <Box key={index} w='full'>
-                      <Flex justifyContent='space-between' w='full'>
-                        <Text>{option}</Text>
-                        {!!poll.voteCount && !!poll?.tally[0] && <Text>{poll?.tally[0][index]} votes</Text>}
-                      </Flex>
-                      {!!poll.voteCount && !!poll?.tally[0] && (
-                        <Progress size='sm' rounded={50} value={(poll?.tally[0][index] / poll?.voteCount) * 100} />
-                      )}
-                    </Box>
-                  ))}
+                  {poll?.options.map((option, index) => {
+                    const [tally] = poll!.tally
+                    const weight = tally.reduce((acc, curr) => acc + curr, 0)
+
+                    return (
+                      <Box key={index} w='full'>
+                        <Flex justifyContent='space-between' w='full'>
+                          <Text>{option}</Text>
+                          {!!poll.voteCount && !!tally && <Text>{tally[index]} votes</Text>}
+                        </Flex>
+                        {!!poll.voteCount && !!tally && (
+                          <Progress size='sm' rounded={50} value={(tally[index] / weight) * 100} />
+                        )}
+                      </Box>
+                    )
+                  })}
                 </VStack>
               </VStack>
             </Skeleton>
@@ -188,7 +202,7 @@ export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessa
                   {poll?.voteCount}
                 </Text>
                 <Text>/{poll?.censusParticipantsCount}</Text>
-                <Text fontSize={'xl'}>{participationPercentage}%</Text>
+                {!!participationPercentage && <Text fontSize='xl'>{participationPercentage}%</Text>}
               </Flex>
             </Skeleton>
           </Box>

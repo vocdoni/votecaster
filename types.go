@@ -2,6 +2,8 @@ package main
 
 import (
 	"time"
+
+	"github.com/vocdoni/vote-frame/mongo"
 )
 
 const (
@@ -41,22 +43,23 @@ type ElectionDescription struct {
 
 // ElectionInfo defines the full details for an election, used by the API.
 type ElectionInfo struct {
-	CreatedTime             time.Time `json:"createdTime"`
-	ElectionID              string    `json:"electionId"`
-	LastVoteTime            time.Time `json:"lastVoteTime"`
-	EndTime                 time.Time `json:"endTime"`
-	Question                string    `json:"question"`
-	CastedVotes             uint64    `json:"voteCount"`
-	CastedWeight            string    `json:"castedWeight,omitempty"`
-	CensusParticipantsCount uint64    `json:"censusParticipantsCount"`
-	Turnout                 float32   `json:"turnout"`
-	Username                string    `json:"createdByUsername,omitempty"`
-	Displayname             string    `json:"createdByDisplayname,omitempty"`
-	TotalWeight             string    `json:"totalWeight,omitempty"`
-	Participants            []uint64  `json:"participants,omitempty"`
-	Choices                 []string  `json:"options,omitempty"`
-	Votes                   []string  `json:"tally,omitempty"`
-	Finalized               bool      `json:"finalized"`
+	CreatedTime             time.Time                `json:"createdTime"`
+	ElectionID              string                   `json:"electionId"`
+	LastVoteTime            time.Time                `json:"lastVoteTime"`
+	EndTime                 time.Time                `json:"endTime"`
+	Question                string                   `json:"question"`
+	CastedVotes             uint64                   `json:"voteCount"`
+	CastedWeight            string                   `json:"castedWeight,omitempty"`
+	CensusParticipantsCount uint64                   `json:"censusParticipantsCount"`
+	Turnout                 float32                  `json:"turnout"`
+	Username                string                   `json:"createdByUsername,omitempty"`
+	Displayname             string                   `json:"createdByDisplayname,omitempty"`
+	TotalWeight             string                   `json:"totalWeight,omitempty"`
+	Participants            []uint64                 `json:"participants,omitempty"`
+	Choices                 []string                 `json:"options,omitempty"`
+	Votes                   []string                 `json:"tally,omitempty"`
+	Finalized               bool                     `json:"finalized"`
+	Community               *mongo.ElectionCommunity `json:"community,omitempty"`
 }
 
 // CensusToken defines the parameters for a census token

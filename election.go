@@ -302,6 +302,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		Choices:                 results.Choices,
 		Votes:                   results.Votes,
 		Finalized:               results.Finalized,
+		Community:               dbElection.Community,
 	}
 
 	jresponse, err := json.Marshal(map[string]any{
@@ -575,22 +576,22 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 			for _, electionID := range electionIDs {
 				electionIDbytes, err := hex.DecodeString(electionID)
 				if err != nil {
-					log.Errorw(err, "failed to decode electionID")
+					log.Errorw(err, fmt.Sprintf("failed to decode electionID: %s", electionID))
 					continue
 				}
 				election, err := v.cli.Election(electionIDbytes)
 				if err != nil {
-					log.Errorw(err, fmt.Sprintf("failed to get election %s", electionID))
+					log.Errorw(err, fmt.Sprintf("failed to get election from API: %s", electionID))
 					continue
 				}
 				if election.FinalResults {
 					electiondb, err := v.db.Election(electionIDbytes)
 					if err != nil {
-						log.Errorw(err, "failed to get election from database")
+						log.Errorw(err, fmt.Sprintf("failed to get election from database: %x", electionIDbytes))
 						continue
 					}
 					if _, err = v.finalizeElectionResults(election, electiondb); err != nil {
-						log.Errorw(err, "failed to finalize election results")
+						log.Errorw(err, fmt.Sprintf("failed to finalize election results: %x", electionIDbytes))
 					}
 				}
 			}
