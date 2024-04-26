@@ -25,10 +25,6 @@ import (
 // scan iterations
 const DefaultScannerCooldown = time.Second * 5
 
-// zeroHexAddr is the zero address in hex format used to find new communities,
-// discarding empty responses from the contract
-const zeroHexAddr = "0x0000000000000000000000000000000000000000"
-
 // CommunityHubConfig struct defines the configuration for the CommunityHub.
 // It includes the contract address, the chain ID where the contract is
 // deployed, a database instance, and the scanner cooldown (by default 10s
@@ -328,6 +324,91 @@ func (l *CommunityHub) Community(communityID uint64) (*HubCommunity, error) {
 	return contractToHub(communityID, cc)
 }
 
+// SetCommunity method sets the community data provided in the contract. It
+// gets the current community data from the contract and updates it with the
+// new data checking every field and updating it if it is different from the
+// current one. It ensures that the creator of the community (the first admin)
+// remains as an admin after the update. If something goes wrong, it returns an
+// error.
+func (l *CommunityHub) SetCommunity(communityID uint64, newData *HubCommunity) error {
+	// get the current community data from the contract
+	community, err := l.Community(communityID)
+	if err != nil {
+		return err
+	}
+	// update the community data with the new data checking every field and
+	// updating it if it is different from the current one
+
+	// if a new name is provided and it is different from the current one, set
+	// the new name
+	if newData.Name != "" && newData.Name != community.Name {
+		community.Name = newData.Name
+	}
+	// if a new image URL is provided and it is different from the current one,
+	// set the new image URL
+	if newData.ImageURL != "" && newData.ImageURL != community.ImageURL {
+		community.ImageURL = newData.ImageURL
+	}
+	// if a new group chat URL is provided and it is different from the current
+	// one, set the new group chat URL
+	if newData.GroupChatURL != "" && newData.GroupChatURL != community.GroupChatURL {
+		community.GroupChatURL = newData.GroupChatURL
+	}
+	// if a new census type is provided and it is different from the current one,
+	// set the new census type
+	if newData.CensusType != "" && newData.CensusType != community.CensusType {
+		community.CensusType = newData.CensusType
+	}
+	// if a new census channel is provided and it is different from the current
+	// one, set the new census channel
+	if newData.CensusChannel != "" && newData.CensusChannel != community.CensusChannel {
+		community.CensusChannel = newData.CensusChannel
+	}
+	// if a new census addresses list is provided with at least one address update
+	// the census addresses list
+	if newData.CensusAddesses != nil && len(newData.CensusAddesses) > 0 {
+		community.CensusAddesses = newData.CensusAddesses
+	}
+	// if a new admins list is provided with at least one admin update the
+	// admins list only if the first admin continues being the creator
+	if len(newData.Admins) > 0 {
+		if newData.Admins[0] != community.Admins[0] {
+			return ErrNoAdminCreator
+		}
+		community.Admins = newData.Admins
+	}
+	// if a new channels list is provided with at least one channel update the
+	// channels list
+	if len(newData.Channels) > 0 {
+		community.Channels = newData.Channels
+	}
+	// if a new notifications value is provided set the new notifications value
+	if newData.Notifications != nil {
+		community.Notifications = newData.Notifications
+	}
+	// if a new disabled value is provided set the new disabled value
+	if newData.Disabled != nil {
+		community.Disabled = newData.Disabled
+	}
+	// set the community data in the contract
+	cc, err := hubToContract(community)
+	if err != nil {
+		return err
+	}
+	// convert the community ID to a *big.Int
+	bCommunityID := new(big.Int).SetUint64(communityID)
+	// get auth opts and set the community data in the contract
+	transactOpts, err := l.authTransactOpts()
+	if err != nil {
+		return err
+	}
+	if _, err := l.contract.AdminManageCommunity(transactOpts, bCommunityID, cc.Metadata,
+		cc.Census, cc.Guardians, cc.CreateElectionPermission, cc.Disabled); err != nil {
+		return errors.Join(ErrSettingCommunity, err)
+	}
+	return nil
+}
+
 // Results method gets the election results using the community and elections
 // IDs from the contract and returns them as a HubResults struct. If something
 // goes wrong getting the results from the contract, it returns an error.
@@ -459,7 +540,6 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) error {
 	// create the db census according to the community census type
 	dbCensus := dbmongo.CommunityCensus{
 		Type: string(c.CensusType),
-		Name: c.CensusName,
 	}
 	// if the census type is a channel, set the channel
 	switch c.CensusType {
@@ -484,9 +564,9 @@ func (l *CommunityHub) storeCommunity(c *HubCommunity) error {
 	default:
 		return fmt.Errorf("%w: %s", ErrUnknownCensusType, c.CensusType)
 	}
-	// create community in the database
-	if err := l.db.AddCommunity(c.ID, c.Name, c.ImageURL, c.GroupChatURL,
-		dbCensus, c.Channels, c.Admins, c.Notifications, c.Disabled,
+	// create community in the database including the first admin as the creator
+	if err := l.db.AddCommunity(c.ID, c.Name, c.ImageURL, c.GroupChatURL, dbCensus,
+		c.Channels, c.Admins[0], c.Admins, *c.Notifications, *c.Disabled,
 	); err != nil {
 		if err == mongo.ErrClientDisconnected {
 			return ErrClosedDB

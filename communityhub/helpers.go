@@ -22,8 +22,8 @@ func contractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, 
 		GroupChatURL:  cc.Metadata.GroupChatURL,
 		Channels:      cc.Metadata.Channels,
 		Admins:        admins,
-		Notifications: cc.Metadata.Notifications,
-		Disabled:      cc.Disabled,
+		Notifications: &cc.Metadata.Notifications,
+		Disabled:      &cc.Disabled,
 		// interanl
 		createElectionPermission: cc.CreateElectionPermission,
 		funds:                    cc.Funds,
@@ -52,15 +52,15 @@ func contractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, 
 
 // hubToContract converts a internal community struct (HubCommunity) to a
 // contract community struct (ICommunityHubCommunity)
-func hubToContract(hub *HubCommunity) (comhub.ICommunityHubCommunity, error) {
+func hubToContract(hcommunity *HubCommunity) (comhub.ICommunityHubCommunity, error) {
 	// check the census type
-	switch hub.CensusType {
+	switch hcommunity.CensusType {
 	case CensusTypeChannel:
-		if hub.CensusChannel == "" {
+		if hcommunity.CensusChannel == "" {
 			return comhub.ICommunityHubCommunity{}, ErrNoChannelProvided
 		}
 	case CensusTypeERC20, CensusTypeNFT:
-		if len(hub.CensusAddesses) == 0 {
+		if len(hcommunity.CensusAddesses) == 0 {
 			return comhub.ICommunityHubCommunity{}, ErrBadCensusAddressees
 		}
 	default:
@@ -68,7 +68,7 @@ func hubToContract(hub *HubCommunity) (comhub.ICommunityHubCommunity, error) {
 	}
 	// convert the census addresses to a []*comhub.ICommunityHubTokenCensusToken
 	censusTokens := []comhub.ICommunityHubToken{}
-	for _, addr := range hub.CensusAddesses {
+	for _, addr := range hcommunity.CensusAddesses {
 		censusTokens = append(censusTokens, comhub.ICommunityHubToken{
 			ContractAddress: addr.Address,
 			Blockchain:      addr.Blockchain,
@@ -76,26 +76,31 @@ func hubToContract(hub *HubCommunity) (comhub.ICommunityHubCommunity, error) {
 	}
 	// convert the admins to a []*big.Int
 	guardians := []*big.Int{}
-	for _, admin := range hub.Admins {
+	for _, admin := range hcommunity.Admins {
 		guardians = append(guardians, new(big.Int).SetUint64(admin))
 	}
 	// create the contract community
-	return comhub.ICommunityHubCommunity{
+	ccomunity := comhub.ICommunityHubCommunity{
 		Metadata: comhub.ICommunityHubCommunityMetadata{
-			Name:          hub.Name,
-			ImageURI:      hub.ImageURL,
-			GroupChatURL:  hub.GroupChatURL,
-			Channels:      hub.Channels,
-			Notifications: hub.Notifications,
+			Name:         hcommunity.Name,
+			ImageURI:     hcommunity.ImageURL,
+			GroupChatURL: hcommunity.GroupChatURL,
+			Channels:     hcommunity.Channels,
 		},
 		Guardians: guardians,
 		Census: comhub.ICommunityHubCensus{
-			CensusType: contractCensusTypes[hub.CensusType],
-			Channel:    hub.CensusChannel,
+			CensusType: contractCensusTypes[hcommunity.CensusType],
+			Channel:    hcommunity.CensusChannel,
 			Tokens:     censusTokens,
 		},
-		Disabled:                 hub.Disabled,
-		CreateElectionPermission: hub.createElectionPermission,
-		Funds:                    hub.funds,
-	}, nil
+		CreateElectionPermission: hcommunity.createElectionPermission,
+		Funds:                    hcommunity.funds,
+	}
+	if hcommunity.Notifications != nil {
+		ccomunity.Metadata.Notifications = *hcommunity.Notifications
+	}
+	if hcommunity.Disabled != nil {
+		ccomunity.Disabled = *hcommunity.Disabled
+	}
+	return ccomunity, nil
 }

@@ -12,7 +12,8 @@ import (
 )
 
 func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl, groupChatUrl string,
-	census CommunityCensus, channels []string, admins []uint64, notifications, disabled bool,
+	census CommunityCensus, channels []string, creator uint64, admins []uint64,
+	notifications, disabled bool,
 ) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
@@ -23,6 +24,7 @@ func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl, groupChatUrl str
 		Census:        census,
 		ImageURL:      imageUrl,
 		GroupChatURL:  groupChatUrl,
+		Creator:       creator,
 		Admins:        admins,
 		Notifications: notifications,
 		Disabled:      disabled,

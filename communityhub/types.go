@@ -73,13 +73,12 @@ type HubCommunity struct {
 	ImageURL       string
 	GroupChatURL   string
 	CensusType     CensusType
-	CensusName     string
 	CensusAddesses []*ContractAddress
 	CensusChannel  string   // warpcast channels id
 	Channels       []string // warpcast channels ids
 	Admins         []uint64 // farcaster users fids
-	Notifications  bool
-	Disabled       bool
+	Notifications  *bool
+	Disabled       *bool
 	// internal
 	createElectionPermission uint8
 	funds                    *big.Int
