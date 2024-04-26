@@ -132,17 +132,22 @@ export const PollView = ({ poll, voters, electionId, loading, errorMessage, onCh
                   </Alert>
                 )}
                 <VStack spacing={6} alignItems='left'>
-                  {poll?.options.map((option, index) => (
-                    <Box key={index} w='full'>
-                      <Flex justifyContent='space-between' w='full'>
-                        <Text>{option}</Text>
-                        {!!poll.voteCount && !!poll?.tally[0] && <Text>{poll?.tally[0][index]} votes</Text>}
-                      </Flex>
-                      {!!poll.voteCount && !!poll?.tally[0] && (
-                        <Progress size='sm' rounded={50} value={(poll?.tally[0][index] / poll?.voteCount) * 100} />
-                      )}
-                    </Box>
-                  ))}
+                  {poll?.options.map((option, index) => {
+                    const [tally] = poll!.tally
+                    const weight = tally.reduce((acc, curr) => acc + curr, 0)
+
+                    return (
+                      <Box key={index} w='full'>
+                        <Flex justifyContent='space-between' w='full'>
+                          <Text>{option}</Text>
+                          {!!poll.voteCount && !!tally && <Text>{tally[index]} votes</Text>}
+                        </Flex>
+                        {!!poll.voteCount && !!tally && (
+                          <Progress size='sm' rounded={50} value={(tally[index] / weight) * 100} />
+                        )}
+                      </Box>
+                    )
+                  })}
                 </VStack>
               </VStack>
             </Skeleton>
