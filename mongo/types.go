@@ -221,7 +221,6 @@ const (
 // includes the name, type, and the census addresses (CommunityCensusAddresses)
 // or the census channel (depending on the type).
 type CommunityCensus struct {
-	Name      string                     `json:"name" bson:"name"`
 	Type      string                     `json:"type" bson:"type"`
 	Addresses []CommunityCensusAddresses `json:"addresses" bson:"addresses"`
 	Channel   string                     `json:"channel" bson:"channel"`

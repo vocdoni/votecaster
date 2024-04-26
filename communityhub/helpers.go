@@ -1,9 +1,11 @@
 package communityhub
 
 import (
+	"fmt"
 	"math/big"
 
 	comhub "github.com/vocdoni/vote-frame/communityhub/contracts/communityhubtoken"
+	dbmongo "github.com/vocdoni/vote-frame/mongo"
 )
 
 // contractToHub converts a contract community struct (ICommunityHubCommunity)
@@ -103,4 +105,63 @@ func hubToContract(hcommunity *HubCommunity) (comhub.ICommunityHubCommunity, err
 		ccomunity.Disabled = *hcommunity.Disabled
 	}
 	return ccomunity, nil
+}
+
+// hubToDB converts a internal community struct (HubCommunity) to a db community
+// struct (*dbmongo.Community) to be stored or updated in the database. It
+// creates the db census according to the community census type, and if the
+// census type is a channel, it sets the channel. If the census type is an erc20
+// or nft, it decodes every census network address to get the contract address
+// and blockchain. It returns an error if the census type is unknown, if no
+// channel is provided when the census type is a channel, or if no valid
+// addresses were found when the census type is an erc20 or nft.
+func hubToDB(hcommunity *HubCommunity) (*dbmongo.Community, error) {
+	// create the db census according to the community census type
+	dbCensus := dbmongo.CommunityCensus{
+		Type: string(hcommunity.CensusType),
+	}
+	// if the census type is a channel, set the channel
+	switch hcommunity.CensusType {
+	case CensusTypeChannel:
+		if hcommunity.CensusChannel == "" {
+			return nil, fmt.Errorf("%w: %s", ErrNoChannelProvided, hcommunity.Name)
+		}
+		dbCensus.Channel = hcommunity.CensusChannel
+	case CensusTypeERC20, CensusTypeNFT:
+		// if the census type is an erc20 or nft, decode every census
+		// network address to get the contract address and blockchain
+		dbCensus.Addresses = []dbmongo.CommunityCensusAddresses{}
+		for _, addr := range hcommunity.CensusAddesses {
+			dbCensus.Addresses = append(dbCensus.Addresses,
+				dbmongo.CommunityCensusAddresses{
+					Address:    addr.Address.String(),
+					Blockchain: addr.Blockchain,
+				})
+		}
+		// if no valid addresses were found, skip the community and log
+		// an error
+		if len(dbCensus.Addresses) == 0 {
+			return nil, fmt.Errorf("%w: %s", ErrBadCensusAddressees, hcommunity.Name)
+		}
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrUnknownCensusType, hcommunity.CensusType)
+	}
+	// create the db community
+	dbCommunity := &dbmongo.Community{
+		ID:           hcommunity.ID,
+		Name:         hcommunity.Name,
+		ImageURL:     hcommunity.ImageURL,
+		GroupChatURL: hcommunity.GroupChatURL,
+		Census:       dbCensus,
+		Channels:     hcommunity.Channels,
+		Admins:       hcommunity.Admins,
+	}
+	// set the notifications and disabled fields if they are not nil
+	if hcommunity.Notifications != nil {
+		dbCommunity.Notifications = *hcommunity.Notifications
+	}
+	if hcommunity.Disabled != nil {
+		dbCommunity.Disabled = *hcommunity.Disabled
+	}
+	return dbCommunity, nil
 }

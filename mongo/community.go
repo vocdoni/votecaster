@@ -32,6 +32,12 @@ func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl, groupChatUrl str
 	return ms.addCommunity(&community)
 }
 
+func (ms *MongoStorage) UpdateCommunity(community *Community) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+	return ms.updateCommunity(community)
+}
+
 func (ms *MongoStorage) Community(id uint64) (*Community, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
@@ -147,6 +153,24 @@ func (ms *MongoStorage) addCommunity(community *Community) error {
 	default:
 		return fmt.Errorf("invalid census type")
 	}
+}
+
+// updateCommunity method updates the community in the database. It returns an
+// error if something goes wrong with the database.
+func (ms *MongoStorage) updateCommunity(community *Community) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	updateDoc, err := dynamicUpdateDocument(community, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create update document: %w", err)
+	}
+	opts := options.Update().SetUpsert(true) // Ensures the document is created if it does not exist
+	_, err = ms.communitites.UpdateOne(ctx, bson.M{"_id": community.ID}, updateDoc, opts)
+	if err != nil {
+		return fmt.Errorf("cannot update election: %w", err)
+	}
+	return nil
 }
 
 // community method returns the community with the given id. If something goes
