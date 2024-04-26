@@ -6,6 +6,7 @@ import {
   Button,
   Flex,
   Heading,
+  Icon,
   Image,
   Link,
   Progress,
@@ -14,10 +15,11 @@ import {
   TagLabel,
   TagLeftIcon,
   Text,
+  useClipboard,
   VStack,
 } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
-import { FaCheck, FaDownload, FaPlay, FaRegCircleStop } from 'react-icons/fa6'
+import { FaCheck, FaDownload, FaPlay, FaRegCircleStop, FaRegCopy } from 'react-icons/fa6'
 import { appUrl, degenContractAddress } from '~constants'
 import { fetchShortURL } from '~queries/common'
 import { humanDate } from '~util/strings'
@@ -36,19 +38,23 @@ export type PollViewProps = {
 export const PollView = ({ poll, voters, electionId, loading, errorMessage, onChain }: PollViewProps) => {
   const { bfetch } = useAuth()
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${electionId}`)
+  const { setValue, onCopy, hasCopied } = useClipboard(electionURL)
 
+  // retrieve and set short URL (for copy-paste)
   useEffect(() => {
-    if (loading || !poll || !electionId) return
+    if (loading || !poll || !electionId) return // if ()
+    const re = new RegExp(electionId)
+    if (!re.test(electionURL)) return
     ;(async () => {
-      // get the short url
       try {
         const url = await fetchShortURL(bfetch)(electionURL)
         setElectionURL(url)
+        setValue(url)
       } catch (e) {
         console.info('error getting short url, using long version', e)
       }
     })()
-  }, [])
+  }, [loading, poll])
 
   const usersfile = useMemo(() => {
     if (!voters.length) return { url: '', filename: '' }
@@ -57,12 +63,6 @@ export const PollView = ({ poll, voters, electionId, loading, errorMessage, onCh
       voters.map((username) => [username])
     )
   }, [voters])
-
-  const copyToClipboard = (input: string) => {
-    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(input).catch(console.error)
-    } else console.error('clipboard API not available')
-  }
 
   const participationPercentage = useMemo(() => {
     if (!poll || !poll.censusParticipantsCount) return 0
@@ -99,9 +99,18 @@ export const PollView = ({ poll, voters, electionId, loading, errorMessage, onCh
               </Flex>
             </Skeleton>
             <Image src={`${appUrl}/preview/${electionId}`} fallback={<Skeleton height={200} />} />
-            <Link fontSize={'sm'} color={'gray'} onClick={() => copyToClipboard(electionURL)}>
+            <Button
+              fontSize={'sm'}
+              onClick={onCopy}
+              colorScheme='purple'
+              alignSelf='start'
+              bg={hasCopied ? 'purple.600' : 'purple.300'}
+              color='white'
+              size='xs'
+              rightIcon={<Icon as={hasCopied ? FaCheck : FaRegCopy} />}
+            >
               Copy link to the frame
-            </Link>
+            </Button>
           </VStack>
           <VStack spacing={4} alignItems='left'>
             <Heading size='md'>Results</Heading>
