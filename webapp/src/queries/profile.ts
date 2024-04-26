@@ -1,5 +1,12 @@
 import { appUrl } from '~constants'
 
+export const fetchUserProfile = (bfetch: FetchFunction, username: string) => async (): Promise<UserProfileResponse> => {
+  const response = await bfetch(`${appUrl}/profile/user/${username}`)
+  const user = (await response.json()) as UserProfileResponse
+
+  return user
+}
+
 export const fetchUserPolls = (bfetch: FetchFunction, username: string) => async (): Promise<Poll[]> => {
   const response = await bfetch(`${appUrl}/profile/user/${username}`)
   const { polls } = (await response.json()) as { polls: Poll[] }

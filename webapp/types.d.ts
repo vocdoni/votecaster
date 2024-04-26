@@ -1,3 +1,5 @@
+import { Reputation } from '~components/Auth/useAuthProvider'
+
 declare global {
   type FetchFunction = (input: RequestInfo, init?: RequestInit) => Promise<Response>
 
@@ -70,6 +72,14 @@ declare global {
     username: string
     count: number
     displayName: string
+  }
+
+  type UserProfileResponse = {
+    polls: Poll[]
+    mutedUsers: Profile[]
+    user: Profile
+    reputation: number
+    reputationData: Reputation
   }
 
   type Community = {

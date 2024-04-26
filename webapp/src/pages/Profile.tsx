@@ -6,16 +6,21 @@ import { useAuth } from '~components/Auth/useAuth'
 import { Check } from '~components/Check'
 import { MutedUsersList } from '~components/MutedUsersList'
 import { UserPolls } from '~components/Top'
-import { fetchUserPolls } from '~queries/profile'
+import { fetchUserProfile } from '~queries/profile'
 
 const Profile = () => {
-  const params = useParams()
+  const { id } = useParams()
   const { bfetch, profile } = useAuth()
-  const username = params['*'] || profile?.username
+  const username = id || profile?.username
+  const isOwnProfile = profile?.username === username
   // Utilizing React Query to fetch polls
-  const { isLoading, error, data } = useQuery<Poll[], Error>({
-    queryKey: ['polls', username],
-    queryFn: fetchUserPolls(bfetch, username as string),
+  const {
+    isLoading,
+    error,
+    data: user,
+  } = useQuery<UserProfileResponse, Error>({
+    queryKey: ['profile', username],
+    queryFn: fetchUserProfile(bfetch, username as string),
   })
 
   if (isLoading || error) {
@@ -30,20 +35,18 @@ const Profile = () => {
       templateAreas={{ base: `"reputation" "muted" "polls"`, md: `"polls reputation" "polls muted"` }}
     >
       <GridItem gridArea='reputation'>
-        <ReputationCard />
+        <ReputationCard reputation={{ data: user?.reputationData, reputation: user?.reputation }} />
         <Show above='md'>
           <Spacer h={4} />
-          <MutedUsersList />
+          {isOwnProfile && <MutedUsersList />}
         </Show>
       </GridItem>
       <GridItem gridArea='polls'>
-        <UserPolls polls={data || []} title='Your created polls' w='100%' />
+        <UserPolls polls={user.polls || []} title='Your created polls' w='100%' />
       </GridItem>
       {/* MutedUsersList will now only appear here in the mobile view, since in md+ it's in the same GridItem as ReputationCard */}
       <Show below='md'>
-        <GridItem gridArea='muted'>
-          <MutedUsersList />
-        </GridItem>
+        <GridItem gridArea='muted'>{isOwnProfile && <MutedUsersList />}</GridItem>
       </Show>
     </Grid>
   )

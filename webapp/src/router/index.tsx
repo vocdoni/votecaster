@@ -78,6 +78,14 @@ export const Router = () => {
           ),
         },
         {
+          path: '/profile/:id',
+          element: (
+            <SuspenseLoader>
+              <Profile />
+            </SuspenseLoader>
+          ),
+        },
+        {
           element: (
             <SuspenseLoader>
               <ProtectedRoute />
@@ -85,7 +93,7 @@ export const Router = () => {
           ),
           children: [
             {
-              path: '/profile/*',
+              path: '/profile',
               element: (
                 <SuspenseLoader>
                   <Profile />
