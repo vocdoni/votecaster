@@ -566,17 +566,13 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(120 * time.Second):
-			electionIDs, err := v.db.ElectionsWithoutResults(ctx)
+		case <-time.After(60 * time.Second):
+			electionIDs, err := v.db.ElectionsWithoutResults()
 			if err != nil {
 				log.Errorw(err, "failed to get elections without results")
 				continue
 			}
-			if len(electionIDs) > 0 {
-				log.Debugw("found elections without results", "count", len(electionIDs))
-			}
 			for _, electionID := range electionIDs {
-				time.Sleep(5 * time.Second)
 				electionIDbytes, err := hex.DecodeString(electionID)
 				if err != nil {
 					log.Errorw(err, "failed to decode electionID")
@@ -587,18 +583,16 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 					log.Errorw(err, fmt.Sprintf("failed to get election %s", electionID))
 					continue
 				}
-				electionMeta, err := v.db.Election(electionIDbytes)
-				if err != nil {
-					log.Errorw(err, "failed to get election from database")
-					continue
-				}
 				if election.FinalResults {
-					_, err := v.finalizeElectionResults(election, electionMeta)
+					electiondb, err := v.db.Election(electionIDbytes)
 					if err != nil {
+						log.Errorw(err, "failed to get election from database")
+						continue
+					}
+					if _, err = v.finalizeElectionResults(election, electiondb); err != nil {
 						log.Errorw(err, "failed to finalize election results")
 						continue
 					}
-					log.Infow("finalized election", "electionID", electionID)
 				}
 			}
 		}

@@ -68,45 +68,37 @@ func (ms *MongoStorage) FinalResultsPNG(electionID types.HexBytes) []byte {
 	return results.FinalPNG
 }
 
-// ElectionsWithoutResults returns a list of election IDs that do not have a corresponding entry in the results collection.
-func (ms *MongoStorage) ElectionsWithoutResults(ctx context.Context) ([]string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+// ElectionsWithoutResults returns a list of election IDs where results are not finalized.
+func (ms *MongoStorage) ElectionsWithoutResults() ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Define the aggregation pipeline
-	pipeline := []bson.M{
-		{
-			"$lookup": bson.M{
-				"from":         "results",
-				"localField":   "_id",
-				"foreignField": "_id",
-				"as":           "result",
-			},
-		},
-		{
-			"$match": bson.M{"result": bson.M{"$size": 0}}, // Filter elections without results
-		},
-		{
-			"$project": bson.M{"_id": 1}, // Only return the election IDs
-		},
-	}
+	// Create the filter for finding results where "finalized" is false
+	filter := bson.M{"finalized": false}
 
-	cursor, err := ms.elections.Aggregate(ctx, pipeline)
+	// Define the options to only retrieve the "electionId" field
+	opts := options.Find().SetProjection(bson.M{"_id": 1})
+
+	// Execute the find operation
+	cursor, err := ms.results.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to find results: %w", err)
 	}
 	defer cursor.Close(ctx)
 
-	var elections []struct {
-		ID string `bson:"_id"`
-	}
-	if err := cursor.All(ctx, &elections); err != nil {
-		return nil, err
+	var electionIDs []string
+	for cursor.Next(ctx) {
+		var result struct {
+			ElectionID string `bson:"_id"`
+		}
+		if err := cursor.Decode(&result); err != nil {
+			return nil, fmt.Errorf("failed to decode result: %w", err)
+		}
+		electionIDs = append(electionIDs, result.ElectionID)
 	}
 
-	var electionIDs []string
-	for _, e := range elections {
-		electionIDs = append(electionIDs, e.ID)
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
 	}
 
 	return electionIDs, nil

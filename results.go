@@ -200,17 +200,13 @@ func (v *vocdoniHandler) settleResultsIntoCommunityHub(electiondb *mongo.Electio
 		CensusRoot:       root,
 		CensusURI:        census.URL,
 	}
-	log.Infow("results",
+	log.Infow("sending results to community hub smart contract",
 		"electionID", electiondb.ElectionID,
 		"communityID", electiondb.Community.ID,
 		"hubResults", hubResults)
 	if err := v.comhub.SetResults(electiondb.Community.ID, electionID, hubResults); err != nil {
 		return fmt.Errorf("failed to set results on the community hub: %w", err)
 	}
-	log.Infow("final results sent to the community hub",
-		"communityID", electiondb.Community.ID,
-		"electionID", electiondb.ElectionID)
-
 	return nil
 }
 
