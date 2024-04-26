@@ -259,11 +259,11 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 	if err := json.Unmarshal(msg.Data, &mapCommunity); err != nil {
 		return ctx.Send([]byte("error decoding community data"), http.StatusBadRequest)
 	}
-	notification := new(bool)
+	notification := &dbCommunity.Notifications
 	if _, ok := mapCommunity["notifications"]; ok {
 		*notification = typedCommunity.Notifications
 	}
-	disabled := new(bool)
+	disabled := &dbCommunity.Disabled
 	if _, ok := mapCommunity["disabled"]; ok {
 		*disabled = typedCommunity.Disabled
 	}
