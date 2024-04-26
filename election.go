@@ -302,6 +302,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		Choices:                 results.Choices,
 		Votes:                   results.Votes,
 		Finalized:               results.Finalized,
+		Community:               dbElection.Community,
 	}
 
 	jresponse, err := json.Marshal(map[string]any{
