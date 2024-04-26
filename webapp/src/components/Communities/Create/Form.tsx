@@ -145,8 +145,10 @@ export const CommunitiesCreateForm = () => {
         setTx(tx.hash)
       } catch (e) {
         console.error('could not create community:', e)
-        if (e instanceof Error) {
-          setError('could not create community: ' + e.message)
+        if ('shortMessage' in (e as any)) {
+          setError('Could not create community: ' + (e as any).shortMessage)
+        } else if (e instanceof Error) {
+          setError('Could not create community: ' + e.message)
         }
       } finally {
         setIsPending(false)
@@ -199,16 +201,16 @@ export const CommunitiesCreateForm = () => {
                     price={calcPrice}
                     balance={userBalance as string}
                   />
+                  {error && (
+                    <Alert status='error' mt={3}>
+                      <AlertDescription whiteSpace='collapse' overflowWrap='anywhere' maxW='100%'>
+                        {error.toString()}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </Box>
               </Flex>
             </Box>
-            {error && (
-              <Alert maxW={'90vw'} status='error'>
-                <AlertDescription whiteSpace='nowrap' overflow='hidden' textOverflow='ellipsis' isTruncated>
-                  {error}
-                </AlertDescription>
-              </Alert>
-            )}
           </>
         )}
       </FormProvider>
