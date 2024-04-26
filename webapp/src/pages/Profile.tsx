@@ -15,7 +15,7 @@ const Profile = () => {
   // Utilizing React Query to fetch polls
   const { isLoading, error, data } = useQuery<Poll[], Error>({
     queryKey: ['polls', username],
-    queryFn: fetchUserPolls(bfetch, username),
+    queryFn: fetchUserPolls(bfetch, username as string),
   })
 
   if (isLoading || error) {

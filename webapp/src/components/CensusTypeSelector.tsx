@@ -69,7 +69,7 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
   const { data: communities, isLoading: cloading } = useQuery({
     queryKey: ['communities', 'byAdmin'],
     queryFn: () => fetchCommunitiesByAdmin(bfetch, profile!),
-    enabled: profile != null,
+    enabled: !!profile && !!complete,
   })
 
   const censusType = watch('censusType')
