@@ -23,7 +23,7 @@ const viteconfig = ({ mode }) => {
         process.env.VOCDONI_DEGENCHAINRPC || 'https://rpc.degen.tips'
       ),
       'import.meta.env.VOCDONI_COMMUNITYHUBADDRESS': JSON.stringify(
-        process.env.VOCDONI_COMMUNITYHUBADDRESS || '0xd7A7cD53520Eaaad1331E4c88A97B74754C5BE61'
+        process.env.VOCDONI_COMMUNITYHUBADDRESS || '0xC6d3ae00a9c2322dE48B63053e989E7E2e6C2cc9'
       ),
     },
     plugins: [
