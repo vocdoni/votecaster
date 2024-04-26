@@ -266,22 +266,37 @@ func NotificationsErrorImage() string {
 	return AddImageToCache(backgroundFrames[BackgroundNotificationsError])
 }
 
-// makeRequest handles the communication with the API.
+// makeRequest handles the communication with the API, with retries on failure.
 func makeRequest(data ImageRequest) ([]byte, error) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
-	startTime := time.Now()
-	response, err := http.Post(fmt.Sprintf("%s/image", ImageGeneratorURL), "application/json", bytes.NewBuffer(jsonData))
+
+	maxAttempts := 5
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		response, err := http.Post(fmt.Sprintf("%s/image", ImageGeneratorURL), "application/json", bytes.NewBuffer(jsonData))
+		if err == nil && response.StatusCode == http.StatusOK {
+			defer response.Body.Close()
+			return io.ReadAll(response.Body)
+		}
+
+		if response != nil {
+			response.Body.Close() // Ensure the response body is closed on each attempt.
+		}
+
+		if attempt < maxAttempts {
+			sleepDuration := time.Duration(attempt*2) * time.Second * 4 // Exponential back-off strategy
+			time.Sleep(sleepDuration)
+			log.Debugw("retrying image request", "attempt", attempt, "sleepDuration", sleepDuration)
+		} else {
+			log.Debugw("image request failed after retries", "type", data.Type, "attempts", maxAttempts)
+			break
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
-	log.Debugw("image request", "type", data.Type, "elapsed (s)", time.Since(startTime).Seconds())
-	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request failed with status code: %d", response.StatusCode)
-	}
-
-	return io.ReadAll(response.Body)
+	return nil, fmt.Errorf("image generation API request failed with status code")
 }
