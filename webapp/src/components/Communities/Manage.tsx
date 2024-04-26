@@ -43,7 +43,6 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
   if (!props.onClose) return null
 
   const switchNotifications = async () => {
-    console.log('switching notifications')
     try {
       setLoadingNotifications(true)
       await bfetch(`${appUrl}/communities/${community.id}/notifications?enabled=${!community.notifications}`, {
@@ -56,7 +55,6 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
   }
 
   const switchStatus = async () => {
-    console.log('switching status')
     try {
       setLoadingStatus(true)
       await bfetch(`${appUrl}/communities/${community.id}/status?disabled=${!community.disabled}`, {

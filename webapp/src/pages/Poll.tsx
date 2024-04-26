@@ -36,7 +36,7 @@ const Poll = () => {
           try {
             setVoters(await fetchPollsVoters(bfetch)(electionId))
           } catch (e) {
-            console.log('error fetching voters', e)
+            console.error('error fetching voters', e)
           }
         }
       } catch (e) {

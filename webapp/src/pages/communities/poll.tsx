@@ -45,7 +45,7 @@ const CommunityPoll = () => {
             censusParticipantsCount: Number(contractData.totalVotingPower), // TODO: get this from the contract or api
           })
           voteCount = contractData.participants.length
-          console.log('results from contract')
+          console.info('results gathered from contract')
         } else {
           const apiData = await fetchPollInfo(bfetch)(electionId)
           const tally: number[][] = [[]]
@@ -66,14 +66,14 @@ const CommunityPoll = () => {
             censusParticipantsCount: apiData.censusParticipantsCount,
           })
           voteCount = apiData.voteCount
-          console.log('results from api')
+          console.info('results gathered from api')
         }
         // get voters
         if (voteCount > 0) {
           try {
             setVoters(await fetchPollsVoters(bfetch)(electionId))
           } catch (e) {
-            console.log('error fetching voters', e)
+            console.error('error fetching voters', e)
           }
         }
       } catch (e) {

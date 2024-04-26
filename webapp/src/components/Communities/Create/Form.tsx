@@ -133,14 +133,6 @@ export const CommunitiesCreateForm = () => {
         if (!log) {
           throw Error('Cannot get community log')
         }
-        // this stop working after last contract update
-        // const parsedLog = communityHubInterface.parseLog(log)
-        // const communityId = parsedLog?.args['communityId']
-        // if (!communityId) {
-        //   throw Error("Cannot get community id")
-        // }
-        // console.log("Commnuity id found", communityId, tx.hash)
-        // setCommunityId(communityId)
 
         setTx(tx.hash)
       } catch (e) {

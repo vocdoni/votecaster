@@ -46,7 +46,7 @@ export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessa
         const url = await fetchShortURL(bfetch)(electionURL)
         setElectionURL(url)
       } catch (e) {
-        console.log('error getting short url, using default', e)
+        console.info('error getting short url, using long version', e)
       }
     })()
   }, [])
