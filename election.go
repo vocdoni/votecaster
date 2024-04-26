@@ -591,7 +591,6 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 					}
 					if _, err = v.finalizeElectionResults(election, electiondb); err != nil {
 						log.Errorw(err, "failed to finalize election results")
-						continue
 					}
 				}
 			}

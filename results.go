@@ -145,10 +145,16 @@ func (v *vocdoniHandler) settleResultsIntoCommunityHub(electiondb *mongo.Electio
 		return fmt.Errorf("invalid votes/choices")
 	}
 
+	if electiondb == nil {
+		return fmt.Errorf("nil electiondb")
+	}
+
 	// check if the election is from a community, else return silently
 	if electiondb.Community == nil {
 		return nil
 	}
+
+	log.Debugw("settling results into community hub", "electionID", electiondb.ElectionID, "communityID", electiondb.Community.ID)
 
 	// send the final results to the community hub if electiondb is not nil
 	// check if community exists in the smart contract
@@ -176,7 +182,7 @@ func (v *vocdoniHandler) settleResultsIntoCommunityHub(electiondb *mongo.Electio
 	// We need the census to calculate the turnout
 	census, err := v.db.CensusFromElection(electionID)
 	if err != nil {
-		return fmt.Errorf("failed to fetch census from the database: %w", err)
+		return fmt.Errorf("failed to fetch census from the database for election %x: %w", electionID, err)
 	}
 
 	root, err := hex.DecodeString(census.Root)
@@ -200,7 +206,7 @@ func (v *vocdoniHandler) settleResultsIntoCommunityHub(electiondb *mongo.Electio
 		CensusRoot:       root,
 		CensusURI:        census.URL,
 	}
-	log.Infow("sending results to community hub smart contract",
+	log.Infow("sending results transaction to community hub smart contract",
 		"electionID", electiondb.ElectionID,
 		"communityID", electiondb.Community.ID,
 		"hubResults", hubResults)
