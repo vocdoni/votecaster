@@ -68,13 +68,18 @@ func (ms *MongoStorage) FinalResultsPNG(electionID types.HexBytes) []byte {
 	return results.FinalPNG
 }
 
-// ElectionsWithoutResults returns a list of election IDs where results are not finalized.
+// ElectionsWithoutResults returns a list of election IDs where results are not finalized or where the finalized field is not set.
 func (ms *MongoStorage) ElectionsWithoutResults() ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Create the filter for finding results where "finalized" is false
-	filter := bson.M{"finalized": false}
+	// Adjust the filter to find results where "finalized" is either false or not set ($or operator)
+	filter := bson.M{
+		"$or": []bson.M{
+			{"finalized": false},
+			{"finalized": bson.M{"$exists": false}},
+		},
+	}
 
 	// Define the options to only retrieve the "electionId" field
 	opts := options.Find().SetProjection(bson.M{"_id": 1})
@@ -115,8 +120,9 @@ func (ms *MongoStorage) SetPartialResults(electionID types.HexBytes, choices, vo
 	// Prepare the update fields
 	update := bson.M{
 		"$set": bson.M{
-			"title": choices,
-			"votes": votes,
+			"title":     choices,
+			"votes":     votes,
+			"finalized": false,
 		},
 	}
 
