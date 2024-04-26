@@ -286,7 +286,7 @@ func makeRequest(data ImageRequest) ([]byte, error) {
 		}
 
 		if attempt < maxAttempts {
-			sleepDuration := time.Duration(attempt*2) * time.Second * 4 // Exponential back-off strategy
+			sleepDuration := time.Duration(attempt*2) * time.Second // Exponential back-off strategy
 			time.Sleep(sleepDuration)
 			log.Debugw("retrying image request", "attempt", attempt, "sleepDuration", sleepDuration)
 		} else {
@@ -295,8 +295,5 @@ func makeRequest(data ImageRequest) ([]byte, error) {
 		}
 	}
 
-	if err != nil {
-		return nil, err
-	}
-	return nil, fmt.Errorf("image generation API request failed with status code")
+	return nil, fmt.Errorf("image generation API request failed")
 }
