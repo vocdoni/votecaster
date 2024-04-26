@@ -28,18 +28,17 @@ export type PollViewProps = {
   electionId: string | undefined
   onChain: boolean
   poll: PollResult | null
-  loading: boolean | false
-  loaded: boolean | false
+  loading: boolean
   voters: string[]
   errorMessage: string | null
 }
 
-export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessage, onChain }: PollViewProps) => {
+export const PollView = ({ poll, voters, electionId, loading, errorMessage, onChain }: PollViewProps) => {
   const { bfetch } = useAuth()
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${electionId}`)
 
   useEffect(() => {
-    if (loaded || loading || !poll || !electionId) return
+    if (loading || !poll || !electionId) return
     ;(async () => {
       // get the short url
       try {
@@ -66,7 +65,8 @@ export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessa
   }
 
   const participationPercentage = useMemo(() => {
-    if (!poll) return 0
+    if (!poll || !poll.censusParticipantsCount) return 0
+
     return ((poll.voteCount / poll.censusParticipantsCount) * 100).toFixed(1)
   }, [poll])
 
@@ -188,7 +188,7 @@ export const PollView = ({ poll, voters, electionId, loading, loaded, errorMessa
                   {poll?.voteCount}
                 </Text>
                 <Text>/{poll?.censusParticipantsCount}</Text>
-                <Text fontSize={'xl'}>{participationPercentage}%</Text>
+                {!!participationPercentage && <Text fontSize='xl'>{participationPercentage}%</Text>}
               </Flex>
             </Skeleton>
           </Box>

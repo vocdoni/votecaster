@@ -42,12 +42,13 @@ const CommunityPoll = () => {
             turnout: parseFloat(contractData.turnout.toString()),
             voteCount: contractData.participants.length,
             finalized: true,
-            censusParticipantsCount: Number(contractData.totalVotingPower), // TODO: get this from the contract or api
+            // TODO: get this from the contract or api
+            censusParticipantsCount: Number(contractData.totalVotingPower),
           })
           voteCount = contractData.participants.length
           console.info('results gathered from contract')
         } else {
-          const apiData = await fetchPollInfo(bfetch)(electionId)
+          const apiData = await fetchPollInfo(bfetch, electionId)()
           const tally: number[][] = [[]]
           apiData.tally?.forEach((t) => {
             tally[0].push(parseInt(t))
@@ -71,7 +72,7 @@ const CommunityPoll = () => {
         // get voters
         if (voteCount > 0) {
           try {
-            setVoters(await fetchPollsVoters(bfetch)(electionId))
+            setVoters(await fetchPollsVoters(bfetch, electionId)())
           } catch (e) {
             console.error('error fetching voters', e)
           }
@@ -88,7 +89,6 @@ const CommunityPoll = () => {
 
   return (
     <PollView
-      loaded={loaded}
       loading={loading}
       onChain={true}
       poll={pollResults}
