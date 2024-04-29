@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,8 @@ import (
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/types"
 )
+
+var imageTypeRgx = regexp.MustCompile(`^data:(image/[a-z]+);base64,`)
 
 func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	id := ctx.URLParam("id")
@@ -86,7 +89,12 @@ func (v *vocdoniHandler) avatarHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	}
 	// return the avatar image as is
 	ctx.SetResponseContentType(avatar.ContentType)
-	return ctx.Send(avatar.Data, 200)
+	// decode base64 image and return it
+	png, err := base64.StdEncoding.DecodeString(string(avatar.Data))
+	if err != nil {
+		return fmt.Errorf("failed to decode image: %w", err)
+	}
+	return ctx.Send(png, 200)
 }
 
 // uploadAvatarHandler uploads the avatar image with the given avatarID,
@@ -106,12 +114,12 @@ func (v *vocdoniHandler) updloadAvatarHandler(msg *apirest.APIdata, ctx *httprou
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return fmt.Errorf("cannot parse request: %w", err)
 	}
-	imageTypeRgx := regexp.MustCompile(`^data:(image/[a-z]+);base64,`)
 	imageTypeResults := imageTypeRgx.FindStringSubmatch(req.Data)
 	if len(imageTypeResults) != 2 {
 		return ctx.Send([]byte("bad formatted image"), 400)
 	}
 	prefix, contentType := imageTypeResults[0], imageTypeResults[1]
+	// remove the prefix from the image data
 	req.Data, _ = strings.CutPrefix(req.Data, prefix)
 	if err := v.db.SetAvatar(req.AvatarID, []byte(req.Data), userFID, req.CommunityID, contentType); err != nil {
 		return fmt.Errorf("cannot set avatar: %w", err)
