@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/vocdoni/vote-frame/imageframe"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/types"
@@ -66,6 +68,46 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 
 	// set png headers and return response as is
 	return imageResponse(ctx, imageframe.FromCache(png))
+}
+
+// avatarHandler returns the avatar image with the given avatarID.
+func (v *vocdoniHandler) avatarHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	avatarID := ctx.URLParam("avatarID")
+	if avatarID == "" {
+		return ctx.Send([]byte{}, 400)
+	}
+	avatar, err := v.db.Avatar(avatarID)
+	if err != nil {
+		if err == mongo.ErrAvatarUnknown {
+			return ctx.Send([]byte{}, 404)
+		}
+		return fmt.Errorf("failed to get avatar: %w", err)
+	}
+	// return the avatar image as is
+	return ctx.Send(avatar.Data, 200)
+}
+
+// uploadAvatarHandler uploads the avatar image with the given avatarID,
+// associated to the user that is making the request and the communityID
+// provided.
+func (v *vocdoniHandler) updloadAvatarHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// extract userFID from auth token
+	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
+	if err != nil {
+		return fmt.Errorf("cannot get user from auth token: %w", err)
+	}
+	req := struct {
+		AvatarID    string `json:"id"`
+		CommunityID uint64 `json:"communityID"`
+		Data        string `json:"data"`
+	}{}
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		return fmt.Errorf("cannot parse request: %w", err)
+	}
+	if err := v.db.SetAvatar(req.AvatarID, []byte(req.Data), userFID, req.CommunityID); err != nil {
+		return fmt.Errorf("cannot set avatar: %w", err)
+	}
+	return ctx.Send([]byte{}, 200)
 }
 
 func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
