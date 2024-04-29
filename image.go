@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/vocdoni/vote-frame/imageframe"
@@ -84,6 +85,7 @@ func (v *vocdoniHandler) avatarHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 		return fmt.Errorf("failed to get avatar: %w", err)
 	}
 	// return the avatar image as is
+	ctx.SetResponseContentType(avatar.ContentType)
 	return ctx.Send(avatar.Data, 200)
 }
 
@@ -104,7 +106,14 @@ func (v *vocdoniHandler) updloadAvatarHandler(msg *apirest.APIdata, ctx *httprou
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return fmt.Errorf("cannot parse request: %w", err)
 	}
-	if err := v.db.SetAvatar(req.AvatarID, []byte(req.Data), userFID, req.CommunityID); err != nil {
+	imageTypeRgx := regexp.MustCompile(`^data:(image/[a-z]+);base64,`)
+	imageTypeResults := imageTypeRgx.FindStringSubmatch(req.Data)
+	if len(imageTypeResults) != 2 {
+		return ctx.Send([]byte("bad formatted image"), 400)
+	}
+	prefix, contentType := imageTypeResults[0], imageTypeResults[1]
+	req.Data, _ = strings.CutPrefix(req.Data, prefix)
+	if err := v.db.SetAvatar(req.AvatarID, []byte(req.Data), userFID, req.CommunityID, contentType); err != nil {
 		return fmt.Errorf("cannot set avatar: %w", err)
 	}
 	return ctx.Send([]byte{}, 200)

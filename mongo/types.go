@@ -248,6 +248,7 @@ type Avatar struct {
 	CreatedAt   time.Time `json:"createdAt" bson:"createdAt"`
 	UserID      uint64    `json:"userId" bson:"userId"`
 	CommunityID uint64    `json:"communityId" bson:"communityId"`
+	ContentType string    `json:"contentType" bson:"contentType"`
 }
 
 // dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.

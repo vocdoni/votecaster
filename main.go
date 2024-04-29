@@ -570,7 +570,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/images/avatar/{avatarID}.png", http.MethodGet, "public", handler.avatarHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/images/avatar/{avatarID}.jpg", http.MethodGet, "public", handler.avatarHandler); err != nil {
 		log.Fatal(err)
 	}
 
