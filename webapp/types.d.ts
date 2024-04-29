@@ -82,6 +82,15 @@ declare global {
     reputationData: Reputation
   }
 
+  type Channel = {
+    description: string
+    followerCount: number
+    id: string
+    image: string
+    name: string
+    url: string
+  }
+
   type Community = {
     id: number
     name: string
@@ -90,6 +99,7 @@ declare global {
     notifications: boolean
     censusType: string
     censusAddresses: Address[]
+    censusChannel: Channel
     channels: string[]
     groupChat: string
     disabled: boolean

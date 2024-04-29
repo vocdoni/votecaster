@@ -1,6 +1,6 @@
 import { Alert, AlertDescription, Box, Flex, Heading, Text, VStack } from '@chakra-ui/react'
 import { id } from '@ethersproject/hash'
-import { BrowserProvider, ContractTransactionReceipt } from 'ethers'
+import { BrowserProvider, ContractTransactionReceipt, JsonRpcSigner } from 'ethers'
 import { useCallback, useEffect, useState } from 'react'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
 import { useAccount, useBalance, useWalletClient, type UseWalletClientReturnType } from 'wagmi'
@@ -44,7 +44,7 @@ export const CommunitiesCreateForm = () => {
       try {
         setIsLoadingPrice(true)
         // todo(kon): put this code on a provider and get the contract instance from there
-        let signer: any
+        let signer: JsonRpcSigner | undefined
         if (walletClient && address && walletClient.account.address === address) {
           signer = await walletClientToSigner(walletClient)
         }
@@ -109,7 +109,7 @@ export const CommunitiesCreateForm = () => {
         ])
 
         // todo(kon): put this code on a provider and get the contract instance from there
-        let signer: any
+        let signer: JsonRpcSigner | undefined
         if (walletClient && address && walletClient.account.address === address) {
           signer = await walletClientToSigner(walletClient)
         }
@@ -137,8 +137,8 @@ export const CommunitiesCreateForm = () => {
         setTx(tx.hash)
       } catch (e) {
         console.error('could not create community:', e)
-        if ('shortMessage' in (e as any)) {
-          setError('Could not create community: ' + (e as any).shortMessage)
+        if ('shortMessage' in (e as { shortMessage: string })) {
+          setError('Could not create community: ' + (e as { shortMessage: string }).shortMessage)
         } else if (e instanceof Error) {
           setError('Could not create community: ' + e.message)
         }

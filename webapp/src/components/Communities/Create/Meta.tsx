@@ -22,6 +22,7 @@ export const Meta = () => {
     clearErrors,
     setError,
     setValue,
+    ...methods
   } = useFormContext<CommunityMetaFormValues>()
   const { bfetch, profile } = useAuth()
   const logo = watch('logo')
@@ -42,6 +43,8 @@ export const Meta = () => {
       )
     }
   }, [profile?.username])
+
+  console.log(methods.getValues())
 
   return (
     <VStack spacing={4} w='full' alignItems='start'>

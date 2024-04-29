@@ -1,4 +1,5 @@
 import {
+  Button,
   Flex,
   HStack,
   Icon,
@@ -6,6 +7,7 @@ import {
   ModalBody,
   ModalCloseButton,
   ModalContent,
+  ModalFooter,
   ModalHeader,
   ModalOverlay,
   Progress,
@@ -15,56 +17,69 @@ import {
   VStack,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useForm, SubmitHandler, FormProvider } from 'react-hook-form'
 import { FaBell, FaEyeSlash } from 'react-icons/fa6'
 import { useAuth } from '~components/Auth/useAuth'
 import { appUrl } from '~constants'
 import { fetchCommunity } from '~queries/communities'
+import { Meta } from './Create/Meta'
+import { CommunityFormValues } from './Create/Form'
+import { useCallback } from 'react'
 
 export type ManageCommunityProps = {
   communityID: number
 } & UseModalProps
 
+export type ManageCommunityFormValues = {
+  disabled: boolean
+} & CommunityFormValues
+
 export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps) => {
   const { bfetch, isAuthenticated } = useAuth()
-  const { data: community, refetch } = useQuery<Community, Error>({
+  const { data: community, refetch } = useQuery<ManageCommunityFormValues, Error>({
     queryKey: ['community'],
-    queryFn: fetchCommunity(bfetch, `${communityID}`),
+    queryFn: async () => {
+      const c = await fetchCommunity(bfetch, `${communityID}`)()
+      return {
+        name: c.name,
+        admins: c.admins.map((admin) => ({ label: admin.displayName, value: admin.fid })),
+        logo: c.logoURL,
+        groupChat: c.groupChat,
+        channels: c.channels.map((channel) => ({ label: channel, value: channel })),
+        enableNotifications: c.notifications,
+        disabled: c.disabled,
+      }
+    },
   })
 
-  const [loadingStatus, setLoadingStatus] = useState(false)
-  const [loadingNotifications, setLoadingNotifications] = useState(false)
-
-  const isLoading = useMemo(() => loadingStatus || loadingNotifications, [loadingStatus, loadingNotifications])
+  const methods = useForm<ManageCommunityFormValues>({})
+  
+  const onSubmit: SubmitHandler<Community> = useCallback(
+    async (values: Community) => {
+      if (!community) return
+      try {
+        await bfetch(`${appUrl}/communities/${community.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(values),
+        }).then(() => refetch())
+      } catch (e) {
+        console.error('could not swithc the community notifications', e)
+      }
+    },
+    [bfetch, community, refetch]
+  )
 
   if (!isAuthenticated) return null
   if (!community) return null
   if (!props.isOpen) return null
   if (!props.onClose) return null
 
-  const switchNotifications = async () => {
-    try {
-      setLoadingNotifications(true)
-      await bfetch(`${appUrl}/communities/${community.id}/notifications?enabled=${!community.notifications}`, {
-        method: 'PUT',
-      }).then(() => refetch())
-      setLoadingNotifications(false)
-    } catch (e) {
-      console.error('could not swithc the community notifications', e)
-    }
-  }
 
-  const switchStatus = async () => {
-    try {
-      setLoadingStatus(true)
-      await bfetch(`${appUrl}/communities/${community.id}/status?disabled=${!community.disabled}`, {
-        method: 'PUT',
-      }).then(() => refetch())
-      setLoadingStatus(false)
-    } catch (e) {
-      console.error('could not switch the community status', e)
-    }
-  }
+  console.log(community)
+
 
   return (
     <Modal
@@ -76,58 +91,62 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
       }}
     >
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent as={'form'} onSubmit={methods.handleSubmit(onSubmit)}>
         <ModalHeader>{community.name} settings</ModalHeader>
         <ModalCloseButton />
-        <Progress size='sm' isIndeterminate visibility={isLoading ? 'visible' : 'hidden'} />
-        <ModalBody mt={2} mb={6}>
-          <VStack gap={6}>
-            <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
-              <VStack alignItems={'start'}>
+        <Progress size='sm' isIndeterminate visibility={methods.formState.isSubmitting ? 'visible' : 'hidden'} />
+        <FormProvider {...methods}>
+          <ModalBody mt={2} mb={6}>
+            <VStack gap={6}>
+              <Meta />
+              <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
+                <VStack alignItems={'start'}>
+                  <HStack gap={2} alignItems={'center'}>
+                    <Icon as={FaBell} />
+                    <Text>Notifications</Text>
+                  </HStack>
+                  <Text fontSize={'xs'} color={'gray'}>
+                    Allow to notify community members about new polls.
+                  </Text>
+                </VStack>
                 <HStack gap={2} alignItems={'center'}>
-                  <Icon as={FaBell} />
-                  <Text>Notifications</Text>
+                  <Text fontSize={'xs'}>Disabled</Text>
+                  <Switch
+                    id={'notifications'}
+                    disabled={methods.formState.isSubmitting}
+                    colorScheme='green'
+                    {...methods.register('notifications', {value: community.enableNotifications})}
+                  />
+                  <Text fontSize={'xs'}>Enabled</Text>
                 </HStack>
-                <Text fontSize={'xs'} color={'gray'}>
-                  Allow to notify community members about new polls.
-                </Text>
-              </VStack>
-              <HStack gap={2} alignItems={'center'}>
-                <Text fontSize={'xs'}>Disabled</Text>
-                <Switch
-                  key={'notifications'}
-                  disabled={loadingNotifications}
-                  onChange={switchNotifications}
-                  isChecked={community.notifications}
-                  colorScheme='green'
-                />
-                <Text fontSize={'xs'}>Enabled</Text>
-              </HStack>
-            </Flex>
-            <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
-              <VStack alignItems={'start'}>
+              </Flex>
+              <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
+                <VStack alignItems={'start'}>
+                  <HStack gap={2} alignItems={'center'}>
+                    <Icon as={FaEyeSlash} />
+                    <Text>Status</Text>
+                  </HStack>
+                  <Text fontSize={'xs'} color={'gray'}>
+                    Disabled communities are hidden and won't be used to create polls.
+                  </Text>
+                </VStack>
                 <HStack gap={2} alignItems={'center'}>
-                  <Icon as={FaEyeSlash} />
-                  <Text>Status</Text>
+                  <Text fontSize={'xs'}>Enabled</Text>
+                  <Switch
+                    id={'status'}
+                    disabled={methods.formState.isSubmitting}
+                    colorScheme='red'
+                    {...methods.register('disabled', {value: community.disabled})}
+                  />
+                  <Text fontSize={'xs'}>Disabled</Text>
                 </HStack>
-                <Text fontSize={'xs'} color={'gray'}>
-                  Disabled communities are hidden and won't be used to create polls.
-                </Text>
-              </VStack>
-              <HStack gap={2} alignItems={'center'}>
-                <Text fontSize={'xs'}>Disabled</Text>
-                <Switch
-                  key={'status'}
-                  disabled={loadingStatus}
-                  onChange={switchStatus}
-                  isChecked={!community.disabled}
-                  colorScheme='green'
-                />
-                <Text fontSize={'xs'}>Enabled</Text>
-              </HStack>
-            </Flex>
-          </VStack>
-        </ModalBody>
+              </Flex>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button mt={4} colorScheme='teal' isLoading={methods.formState.isSubmitting} type='submit'>Submit</Button>
+          </ModalFooter>
+        </FormProvider>
       </ModalContent>
     </Modal>
   )
