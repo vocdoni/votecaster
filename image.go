@@ -8,13 +8,8 @@ import (
 	"github.com/vocdoni/vote-frame/imageframe"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
-	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 )
-
-var oldImagesHandlerMap = map[string]string{
-	"08d56a13ee330b927b7d181a3ee17de580e265ca51ac5b0728c2a272712585bd": "4ae20a8eb4caa52f5588f7bb9f3c6d6b7cf003a5b03f4589edea1000000000a2",
-}
 
 func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	id := ctx.URLParam("id")
@@ -25,38 +20,6 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	idSplit := strings.Split(id, "_")
 	var electionID types.HexBytes
 	var err error
-	if len(idSplit) != 2 {
-		// for backwards compatibility, check if the id is in the oldImagesHandlerMap
-		// remove this code after some weeks
-		if eid, ok := oldImagesHandlerMap[id]; ok {
-			log.Warnw("old PNG match", "id", id)
-			electionID, err = hex.DecodeString(eid)
-			if err != nil {
-				return errorImageResponse(ctx, fmt.Errorf("nothing here... click results"))
-			}
-			election, err := v.election(electionID)
-			if err != nil {
-				return errorImageResponse(ctx, fmt.Errorf("id not found... click results"))
-			}
-			electiondb, err := v.db.Election(electionID)
-			if err != nil {
-				return errorImageResponse(ctx, fmt.Errorf("id not found... click results"))
-			}
-			totalWeightStr := ""
-			census, err := v.db.CensusFromElection(electionID)
-			if err == nil {
-				totalWeightStr = census.TotalWeight
-			}
-			id, err := imageframe.ResultsImage(election, electiondb, totalWeightStr)
-			if err != nil {
-				return errorImageResponse(ctx, fmt.Errorf("failed to build results: %w", err))
-			}
-			return imageResponse(ctx, imageframe.FromCache(id))
-		} else {
-			log.Debugw("access to old PNG", "requestURI", ctx.Request.RequestURI, "url", ctx.Request.URL)
-			return errorImageResponse(ctx, fmt.Errorf("nothing here... click results"))
-		}
-	}
 
 	electionID, err = hex.DecodeString(idSplit[0])
 	if err != nil {
@@ -65,7 +28,6 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	// check if the election is finished and if so, send the final results as a static PNG
 	pngResults := v.db.FinalResultsPNG(electionID)
 	if pngResults != nil {
-		log.Warnw("image recovery, found final results PNG!", "electionID", electionID, "imgID", id)
 		// for future requests, add the image to the cache with the given id
 		imageframe.AddImageToCacheWithID(id, pngResults)
 		return imageResponse(ctx, pngResults)
@@ -80,7 +42,6 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to build landing: %w", err))
 	}
-	log.Warnw("image recovery, built landing PNG", "electionID", electionID, "imgID", id)
 	return imageResponse(ctx, imageframe.FromCache(png))
 }
 
@@ -108,7 +69,6 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 }
 
 func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
-	log.Debugw("sending image response", "size", len(png))
 	defer ctx.Request.Body.Close()
 	if ctx.Request.Context().Err() != nil {
 		// The connection was closed, so don't try to write to it.
