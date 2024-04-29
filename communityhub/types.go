@@ -52,6 +52,13 @@ var internalCensusTypes = map[uint8]CensusType{
 	CONTRACT_CENSUS_TYPE_NFT:     CensusTypeNFT,
 }
 
+// contractCensusTypes is the reverse of internalCensusTypes
+var contractCensusTypes = map[CensusType]uint8{
+	CensusTypeChannel: CONTRACT_CENSUS_TYPE_CHANNEL,
+	CensusTypeERC20:   CONTRACT_CENSUS_TYPE_ERC20,
+	CensusTypeNFT:     CONTRACT_CENSUS_TYPE_NFT,
+}
+
 // ContractAddress represents the address of a contract in a certain blockchain,
 // which is included in this struct
 type ContractAddress struct {
