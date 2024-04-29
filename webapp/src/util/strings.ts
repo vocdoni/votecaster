@@ -1,3 +1,5 @@
+import sha256 from 'crypto-js/sha256'
+
 export const cleanChannel = (channel: string) => channel.replace(/.*channel\//, '')
 
 export const ucfirst = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
@@ -15,4 +17,9 @@ export const humanDate = (date?: Date, default_content?: string): string => {
   const minutes = date.getMinutes().toString().padStart(2, '0')
 
   return `${days} ${month}, ${year} ${hours}:${minutes}`
+}
+
+export const hashString = async (str: string) => {
+  const full = sha256(str).toString()
+  return full.substring(0, 14)
 }

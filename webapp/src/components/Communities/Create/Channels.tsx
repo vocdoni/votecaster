@@ -32,6 +32,7 @@ export const Channels = () => {
   const {
     formState: { errors },
     setError,
+    clearErrors,
   } = useFormContext<ChannelsFormValues>()
   const [loading, setLoading] = useState<boolean>(false)
   const { bfetch } = useAuth()
@@ -57,6 +58,7 @@ export const Channels = () => {
             components={{ Option: CustomOption }}
             loadOptions={async (inputValue) => {
               try {
+                clearErrors('channels')
                 setLoading(true)
                 return (await fetchChannelQuery(bfetch)(inputValue)).map((channel) => ({
                   label: channel.name,
