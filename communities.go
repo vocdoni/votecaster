@@ -282,7 +282,7 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 	if typedCommunity.CensusChannel != nil {
 		censusChannel = typedCommunity.CensusChannel.ID
 	}
-	if err := v.comhub.SetCommunity(uint64(id), &communityhub.HubCommunity{
+	newCommuniy, err := v.comhub.SetCommunity(uint64(id), &communityhub.HubCommunity{
 		Name:           typedCommunity.Name,
 		ImageURL:       typedCommunity.LogoURL,
 		GroupChatURL:   typedCommunity.GroupChatURL,
@@ -293,7 +293,16 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 		Admins:         admins,
 		Notifications:  notification,
 		Disabled:       disabled,
-	}); err != nil {
+	})
+	if err != nil {
+		return fmt.Errorf("error updating community: %w", err)
+	}
+	newDBCommuniy, err := communityhub.HubToDB(newCommuniy)
+	if err != nil {
+		return fmt.Errorf("error converting community: %w", err)
+	}
+	newDBCommuniy.ID = uint64(id)
+	if err := v.db.UpdateCommunity(newDBCommuniy); err != nil {
 		return fmt.Errorf("error updating community: %w", err)
 	}
 	return ctx.Send([]byte("ok"), http.StatusOK)

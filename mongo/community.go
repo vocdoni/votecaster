@@ -161,7 +161,7 @@ func (ms *MongoStorage) updateCommunity(community *Community) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	updateDoc, err := dynamicUpdateDocument(community, nil)
+	updateDoc, err := dynamicUpdateDocument(community, []string{"notifications", "disabled"})
 	if err != nil {
 		return fmt.Errorf("failed to create update document: %w", err)
 	}

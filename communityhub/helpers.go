@@ -8,9 +8,9 @@ import (
 	dbmongo "github.com/vocdoni/vote-frame/mongo"
 )
 
-// contractToHub converts a contract community struct (ICommunityHubCommunity)
+// ContractToHub converts a contract community struct (ICommunityHubCommunity)
 // to a internal community struct (HubCommunity)
-func contractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, error) {
+func ContractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, error) {
 	// decode admins
 	admins := []uint64{}
 	for _, bAdmin := range cc.Guardians {
@@ -52,9 +52,9 @@ func contractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, 
 	return community, nil
 }
 
-// hubToContract converts a internal community struct (HubCommunity) to a
+// HubToContract converts a internal community struct (HubCommunity) to a
 // contract community struct (ICommunityHubCommunity)
-func hubToContract(hcommunity *HubCommunity) (comhub.ICommunityHubCommunity, error) {
+func HubToContract(hcommunity *HubCommunity) (comhub.ICommunityHubCommunity, error) {
 	// check the census type
 	switch hcommunity.CensusType {
 	case CensusTypeChannel:
@@ -107,7 +107,7 @@ func hubToContract(hcommunity *HubCommunity) (comhub.ICommunityHubCommunity, err
 	return ccomunity, nil
 }
 
-// hubToDB converts a internal community struct (HubCommunity) to a db community
+// HubToDB converts a internal community struct (HubCommunity) to a db community
 // struct (*dbmongo.Community) to be stored or updated in the database. It
 // creates the db census according to the community census type, and if the
 // census type is a channel, it sets the channel. If the census type is an erc20
@@ -115,7 +115,7 @@ func hubToContract(hcommunity *HubCommunity) (comhub.ICommunityHubCommunity, err
 // and blockchain. It returns an error if the census type is unknown, if no
 // channel is provided when the census type is a channel, or if no valid
 // addresses were found when the census type is an erc20 or nft.
-func hubToDB(hcommunity *HubCommunity) (*dbmongo.Community, error) {
+func HubToDB(hcommunity *HubCommunity) (*dbmongo.Community, error) {
 	// create the db census according to the community census type
 	dbCensus := dbmongo.CommunityCensus{
 		Type: string(hcommunity.CensusType),

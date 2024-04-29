@@ -261,7 +261,7 @@ func (l *CommunityHub) Community(communityID uint64) (*HubCommunity, error) {
 		return nil, errors.Join(ErrGettingCommunity, err)
 	}
 	// return the community data
-	return contractToHub(communityID, cc)
+	return ContractToHub(communityID, cc)
 }
 
 // SetCommunity method sets the community data provided in the contract. It
@@ -270,11 +270,11 @@ func (l *CommunityHub) Community(communityID uint64) (*HubCommunity, error) {
 // current one. It ensures that the creator of the community (the first admin)
 // remains as an admin after the update. If something goes wrong, it returns an
 // error.
-func (l *CommunityHub) SetCommunity(communityID uint64, newData *HubCommunity) error {
+func (l *CommunityHub) SetCommunity(communityID uint64, newData *HubCommunity) (*HubCommunity, error) {
 	// get the current community data from the contract
 	community, err := l.Community(communityID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// update the community data with the new data checking every field and
 	// updating it if it is different from the current one
@@ -313,7 +313,7 @@ func (l *CommunityHub) SetCommunity(communityID uint64, newData *HubCommunity) e
 	// admins list only if the first admin continues being the creator
 	if len(newData.Admins) > 0 {
 		if newData.Admins[0] != community.Admins[0] {
-			return ErrNoAdminCreator
+			return nil, ErrNoAdminCreator
 		}
 		community.Admins = newData.Admins
 	}
@@ -331,22 +331,22 @@ func (l *CommunityHub) SetCommunity(communityID uint64, newData *HubCommunity) e
 		community.Disabled = newData.Disabled
 	}
 	// set the community data in the contract
-	cc, err := hubToContract(community)
+	cc, err := HubToContract(community)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// convert the community ID to a *big.Int
 	bCommunityID := new(big.Int).SetUint64(communityID)
 	// get auth opts and set the community data in the contract
 	transactOpts, err := l.authTransactOpts()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := l.contract.AdminManageCommunity(transactOpts, bCommunityID, cc.Metadata,
 		cc.Census, cc.Guardians, cc.CreateElectionPermission, cc.Disabled); err != nil {
-		return errors.Join(ErrSettingCommunity, err)
+		return nil, errors.Join(ErrSettingCommunity, err)
 	}
-	return nil
+	return community, nil
 }
 
 // Results method gets the election results using the community and elections
@@ -470,11 +470,11 @@ func (l *CommunityHub) SetNotifications(communityID uint64, enabled bool) error 
 }
 
 // addCommunity helper method creates a new community in the database. It uses
-// the hubToDB helper method to convert the HubCommunity struct to a dbmongo
+// the HubToDB helper method to convert the HubCommunity struct to a dbmongo
 // Community struct. If something goes wrong creating the community, it returns
 // an error.
 func (l *CommunityHub) addCommunity(hcommunity *HubCommunity) error {
-	dbCommunity, err := hubToDB(hcommunity)
+	dbCommunity, err := HubToDB(hcommunity)
 	if err != nil {
 		return err
 	}
@@ -493,11 +493,11 @@ func (l *CommunityHub) addCommunity(hcommunity *HubCommunity) error {
 }
 
 // updateCommunity helper method updates a community in the database. It uses
-// the hubToDB helper method to convert the HubCommunity struct to a dbmongo
+// the HubToDB helper method to convert the HubCommunity struct to a dbmongo
 // Community struct. If something goes wrong creating the community, it returns
 // an error.
 func (l *CommunityHub) updateCommunity(hcommunity *HubCommunity) error {
-	dbCommunity, err := hubToDB(hcommunity)
+	dbCommunity, err := HubToDB(hcommunity)
 	if err != nil {
 		return err
 	}
