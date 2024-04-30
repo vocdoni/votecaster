@@ -27,6 +27,9 @@ import { appUrl } from '~constants'
 import { fetchCommunity } from '~queries/communities'
 import { CommunityFormValues } from './Create/Form'
 import { Meta } from './Create/Meta'
+import { CensusSelector } from './Create/CensusSelector'
+import { Channels } from './Create/Channels'
+import { GroupChat } from './Create/GroupChat'
 
 export type ManageCommunityProps = {
   communityID: number
@@ -122,6 +125,9 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
                 </Alert>
               )}
               <Meta />
+              <CensusSelector />
+              <GroupChat />
+              <Channels />
               <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
                 <VStack alignItems={'start'}>
                   <HStack gap={2} alignItems={'center'}>
