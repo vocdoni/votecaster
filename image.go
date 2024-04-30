@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/md5"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -15,7 +16,10 @@ import (
 	"go.vocdoni.io/dvote/types"
 )
 
-var imageTypeRgx = regexp.MustCompile(`^data:(image/[a-z]+);base64,`)
+var (
+	imageTypeRgx   = regexp.MustCompile(`^data:(image/[a-z]+);base64,`)
+	isAvatarURLRgx = regexp.MustCompile(`.+/images/avatar/(.+)\.jpg$`)
+)
 
 func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	id := ctx.URLParam("id")
@@ -114,17 +118,18 @@ func (v *vocdoniHandler) updloadAvatarHandler(msg *apirest.APIdata, ctx *httprou
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return fmt.Errorf("cannot parse request: %w", err)
 	}
-	imageTypeResults := imageTypeRgx.FindStringSubmatch(req.Data)
-	if len(imageTypeResults) != 2 {
-		return ctx.Send([]byte("bad formatted image"), 400)
+	// upload the avatar and return the URL
+	avatarURL, err := v.uploadAvatar(req.AvatarID, userFID, req.CommunityID, req.Data)
+	if err != nil {
+		return fmt.Errorf("cannot upload avatar: %w", err)
 	}
-	prefix, contentType := imageTypeResults[0], imageTypeResults[1]
-	// remove the prefix from the image data
-	req.Data, _ = strings.CutPrefix(req.Data, prefix)
-	if err := v.db.SetAvatar(req.AvatarID, []byte(req.Data), userFID, req.CommunityID, contentType); err != nil {
-		return fmt.Errorf("cannot set avatar: %w", err)
+	// return the URL of the uploaded avatar
+	result := map[string]string{"logoURL": avatarURL}
+	res, err := json.Marshal(result)
+	if err != nil {
+		return fmt.Errorf("cannot marshal result: %w", err)
 	}
-	return ctx.Send([]byte{}, 200)
+	return ctx.Send(res, 200)
 }
 
 func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
@@ -148,4 +153,65 @@ func errorImageResponse(ctx *httprouter.HTTPContext, err error) error {
 // imageLink returns the URL for the image with the given key.
 func imageLink(imageKey string) string {
 	return fmt.Sprintf("%s/images/%s.png", serverURL, imageKey)
+}
+
+// uploadAvatar uploads the avatar image with the given avatarID, associated to
+// the user with the given userFID and the community with the given communityID.
+// If the avatarID is empty, it calculates the avatarID from the data. It returns
+// the URL of the uploaded avatar image. It stores the avatar in the database.
+// If an error occurs, it returns an empty string and the error.
+func (v *vocdoniHandler) uploadAvatar(avatarID string, userFID, communityID uint64, data string) (string, error) {
+	if !isBase64Image(data) {
+		return "", fmt.Errorf("image is not base64 encoded")
+	}
+	var err error
+	if avatarID == "" {
+		if avatarID, err = calculateAvatarID([]byte(data)); err != nil {
+			return "", fmt.Errorf("error calculating avatarID: %w", err)
+		}
+	}
+	imageTypeResults := imageTypeRgx.FindStringSubmatch(data)
+	if len(imageTypeResults) != 2 {
+		return "", fmt.Errorf("bad formatted image")
+	}
+	prefix, contentType := imageTypeResults[0], imageTypeResults[1]
+	// remove the prefix from the image data
+	data, _ = strings.CutPrefix(data, prefix)
+	// store the avatar in the database
+	if err := v.db.SetAvatar(avatarID, []byte(data), userFID, communityID, contentType); err != nil {
+		return "", fmt.Errorf("cannot set avatar: %w", err)
+	}
+	return avatarURL(serverURL, avatarID), nil
+}
+
+// avatarURL returns the URL for the avatar with the given avatarID.
+func avatarURL(baseURL, avatarID string) string {
+	return fmt.Sprintf("%s/images/avatar/%s.jpg", baseURL, avatarID)
+}
+
+// avatarIDfromURL returns the avatarID from the given URL. If the URL is not an
+// avatar URL, it returns an empty string and false.
+func avatarIDfromURL(url string) (string, bool) {
+	avatarID := isAvatarURLRgx.FindStringSubmatch(url)
+	if len(avatarID) != 2 {
+		return "", false
+	}
+	return avatarID[1], true
+}
+
+// isBase64Image returns true if the given data is a base64 encoded image.
+func isBase64Image(data string) bool {
+	return imageTypeRgx.MatchString(data)
+}
+
+// calculateAvatarID calculates the avatarID from the given data. The avatarID
+// is the first 12 bytes of the md5 hash of the data. If an error occurs, it
+// returns an empty string and the error.
+func calculateAvatarID(data []byte) (string, error) {
+	md5hash := md5.New()
+	if _, err := md5hash.Write(data); err != nil {
+		return "", fmt.Errorf("cannot calculate hash: %w", err)
+	}
+	bhash := md5hash.Sum(nil)[:12]
+	return hex.EncodeToString(bhash), nil
 }

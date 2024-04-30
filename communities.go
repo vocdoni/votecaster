@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
@@ -211,17 +213,9 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 	return ctx.Send(res, http.StatusOK)
 }
 
-// communityStatusHanler allows to an admin of a community to disable it.
-func (v *vocdoniHandler) communityStatusHanler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	var err error
-	var disabled bool
-	if disabledValue := ctx.Request.URL.Query().Get("disabled"); disabledValue == "" {
-		return ctx.Send([]byte("no disabled value provided"), http.StatusBadRequest)
-	} else {
-		if disabled, err = strconv.ParseBool(disabledValue); err != nil {
-			return ctx.Send([]byte("invalid disabled value"), http.StatusBadRequest)
-		}
-	}
+// communitySettingsHandler allows to an admin of a community to update the
+// community information.
+func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	// extract userFID from auth token
 	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
 	if err != nil {
@@ -237,16 +231,16 @@ func (v *vocdoniHandler) communityStatusHanler(msg *apirest.APIdata, ctx *httpro
 		return ctx.Send([]byte("invalid community ID"), http.StatusBadRequest)
 	}
 	// get the community from the database by its id
-	community, err := v.db.Community(uint64(id))
+	dbCommunity, err := v.db.Community(uint64(id))
 	if err != nil {
 		return ctx.Send([]byte("error getting community"), http.StatusInternalServerError)
 	}
-	if community == nil {
+	if dbCommunity == nil {
 		return ctx.Send([]byte("community not found"), http.StatusNotFound)
 	}
 	// check if the current user is an admin of the community
 	var authorized bool
-	for _, admin := range community.Admins {
+	for _, admin := range dbCommunity.Admins {
 		if admin == userFID {
 			authorized = true
 			break
@@ -255,68 +249,87 @@ func (v *vocdoniHandler) communityStatusHanler(msg *apirest.APIdata, ctx *httpro
 	if !authorized {
 		return ctx.Send([]byte("you are not an admin of this community"), http.StatusUnauthorized)
 	}
-	// disable the community in the community hub contract and delete it from
-	// the database
-	if err := v.comhub.SetStatus(community.ID, disabled); err != nil {
-		return ctx.Send([]byte("error setting community disable status in the contract"), http.StatusInternalServerError)
+	var typedCommunity Community
+	if err := json.Unmarshal(msg.Data, &typedCommunity); err != nil {
+		return ctx.Send([]byte("error decoding community data"), http.StatusBadRequest)
 	}
-	if err := v.db.SetCommunityStatus(community.ID, disabled); err != nil {
-		return ctx.Send([]byte("error setting community disable status in the database"), http.StatusInternalServerError)
+	// check optional booleans fields from a map to avoid setting them to false
+	// if they are not provided
+	var mapCommunity map[string]interface{}
+	if err := json.Unmarshal(msg.Data, &mapCommunity); err != nil {
+		return ctx.Send([]byte("error decoding community data"), http.StatusBadRequest)
 	}
-	return ctx.Send([]byte("ok"), http.StatusOK)
-}
-
-// communityStatusHanler allows to an admin of a community to disable it.
-func (v *vocdoniHandler) communityNotificationsHanler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	var err error
-	var enabled bool
-	if enabledValue := ctx.Request.URL.Query().Get("enabled"); enabledValue == "" {
-		return ctx.Send([]byte("no enabled value provided"), http.StatusBadRequest)
-	} else {
-		if enabled, err = strconv.ParseBool(enabledValue); err != nil {
-			return ctx.Send([]byte("invalid enabled value"), http.StatusBadRequest)
+	notification := &dbCommunity.Notifications
+	if _, ok := mapCommunity["notifications"]; ok {
+		*notification = typedCommunity.Notifications
+	}
+	disabled := &dbCommunity.Disabled
+	if _, ok := mapCommunity["disabled"]; ok {
+		*disabled = typedCommunity.Disabled
+	}
+	// parse the admins and census addresses
+	admins := []uint64{}
+	for _, user := range typedCommunity.Admins {
+		admins = append(admins, user.FID)
+	}
+	censusAddresses := []*communityhub.ContractAddress{}
+	for _, addr := range typedCommunity.CensusAddresses {
+		censusAddresses = append(censusAddresses, &communityhub.ContractAddress{
+			Blockchain: addr.Blockchain,
+			Address:    common.HexToAddress(addr.Address),
+		})
+	}
+	// set the census channel if provided
+	var censusChannel string
+	if typedCommunity.CensusChannel != nil {
+		censusChannel = typedCommunity.CensusChannel.ID
+	}
+	// update the community image
+	if typedCommunity.LogoURL != "" && typedCommunity.LogoURL != dbCommunity.ImageURL {
+		// check if the current avatar is an internal image
+		avatarID, isInternalAvatar := avatarIDfromURL(dbCommunity.ImageURL)
+		// if is internal delete the current avatar from the database after
+		// uploading the new one
+		if isInternalAvatar {
+			if err := v.db.RemoveAvatar(avatarID); err != nil {
+				log.Warnw("error deleting avatar", "err", err, "avatarID", avatarID)
+			}
+		}
+		// upload the new avatar if it is base64 encoded
+		if isBase64Image(typedCommunity.LogoURL) {
+			// empty the avatarID to generate a new one based on the data
+			avatarURL, err := v.uploadAvatar("", userFID, uint64(id), typedCommunity.LogoURL)
+			if err != nil {
+				return fmt.Errorf("cannot upload avatar: %w", err)
+			}
+			// set the new avatar URL
+			typedCommunity.LogoURL = avatarURL
 		}
 	}
-	// extract userFID from auth token
-	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
+	// update the community in the community hub
+	newCommuniy, err := v.comhub.SetCommunity(uint64(id), &communityhub.HubCommunity{
+		Name:           typedCommunity.Name,
+		ImageURL:       typedCommunity.LogoURL,
+		GroupChatURL:   typedCommunity.GroupChatURL,
+		CensusType:     communityhub.CensusType(typedCommunity.CensusType),
+		CensusAddesses: censusAddresses,
+		CensusChannel:  censusChannel,
+		Channels:       typedCommunity.Channels,
+		Admins:         admins,
+		Notifications:  notification,
+		Disabled:       disabled,
+	})
 	if err != nil {
-		return fmt.Errorf("cannot get user from auth token: %w", err)
+		return fmt.Errorf("error updating community: %w", err)
 	}
-	// get community id from the URL and parse to int
-	communityID := ctx.URLParam("communityID")
-	if communityID == "" {
-		return ctx.Send([]byte("no community ID provided"), http.StatusBadRequest)
-	}
-	id, err := strconv.Atoi(communityID)
+	// update the community in the database with the response from the community hub
+	newDBCommuniy, err := communityhub.HubToDB(newCommuniy)
 	if err != nil {
-		return ctx.Send([]byte("invalid community ID"), http.StatusBadRequest)
+		return fmt.Errorf("error converting community: %w", err)
 	}
-	// get the community from the database by its id
-	community, err := v.db.Community(uint64(id))
-	if err != nil {
-		return ctx.Send([]byte("error getting community"), http.StatusInternalServerError)
-	}
-	if community == nil {
-		return ctx.Send([]byte("community not found"), http.StatusNotFound)
-	}
-	// check if the current user is an admin of the community
-	var authorized bool
-	for _, admin := range community.Admins {
-		if admin == userFID {
-			authorized = true
-			break
-		}
-	}
-	if !authorized {
-		return ctx.Send([]byte("you are not an admin of this community"), http.StatusUnauthorized)
-	}
-	// disable the community in the community hub contract and delete it from
-	// the database
-	if err := v.comhub.SetNotifications(community.ID, enabled); err != nil {
-		return ctx.Send([]byte("error setting community disable status in the contract"), http.StatusInternalServerError)
-	}
-	if err := v.db.SetCommunityNotifications(community.ID, enabled); err != nil {
-		return ctx.Send([]byte("error setting community disable status in the database"), http.StatusInternalServerError)
+	newDBCommuniy.ID = uint64(id)
+	if err := v.db.UpdateCommunity(newDBCommuniy); err != nil {
+		return fmt.Errorf("error updating community: %w", err)
 	}
 	return ctx.Send([]byte("ok"), http.StatusOK)
 }

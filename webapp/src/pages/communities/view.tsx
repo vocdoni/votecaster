@@ -12,6 +12,7 @@ const Community = () => {
     data: community,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['community', id],
     queryFn: fetchCommunity(bfetch, id as string),
@@ -22,7 +23,7 @@ const Community = () => {
     return <Check isLoading={isLoading} error={error} />
   }
 
-  return <CommunitiesView community={community} />
+  return <CommunitiesView community={community} refetch={refetch} />
 }
 
 export default Community

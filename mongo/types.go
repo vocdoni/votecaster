@@ -206,6 +206,7 @@ type Community struct {
 	Census        CommunityCensus `json:"census" bson:"census"`
 	ImageURL      string          `json:"imageURL" bson:"imageURL"`
 	GroupChatURL  string          `json:"groupChatURL" bson:"groupChatURL"`
+	Creator       uint64          `json:"creator" bson:"creator"`
 	Admins        []uint64        `json:"owners" bson:"owners"`
 	Notifications bool            `json:"notifications" bson:"notifications"`
 	Disabled      bool            `json:"disabled" bson:"disabled"`
@@ -227,7 +228,6 @@ const (
 // includes the name, type, and the census addresses (CommunityCensusAddresses)
 // or the census channel (depending on the type).
 type CommunityCensus struct {
-	Name      string                     `json:"name" bson:"name"`
 	Type      string                     `json:"type" bson:"type"`
 	Addresses []CommunityCensusAddresses `json:"addresses" bson:"addresses"`
 	Channel   string                     `json:"channel" bson:"channel"`
