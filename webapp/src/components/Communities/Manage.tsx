@@ -1,4 +1,7 @@
 import {
+  Alert,
+  AlertIcon,
+  Button,
   Flex,
   HStack,
   Icon,
@@ -6,6 +9,7 @@ import {
   ModalBody,
   ModalCloseButton,
   ModalContent,
+  ModalFooter,
   ModalHeader,
   ModalOverlay,
   Progress,
@@ -14,120 +18,146 @@ import {
   UseModalProps,
   VStack,
 } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { QueryObserverResult, RefetchOptions } from '@tanstack/react-query'
+import { useState } from 'react'
+import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
 import { FaBell, FaEyeSlash } from 'react-icons/fa6'
 import { useAuth } from '~components/Auth/useAuth'
 import { appUrl } from '~constants'
-import { fetchCommunity } from '~queries/communities'
+import { community2CommunityForm } from '~util/mappings'
+import { CensusSelector } from './Create/CensusSelector'
+import { Channels } from './Create/Channels'
+import { CommunityFormValues } from './Create/Form'
+import { GroupChat } from './Create/GroupChat'
+import { Meta } from './Create/Meta'
 
 export type ManageCommunityProps = {
-  communityID: number
+  community: Community
+  refetch: (options?: RefetchOptions | undefined) => Promise<QueryObserverResult<Community, Error>>
 } & UseModalProps
 
-export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps) => {
+export type ManageCommunityFormValues = {
+  disabled: boolean
+} & CommunityFormValues
+
+export const ManageCommunity = ({ community, refetch, onClose, ...props }: ManageCommunityProps) => {
   const { bfetch, isAuthenticated } = useAuth()
-  const { data: community, refetch } = useQuery<Community, Error>({
-    queryKey: ['community'],
-    queryFn: fetchCommunity(bfetch, `${communityID}`),
+  const [error, setError] = useState<Error | null>(null)
+  const methods = useForm<ManageCommunityFormValues>({
+    defaultValues: community2CommunityForm(community),
   })
 
-  const [loadingStatus, setLoadingStatus] = useState(false)
-  const [loadingNotifications, setLoadingNotifications] = useState(false)
+  const onSubmit: SubmitHandler<ManageCommunityFormValues> = async (values: ManageCommunityFormValues) => {
+    if (!community) return
 
-  const isLoading = useMemo(() => loadingStatus || loadingNotifications, [loadingStatus, loadingNotifications])
-
-  if (!isAuthenticated) return null
-  if (!community) return null
-  if (!props.isOpen) return null
-  if (!props.onClose) return null
-
-  const switchNotifications = async () => {
+    setError(null)
     try {
-      setLoadingNotifications(true)
-      await bfetch(`${appUrl}/communities/${community.id}/notifications?enabled=${!community.notifications}`, {
+      const com: Community = {
+        ...values,
+        id: community.id,
+        logoURL: values.src,
+        admins: values.admins.map((admin) => ({ fid: admin.value, username: admin.label })) as Profile[],
+        notifications: values.enableNotifications,
+        censusAddresses: values.addresses || [],
+        censusChannel: (values.channel ? { id: values.channel } : {}) as Channel,
+        channels: values.channels.map((channel) => channel.value),
+      }
+      await bfetch(`${appUrl}/communities/${community.id}`, {
         method: 'PUT',
-      }).then(() => refetch())
-      setLoadingNotifications(false)
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(com),
+      })
+      // refetch data after saving to update state
+      await refetch()
+      onClose()
     } catch (e) {
-      console.error('could not swithc the community notifications', e)
+      console.error('could not update the community data', e)
+      setError(new Error(`could not update the community data`))
     }
   }
 
-  const switchStatus = async () => {
-    try {
-      setLoadingStatus(true)
-      await bfetch(`${appUrl}/communities/${community.id}/status?disabled=${!community.disabled}`, {
-        method: 'PUT',
-      }).then(() => refetch())
-      setLoadingStatus(false)
-    } catch (e) {
-      console.error('could not switch the community status', e)
-    }
-  }
+  // Modal should not be rendered in some cases
+  if (!isAuthenticated || !community || !props.isOpen || !onClose) return
 
   return (
     <Modal
       size={'xl'}
       {...props}
       onClose={() => {
-        props.onClose()
+        onClose()
         refetch()
       }}
     >
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent as={'form'} onSubmit={methods.handleSubmit(onSubmit)}>
         <ModalHeader>{community.name} settings</ModalHeader>
         <ModalCloseButton />
-        <Progress size='sm' isIndeterminate visibility={isLoading ? 'visible' : 'hidden'} />
-        <ModalBody mt={2} mb={6}>
-          <VStack gap={6}>
-            <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
-              <VStack alignItems={'start'}>
+        <Progress size='sm' isIndeterminate visibility={methods.formState.isSubmitting ? 'visible' : 'hidden'} />
+        <FormProvider {...methods}>
+          <ModalBody mt={2} mb={6}>
+            <VStack gap={6}>
+              {!!error && (
+                <Alert status='warning'>
+                  <AlertIcon />
+                  {error.toString()}
+                </Alert>
+              )}
+              <Meta />
+              <CensusSelector />
+              <GroupChat />
+              <Channels />
+              <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
+                <VStack alignItems={'start'}>
+                  <HStack gap={2} alignItems={'center'}>
+                    <Icon as={FaBell} />
+                    <Text>Notifications</Text>
+                  </HStack>
+                  <Text fontSize={'xs'} color={'gray'}>
+                    Allow to notify community members about new polls.
+                  </Text>
+                </VStack>
                 <HStack gap={2} alignItems={'center'}>
-                  <Icon as={FaBell} />
-                  <Text>Notifications</Text>
+                  <Text fontSize={'xs'}>Disabled</Text>
+                  <Switch
+                    id={'enableNotifications'}
+                    disabled={methods.formState.isSubmitting}
+                    colorScheme='green'
+                    {...methods.register('enableNotifications')}
+                  />
+                  <Text fontSize={'xs'}>Enabled</Text>
                 </HStack>
-                <Text fontSize={'xs'} color={'gray'}>
-                  Allow to notify community members about new polls.
-                </Text>
-              </VStack>
-              <HStack gap={2} alignItems={'center'}>
-                <Text fontSize={'xs'}>Disabled</Text>
-                <Switch
-                  key={'notifications'}
-                  disabled={loadingNotifications}
-                  onChange={switchNotifications}
-                  isChecked={community.notifications}
-                  colorScheme='green'
-                />
-                <Text fontSize={'xs'}>Enabled</Text>
-              </HStack>
-            </Flex>
-            <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
-              <VStack alignItems={'start'}>
+              </Flex>
+              <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
+                <VStack alignItems={'start'}>
+                  <HStack gap={2} alignItems={'center'}>
+                    <Icon as={FaEyeSlash} />
+                    <Text>Status</Text>
+                  </HStack>
+                  <Text fontSize={'xs'} color={'gray'}>
+                    Disabled communities are hidden and won't be used to create polls.
+                  </Text>
+                </VStack>
                 <HStack gap={2} alignItems={'center'}>
-                  <Icon as={FaEyeSlash} />
-                  <Text>Status</Text>
+                  <Text fontSize={'xs'}>Enabled</Text>
+                  <Switch
+                    id={'disabled'}
+                    disabled={methods.formState.isSubmitting}
+                    colorScheme='red'
+                    {...methods.register('disabled')}
+                  />
+                  <Text fontSize={'xs'}>Disabled</Text>
                 </HStack>
-                <Text fontSize={'xs'} color={'gray'}>
-                  Disabled communities are hidden and won't be used to create polls.
-                </Text>
-              </VStack>
-              <HStack gap={2} alignItems={'center'}>
-                <Text fontSize={'xs'}>Disabled</Text>
-                <Switch
-                  key={'status'}
-                  disabled={loadingStatus}
-                  onChange={switchStatus}
-                  isChecked={!community.disabled}
-                  colorScheme='green'
-                />
-                <Text fontSize={'xs'}>Enabled</Text>
-              </HStack>
-            </Flex>
-          </VStack>
-        </ModalBody>
+              </Flex>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button mt={4} colorScheme='teal' isLoading={methods.formState.isSubmitting} type='submit'>
+              Submit
+            </Button>
+          </ModalFooter>
+        </FormProvider>
       </ModalContent>
     </Modal>
   )

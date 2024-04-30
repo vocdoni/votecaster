@@ -20,3 +20,14 @@ export const fetchCommunity = (bfetch: FetchFunction, id: string) => async () =>
 
   return community
 }
+
+export const updateCommunity = async (bfetch: FetchFunction, community: Community) => {
+  const response = await bfetch(`${appUrl}/communities/${community.id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(community),
+  })
+  return response.json()
+}

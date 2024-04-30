@@ -4,9 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"errors"
-	"fmt"
 	"math/big"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -30,11 +28,12 @@ const DefaultScannerCooldown = time.Second * 5
 // deployed, a database instance, and the scanner cooldown (by default 10s
 // (DefaultScannerCooldown)).
 type CommunityHubConfig struct {
-	ContractAddress common.Address
-	ChainID         uint64
-	DB              *dbmongo.MongoStorage
-	PrivKey         string
-	ScannerCooldown time.Duration
+	ContractAddress  common.Address
+	ChainID          uint64
+	DB               *dbmongo.MongoStorage
+	PrivKey          string
+	DiscoverCooldown time.Duration
+	SyncCooldown     time.Duration
 }
 
 // CommunityHub struct defines the CommunityHub wrapper. It includes the
@@ -42,16 +41,17 @@ type CommunityHubConfig struct {
 // in the database in background. It also includes some functions to get
 // communities or set and get results using the contract.
 type CommunityHub struct {
-	db              *dbmongo.MongoStorage
-	ctx             context.Context
-	waiter          sync.WaitGroup
-	cancel          context.CancelFunc
-	nextCommunityID atomic.Uint64
-	w3cli           *c3web3.Client
-	contract        *comhub.CommunityHubToken
-	scannerCooldown time.Duration
-	privKey         *ecdsa.PrivateKey
-	privAddress     common.Address
+	db               *dbmongo.MongoStorage
+	ctx              context.Context
+	waiter           sync.WaitGroup
+	cancel           context.CancelFunc
+	nextCommunityID  atomic.Uint64
+	w3cli            *c3web3.Client
+	contract         *comhub.CommunityHubToken
+	discoverCooldown time.Duration
+	syncCooldown     time.Duration
+	privKey          *ecdsa.PrivateKey
+	privAddress      common.Address
 
 	ContractAddress common.Address
 	ChainID         uint64
@@ -101,10 +101,13 @@ func NewCommunityHub(
 	if nextCommunityID, err := conf.DB.NextCommunityID(); err == nil {
 		community.nextCommunityID.Store(nextCommunityID)
 	}
-	// set the scanner cooldown from the configuration if it is defined, or use
-	// the default one
-	if community.scannerCooldown = DefaultScannerCooldown; conf.ScannerCooldown > 0 {
-		community.scannerCooldown = conf.ScannerCooldown
+	// set the scanner cooldowns from the configuration if they are defined, or
+	// use the default one
+	if community.discoverCooldown = DefaultScannerCooldown; conf.DiscoverCooldown > 0 {
+		community.discoverCooldown = conf.DiscoverCooldown
+	}
+	if community.syncCooldown = DefaultScannerCooldown * 2; conf.SyncCooldown > 0 {
+		community.syncCooldown = conf.SyncCooldown
 	}
 	// parse the private key if it is defined
 	if conf.PrivKey != "" {
@@ -137,7 +140,7 @@ func (l *CommunityHub) ScanNewCommunities() {
 			case <-l.ctx.Done():
 				return
 			default:
-				time.Sleep(l.scannerCooldown)
+				time.Sleep(l.discoverCooldown)
 				// get the next community from the contract
 				currentID := l.nextCommunityID.Load()
 				newCommunity, err := l.Community(currentID)
@@ -162,20 +165,12 @@ func (l *CommunityHub) ScanNewCommunities() {
 					"censusChannel", newCommunity.CensusChannel,
 					"censusAddresses", newCommunity.CensusAddesses,
 					"disabled", newCommunity.Disabled)
-				if err := l.storeCommunity(newCommunity); err != nil {
+				if err := l.addCommunity(newCommunity); err != nil {
 					// return if database is closed
 					if err == ErrClosedDB {
 						return
 					}
-					// TODO: Change the admins of wrong communities
-					if strings.Contains(err.Error(), "overflows int64") {
-						log.Warnw("admins fids overflowed, skipping community",
-							"communityID", newCommunity.ID,
-							"admins", newCommunity.Admins)
-						l.nextCommunityID.Add(1)
-						continue
-					}
-					log.Warnw("failed to store community in database",
+					log.Warnw("failed to add community in database",
 						"communityID", currentID,
 						"error", err)
 					continue
@@ -188,106 +183,51 @@ func (l *CommunityHub) ScanNewCommunities() {
 	}()
 }
 
-// ListenDisableEvents method listens for the disable events in the contract and
-// disables the communities in the database. It creates a struct and a chan to
-// manage both types of the events. It parses the events from the contract and
-// sends them to the chan, no matter if they are enable or disable events. It
-// listens for the events in the chan to enable or disable the communities. If
-// something goes wrong getting the current last network block, getting the logs
-// from the contract for enable and disable events, or disabling the community in
-// the database, it logs an error and continues with the next iteration.
-func (l *CommunityHub) ListenDisableEvents() {
-	// create a struct and a chan to manage both types of the events
-	type event struct {
-		disabled    bool
-		communityID uint64
-	}
-	eventsCh := make(chan event)
-	// listen for the events in the chan to enable or disable the communities
+// SyncCommunities method starts the listener to sync the communities in the
+// database with the contract. It gets the community data from the contract
+// and updates it in the database. It iterates from the first community (id: 1)
+// to the last one (next - 1) in the contract updating the community data in
+// the database. If something goes wrong it logs an error and continues with
+// the next iteration. It sleeps between iterations the sync cooldown time.
+func (l *CommunityHub) SyncCommunities() {
 	l.waiter.Add(1)
 	go func() {
 		defer l.waiter.Done()
-		for e := range eventsCh {
-			if err := l.db.SetCommunityStatus(e.communityID, e.disabled); err != nil {
-				log.Warnw("failed to disable community",
-					"error", err,
-					"communityID", e.communityID,
-					"disabled", e.disabled)
-				continue
-			}
-		}
-	}()
-	// calculate the last block of the network and start the iteration from
-	// that block
-	ctx, cancel := context.WithTimeout(l.ctx, 5*time.Second)
-	defer cancel()
-	lastBlock, err := l.w3cli.BlockNumber(ctx)
-	if err != nil {
-		log.Warnw("failed to get the current last network block", "error", err)
-		return
-	}
-	// iterate over the blocks in background to get the logs from the contract
-	// from the block number calculated until the context is done
-	l.waiter.Add(1)
-	go func() {
-		defer l.waiter.Done()
-		// close events chan when finished to stop the events listener
-		defer close(eventsCh)
 		for {
 			select {
 			case <-l.ctx.Done():
 				return
 			default:
-				time.Sleep(time.Second * 2)
-				// get the current last network block to calculate the bounds
-				// of the iteration
-				ctx, cancel := context.WithTimeout(l.ctx, 5*time.Second)
-				endBlock, err := l.w3cli.BlockNumber(ctx)
-				cancel()
-				if err != nil {
-					log.Warnw("failed to get the current last network block",
-						"error", err)
-					continue
-				}
-				// if the end block is less than or equal to the last block,
-				// continue with the next iteration
-				if endBlock <= lastBlock {
-					continue
-				}
-				opts := &bind.FilterOpts{Start: lastBlock, End: &endBlock}
-				// get the logs from the contract for enable events and send
-				// them to the chan to enable the communities
-				creationsIter, err := l.contract.FilterCommunityEnabled(opts)
-				if err != nil {
-					log.Warnw("failed to get the community created logs",
-						"error", err)
-					continue
-				}
-				defer creationsIter.Close()
-				for creationsIter.Next() {
-					eventsCh <- event{
-						disabled:    false,
-						communityID: creationsIter.Event.CommunityId.Uint64(),
+				time.Sleep(l.syncCooldown)
+				// iterate from the first community (id: 1) to the last one
+				// (next - 1) in  the contract updating the community data in
+				// the database
+				lastID := l.nextCommunityID.Load() - 1
+				log.Infow("syncing communities", "communities", lastID)
+				for id := uint64(1); id <= lastID; id++ {
+					// get the community data from the contract
+					newCommunity, err := l.Community(id)
+					if err != nil {
+						if err != ErrCommunityNotFound {
+							log.Warnw("failed to get community from contract",
+								"communityID", id,
+								"error", err)
+						}
+						continue
+					}
+					// update the community data in the database
+					if err := l.updateCommunity(newCommunity); err != nil {
+						// return if database is closed
+						if err == ErrClosedDB {
+							return
+						}
+						log.Warnw("failed to update community in database",
+							"communityID", id,
+							"error", err)
+						continue
 					}
 				}
-				// get the logs from the contract for disable events and send
-				// them to the chan to disable the communities
-				disablesIter, err := l.contract.FilterCommunityDisabled(opts)
-				if err != nil {
-					log.Warnw("failed to get the community disabled logs",
-						"error", err)
-					continue
-				}
-				defer disablesIter.Close()
-				for disablesIter.Next() {
-					eventsCh <- event{
-						disabled:    true,
-						communityID: disablesIter.Event.CommunityId.Uint64(),
-					}
-				}
-				// set the last block to the end block of the iteration to
-				// continue with the next one
-				lastBlock = endBlock
+				log.Info("communities synced")
 			}
 		}
 	}()
@@ -321,7 +261,95 @@ func (l *CommunityHub) Community(communityID uint64) (*HubCommunity, error) {
 		return nil, errors.Join(ErrGettingCommunity, err)
 	}
 	// return the community data
-	return contractToHub(communityID, cc)
+	return ContractToHub(communityID, cc)
+}
+
+// SetCommunity method sets the community data provided in the contract. It
+// gets the current community data from the contract and updates it with the
+// new data checking every field and updating it if it is different from the
+// current one. It ensures that the creator of the community (the first admin)
+// remains as an admin after the update. If something goes wrong, it returns an
+// error.
+func (l *CommunityHub) SetCommunity(communityID uint64, newData *HubCommunity) (*HubCommunity, error) {
+	if l.privKey == nil {
+		return nil, ErrNoPrivKeyConfigured
+	}
+	// get the current community data from the contract
+	community, err := l.Community(communityID)
+	if err != nil {
+		return nil, err
+	}
+	// update the community data with the new data checking every field and
+	// updating it if it is different from the current one
+
+	// if a new name is provided and it is different from the current one, set
+	// the new name
+	if newData.Name != "" && newData.Name != community.Name {
+		community.Name = newData.Name
+	}
+	// if a new image URL is provided and it is different from the current one,
+	// set the new image URL
+	if newData.ImageURL != "" && newData.ImageURL != community.ImageURL {
+		community.ImageURL = newData.ImageURL
+	}
+	// if a new group chat URL is provided and it is different from the current
+	// one, set the new group chat URL
+	if newData.GroupChatURL != "" && newData.GroupChatURL != community.GroupChatURL {
+		community.GroupChatURL = newData.GroupChatURL
+	}
+	// if a new census type is provided and it is different from the current one,
+	// set the new census type
+	if newData.CensusType != "" && newData.CensusType != community.CensusType {
+		community.CensusType = newData.CensusType
+	}
+	// if a new census channel is provided and it is different from the current
+	// one, set the new census channel
+	if newData.CensusChannel != "" && newData.CensusChannel != community.CensusChannel {
+		community.CensusChannel = newData.CensusChannel
+	}
+	// if a new census addresses list is provided with at least one address update
+	// the census addresses list
+	if newData.CensusAddesses != nil && len(newData.CensusAddesses) > 0 {
+		community.CensusAddesses = newData.CensusAddesses
+	}
+	// if a new admins list is provided with at least one admin update the
+	// admins list only if the first admin continues being the creator
+	if len(newData.Admins) > 0 {
+		if newData.Admins[0] != community.Admins[0] {
+			return nil, ErrNoAdminCreator
+		}
+		community.Admins = newData.Admins
+	}
+	// if a new channels list is provided with at least one channel update the
+	// channels list
+	if len(newData.Channels) > 0 {
+		community.Channels = newData.Channels
+	}
+	// if a new notifications value is provided set the new notifications value
+	if newData.Notifications != nil {
+		community.Notifications = newData.Notifications
+	}
+	// if a new disabled value is provided set the new disabled value
+	if newData.Disabled != nil {
+		community.Disabled = newData.Disabled
+	}
+	// set the community data in the contract
+	cc, err := HubToContract(community)
+	if err != nil {
+		return nil, err
+	}
+	// convert the community ID to a *big.Int
+	bCommunityID := new(big.Int).SetUint64(communityID)
+	// get auth opts and set the community data in the contract
+	transactOpts, err := l.authTransactOpts()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := l.contract.AdminManageCommunity(transactOpts, bCommunityID, cc.Metadata,
+		cc.Census, cc.Guardians, cc.CreateElectionPermission, cc.Disabled); err != nil {
+		return nil, errors.Join(ErrSettingCommunity, err)
+	}
+	return community, nil
 }
 
 // Results method gets the election results using the community and elections
@@ -355,6 +383,9 @@ func (l *CommunityHub) Results(communityID uint64, electionID []byte) (*HubResul
 // election IDs provided. If something goes wrong setting the results in the
 // contract, it returns an error.
 func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results *HubResults) error {
+	if l.privKey == nil {
+		return ErrNoPrivKeyConfigured
+	}
 	transactOpts, err := l.authTransactOpts()
 	if err != nil {
 		return err
@@ -385,105 +416,40 @@ func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results
 	return nil
 }
 
-// SetStatus method set the disable community attribute in the contract by the
-// community ID provided. If something goes wrong disabling the community in
-// the contract, it returns an error.
-func (l *CommunityHub) SetStatus(communityID uint64, disabled bool) error {
-	transactOpts, err := l.authTransactOpts()
+// addCommunity helper method creates a new community in the database. It uses
+// the HubToDB helper method to convert the HubCommunity struct to a dbmongo
+// Community struct. If something goes wrong creating the community, it returns
+// an error.
+func (l *CommunityHub) addCommunity(hcommunity *HubCommunity) error {
+	dbCommunity, err := HubToDB(hcommunity)
 	if err != nil {
 		return err
 	}
-	// convert the community ID to a *big.Int
-	bCommunityID := new(big.Int).SetUint64(communityID)
-	// get the community data from the contract
-	community, err := l.contract.GetCommunity(nil, bCommunityID)
-	if err != nil {
-		return err
-	}
-	// disable the community in the contract
-	_, err = l.contract.AdminManageCommunity(transactOpts,
-		bCommunityID,
-		community.Metadata,
-		community.Census,
-		community.Guardians,
-		community.CreateElectionPermission,
-		disabled)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// SetNotifications method disables the community in the contract by the
-// community ID provided. If something goes wrong disabling the community in
-// the contract, it returns an error.
-func (l *CommunityHub) SetNotifications(communityID uint64, enabled bool) error {
-	transactOpts, err := l.authTransactOpts()
-	if err != nil {
-		return err
-	}
-	// convert the community ID to a *big.Int
-	bCommunityID := new(big.Int).SetUint64(communityID)
-	// get the community data from the contract
-	community, err := l.contract.GetCommunity(nil, bCommunityID)
-	if err != nil {
-		return err
-	}
-	community.Metadata.Notifications = enabled
-	// disable the community in the contract
-	_, err = l.contract.AdminManageCommunity(transactOpts,
-		bCommunityID,
-		community.Metadata,
-		community.Census,
-		community.Guardians,
-		community.CreateElectionPermission,
-		community.Disabled)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// storeCommunity helper method creates a new community in the database. It
-// creates the db census according to the community census type, and if the
-// census type is a channel, it sets the channel. If the census type is an erc20
-// or nft, it decodes every census network address to get the contract address
-// and blockchain. If no valid addresses were found, it skips the community and
-// logs an error. Then, it creates the community in the database. If something
-// goes wrong creating the community, it returns an error.
-func (l *CommunityHub) storeCommunity(c *HubCommunity) error {
-	// create the db census according to the community census type
-	dbCensus := dbmongo.CommunityCensus{
-		Type: string(c.CensusType),
-		Name: c.CensusName,
-	}
-	// if the census type is a channel, set the channel
-	switch c.CensusType {
-	case CensusTypeChannel:
-		dbCensus.Channel = c.CensusChannel
-	case CensusTypeERC20, CensusTypeNFT:
-		// if the census type is an erc20 or nft, decode every census
-		// network address to get the contract address and blockchain
-		dbCensus.Addresses = []dbmongo.CommunityCensusAddresses{}
-		for _, addr := range c.CensusAddesses {
-			dbCensus.Addresses = append(dbCensus.Addresses,
-				dbmongo.CommunityCensusAddresses{
-					Address:    addr.Address.String(),
-					Blockchain: addr.Blockchain,
-				})
-		}
-		// if no valid addresses were found, skip the community and log
-		// an error
-		if len(dbCensus.Addresses) == 0 {
-			return fmt.Errorf("%w: %s", ErrBadCensusAddressees, c.Name)
-		}
-	default:
-		return fmt.Errorf("%w: %s", ErrUnknownCensusType, c.CensusType)
-	}
-	// create community in the database
-	if err := l.db.AddCommunity(c.ID, c.Name, c.ImageURL, c.GroupChatURL,
-		dbCensus, c.Channels, c.Admins, c.Notifications, c.Disabled,
+	// create community in the database including the first admin as the creator
+	if err := l.db.AddCommunity(dbCommunity.ID, dbCommunity.Name, dbCommunity.ImageURL,
+		dbCommunity.GroupChatURL, dbCommunity.Census, dbCommunity.Channels,
+		dbCommunity.Admins[0], dbCommunity.Admins, dbCommunity.Notifications,
+		dbCommunity.Disabled,
 	); err != nil {
+		if err == mongo.ErrClientDisconnected {
+			return ErrClosedDB
+		}
+		return errors.Join(ErrAddCommunity, err)
+	}
+	return nil
+}
+
+// updateCommunity helper method updates a community in the database. It uses
+// the HubToDB helper method to convert the HubCommunity struct to a dbmongo
+// Community struct. If something goes wrong creating the community, it returns
+// an error.
+func (l *CommunityHub) updateCommunity(hcommunity *HubCommunity) error {
+	dbCommunity, err := HubToDB(hcommunity)
+	if err != nil {
+		return err
+	}
+	// create community in the database including the first admin as the creator
+	if err := l.db.UpdateCommunity(dbCommunity); err != nil {
 		if err == mongo.ErrClientDisconnected {
 			return ErrClosedDB
 		}

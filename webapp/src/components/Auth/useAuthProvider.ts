@@ -44,7 +44,7 @@ export const useAuthProvider = (): AuthState => {
   const [bearer, setBearer] = useState<string | null>(localStorage.getItem('bearer'))
   const [profile, setProfile] = useState<Profile | null>(JSON.parse(localStorage.getItem('profile') || 'null'))
   const [reputation, setReputation] = useState<Reputation | undefined>(
-    JSON.parse(localStorage.getItem('reputation') || 'undefined')
+    JSON.parse(localStorage.getItem('reputation') || '{}')
   )
 
   const bearedFetch = useCallback(

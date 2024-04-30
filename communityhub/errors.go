@@ -27,6 +27,9 @@ var (
 	// ErrGettingCommunity is returned when an error occurs while getting
 	// community data from the community hub contract
 	ErrGettingCommunity = fmt.Errorf("error getting community data from the community hub contract")
+	// ErrSettingCommunity is returned when an error occurs while setting
+	// community data in the community hub contract
+	ErrSettingCommunity = fmt.Errorf("error setting community data in the community hub contract")
 	// ErrCommunityNotFound is returned when the community is not found in the
 	// contract
 	ErrCommunityNotFound = fmt.Errorf("community not found")
@@ -48,6 +51,9 @@ var (
 	// ErrBadCensusAddressees is returned when the census addressees are not
 	// provided in the correct format or are empty
 	ErrBadCensusAddressees = fmt.Errorf("bad community census addressees")
+	// ErrNoAdminCreator is returned when the provided admin list does not
+	// contain the creator of the community
+	ErrNoAdminCreator = fmt.Errorf("the creator must be an admin")
 	// ErrAddCommunity is returned when an error occurs while adding a new
 	// community from the community hub contract to the database
 	ErrAddCommunity = fmt.Errorf("error adding community to the database")

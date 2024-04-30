@@ -23,7 +23,7 @@ import {
   useDisclosure,
   VStack,
 } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
+import { QueryObserverResult, RefetchOptions, useQuery } from '@tanstack/react-query'
 import { Fragment, PropsWithChildren, ReactElement, useMemo } from 'react'
 import { BsChatDotsFill } from 'react-icons/bs'
 import { FaPlay, FaRegCircleStop, FaSliders } from 'react-icons/fa6'
@@ -39,6 +39,7 @@ import { ManageCommunity } from './Manage'
 
 type CommunitiesViewProps = {
   community?: Community
+  refetch: (options?: RefetchOptions | undefined) => Promise<QueryObserverResult<Community, Error>>
 }
 
 const WhiteBox = ({ children }: PropsWithChildren) => (
@@ -58,7 +59,7 @@ const WhiteBox = ({ children }: PropsWithChildren) => (
   </Flex>
 )
 
-export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
+export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) => {
   const { bfetch, profile, isAuthenticated } = useAuth()
   const { onOpen: openManageModal, ...modalProps } = useDisclosure()
   const { data: communityPolls } = useQuery<Poll[], Error>({
@@ -123,7 +124,7 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
                 <Button leftIcon={<FaSliders />} onClick={openManageModal} variant={'outline'}>
                   Manage
                 </Button>
-                <ManageCommunity {...modalProps} communityID={community.id} />
+                <ManageCommunity {...modalProps} community={community} refetch={refetch} />
                 <Button onClick={() => navigate('/')} leftIcon={<MdHowToVote />}>
                   Create vote
                 </Button>
@@ -231,7 +232,7 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
   )
 }
 
-export const CommunityAdmins = ({ community }: CommunitiesViewProps) => {
+export const CommunityAdmins = ({ community }: { community: Community }) => {
   if (!community) return
 
   return community.admins.map((admin: Profile, k: number) => (

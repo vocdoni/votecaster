@@ -34,7 +34,7 @@ export type CommunityMetaFormValues = {
   admins: { label: string; value: number }[]
   groupChat: string
   src: string
-  hash: string
+  hash?: string
 }
 
 export const Meta = () => {
@@ -50,6 +50,7 @@ export const Meta = () => {
   const { bfetch, profile } = useAuth()
   const name = watch('name')
   const src = watch('src')
+  const admins = watch('admins')
   const [loading, setLoading] = useState<boolean>(false)
   const [cropSrc, setCropSrc] = useState<string | undefined>(undefined)
   const [imageRef, setImageRef] = useState<HTMLImageElement>()
@@ -92,13 +93,14 @@ export const Meta = () => {
 
   // set the current user as the first admin
   useEffect(() => {
-    if (!profile?.username) return
+    if (admins && admins.length) return
 
+    if (!profile?.username) return
     setValue(
       'admins',
       [
         {
-          label: profile.displayName,
+          label: profile.username,
           value: profile.fid,
         },
       ],
@@ -157,7 +159,7 @@ export const Meta = () => {
                     // adding always adds the final value, should be safe to remove it
                     values = values.slice(0, -1)
 
-                    field.onChange([...values, { label: user.username, value: user.userID.toString() }])
+                    field.onChange([...values, { label: user.username, value: parseInt(user.userID.toString()) }])
                   } catch (e) {
                     if (e instanceof Error) {
                       setError('admins', { message: e.message })
