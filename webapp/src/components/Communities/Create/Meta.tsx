@@ -235,7 +235,7 @@ const Cropper = ({
       crop={crop}
       aspect={1}
       ruleOfThirds
-      onComplete={(c) => setCompletedCrop(convertToPixelCrop(c, imageRef))}
+      onComplete={(c) => setCompletedCrop(convertToPixelCrop(c, imageRef.width, imageRef.height))}
       onChange={setCrop}
     >
       <img src={src} onLoad={onLoad} />
