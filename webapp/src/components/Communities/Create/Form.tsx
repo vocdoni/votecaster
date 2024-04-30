@@ -1,13 +1,12 @@
 import { Alert, AlertDescription, Box, Flex, Heading, Text, VStack } from '@chakra-ui/react'
-import { id } from '@ethersproject/hash'
-import { BrowserProvider, ContractTransactionReceipt, JsonRpcSigner } from 'ethers'
+import { BrowserProvider, JsonRpcSigner } from 'ethers'
 import { useCallback, useEffect, useState } from 'react'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
 import { useAccount, useBalance, useWalletClient, type UseWalletClientReturnType } from 'wagmi'
+import { useAuth } from '~components/Auth/useAuth'
 import { CensusFormValues } from '~components/CensusTypeSelector'
-import { degenContractAddress } from '~constants'
+import { appUrl, degenContractAddress } from '~constants'
 import { CommunityHub__factory, ICommunityHub } from '~typechain'
-import { CommunityHubInterface } from '~typechain/src/CommunityHub'
 import { censusTypeToEnum } from '~util/types'
 import { CensusSelector } from './CensusSelector'
 import { Channels } from './Channels'
@@ -23,6 +22,7 @@ export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusTy
   }
 
 export const CommunitiesCreateForm = () => {
+  const { bfetch } = useAuth()
   const methods = useForm<CommunityFormValues>()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,7 +76,7 @@ export const CommunitiesCreateForm = () => {
         setIsPending(true)
         const metadata: ICommunityHub.CommunityMetadataStruct = {
           name: data.name, // name
-          imageURI: data.logo, // logo uri
+          imageURI: `${appUrl}/images/avatar/${data.hash}.jpg`, // logo uri
           groupChatURL: data.groupChat ?? '', // groupChatURL
           channels: data.channels?.map((chan) => chan.value) ?? [], // channels
           notifications: true, // notifications
@@ -117,22 +117,32 @@ export const CommunitiesCreateForm = () => {
 
         const communityHubContract = CommunityHub__factory.connect(degenContractAddress, signer)
 
-        // todo(kon): can this be moved to a reactQuery?
         const tx = await communityHubContract.createCommunity(metadata, census, guardians, createElectionPermission, {
           value: price,
         })
 
         const receipt = await tx.wait()
-
         if (!receipt) {
           throw Error('Cannot get receipt')
         }
 
         const communityHubInterface = CommunityHub__factory.createInterface()
-        const log = findLog(receipt, communityHubInterface)
-        if (!log) {
-          throw Error('Cannot get community log')
+        // get just created community id
+        const { communityID } = communityHubInterface.decodeEventLog('CommunityCreated', tx.data) as {
+          communityID: string
         }
+        // upload image
+        const avatar = {
+          communityID,
+          id: data.hash,
+          data: data.src,
+        }
+
+        console.info('uploading avatar...', avatar)
+        await bfetch(`${appUrl}/images/avatar`, {
+          method: 'POST',
+          body: JSON.stringify(avatar),
+        })
 
         setTx(tx.hash)
       } catch (e) {
@@ -220,10 +230,4 @@ export async function walletClientToSigner(walletClient: UseWalletClientReturnTy
   const provider = new BrowserProvider(transport, network)
   const signer = await provider.getSigner(account.address)
   return signer
-}
-
-export function findLog(receipt: ContractTransactionReceipt, iface: CommunityHubInterface) {
-  return receipt.logs.find((log) => {
-    return log.topics[0] === id(iface.getEvent('CommunityCreated').format('sighash'))
-  })
 }

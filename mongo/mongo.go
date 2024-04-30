@@ -38,6 +38,7 @@ type MongoStorage struct {
 	notifications      *mongo.Collection
 	userAccessProfiles *mongo.Collection
 	communitites       *mongo.Collection
+	avatars            *mongo.Collection
 }
 
 type Options struct {
@@ -105,6 +106,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.notifications = client.Database(database).Collection("notifications")
 	ms.userAccessProfiles = client.Database(database).Collection("userAccessProfiles")
 	ms.communitites = client.Database(database).Collection("communities")
+	ms.avatars = client.Database(database).Collection("avatars")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
 	// else, just createIndexes
@@ -237,6 +239,24 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on owners for communities: %w", err)
 	}
 
+	// Create an index for the 'userId' field on avatars
+	avatarUserIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "userId", Value: 1}}, // 1 for ascending order
+		Options: nil,
+	}
+	if _, err := ms.avatars.Indexes().CreateOne(ctx, avatarUserIndex); err != nil {
+		return fmt.Errorf("failed to create index on user ids for avatars: %w", err)
+	}
+
+	// Create an index for the 'communityId' field on avatars
+	avatarCommunityIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "communityId", Value: 1}}, // 1 for ascending order
+		Options: nil,
+	}
+	if _, err := ms.avatars.Indexes().CreateOne(ctx, avatarCommunityIndex); err != nil {
+		return fmt.Errorf("failed to create index on community ids for avatars: %w", err)
+	}
+
 	return nil
 }
 
@@ -361,7 +381,7 @@ func (ms *MongoStorage) String() string {
 	if err != nil {
 		log.Warn(err)
 	}
-	for cur.Next(ctx8) {
+	for cur.Next(ctx9) {
 		var community Community
 		err := cur.Decode(&community)
 		if err != nil {
@@ -370,7 +390,23 @@ func (ms *MongoStorage) String() string {
 		communitites.Communities = append(communitites.Communities, community)
 	}
 
-	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communitites})
+	ctx10, cancel10 := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel10()
+	var avatars AvatarsCollection
+	cur, err = ms.avatars.Find(ctx10, bson.D{{}})
+	if err != nil {
+		log.Warn(err)
+	}
+	for cur.Next(ctx10) {
+		var avatar Avatar
+		err := cur.Decode(&avatar)
+		if err != nil {
+			log.Warn(err)
+		}
+		avatars.Avatars = append(avatars.Avatars, avatar)
+	}
+
+	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communitites, avatars})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -458,9 +494,21 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		filter := bson.M{"_id": community.ID}
 		update := bson.M{"$set": community}
 		opts := options.Update().SetUpsert(true)
-		_, err := ms.census.UpdateOne(ctx, filter, update, opts)
+		_, err := ms.avatars.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
 			log.Warnw("Error upserting community", "err", err, "community", community.ID)
+		}
+	}
+
+	// Upsert Avatars
+	log.Infow("importing avatars", "count", len(collection.Avatars))
+	for _, avatar := range collection.Avatars {
+		filter := bson.M{"_id": avatar.ID}
+		update := bson.M{"$set": avatar}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.avatars.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting avatar", "err", err, "avatarID", avatar.ID)
 		}
 	}
 

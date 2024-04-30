@@ -23,12 +23,9 @@ import { FaHeart, FaInfo, FaRegFaceGrinStars } from 'react-icons/fa6'
 import { ImStatsDots } from 'react-icons/im'
 import { MdOutlineHowToVote } from 'react-icons/md'
 import { SlPencil } from 'react-icons/sl'
-import { useAuth } from './useAuth'
 import { Reputation } from './useAuthProvider'
 
-export const ReputationProgress = (props: CircularProgressProps) => {
-  const { reputation } = useAuth()
-
+export const ReputationProgress = ({ reputation, ...props }: CircularProgressProps & { reputation: Reputation }) => {
   if (!reputation) return
 
   return (
@@ -66,7 +63,7 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
               </StatLabel>
               <StatNumber fontSize='2xl'>{reputation.reputation}</StatNumber>
             </Stat>
-            <ReputationProgress />
+            <ReputationProgress reputation={reputation} />
           </Flex>
           {isMobile && (
             <PopoverTrigger>
