@@ -24,7 +24,7 @@ import { appUrl } from '~constants'
 import { fetchCommunity } from '~queries/communities'
 import { Meta } from './Create/Meta'
 import { CommunityFormValues } from './Create/Form'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 
 export type ManageCommunityProps = {
   communityID: number
@@ -36,50 +36,66 @@ export type ManageCommunityFormValues = {
 
 export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps) => {
   const { bfetch, isAuthenticated } = useAuth()
-  const { data: community, refetch } = useQuery<ManageCommunityFormValues, Error>({
-    queryKey: ['community'],
-    queryFn: async () => {
-      const c = await fetchCommunity(bfetch, `${communityID}`)()
-      return {
-        name: c.name,
-        admins: c.admins.map((admin) => ({ label: admin.displayName, value: admin.fid })),
-        logo: c.logoURL,
-        groupChat: c.groupChat,
-        channels: c.channels.map((channel) => ({ label: channel, value: channel })),
-        enableNotifications: c.notifications,
-        disabled: c.disabled,
-      }
-    },
+  const { data: community, refetch } = useQuery<Community, Error, ManageCommunityFormValues>({
+    queryKey: ['community', communityID],
+    queryFn: fetchCommunity(bfetch, `${communityID}`),
+    select: (data) => ({
+      censusType: data.censusType as CensusType,
+      name: data.name,
+      admins: data.admins.map((admin) => ({ label: admin.username, value: admin.fid })),
+      src: data.logoURL,
+      groupChat: data.groupChat,
+      channel: data.censusChannel.id,
+      channels: data.channels.map((channel) => ({ label: channel, value: channel })),
+      enableNotifications: data.notifications,
+      disabled: data.disabled,
+    }),
   })
 
-  const methods = useForm<ManageCommunityFormValues>({})
-  
-  const onSubmit: SubmitHandler<Community> = useCallback(
-    async (values: Community) => {
+  const methods = useForm<ManageCommunityFormValues>({
+    defaultValues: community,
+  })
+
+  const onSubmit: SubmitHandler<ManageCommunityFormValues> = useCallback(
+    async (values: ManageCommunityFormValues) => {
       if (!community) return
       try {
-        await bfetch(`${appUrl}/communities/${community.id}`, {
+        const community: Community = {
+          id: communityID,
+          name: values.name,
+          logoURL: values.src,
+          admins: values.admins.map((admin) => ({ fid: admin.value, username: admin.label })) as Profile[],
+          notifications: values.enableNotifications,
+          censusType: values.censusType as CensusType,
+          censusAddresses: values.addresses || [],
+          censusChannel: (values.channel ? {id: values.channel} : {}) as Channel,
+          channels: values.channels.map((channel) => channel.value),
+          groupChat: values.groupChat,
+          disabled: values.disabled,
+        } 
+        console.log("community", community)
+        await bfetch(`${appUrl}/communities/${communityID}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(values),
+          body: JSON.stringify(community),
         }).then(() => refetch())
       } catch (e) {
         console.error('could not swithc the community notifications', e)
       }
     },
-    [bfetch, community, refetch]
+    [bfetch, community, refetch, communityID]
   )
+
+  useEffect(() => {
+    if (community) methods.reset(community)
+  }, [community])
 
   if (!isAuthenticated) return null
   if (!community) return null
   if (!props.isOpen) return null
   if (!props.onClose) return null
-
-
-  console.log(community)
-
 
   return (
     <Modal
@@ -112,10 +128,10 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
                 <HStack gap={2} alignItems={'center'}>
                   <Text fontSize={'xs'}>Disabled</Text>
                   <Switch
-                    id={'notifications'}
+                    id={'enableNotifications'}
                     disabled={methods.formState.isSubmitting}
                     colorScheme='green'
-                    {...methods.register('notifications', {value: community.enableNotifications})}
+                    {...methods.register('enableNotifications')}
                   />
                   <Text fontSize={'xs'}>Enabled</Text>
                 </HStack>
@@ -133,10 +149,10 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
                 <HStack gap={2} alignItems={'center'}>
                   <Text fontSize={'xs'}>Enabled</Text>
                   <Switch
-                    id={'status'}
+                    id={'disabled'}
                     disabled={methods.formState.isSubmitting}
                     colorScheme='red'
-                    {...methods.register('disabled', {value: community.disabled})}
+                    {...methods.register('disabled')}
                   />
                   <Text fontSize={'xs'}>Disabled</Text>
                 </HStack>

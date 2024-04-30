@@ -267,6 +267,7 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 	if _, ok := mapCommunity["disabled"]; ok {
 		*disabled = typedCommunity.Disabled
 	}
+	// parse the admins and census addresses
 	admins := []uint64{}
 	for _, user := range typedCommunity.Admins {
 		admins = append(admins, user.FID)
@@ -278,10 +279,33 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 			Address:    common.HexToAddress(addr.Address),
 		})
 	}
+	// set the census channel if provided
 	var censusChannel string
 	if typedCommunity.CensusChannel != nil {
 		censusChannel = typedCommunity.CensusChannel.ID
 	}
+	// update the community image
+	if typedCommunity.LogoURL != "" && typedCommunity.LogoURL != dbCommunity.ImageURL {
+		// check if the current avatar is an internal image
+		avatarID, isInternalAvatar := avatarIDfromURL(dbCommunity.ImageURL)
+		// if is internal delete the current avatar from the database after
+		// uploading the new one
+		if isInternalAvatar {
+			if err := v.db.RemoveAvatar(avatarID); err != nil {
+				log.Warnw("error deleting avatar", "err", err, "avatarID", avatarID)
+			}
+		}
+		// upload the new avatar if it is base64 encoded
+		if isBase64Image(typedCommunity.LogoURL) {
+			avatarURL, err := v.uploadAvatar(avatarID, userFID, uint64(id), typedCommunity.LogoURL)
+			if err != nil {
+				return fmt.Errorf("cannot upload avatar: %w", err)
+			}
+			// set the new avatar URL
+			typedCommunity.LogoURL = avatarURL
+		}
+	}
+	// update the community in the community hub
 	newCommuniy, err := v.comhub.SetCommunity(uint64(id), &communityhub.HubCommunity{
 		Name:           typedCommunity.Name,
 		ImageURL:       typedCommunity.LogoURL,
@@ -297,6 +321,7 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 	if err != nil {
 		return fmt.Errorf("error updating community: %w", err)
 	}
+	// update the community in the database with the response from the community hub
 	newDBCommuniy, err := communityhub.HubToDB(newCommuniy)
 	if err != nil {
 		return fmt.Errorf("error converting community: %w", err)

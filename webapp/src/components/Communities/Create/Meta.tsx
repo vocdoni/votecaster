@@ -34,7 +34,7 @@ export type CommunityMetaFormValues = {
   admins: { label: string; value: number }[]
   groupChat: string
   src: string
-  hash: string
+  hash?: string
 }
 
 export const Meta = () => {
@@ -89,13 +89,13 @@ export const Meta = () => {
 
   // set the current user as the first admin
   useEffect(() => {
+    if (methods.getValues('admins').length) return
     if (!profile?.username) return
-
     setValue(
       'admins',
       [
         {
-          label: profile.displayName,
+          label: profile.username,
           value: profile.fid,
         },
       ],
@@ -103,7 +103,6 @@ export const Meta = () => {
     )
   }, [profile?.username])
 
-  console.log(methods.getValues())
   // open modal to crop image when a src is found
   useEffect(() => {
     if (!cropSrc || isOpen) return
@@ -155,7 +154,7 @@ export const Meta = () => {
                     // adding always adds the final value, should be safe to remove it
                     values = values.slice(0, -1)
 
-                    field.onChange([...values, { label: user.username, value: user.userID.toString() }])
+                    field.onChange([...values, { label: user.username, value: parseInt(user.userID.toString()) }])
                   } catch (e) {
                     if (e instanceof Error) {
                       setError('admins', { message: e.message })
