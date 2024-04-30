@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { ReputationCard } from '~components/Auth/Reputation'
 import { useAuth } from '~components/Auth/useAuth'
+import { ReputationResponse, reputationResponse2Reputation } from '~components/Auth/useAuthProvider'
 import { Check } from '~components/Check'
 import { MutedUsersList } from '~components/MutedUsersList'
 import { UserPolls } from '~components/Top'
@@ -35,14 +36,14 @@ const Profile = () => {
       templateAreas={{ base: `"reputation" "muted" "polls"`, md: `"polls reputation" "polls muted"` }}
     >
       <GridItem gridArea='reputation'>
-        <ReputationCard reputation={{ data: user?.reputationData, reputation: user?.reputation }} />
+        <ReputationCard reputation={reputationResponse2Reputation(user as ReputationResponse)} />
         <Show above='md'>
           <Spacer h={4} />
           {isOwnProfile && <MutedUsersList />}
         </Show>
       </GridItem>
       <GridItem gridArea='polls'>
-        <UserPolls polls={user.polls || []} title='Your created polls' w='100%' />
+        <UserPolls polls={user?.polls || []} title='Your created polls' w='100%' />
       </GridItem>
       {/* MutedUsersList will now only appear here in the mobile view, since in md+ it's in the same GridItem as ReputationCard */}
       <Show below='md'>

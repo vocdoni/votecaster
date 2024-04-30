@@ -29,7 +29,7 @@ import { useAuth } from './Auth/useAuth'
 export type PollViewProps = {
   electionId: string | undefined
   onChain: boolean
-  poll: PollResult | null
+  poll: PollInfo | null
   loading: boolean
   voters: string[]
   errorMessage: string | null

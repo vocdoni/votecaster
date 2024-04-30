@@ -8,7 +8,7 @@ interface AuthState {
   login: (params: LoginParams) => void
   logout: () => void
   profile: Profile | null
-  reputation: Reputation | null
+  reputation: Reputation | undefined
 }
 
 const baseRep = {
@@ -22,10 +22,17 @@ const baseRep = {
 }
 
 export type Reputation = typeof baseRep
-type ReputationResponse = {
+export type ReputationResponse = {
   reputation: number
   reputationData: (typeof baseRep)['data']
 }
+
+export const reputationResponse2Reputation = (rep: ReputationResponse): Reputation => ({
+  reputation: rep.reputation,
+  data: {
+    ...rep.reputationData,
+  },
+})
 
 type LoginParams = {
   profile: Profile
@@ -36,8 +43,8 @@ type LoginParams = {
 export const useAuthProvider = (): AuthState => {
   const [bearer, setBearer] = useState<string | null>(localStorage.getItem('bearer'))
   const [profile, setProfile] = useState<Profile | null>(JSON.parse(localStorage.getItem('profile') || 'null'))
-  const [reputation, setReputation] = useState<Reputation | null>(
-    JSON.parse(localStorage.getItem('reputation') || 'null')
+  const [reputation, setReputation] = useState<Reputation | undefined>(
+    JSON.parse(localStorage.getItem('reputation') || 'undefined')
   )
 
   const bearedFetch = useCallback(
@@ -113,7 +120,7 @@ export const useAuthProvider = (): AuthState => {
     localStorage.removeItem('reputation')
     setBearer(null)
     setProfile(null)
-    setReputation(null)
+    setReputation(undefined)
   }, [])
 
   return {
