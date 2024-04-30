@@ -18,95 +18,75 @@ import {
   UseModalProps,
   VStack,
 } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useState } from 'react'
+import { QueryObserverResult, RefetchOptions } from '@tanstack/react-query'
+import { useState } from 'react'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
 import { FaBell, FaEyeSlash } from 'react-icons/fa6'
 import { useAuth } from '~components/Auth/useAuth'
 import { appUrl } from '~constants'
-import { fetchCommunity } from '~queries/communities'
-import { CommunityFormValues } from './Create/Form'
-import { Meta } from './Create/Meta'
+import { community2CommunityForm } from '~util/mappings'
 import { CensusSelector } from './Create/CensusSelector'
 import { Channels } from './Create/Channels'
+import { CommunityFormValues } from './Create/Form'
 import { GroupChat } from './Create/GroupChat'
+import { Meta } from './Create/Meta'
 
 export type ManageCommunityProps = {
-  communityID: number
+  community: Community
+  refetch: (options?: RefetchOptions | undefined) => Promise<QueryObserverResult<Community, Error>>
 } & UseModalProps
 
 export type ManageCommunityFormValues = {
   disabled: boolean
 } & CommunityFormValues
 
-export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps) => {
+export const ManageCommunity = ({ community, refetch, onClose, ...props }: ManageCommunityProps) => {
   const { bfetch, isAuthenticated } = useAuth()
-  const { data: community, refetch } = useQuery<Community, Error, ManageCommunityFormValues>({
-    queryKey: ['community', communityID],
-    queryFn: fetchCommunity(bfetch, `${communityID}`),
-    select: (data) => ({
-      censusType: data.censusType as CensusType,
-      name: data.name,
-      admins: data.admins.map((admin) => ({ label: admin.username, value: admin.fid })),
-      src: data.logoURL,
-      groupChat: data.groupChat,
-      channel: data.censusChannel.id,
-      channels: data.channels.map((channel) => ({ label: channel, value: channel })),
-      enableNotifications: data.notifications,
-      disabled: data.disabled,
-    }),
-  })
   const [error, setError] = useState<Error | null>(null)
   const methods = useForm<ManageCommunityFormValues>({
-    defaultValues: community,
+    defaultValues: community2CommunityForm(community),
   })
 
-  const onSubmit: SubmitHandler<ManageCommunityFormValues> = useCallback(
-    async (values: ManageCommunityFormValues) => {
-      if (!community) return
-      try {
-        const community: Community = {
-          id: communityID,
-          name: values.name,
-          logoURL: values.src,
-          admins: values.admins.map((admin) => ({ fid: admin.value, username: admin.label })) as Profile[],
-          notifications: values.enableNotifications,
-          censusType: values.censusType as CensusType,
-          censusAddresses: values.addresses || [],
-          censusChannel: (values.channel ? { id: values.channel } : {}) as Channel,
-          channels: values.channels.map((channel) => channel.value),
-          groupChat: values.groupChat,
-          disabled: values.disabled,
-        }
-        await bfetch(`${appUrl}/communities/${communityID}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(community),
-        }).then(() => refetch())
-      } catch (e) {
-        console.error('could not update the community data', e)
-        setError(new Error(`could not update the community data`))
-      }
-    },
-    [bfetch, community, refetch, communityID]
-  )
+  const onSubmit: SubmitHandler<ManageCommunityFormValues> = async (values: ManageCommunityFormValues) => {
+    if (!community) return
 
-  // Reset form when community changes
-  useEffect(() => {
-    if (community) methods.reset(community)
-  }, [community])
+    setError(null)
+    try {
+      const com: Community = {
+        ...values,
+        id: community.id,
+        logoURL: values.src,
+        admins: values.admins.map((admin) => ({ fid: admin.value, username: admin.label })) as Profile[],
+        notifications: values.enableNotifications,
+        censusAddresses: values.addresses || [],
+        censusChannel: (values.channel ? { id: values.channel } : {}) as Channel,
+        channels: values.channels.map((channel) => channel.value),
+      }
+      await bfetch(`${appUrl}/communities/${community.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(com),
+      })
+      // refetch data after saving to update state
+      await refetch()
+      onClose()
+    } catch (e) {
+      console.error('could not update the community data', e)
+      setError(new Error(`could not update the community data`))
+    }
+  }
 
   // Modal should not be rendered in some cases
-  if (!isAuthenticated || !community || !props.isOpen || !props.onClose) return
+  if (!isAuthenticated || !community || !props.isOpen || !onClose) return
 
   return (
     <Modal
       size={'xl'}
       {...props}
       onClose={() => {
-        props.onClose()
+        onClose()
         refetch()
       }}
     >
