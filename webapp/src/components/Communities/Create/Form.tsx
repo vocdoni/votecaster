@@ -128,7 +128,7 @@ export const CommunitiesCreateForm = () => {
 
         const communityHubInterface = CommunityHub__factory.createInterface()
         // get just created community id
-        const { communityID } = communityHubInterface.decodeEventLog('CommunityCreated', tx.data) as {
+        const { communityID } = communityHubInterface.decodeEventLog('CommunityCreated', tx.data) as unknown as {
           communityID: string
         }
         // upload image

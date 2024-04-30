@@ -25,7 +25,7 @@ import { MdOutlineHowToVote } from 'react-icons/md'
 import { SlPencil } from 'react-icons/sl'
 import { Reputation } from './useAuthProvider'
 
-export const ReputationProgress = ({ reputation, ...props }: CircularProgressProps & { reputation: Reputation }) => {
+export const ReputationProgress = ({ reputation, ...props }: CircularProgressProps & { reputation?: Reputation }) => {
   if (!reputation) return
 
   return (

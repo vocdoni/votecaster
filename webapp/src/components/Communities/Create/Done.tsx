@@ -11,7 +11,7 @@ type DoneProps = {
 
 const CommunityDone = ({ tx }: DoneProps) => {
   const { watch } = useFormContext<CommunityMetaFormValues>()
-  const logo = watch('logo')
+  const src = watch('src')
   const navigate = useNavigate() // Hook to control navigation
 
   return (
@@ -19,9 +19,9 @@ const CommunityDone = ({ tx }: DoneProps) => {
       <Card w='100%'>
         <CardBody my={10}>
           <Flex direction={'column'} justifyItems={'center'} textAlign={'center'} gap={6}>
-            {logo && (
+            {src && (
               <Box>
-                <Avatar src={logo} size={'xl'} />
+                <Avatar src={src} size={'xl'} />
               </Box>
             )}
             <Heading mb={10} size='lg'>

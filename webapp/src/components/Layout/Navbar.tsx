@@ -39,7 +39,7 @@ const links: NavbarLink[] = [
 
 export const Navbar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { isAuthenticated, profile } = useAuth()
+  const { isAuthenticated, profile, reputation } = useAuth()
 
   return (
     <Box px={{ base: 3 }}>
@@ -59,7 +59,7 @@ export const Navbar = () => {
         <Flex alignItems={'center'}>
           {isAuthenticated ? (
             <Link to='/profile'>
-              <ReputationProgress mr={3} size='32px' />
+              <ReputationProgress mr={3} size='32px' reputation={reputation} />
               <Avatar size={'sm'} src={profile?.pfpUrl} />
             </Link>
           ) : (

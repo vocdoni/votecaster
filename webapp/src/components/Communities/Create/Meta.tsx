@@ -17,7 +17,7 @@ import {
   VStack,
 } from '@chakra-ui/react'
 import { AsyncCreatableSelect } from 'chakra-react-select'
-import { SetStateAction, useCallback, useEffect, useState } from 'react'
+import { Dispatch, SetStateAction, SyntheticEvent, useCallback, useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Controller, useFormContext } from 'react-hook-form'
 import ReactCrop, { convertToPixelCrop, Crop } from 'react-image-crop'
@@ -52,18 +52,19 @@ export const Meta = () => {
   const name = watch('name')
   const src = watch('src')
   const [loading, setLoading] = useState<boolean>(false)
-  const [cropSrc, setCropSrc] = useState<string | null>(null)
-  const [imageRef, setImageRef] = useState<HTMLImageElement | null>(null)
-  const [crop, setCrop] = useState<Crop>(null)
+  const [cropSrc, setCropSrc] = useState<string | undefined>(undefined)
+  const [imageRef, setImageRef] = useState<HTMLImageElement>()
+  const [crop, setCrop] = useState<Crop>()
   const { isOpen, onOpen, onClose } = useDisclosure()
 
-  const onDrop = useCallback((acceptedFiles) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!acceptedFiles.length) {
       return console.warn('Received invalid files in dropzone, ignoring')
     }
 
     const reader = new FileReader()
     resetField('src')
+    setCropSrc(undefined)
     reader.onloadend = () => setCropSrc(reader.result?.toString())
     reader.readAsDataURL(acceptedFiles[0])
   }, [])
@@ -77,13 +78,16 @@ export const Meta = () => {
   const logoProps = register('src', { required: 'The logo is required' })
 
   const onModalClose = () => {
-    setCropSrc(null)
+    setCropSrc(undefined)
     resetField('src')
     onClose()
   }
 
   const onModalConfirm = () => {
-    setValue('src', drawImage(imageRef.target, crop))
+    if (!imageRef || !crop) {
+      throw new Error('Required image reference or crop not found')
+    }
+    setValue('src', drawImage(imageRef, crop))
     onClose()
   }
 
@@ -186,7 +190,7 @@ export const Meta = () => {
         <ModalContent>
           <ModalHeader>Crop your image</ModalHeader>
           <ModalBody>
-            <Cropper src={cropSrc} crop={crop} setCrop={setCrop} imageRef={imageRef} setImageRef={setImageRef} />
+            <Cropper src={cropSrc} setCompletedCrop={setCrop} imageRef={imageRef!} setImageRef={setImageRef} />
           </ModalBody>
           <ModalFooter gap={4}>
             <Button onClick={onModalClose} variant='ghost'>
@@ -203,22 +207,21 @@ export const Meta = () => {
 
 const Cropper = ({
   src,
-  crop,
-  setCrop,
+  setCompletedCrop,
   imageRef,
   setImageRef,
 }: {
   src?: string
-  crop: Crop
-  setCrop: Dispatch<SetStateAction<Crop>>
+  setCompletedCrop: Dispatch<SetStateAction<Crop | undefined>>
   imageRef: HTMLImageElement
-  setImageRef: Dispatch<SetStateAction<HTMLImageElement>>
+  setImageRef: Dispatch<SetStateAction<HTMLImageElement | undefined>>
 }) => {
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
+  const [crop, setCrop] = useState<Crop>()
 
-  const onLoad = (img) => {
-    const aspectRatio = img.target.width / img.target.height
-    const cr = {
+  const onLoad = (img: SyntheticEvent<HTMLImageElement, Event>) => {
+    const image = img.target as HTMLImageElement
+    const aspectRatio = image.width / image.height
+    const cr: Crop = {
       unit: '%',
       x: 0,
       y: 0,
@@ -226,7 +229,8 @@ const Cropper = ({
       height: aspectRatio >= 1 ? 100 : 100 * aspectRatio,
     }
     setCrop(cr)
-    setImageRef(img)
+    setCompletedCrop(convertToPixelCrop(cr, image.width, image.height))
+    setImageRef(image)
   }
 
   if (!src) return
@@ -236,7 +240,7 @@ const Cropper = ({
       crop={crop}
       aspect={1}
       ruleOfThirds
-      onComplete={(c) => setCompletedCrop(convertToPixelCrop(c, imageRef))}
+      onComplete={(c) => setCompletedCrop(convertToPixelCrop(c, imageRef.width, imageRef.height))}
       onChange={setCrop}
     >
       <img src={src} onLoad={onLoad} />

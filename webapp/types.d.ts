@@ -1,4 +1,4 @@
-import { Reputation } from '~components/Auth/useAuthProvider'
+import { ReputationResponse } from '~components/Auth/useAuthProvider'
 
 declare global {
   type FetchFunction = (input: RequestInfo, init?: RequestInit) => Promise<Response>
@@ -35,21 +35,7 @@ declare global {
     voteCount: number
   }
 
-  type PollResult = {
-    censusRoot: string
-    censusURI: string
-    endTime: Date
-    options: string[]
-    participants: number[]
-    censusParticipantsCount: number
-    question: string
-    tally: number[][]
-    turnout: number
-    voteCount: number
-    finalized: boolean
-  }
-
-  type PollInfo = {
+  type PollResponse = {
     createdTime: string
     electionId: string
     lastVoteTime: string
@@ -63,8 +49,26 @@ declare global {
     totalWeight: string
     options: string[]
     tally: string[]
-    finalized: boolean
     participants: number[]
+    finalized: boolean
+  }
+
+  type PollInfo = {
+    createdTime: Date
+    electionId: string
+    lastVoteTime: Date
+    endTime: Date
+    question: string
+    voteCount: number
+    censusParticipantsCount: number
+    turnout: number
+    createdByUsername: string
+    createdByDisplayname: string
+    totalWeight: number
+    options: string[]
+    tally: number[][]
+    participants: number[]
+    finalized: boolean
   }
 
   type UserRanking = {
@@ -74,12 +78,10 @@ declare global {
     displayName: string
   }
 
-  type UserProfileResponse = {
+  type UserProfileResponse = ReputationResponse & {
     polls: Poll[]
     mutedUsers: Profile[]
     user: Profile
-    reputation: number
-    reputationData: Reputation
   }
 
   type Channel = {

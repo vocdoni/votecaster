@@ -88,7 +88,7 @@ const Form: React.FC = (props: FlexProps) => {
     control,
     name: 'choices',
   })
-  const { isAuthenticated, profile, logout, bfetch } = useAuth()
+  const { isAuthenticated, profile, reputation, logout, bfetch } = useAuth()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [shortened, setShortened] = useState<string | null>(null)
@@ -420,7 +420,7 @@ const Form: React.FC = (props: FlexProps) => {
                           logout
                         </Button>
                       </Box>
-                      <ReputationCard />
+                      <ReputationCard reputation={reputation!} />
                     </>
                   ) : (
                     <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>
