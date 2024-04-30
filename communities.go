@@ -297,7 +297,8 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 		}
 		// upload the new avatar if it is base64 encoded
 		if isBase64Image(typedCommunity.LogoURL) {
-			avatarURL, err := v.uploadAvatar(avatarID, userFID, uint64(id), typedCommunity.LogoURL)
+			// empty the avatarID to generate a new one based on the data
+			avatarURL, err := v.uploadAvatar("", userFID, uint64(id), typedCommunity.LogoURL)
 			if err != nil {
 				return fmt.Errorf("cannot upload avatar: %w", err)
 			}
