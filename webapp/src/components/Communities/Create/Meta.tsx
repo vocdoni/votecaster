@@ -46,11 +46,11 @@ export const Meta = () => {
     setError,
     setValue,
     resetField,
-    ...methods
   } = useFormContext<CommunityMetaFormValues>()
   const { bfetch, profile } = useAuth()
   const name = watch('name')
   const src = watch('src')
+  const admins = watch('admins')
   const [loading, setLoading] = useState<boolean>(false)
   const [cropSrc, setCropSrc] = useState<string | undefined>(undefined)
   const [imageRef, setImageRef] = useState<HTMLImageElement>()
@@ -93,7 +93,8 @@ export const Meta = () => {
 
   // set the current user as the first admin
   useEffect(() => {
-    if (methods.getValues('admins').length) return
+    if (admins && admins.length) return
+
     if (!profile?.username) return
     setValue(
       'admins',

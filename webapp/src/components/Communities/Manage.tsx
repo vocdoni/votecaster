@@ -19,14 +19,14 @@ import {
   VStack,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
-import { useForm, SubmitHandler, FormProvider } from 'react-hook-form'
+import { useCallback, useEffect, useState } from 'react'
+import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
 import { FaBell, FaEyeSlash } from 'react-icons/fa6'
 import { useAuth } from '~components/Auth/useAuth'
 import { appUrl } from '~constants'
 import { fetchCommunity } from '~queries/communities'
-import { Meta } from './Create/Meta'
 import { CommunityFormValues } from './Create/Form'
-import { useCallback, useEffect, useState } from 'react'
+import { Meta } from './Create/Meta'
 
 export type ManageCommunityProps = {
   communityID: number
@@ -53,7 +53,7 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
       disabled: data.disabled,
     }),
   })
-  const [error, setError] = useState<Error|null>(null)
+  const [error, setError] = useState<Error | null>(null)
   const methods = useForm<ManageCommunityFormValues>({
     defaultValues: community,
   })
@@ -70,12 +70,11 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
           notifications: values.enableNotifications,
           censusType: values.censusType as CensusType,
           censusAddresses: values.addresses || [],
-          censusChannel: (values.channel ? {id: values.channel} : {}) as Channel,
+          censusChannel: (values.channel ? { id: values.channel } : {}) as Channel,
           channels: values.channels.map((channel) => channel.value),
           groupChat: values.groupChat,
           disabled: values.disabled,
-        } 
-        console.log("community", community)
+        }
         await bfetch(`${appUrl}/communities/${communityID}`, {
           method: 'PUT',
           headers: {
@@ -85,20 +84,19 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
         }).then(() => refetch())
       } catch (e) {
         console.error('could not update the community data', e)
-        setError(new Error(`could not update the community data: ${(e as Error).toString()}`))
+        setError(new Error(`could not update the community data`))
       }
     },
     [bfetch, community, refetch, communityID]
   )
 
+  // Reset form when community changes
   useEffect(() => {
     if (community) methods.reset(community)
   }, [community])
 
-  if (!isAuthenticated) return null
-  if (!community) return null
-  if (!props.isOpen) return null
-  if (!props.onClose) return null
+  // Modal should not be rendered in some cases
+  if (!isAuthenticated || !community || !props.isOpen || !props.onClose) return
 
   return (
     <Modal
@@ -117,10 +115,12 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
         <FormProvider {...methods}>
           <ModalBody mt={2} mb={6}>
             <VStack gap={6}>
-              {!!error && <Alert status='warning'>
-                <AlertIcon/>
-                { error.toString() }
-              </Alert>}
+              {!!error && (
+                <Alert status='warning'>
+                  <AlertIcon />
+                  {error.toString()}
+                </Alert>
+              )}
               <Meta />
               <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
                 <VStack alignItems={'start'}>
@@ -167,7 +167,9 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
             </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button mt={4} colorScheme='teal' isLoading={methods.formState.isSubmitting} type='submit'>Submit</Button>
+            <Button mt={4} colorScheme='teal' isLoading={methods.formState.isSubmitting} type='submit'>
+              Submit
+            </Button>
           </ModalFooter>
         </FormProvider>
       </ModalContent>
