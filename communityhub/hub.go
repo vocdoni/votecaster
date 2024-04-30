@@ -271,6 +271,9 @@ func (l *CommunityHub) Community(communityID uint64) (*HubCommunity, error) {
 // remains as an admin after the update. If something goes wrong, it returns an
 // error.
 func (l *CommunityHub) SetCommunity(communityID uint64, newData *HubCommunity) (*HubCommunity, error) {
+	if l.privKey == nil {
+		return nil, ErrNoPrivKeyConfigured
+	}
 	// get the current community data from the contract
 	community, err := l.Community(communityID)
 	if err != nil {
@@ -380,6 +383,9 @@ func (l *CommunityHub) Results(communityID uint64, electionID []byte) (*HubResul
 // election IDs provided. If something goes wrong setting the results in the
 // contract, it returns an error.
 func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results *HubResults) error {
+	if l.privKey == nil {
+		return ErrNoPrivKeyConfigured
+	}
 	transactOpts, err := l.authTransactOpts()
 	if err != nil {
 		return err
@@ -406,65 +412,6 @@ func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results
 			CensusURI:        results.CensusURI,
 		}); err != nil {
 		return errors.Join(ErrSettingResults, err)
-	}
-	return nil
-}
-
-// SetStatus method set the disable community attribute in the contract by the
-// community ID provided. If something goes wrong disabling the community in
-// the contract, it returns an error.
-func (l *CommunityHub) SetStatus(communityID uint64, disabled bool) error {
-	transactOpts, err := l.authTransactOpts()
-	if err != nil {
-		return err
-	}
-	// convert the community ID to a *big.Int
-	bCommunityID := new(big.Int).SetUint64(communityID)
-	// get the community data from the contract
-	community, err := l.contract.GetCommunity(nil, bCommunityID)
-	if err != nil {
-		return err
-	}
-	// disable the community in the contract
-	_, err = l.contract.AdminManageCommunity(transactOpts,
-		bCommunityID,
-		community.Metadata,
-		community.Census,
-		community.Guardians,
-		community.CreateElectionPermission,
-		disabled)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// SetNotifications method disables the community in the contract by the
-// community ID provided. If something goes wrong disabling the community in
-// the contract, it returns an error.
-func (l *CommunityHub) SetNotifications(communityID uint64, enabled bool) error {
-	transactOpts, err := l.authTransactOpts()
-	if err != nil {
-		return err
-	}
-	// convert the community ID to a *big.Int
-	bCommunityID := new(big.Int).SetUint64(communityID)
-	// get the community data from the contract
-	community, err := l.contract.GetCommunity(nil, bCommunityID)
-	if err != nil {
-		return err
-	}
-	community.Metadata.Notifications = enabled
-	// disable the community in the contract
-	_, err = l.contract.AdminManageCommunity(transactOpts,
-		bCommunityID,
-		community.Metadata,
-		community.Census,
-		community.Guardians,
-		community.CreateElectionPermission,
-		community.Disabled)
-	if err != nil {
-		return err
 	}
 	return nil
 }
