@@ -15,7 +15,7 @@ const CommunityPoll = () => {
   const [loaded, setLoaded] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
-  const [pollResults, setResults] = useState<PollResult | null>(null)
+  const [pollResults, setResults] = useState<PollInfo | null>(null)
   const [voters, setVoters] = useState<string[]>([])
 
   useEffect(() => {
@@ -27,22 +27,30 @@ const CommunityPoll = () => {
         const provider = new ethers.JsonRpcProvider(degenChainRpc)
         const communityHubContract = CommunityHub__factory.connect(degenContractAddress, provider)
         const contractData = await communityHubContract.getResult(communityId, toArrayBuffer(electionId))
+        console.log('received contract data:', contractData.options)
         let voteCount = 0
         if (contractData.date !== '') {
           const participants = contractData.participants.map((p) => parseInt(p.toString()))
           const tally = contractData.tally.map((t) => t.map((v) => parseInt(v.toString())))
+          const date = new Date(contractData.date.replace(/[UTC|CEST]+ m=\+[\d.]+$/, ''))
+
           setResults({
-            censusRoot: contractData.censusRoot,
-            censusURI: contractData.censusURI,
-            endTime: new Date(contractData.date.replace(/[UTC|CEST]+ m=\+[\d.]+$/, '')),
-            options: contractData.options,
+            ...contractData,
+            electionId,
             participants: participants,
-            question: contractData.question,
             tally: tally,
             turnout: parseFloat(contractData.turnout.toString()),
             voteCount: contractData.participants.length,
             finalized: true,
+            endTime: date,
+            // although it is already setted, we need to set it again to avoid type issues
+            options: contractData.options,
             // TODO: get this from the contract or api
+            totalWeight: contractData.participants.reduce((acc, p) => acc + parseInt(p.toString()), 0),
+            lastVoteTime: date,
+            createdByUsername: '',
+            createdByDisplayname: '',
+            createdTime: date,
             censusParticipantsCount: Number(contractData.totalVotingPower),
           })
           voteCount = contractData.participants.length
@@ -54,17 +62,12 @@ const CommunityPoll = () => {
             tally[0].push(parseInt(t))
           })
           setResults({
-            censusRoot: '',
-            censusURI: '',
+            ...apiData,
+            totalWeight: Number(apiData.totalWeight),
             endTime: new Date(apiData.endTime),
-            options: apiData.options,
-            participants: apiData.participants,
-            question: apiData.question,
+            createdTime: new Date(apiData.createdTime),
+            lastVoteTime: new Date(apiData.lastVoteTime),
             tally: tally,
-            turnout: apiData.turnout,
-            voteCount: apiData.voteCount,
-            finalized: apiData.finalized,
-            censusParticipantsCount: apiData.censusParticipantsCount,
           })
           voteCount = apiData.voteCount
           console.info('results gathered from api')

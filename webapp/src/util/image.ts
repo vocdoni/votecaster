@@ -8,6 +8,10 @@ export const drawImage = (image: HTMLImageElement, crop: Crop) => {
   canvas.height = crop.height
   const ctx = canvas.getContext('2d')
 
+  if (!ctx) {
+    throw new Error('Could not get the 2d context')
+  }
+
   // New coordinates for the cropped area
   ctx.drawImage(
     image,

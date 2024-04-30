@@ -12,15 +12,17 @@ const Poll = () => {
     data: results,
     isLoading: rLoading,
     error,
-  } = useQuery({
+  } = useQuery<PollResponse, Error, PollInfo>({
     queryKey: ['poll', electionId],
-    queryFn: fetchPollInfo(bfetch, electionId),
-    select: (data) => ({
+    queryFn: fetchPollInfo(bfetch, electionId!),
+    enabled: !!electionId && electionId.length > 0,
+    select: (data: PollResponse) => ({
       ...data,
-      censusRoot: '',
-      censusURI: '',
       endTime: new Date(data.endTime),
+      lastVoteTime: new Date(data.lastVoteTime),
+      createdTime: new Date(data.createdTime),
       tally: data.tally ? [data.tally.map((t) => parseInt(t))] : [[]],
+      totalWeight: Number(data.totalWeight),
     }),
   })
 
@@ -30,7 +32,7 @@ const Poll = () => {
     error: vError,
   } = useQuery({
     queryKey: ['voters', electionId],
-    queryFn: fetchPollsVoters(bfetch, electionId),
+    queryFn: fetchPollsVoters(bfetch, electionId!),
     enabled: !!results && results?.voteCount > 0,
   })
 
@@ -38,9 +40,9 @@ const Poll = () => {
     <PollView
       onChain={false}
       loading={rLoading || vLoading}
-      poll={results}
+      poll={results || null}
       voters={voters || []}
-      errorMessage={error || vError}
+      errorMessage={error?.toString() || vError?.toString() || null}
       electionId={electionId}
     />
   )

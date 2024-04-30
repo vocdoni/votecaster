@@ -1,8 +1,8 @@
 import { appUrl } from '~constants'
 
-export const fetchPollInfo = (bfetch: FetchFunction, electionID: string) => async (): Promise<PollInfo> => {
+export const fetchPollInfo = (bfetch: FetchFunction, electionID: string) => async (): Promise<PollResponse> => {
   const response = await bfetch(`${appUrl}/poll/info/${electionID}`)
-  const { poll } = (await response.json()) as { poll: PollInfo }
+  const { poll } = (await response.json()) as { poll: PollResponse }
   return poll
 }
 
