@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/vocdoni/vote-frame/features"
+	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
 	"github.com/vocdoni/vote-frame/shortener"
@@ -267,7 +268,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 	}
 
 	if !finalized { // election is not finalized, so we need to fetch the results from the Vochain API and update the database
-		results, err = v.updateAndFetchResultsFromDatabase(electionID, dbElection.CensusERC20TokenDecimals, nil)
+		results, err = v.updateAndFetchResultsFromDatabase(electionID, nil)
 		if err != nil {
 			return fmt.Errorf("failed to update/fetch results: %w", err)
 		}
@@ -292,7 +293,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		Question:                dbElection.Question,
 		CastedVotes:             dbElection.CastedVotes,
 		CensusParticipantsCount: uint64(dbElection.FarcasterUserCount),
-		Turnout:                 int(calculateTurnout(census.TotalWeight, dbElection.CastedWeight).Int64()),
+		Turnout:                 helpers.CalculateTurnout(census.TotalWeight, dbElection.CastedWeight),
 		Username:                username,
 		Displayname:             displayname,
 		TotalWeight:             census.TotalWeight,
@@ -301,6 +302,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		Choices:                 results.Choices,
 		Votes:                   results.Votes,
 		Finalized:               results.Finalized,
+		Community:               dbElection.Community,
 	}
 
 	jresponse, err := json.Marshal(map[string]any{
@@ -457,7 +459,7 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 			return fmt.Errorf("failed to create election: %w", err)
 		}
 		if err := v.saveElectionAndProfile(election, profile, source, desc.UsersCount,
-			desc.UsersCountInitial, census.TokenDecimals, communityID); err != nil {
+			desc.UsersCountInitial, communityID); err != nil {
 			return fmt.Errorf("failed to save election and profile: %w", err)
 		}
 		if notify {
@@ -508,7 +510,7 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 	election *api.Election,
 	profile *FarcasterProfile,
 	source string,
-	usersCount, usersCountInitial, tokenDecimals uint32,
+	usersCount, usersCountInitial uint32,
 	communityID *uint64,
 ) error {
 	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
@@ -534,7 +536,6 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 		election.Metadata.Title["default"],
 		usersCount,
 		usersCountInitial,
-		tokenDecimals,
 		election.EndDate,
 		community); err != nil {
 		return fmt.Errorf("failed to add election to database: %w", err)
@@ -566,39 +567,32 @@ func (v *vocdoniHandler) finalizeElectionsAtBackround(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(120 * time.Second):
-			electionIDs, err := v.db.ElectionsWithoutResults(ctx)
+		case <-time.After(60 * time.Second):
+			electionIDs, err := v.db.ElectionsWithoutResults()
 			if err != nil {
 				log.Errorw(err, "failed to get elections without results")
 				continue
 			}
-			if len(electionIDs) > 0 {
-				log.Debugw("found elections without results", "count", len(electionIDs))
-			}
 			for _, electionID := range electionIDs {
-				time.Sleep(5 * time.Second)
 				electionIDbytes, err := hex.DecodeString(electionID)
 				if err != nil {
-					log.Errorw(err, "failed to decode electionID")
+					log.Errorw(err, fmt.Sprintf("failed to decode electionID: %s", electionID))
 					continue
 				}
 				election, err := v.cli.Election(electionIDbytes)
 				if err != nil {
-					log.Errorw(err, fmt.Sprintf("failed to get election %s", electionID))
-					continue
-				}
-				electionMeta, err := v.db.Election(electionIDbytes)
-				if err != nil {
-					log.Errorw(err, "failed to get election from database")
+					log.Errorw(err, fmt.Sprintf("failed to get election from API: %s", electionID))
 					continue
 				}
 				if election.FinalResults {
-					_, err := v.finalizeElectionResults(election, electionMeta)
+					electiondb, err := v.db.Election(electionIDbytes)
 					if err != nil {
-						log.Errorw(err, "failed to finalize election results")
+						log.Errorw(err, fmt.Sprintf("failed to get election from database: %x", electionIDbytes))
 						continue
 					}
-					log.Infow("finalized election", "electionID", electionID)
+					if _, err = v.finalizeElectionResults(election, electiondb); err != nil {
+						log.Errorw(err, fmt.Sprintf("failed to finalize election results: %x", electionIDbytes))
+					}
 				}
 			}
 		}

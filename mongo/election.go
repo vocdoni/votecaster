@@ -17,7 +17,7 @@ func (ms *MongoStorage) AddElection(
 	userFID uint64,
 	source string,
 	question string,
-	usersCount, usersCountInitial, tokenDecimals uint32,
+	usersCount, usersCountInitial uint32,
 	endTime time.Time,
 	community *ElectionCommunity,
 ) error {
@@ -33,10 +33,7 @@ func (ms *MongoStorage) AddElection(
 		FarcasterUserCount:    usersCount,
 		InitialAddressesCount: usersCountInitial,
 		Question:              question,
-		ElectionMeta: ElectionMeta{
-			CensusERC20TokenDecimals: tokenDecimals,
-		},
-		Community: community,
+		Community:             community,
 	}
 	log.Infow("added new election", "electionID", electionID.String(), "userID", userFID, "question", question)
 	return ms.addElection(&election)

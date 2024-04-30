@@ -17,10 +17,9 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { FaBell, FaEyeSlash } from 'react-icons/fa6'
-import { fetchCommunity } from '../../queries/communities'
-import { appUrl } from '../../util/constants'
-import type { Community } from '../../util/types'
-import { useAuth } from '../Auth/useAuth'
+import { useAuth } from '~components/Auth/useAuth'
+import { appUrl } from '~constants'
+import { fetchCommunity } from '~queries/communities'
 
 export type ManageCommunityProps = {
   communityID: number
@@ -44,7 +43,6 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
   if (!props.onClose) return null
 
   const switchNotifications = async () => {
-    console.log('switching notifications')
     try {
       setLoadingNotifications(true)
       await bfetch(`${appUrl}/communities/${community.id}/notifications?enabled=${!community.notifications}`, {
@@ -57,7 +55,6 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
   }
 
   const switchStatus = async () => {
-    console.log('switching status')
     try {
       setLoadingStatus(true)
       await bfetch(`${appUrl}/communities/${community.id}/status?disabled=${!community.disabled}`, {

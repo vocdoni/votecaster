@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
-	"math/big"
 	"net/http"
 	"os"
 	"path"
@@ -14,6 +12,8 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/vocdoni/vote-frame/helpers"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/log"
 )
@@ -92,8 +92,9 @@ type ImageRequest struct {
 	Question      string   `json:"question,omitempty"`
 	Choices       []string `json:"choices,omitempty"`
 	Results       []string `json:"results,omitempty"`
-	VoteCount     int      `json:"voteCount,omitempty"`
-	MaxCensusSize int      `json:"maxCensusSize,omitempty"`
+	VoteCount     uint64   `json:"voteCount"`
+	Participation float32  `json:"participation"`
+	Turnout       float32  `json:"turnout"`
 }
 
 // ErrorImage creates an image representing an error message.
@@ -170,7 +171,10 @@ func QuestionImage(election *api.Election) (string, error) {
 }
 
 // ResultsImage creates an image showing the results of a poll.
-func ResultsImage(election *api.Election, censusTokenDecimals uint32) (string, error) {
+// It returns the image id that can be fetch using FromCache(id).
+// The totalWeightStr is the total weight of the census, if empty Turnout is not calculated.
+// The electiondb is the election data from the database, if nil the participation is not calculated.
+func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeightStr string) (string, error) {
 	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
 		return "", fmt.Errorf("election has no questions")
 	}
@@ -179,33 +183,36 @@ func ResultsImage(election *api.Election, censusTokenDecimals uint32) (string, e
 		return id, nil
 	}
 
-	title := election.Metadata.Questions[0].Title["default"]
+	participation := float32(0)
+	weightTurnout := float32(0)
 
-	choices := []string{}
-	results := []string{}
-	for _, option := range election.Metadata.Questions[0].Choices {
-		choices = append(choices, option.Title["default"])
-		value := ""
-		if censusTokenDecimals > 0 {
-			resultsValueFloat := new(big.Float).Quo(
-				new(big.Float).SetInt(election.Results[0][option.Value].MathBigInt()),
-				new(big.Float).SetInt(big.NewInt(int64(math.Pow(10, float64(censusTokenDecimals))))),
-			)
-			value = fmt.Sprintf("%.2f", resultsValueFloat)
-		} else {
-			value = election.Results[0][option.Value].MathBigInt().String()
+	if electiondb != nil {
+		if electiondb.FarcasterUserCount > 0 {
+			participation = (float32(election.VoteCount) * 100) / float32(electiondb.FarcasterUserCount)
 		}
-		results = append(results, value)
+		weightTurnout = helpers.CalculateTurnout(totalWeightStr, electiondb.CastedWeight)
 	}
+
+	title := election.Metadata.Questions[0].Title["default"]
+	choices, results := helpers.ExtractResults(election, 0)
 
 	requestData := ImageRequest{
 		Type:          "results",
 		Question:      title,
 		Choices:       choices,
-		Results:       results,
-		VoteCount:     int(election.VoteCount),
-		MaxCensusSize: int(election.Census.MaxCensusSize),
+		Results:       helpers.BigIntsToStrings(results),
+		VoteCount:     election.VoteCount,
+		Participation: participation,
+		Turnout:       weightTurnout,
 	}
+	log.Debugw("requesting results image",
+		"type", requestData.Type,
+		"question", requestData.Question,
+		"choices", requestData.Choices,
+		"results", requestData.Results,
+		"voteCount", requestData.VoteCount,
+		"participation", requestData.Participation,
+		"turnout", requestData.Turnout)
 
 	go func() {
 		png, err := makeRequest(requestData)
@@ -259,22 +266,34 @@ func NotificationsErrorImage() string {
 	return AddImageToCache(backgroundFrames[BackgroundNotificationsError])
 }
 
-// makeRequest handles the communication with the API.
+// makeRequest handles the communication with the API, with retries on failure.
 func makeRequest(data ImageRequest) ([]byte, error) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
-	startTime := time.Now()
-	response, err := http.Post(fmt.Sprintf("%s/image", ImageGeneratorURL), "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-	log.Debugw("image request", "type", data.Type, "elapsed (s)", time.Since(startTime).Seconds())
-	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request failed with status code: %d", response.StatusCode)
+
+	maxAttempts := 5
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		response, err := http.Post(fmt.Sprintf("%s/image", ImageGeneratorURL), "application/json", bytes.NewBuffer(jsonData))
+		if err == nil && response.StatusCode == http.StatusOK {
+			defer response.Body.Close()
+			return io.ReadAll(response.Body)
+		}
+
+		if response != nil {
+			response.Body.Close() // Ensure the response body is closed on each attempt.
+		}
+
+		if attempt < maxAttempts {
+			sleepDuration := time.Duration(attempt*2) * time.Second // Exponential back-off strategy
+			time.Sleep(sleepDuration)
+			log.Debugw("retrying image request", "attempt", attempt, "sleepDuration", sleepDuration)
+		} else {
+			log.Debugw("image request failed after retries", "type", data.Type, "attempts", maxAttempts)
+			break
+		}
 	}
 
-	return io.ReadAll(response.Body)
+	return nil, fmt.Errorf("image generation API request failed")
 }

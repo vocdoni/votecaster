@@ -1,20 +1,21 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/vocdoni/vote-frame/imageframe"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
-	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 )
 
-var oldImagesHandlerMap = map[string]string{
-	"08d56a13ee330b927b7d181a3ee17de580e265ca51ac5b0728c2a272712585bd": "4ae20a8eb4caa52f5588f7bb9f3c6d6b7cf003a5b03f4589edea1000000000a2",
-}
+var imageTypeRgx = regexp.MustCompile(`^data:(image/[a-z]+);base64,`)
 
 func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	id := ctx.URLParam("id")
@@ -25,33 +26,6 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	idSplit := strings.Split(id, "_")
 	var electionID types.HexBytes
 	var err error
-	if len(idSplit) != 2 {
-		// for backwards compatibility, check if the id is in the oldImagesHandlerMap
-		// remove this code after some weeks
-		if eid, ok := oldImagesHandlerMap[id]; ok {
-			log.Warnw("old PNG match", "id", id)
-			electionID, err = hex.DecodeString(eid)
-			if err != nil {
-				return errorImageResponse(ctx, fmt.Errorf("nothing here... click results"))
-			}
-			election, err := v.election(electionID)
-			if err != nil {
-				return errorImageResponse(ctx, fmt.Errorf("id not found... click results"))
-			}
-			electiondb, err := v.db.Election(electionID)
-			if err != nil {
-				return errorImageResponse(ctx, fmt.Errorf("id not found... click results"))
-			}
-			id, err := imageframe.ResultsImage(election, electiondb.CensusERC20TokenDecimals)
-			if err != nil {
-				return errorImageResponse(ctx, fmt.Errorf("failed to build results: %w", err))
-			}
-			return imageResponse(ctx, imageframe.FromCache(id))
-		} else {
-			log.Debugw("access to old PNG", "requestURI", ctx.Request.RequestURI, "url", ctx.Request.URL)
-			return errorImageResponse(ctx, fmt.Errorf("nothing here... click results"))
-		}
-	}
 
 	electionID, err = hex.DecodeString(idSplit[0])
 	if err != nil {
@@ -60,7 +34,6 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	// check if the election is finished and if so, send the final results as a static PNG
 	pngResults := v.db.FinalResultsPNG(electionID)
 	if pngResults != nil {
-		log.Warnw("image recovery, found final results PNG!", "electionID", electionID, "imgID", id)
 		// for future requests, add the image to the cache with the given id
 		imageframe.AddImageToCacheWithID(id, pngResults)
 		return imageResponse(ctx, pngResults)
@@ -75,7 +48,6 @@ func (v *vocdoniHandler) imagesHandler(msg *apirest.APIdata, ctx *httprouter.HTT
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to build landing: %w", err))
 	}
-	log.Warnw("image recovery, built landing PNG", "electionID", electionID, "imgID", id)
 	return imageResponse(ctx, imageframe.FromCache(png))
 }
 
@@ -102,8 +74,60 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	return imageResponse(ctx, imageframe.FromCache(png))
 }
 
+// avatarHandler returns the avatar image with the given avatarID.
+func (v *vocdoniHandler) avatarHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	avatarID := ctx.URLParam("avatarID")
+	if avatarID == "" {
+		return ctx.Send([]byte{}, 400)
+	}
+	avatar, err := v.db.Avatar(avatarID)
+	if err != nil {
+		if err == mongo.ErrAvatarUnknown {
+			return ctx.Send([]byte{}, 404)
+		}
+		return fmt.Errorf("failed to get avatar: %w", err)
+	}
+	// return the avatar image as is
+	ctx.SetResponseContentType(avatar.ContentType)
+	// decode base64 image and return it
+	png, err := base64.StdEncoding.DecodeString(string(avatar.Data))
+	if err != nil {
+		return fmt.Errorf("failed to decode image: %w", err)
+	}
+	return ctx.Send(png, 200)
+}
+
+// uploadAvatarHandler uploads the avatar image with the given avatarID,
+// associated to the user that is making the request and the communityID
+// provided.
+func (v *vocdoniHandler) updloadAvatarHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// extract userFID from auth token
+	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
+	if err != nil {
+		return fmt.Errorf("cannot get user from auth token: %w", err)
+	}
+	req := struct {
+		AvatarID    string `json:"id"`
+		CommunityID uint64 `json:"communityID"`
+		Data        string `json:"data"`
+	}{}
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		return fmt.Errorf("cannot parse request: %w", err)
+	}
+	imageTypeResults := imageTypeRgx.FindStringSubmatch(req.Data)
+	if len(imageTypeResults) != 2 {
+		return ctx.Send([]byte("bad formatted image"), 400)
+	}
+	prefix, contentType := imageTypeResults[0], imageTypeResults[1]
+	// remove the prefix from the image data
+	req.Data, _ = strings.CutPrefix(req.Data, prefix)
+	if err := v.db.SetAvatar(req.AvatarID, []byte(req.Data), userFID, req.CommunityID, contentType); err != nil {
+		return fmt.Errorf("cannot set avatar: %w", err)
+	}
+	return ctx.Send([]byte{}, 200)
+}
+
 func imageResponse(ctx *httprouter.HTTPContext, png []byte) error {
-	log.Debugw("sending image response", "size", len(png))
 	defer ctx.Request.Body.Close()
 	if ctx.Request.Context().Err() != nil {
 		// The connection was closed, so don't try to write to it.

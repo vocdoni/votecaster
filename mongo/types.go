@@ -10,6 +10,7 @@ import (
 
 var (
 	ErrUserUnknown     = fmt.Errorf("user unknown")
+	ErrAvatarUnknown   = fmt.Errorf("avatar unknown")
 	ErrElectionUnknown = fmt.Errorf("electionID unknown")
 )
 
@@ -53,7 +54,6 @@ type ElectionCommunity struct {
 
 // Election represents an election and its details owned by a user.
 type Election struct {
-	ElectionMeta
 	ElectionID            string             `json:"electionId" bson:"_id"`
 	UserID                uint64             `json:"userId" bson:"userId"`
 	CastedVotes           uint64             `json:"castedVotes" bson:"castedVotes"`
@@ -73,7 +73,6 @@ type Census struct {
 	CensusID           string            `json:"censusId" bson:"_id"`
 	Root               string            `json:"root" bson:"root"`
 	ElectionID         string            `json:"electionId" bson:"electionId"`
-	TokenDecimals      uint32            `json:"tokenDecimals" bson:"tokenDecimals"`
 	Participants       map[string]string `json:"participants" bson:"participants"`
 	FromTotalAddresses uint32            `json:"fromTotalAddresses" bson:"fromTotalAddresses"`
 	CreatedBy          uint64            `json:"createdBy" bson:"createdBy"`
@@ -143,6 +142,7 @@ type Collection struct {
 	VotersOfElectionCollection
 	CensusCollection
 	CommunitiesCollection
+	AvatarsCollection
 }
 
 // UserCollection is a dataset containing several users (used for dump and import).
@@ -173,6 +173,11 @@ type VotersOfElectionCollection struct {
 // CommunitiesCollection is a dataset containing several communities (used for dump and import).
 type CommunitiesCollection struct {
 	Communities []Community `json:"communities" bson:"communities"`
+}
+
+// AvatarsCollection is a dataset containing several avatars from users and communities (used for dump and import).
+type AvatarsCollection struct {
+	Avatars []Avatar `json:"avatars" bson:"avatars"`
 }
 
 // UserRanking is a user ranking entry.
@@ -233,6 +238,17 @@ type CommunityCensus struct {
 type CommunityCensusAddresses struct {
 	Address    string `json:"address" bson:"address"`
 	Blockchain string `json:"blockchain" bson:"blockchain"`
+}
+
+// Avatar represents an avatar image. Includes the avatar ID and the image data
+// as a byte array.
+type Avatar struct {
+	ID          string    `json:"id" bson:"_id"`
+	Data        []byte    `json:"data" bson:"data"`
+	CreatedAt   time.Time `json:"createdAt" bson:"createdAt"`
+	UserID      uint64    `json:"userId" bson:"userId"`
+	CommunityID uint64    `json:"communityId" bson:"communityId"`
+	ContentType string    `json:"contentType" bson:"contentType"`
 }
 
 // dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.

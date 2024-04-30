@@ -31,15 +31,14 @@ import { MdHowToVote } from 'react-icons/md'
 import { SiFarcaster } from 'react-icons/si'
 import { TbExternalLink } from 'react-icons/tb'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
-import { fetchPollsByCommunity } from '../../queries/tops'
-import { degenContractAddress } from '../../util/constants'
-import { humanDate } from '../../util/strings'
-import { Community, Poll } from '../../util/types'
-import { useAuth } from '../Auth/useAuth'
+import { useAuth } from '~components/Auth/useAuth'
+import { degenContractAddress } from '~constants'
+import { fetchPollsByCommunity } from '~queries/tops'
+import { humanDate } from '~util/strings'
 import { ManageCommunity } from './Manage'
 
-export type CommunitiesViewProps = {
-  community: Community
+type CommunitiesViewProps = {
+  community?: Community
 }
 
 const WhiteBox = ({ children }: PropsWithChildren) => (
@@ -69,13 +68,13 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
   })
   const navigate = useNavigate() // Hook to control navigation
   const imAdmin = useMemo(
-    () => isAuthenticated && community.admins.some((admin) => admin.fid == profile?.fid),
+    () => isAuthenticated && community?.admins.some((admin) => admin.fid == profile?.fid),
     [isAuthenticated, community, profile]
   )
   if (!community) return
 
   const channelLinks: ReactElement[] = []
-  community.channels.forEach((channel, index) => {
+  community.channels.forEach((channel, index: number) => {
     channelLinks.push(
       <Link
         key={`link-${channel}`}
@@ -233,7 +232,9 @@ export const CommunitiesView = ({ community }: CommunitiesViewProps) => {
 }
 
 export const CommunityAdmins = ({ community }: CommunitiesViewProps) => {
-  return community.admins.map((admin, k) => (
+  if (!community) return
+
+  return community.admins.map((admin: Profile, k: number) => (
     <Fragment key={k}>
       <Link isExternal href={`https://warpcast.com/${admin.username}`}>
         {admin.displayName || admin.username}

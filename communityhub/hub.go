@@ -25,10 +25,6 @@ import (
 // scan iterations
 const DefaultScannerCooldown = time.Second * 5
 
-// zeroHexAddr is the zero address in hex format used to find new communities,
-// discarding empty responses from the contract
-const zeroHexAddr = "0x0000000000000000000000000000000000000000"
-
 // CommunityHubConfig struct defines the configuration for the CommunityHub.
 // It includes the contract address, the chain ID where the contract is
 // deployed, a database instance, and the scanner cooldown (by default 10s

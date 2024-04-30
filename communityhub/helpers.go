@@ -1,8 +1,6 @@
 package communityhub
 
 import (
-	"math/big"
-
 	comhub "github.com/vocdoni/vote-frame/communityhub/contracts/communityhubtoken"
 )
 
@@ -48,54 +46,4 @@ func contractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, 
 		return nil, ErrUnknownCensusType
 	}
 	return community, nil
-}
-
-// hubToContract converts a internal community struct (HubCommunity) to a
-// contract community struct (ICommunityHubCommunity)
-func hubToContract(hub *HubCommunity) (comhub.ICommunityHubCommunity, error) {
-	// check the census type
-	switch hub.CensusType {
-	case CensusTypeChannel:
-		if hub.CensusChannel == "" {
-			return comhub.ICommunityHubCommunity{}, ErrNoChannelProvided
-		}
-	case CensusTypeERC20, CensusTypeNFT:
-		if len(hub.CensusAddesses) == 0 {
-			return comhub.ICommunityHubCommunity{}, ErrBadCensusAddressees
-		}
-	default:
-		return comhub.ICommunityHubCommunity{}, ErrUnknownCensusType
-	}
-	// convert the census addresses to a []*comhub.ICommunityHubTokenCensusToken
-	censusTokens := []comhub.ICommunityHubToken{}
-	for _, addr := range hub.CensusAddesses {
-		censusTokens = append(censusTokens, comhub.ICommunityHubToken{
-			ContractAddress: addr.Address,
-			Blockchain:      addr.Blockchain,
-		})
-	}
-	// convert the admins to a []*big.Int
-	guardians := []*big.Int{}
-	for _, admin := range hub.Admins {
-		guardians = append(guardians, new(big.Int).SetUint64(admin))
-	}
-	// create the contract community
-	return comhub.ICommunityHubCommunity{
-		Metadata: comhub.ICommunityHubCommunityMetadata{
-			Name:          hub.Name,
-			ImageURI:      hub.ImageURL,
-			GroupChatURL:  hub.GroupChatURL,
-			Channels:      hub.Channels,
-			Notifications: hub.Notifications,
-		},
-		Guardians: guardians,
-		Census: comhub.ICommunityHubCensus{
-			CensusType: contractCensusTypes[hub.CensusType],
-			Channel:    hub.CensusChannel,
-			Tokens:     censusTokens,
-		},
-		Disabled:                 hub.Disabled,
-		CreateElectionPermission: hub.createElectionPermission,
-		Funds:                    hub.funds,
-	}, nil
 }

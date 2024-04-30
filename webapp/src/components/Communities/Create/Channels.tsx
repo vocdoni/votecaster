@@ -1,13 +1,12 @@
 import { Box, FormControl, FormErrorMessage, FormLabel, Heading, Image, Text } from '@chakra-ui/react'
-import { AsyncSelect } from 'chakra-react-select'
+import { AsyncSelect, chakraComponents as components, GroupBase, OptionProps } from 'chakra-react-select'
 import { useState } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
-import { components } from 'react-select'
-import { fetchChannelQuery } from '../../../queries/channels'
-import { useAuth } from '../../Auth/useAuth'
+import { useAuth } from '~components/Auth/useAuth'
+import { fetchChannelQuery } from '~queries/channels'
 
 // CustomOption Component
-const CustomOption = (props) => {
+const CustomOption = (props: OptionProps<any, false, GroupBase<any>>) => {
   return (
     <components.Option {...props}>
       <Box display='flex' alignItems='center'>
@@ -26,13 +25,14 @@ const CustomOption = (props) => {
 }
 
 export type ChannelsFormValues = {
-  channels: { label: string; value: string }[]
+  channels: { label: string; value: string; image: string }[]
 }
 
 export const Channels = () => {
   const {
     formState: { errors },
     setError,
+    clearErrors,
   } = useFormContext<ChannelsFormValues>()
   const [loading, setLoading] = useState<boolean>(false)
   const { bfetch } = useAuth()
@@ -48,8 +48,9 @@ export const Channels = () => {
         render={({ field }) => (
           <AsyncSelect
             id='channels'
-            isMulti
             size='sm'
+            // @ts-expect-error bad typing definition (allows false or undefined but not true, which is false)
+            isMulti
             isLoading={loading}
             noOptionsMessage={() => 'No channels found'}
             placeholder='Search and add channels'
@@ -57,6 +58,7 @@ export const Channels = () => {
             components={{ Option: CustomOption }}
             loadOptions={async (inputValue) => {
               try {
+                clearErrors('channels')
                 setLoading(true)
                 return (await fetchChannelQuery(bfetch)(inputValue)).map((channel) => ({
                   label: channel.name,
@@ -68,6 +70,7 @@ export const Channels = () => {
                 if (e instanceof Error) {
                   setError('channels', { message: e.message })
                 }
+                return []
               } finally {
                 setLoading(false)
               }

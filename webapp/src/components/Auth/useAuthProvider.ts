@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { appUrl } from '../../util/constants'
-import type { Profile } from '../../util/types'
+import { appUrl } from '~constants'
+
 interface AuthState {
   isAuthenticated: boolean
   bearer: string | null

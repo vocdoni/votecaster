@@ -40,12 +40,17 @@ func (c *Client) TokenDetails(
 			time.Sleep(time.Second * 3)
 			continue
 		}
+		if len(resp.Tokens.GetToken()) != 1 {
+			return nil, fmt.Errorf("invalid token details response from Airstack")
+		}
+		td := resp.GetTokens()
+		td.GetToken()
 		totalSupply := new(big.Int)
-		totalSupply.SetString(resp.Token.TotalSupply, 10)
+		totalSupply.SetString(resp.Tokens.GetToken()[0].TotalSupply, 10)
 		return &TokenDetails{
-			Decimals:    resp.Token.Decimals,
-			Name:        resp.Token.Name,
-			Symbol:      resp.Token.Symbol,
+			Decimals:    resp.Tokens.GetToken()[0].Decimals,
+			Name:        resp.Tokens.GetToken()[0].Name,
+			Symbol:      resp.Tokens.GetToken()[0].Symbol,
 			TotalSupply: totalSupply,
 		}, nil
 	}

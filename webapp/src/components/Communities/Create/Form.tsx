@@ -1,19 +1,18 @@
 import { Alert, AlertDescription, Box, Flex, Heading, Text, VStack } from '@chakra-ui/react'
-import { id } from '@ethersproject/hash'
-import { BrowserProvider, ContractTransactionReceipt } from 'ethers'
+import { BrowserProvider } from 'ethers'
 import { useCallback, useEffect, useState } from 'react'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
 import { useAccount, useBalance, useWalletClient, type UseWalletClientReturnType } from 'wagmi'
-import { CommunityHub__factory } from '../../../typechain'
-import { CommunityHubInterface, ICommunityHub } from '../../../typechain/src/CommunityHub.ts'
-import { degenContractAddress } from '../../../util/constants'
-import { censusTypeToEnum } from '../../../util/types.ts'
-import { CensusFormValues } from '../../CensusTypeSelector'
+import { useAuth } from '~components/Auth/useAuth'
+import { CensusFormValues } from '~components/CensusTypeSelector'
+import { appUrl, degenContractAddress } from '~constants'
+import { CommunityHub__factory, ICommunityHub } from '~typechain'
+import { censusTypeToEnum } from '~util/types'
 import { CensusSelector } from './CensusSelector'
 import { Channels } from './Channels'
 import { Confirm } from './Confirm'
-import CommunityDone from './Done.tsx'
-import { GroupChat } from './GroupChat.tsx'
+import CommunityDone from './Done'
+import { GroupChat } from './GroupChat'
 import { CommunityMetaFormValues, Meta } from './Meta'
 
 export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusType' | 'channel'> &
@@ -23,6 +22,7 @@ export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusTy
   }
 
 export const CommunitiesCreateForm = () => {
+  const { bfetch } = useAuth()
   const methods = useForm<CommunityFormValues>()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,7 +76,7 @@ export const CommunitiesCreateForm = () => {
         setIsPending(true)
         const metadata: ICommunityHub.CommunityMetadataStruct = {
           name: data.name, // name
-          imageURI: data.logo, // logo uri
+          imageURI: `${appUrl}/images/avatar/${data.hash}.jpg`, // logo uri
           groupChatURL: data.groupChat ?? '', // groupChatURL
           channels: data.channels?.map((chan) => chan.value) ?? [], // channels
           notifications: true, // notifications
@@ -86,7 +86,7 @@ export const CommunitiesCreateForm = () => {
           censusType: censusTypeToEnum(data.censusType), // Census type
           tokens:
             data.addresses
-              ?.filter(({ _, address }) => address !== '')
+              ?.filter(({ address }) => address !== '')
               .map(({ blockchain, address: contractAddress }) => {
                 return {
                   blockchain,
@@ -108,7 +108,6 @@ export const CommunitiesCreateForm = () => {
           'price: ' + price,
         ])
 
-        // todo(kon): put this code on a provider and get the contract instance from there
         let signer: any
         if (walletClient && address && walletClient.account.address === address) {
           signer = await walletClientToSigner(walletClient)
@@ -117,36 +116,40 @@ export const CommunitiesCreateForm = () => {
 
         const communityHubContract = CommunityHub__factory.connect(degenContractAddress, signer)
 
-        // todo(kon): can this be moved to a reactQuery?
         const tx = await communityHubContract.createCommunity(metadata, census, guardians, createElectionPermission, {
           value: price,
         })
 
         const receipt = await tx.wait()
-
         if (!receipt) {
           throw Error('Cannot get receipt')
         }
 
         const communityHubInterface = CommunityHub__factory.createInterface()
-        const log = findLog(receipt, communityHubInterface)
-        if (!log) {
-          throw Error('Cannot get community log')
+        // get just created community id
+        const { communityID } = communityHubInterface.decodeEventLog('CommunityCreated', tx.data) as {
+          communityID: string
         }
-        // this stop working after last contract update
-        // const parsedLog = communityHubInterface.parseLog(log)
-        // const communityId = parsedLog?.args['communityId']
-        // if (!communityId) {
-        //   throw Error("Cannot get community id")
-        // }
-        // console.log("Commnuity id found", communityId, tx.hash)
-        // setCommunityId(communityId)
+        // upload image
+        const avatar = {
+          communityID,
+          id: data.hash,
+          data: data.src,
+        }
+
+        console.info('uploading avatar...', avatar)
+        await bfetch(`${appUrl}/images/avatar`, {
+          method: 'POST',
+          body: JSON.stringify(avatar),
+        })
 
         setTx(tx.hash)
       } catch (e) {
         console.error('could not create community:', e)
-        if (e instanceof Error) {
-          setError('could not create community: ' + e.message)
+        if ('shortMessage' in (e as any)) {
+          setError('Could not create community: ' + (e as any).shortMessage)
+        } else if (e instanceof Error) {
+          setError('Could not create community: ' + e.message)
         }
       } finally {
         setIsPending(false)
@@ -197,18 +200,18 @@ export const CommunitiesCreateForm = () => {
                   <Confirm
                     isLoading={isPending || isLoadingPrice || isBalanceLoading}
                     price={calcPrice}
-                    balance={userBalance}
+                    balance={userBalance as string}
                   />
+                  {error && (
+                    <Alert status='error' mt={3}>
+                      <AlertDescription whiteSpace='collapse' overflowWrap='anywhere' maxW='100%'>
+                        {error.toString()}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </Box>
               </Flex>
             </Box>
-            {error && (
-              <Alert maxW={'90vw'} status='error'>
-                <AlertDescription whiteSpace='nowrap' overflow='hidden' textOverflow='ellipsis' isTruncated>
-                  {error}
-                </AlertDescription>
-              </Alert>
-            )}
           </>
         )}
       </FormProvider>
@@ -226,10 +229,4 @@ export async function walletClientToSigner(walletClient: UseWalletClientReturnTy
   const provider = new BrowserProvider(transport, network)
   const signer = await provider.getSigner(account.address)
   return signer
-}
-
-export function findLog(receipt: ContractTransactionReceipt, iface: CommunityHubInterface) {
-  return receipt.logs.find((log) => {
-    return log.topics[0] === id(iface.getEvent('CommunityCreated').format('sighash'))
-  })
 }

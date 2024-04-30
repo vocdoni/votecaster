@@ -1,5 +1,4 @@
-import { appUrl } from '../util/constants'
-import { FetchFunction } from '../util/types'
+import { appUrl } from '~constants'
 
 export const fetchShortURL = (bfetch: FetchFunction) => async (url: string) => {
   const response = await bfetch(`${appUrl}/short?url=${url}`)

@@ -2,9 +2,7 @@ import { Box, BoxProps, Link, Stack, Tag, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { PropsWithChildren } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
-import { fetchLatestPolls, fetchPollsByVotes, fetchTopCreators, fetchTopVoters, UserRanking } from '../queries/tops'
-import type { Poll } from '../util/types'
-import { appUrl } from '../util/constants'
+import { fetchLatestPolls, fetchPollsByVotes, fetchTopCreators, fetchTopVoters } from '~queries/tops'
 import { useAuth } from './Auth/useAuth'
 import { Check } from './Check'
 
@@ -81,8 +79,8 @@ export const TopPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: stri
       {polls.map((poll, index) => (
         <Link
           key={index}
-          href={`${appUrl}/${poll.electionId}`}
-          isExternal
+          as={RouterLink}
+          to={`/poll/${poll.electionId}`}
           _hover={{
             textDecoration: 'none',
           }}
@@ -140,9 +138,9 @@ export const TopUsers = ({ users, title, ...rest }: { users: UserRanking[]; titl
     <Stack spacing={3}>
       {users.map((user, index) => (
         <Link
+          as={RouterLink}
           key={index}
-          href={`https://warpcast.com/${user.username}`}
-          isExternal
+          to={`/profile/${user.username}`}
           _hover={{
             textDecoration: 'none', // Prevents the default underline on hover
           }}

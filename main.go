@@ -82,7 +82,7 @@ func main() {
 	// Airstack flags
 	flag.String("airstackAPIEndpoint", "https://api.airstack.xyz/gql", "The Airstack API endpoint to use")
 	flag.String("airstackAPIKey", "", "The Airstack API key to use")
-	flag.String("airstackBlockchains", "ethereum,base,zora,polygon", "Supported Airstack networks")
+	flag.String("airstackBlockchains", "ethereum,base,zora,gold,degen", "Supported Airstack networks")
 	flag.Int("airstackMaxHolders", 10000, "The maximum number of holders to be retrieved from the Airstack API")
 	flag.String("airstackSupportAPIEndpoint", "", "Airstack support API endpoint")
 	flag.String("airstackTokenWhitelist", "", "Airstack token whitelist")
@@ -567,6 +567,14 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/images/{id}.png", http.MethodGet, "public", handler.imagesHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/images/avatar/{avatarID}.jpg", http.MethodGet, "public", handler.avatarHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/images/avatar", http.MethodPost, "private", handler.updloadAvatarHandler); err != nil {
 		log.Fatal(err)
 	}
 

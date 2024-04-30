@@ -1,7 +1,7 @@
 import { Text, VStack } from '@chakra-ui/react'
 import { Outlet } from 'react-router-dom'
-import { SignInButton } from '../components/Auth/SignInButton'
-import { useAuth } from '../components/Auth/useAuth'
+import { SignInButton } from '~components/Auth/SignInButton'
+import { useAuth } from '~components/Auth/useAuth'
 
 const FarcasterAccountProtectedRoute = () => {
   const { isAuthenticated } = useAuth()

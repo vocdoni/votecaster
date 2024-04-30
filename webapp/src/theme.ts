@@ -28,6 +28,9 @@ export const theme = extendTheme({
       variants: {
         primary: {
           color: 'purple.500',
+          _hover: {
+            textDecoration: 'underline',
+          },
         },
       },
     }),

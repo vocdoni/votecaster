@@ -25,9 +25,9 @@ import {
 import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
-import { Community } from '../queries/communities'
-import { cleanChannel } from '../util/strings'
-import { isErrorWithHTTPResponse, Profile } from '../util/types'
+import { appUrl } from '~constants'
+import { cleanChannel } from '~util/strings'
+import { isErrorWithHTTPResponse } from '~util/types'
 import { ReputationCard } from './Auth/Reputation'
 import { SignInButton } from './Auth/SignInButton'
 import { useAuth } from './Auth/useAuth'
@@ -68,8 +68,6 @@ interface CensusResponseWithUsernames extends CensusResponse {
   usernames: string[]
   fromTotalAddresses: number
 }
-
-const appUrl = import.meta.env.APP_URL
 
 const Form: React.FC = (props: FlexProps) => {
   const methods = useForm<FormValues>({
@@ -136,7 +134,10 @@ const Form: React.FC = (props: FlexProps) => {
     }
   }
 
-  const checkCensus = async (pid: string, setStatus: Dispatch<SetStateAction<string | null>>): CensusResponse => {
+  const checkCensus = async (
+    pid: string,
+    setStatus: Dispatch<SetStateAction<string | null>>
+  ): Promise<CensusResponse> => {
     const res = await bfetch(`${appUrl}/census/check/${pid}`)
     if (res.status === 200) {
       return (await res.json()) as CensusResponse
@@ -161,7 +162,7 @@ const Form: React.FC = (props: FlexProps) => {
         throw new Error('user not authenticated')
       }
 
-      if (data.community && !data.community.admins.find((admin) => admin.fid === profile.fid)) {
+      if (data.community && !data.community.admins.find((admin: Profile) => admin.fid === profile.fid)) {
         throw new Error('you are not an admin of this community')
       }
 

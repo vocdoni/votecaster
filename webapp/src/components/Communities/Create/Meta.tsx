@@ -1,17 +1,40 @@
-import { Box, FormControl, FormErrorMessage, FormHelperText, FormLabel, Heading, Input, VStack } from '@chakra-ui/react'
+import {
+  Box,
+  BoxProps,
+  Button,
+  FormControl,
+  FormErrorMessage,
+  FormLabel,
+  Heading,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  useDisclosure,
+  VStack,
+} from '@chakra-ui/react'
 import { AsyncCreatableSelect } from 'chakra-react-select'
-import { useEffect, useState } from 'react'
+import { SetStateAction, useCallback, useEffect, useState } from 'react'
+import { useDropzone } from 'react-dropzone'
 import { Controller, useFormContext } from 'react-hook-form'
-import { appUrl } from '../../../util/constants'
-import { urlValidation } from '../../../util/strings.ts'
-import { useAuth } from '../../Auth/useAuth'
+import ReactCrop, { convertToPixelCrop, Crop } from 'react-image-crop'
+import { useAuth } from '~components/Auth/useAuth'
+import { appUrl } from '~constants'
 import { CommunityCard } from '../Card'
+
+import 'react-image-crop/dist/ReactCrop.css'
+import { drawImage } from '~util/image'
+import { hashString } from '~util/strings'
 
 export type CommunityMetaFormValues = {
   name: string
   admins: { label: string; value: number }[]
-  logo: string
   groupChat: string
+  src: string
+  hash: string
 }
 
 export const Meta = () => {
@@ -22,26 +45,78 @@ export const Meta = () => {
     clearErrors,
     setError,
     setValue,
+    resetField,
   } = useFormContext<CommunityMetaFormValues>()
   const { bfetch, profile } = useAuth()
-  const logo = watch('logo')
   const name = watch('name')
+  const src = watch('src')
   const [loading, setLoading] = useState<boolean>(false)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [imageRef, setImageRef] = useState<HTMLImageElement | null>(null)
+  const [crop, setCrop] = useState<Crop>(null)
+  const { isOpen, onOpen, onClose } = useDisclosure()
 
-  useEffect(() => {
-    if (profile?.username) {
-      setValue(
-        'admins',
-        [
-          {
-            label: profile.displayName,
-            value: profile.fid,
-          },
-        ],
-        { shouldValidate: true }
-      )
+  const onDrop = useCallback((acceptedFiles) => {
+    if (!acceptedFiles.length) {
+      return console.warn('Received invalid files in dropzone, ignoring')
     }
+
+    const reader = new FileReader()
+    resetField('src')
+    setCropSrc(null)
+    reader.onloadend = () => setCropSrc(reader.result?.toString())
+    reader.readAsDataURL(acceptedFiles[0])
+  }, [])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'] },
+    maxFiles: 1,
+  })
+
+  const logoProps = register('src', { required: 'The logo is required' })
+
+  const onModalClose = () => {
+    setCropSrc(null)
+    resetField('src')
+    onClose()
+  }
+
+  const onModalConfirm = () => {
+    setValue('src', drawImage(imageRef.target, crop))
+    onClose()
+  }
+
+  // set the current user as the first admin
+  useEffect(() => {
+    if (!profile?.username) return
+
+    setValue(
+      'admins',
+      [
+        {
+          label: profile.displayName,
+          value: profile.fid,
+        },
+      ],
+      { shouldValidate: true }
+    )
   }, [profile?.username])
+
+  // open modal to crop image when a src is found
+  useEffect(() => {
+    if (!cropSrc || isOpen) return
+
+    onOpen()
+  }, [cropSrc])
+
+  // store hash based on profile fid and community name
+  useEffect(() => {
+    if (!name) return
+    ;(async () => {
+      setValue('hash', await hashString(profile?.fid.toString() + name))
+    })()
+  }, [name])
 
   return (
     <VStack spacing={4} w='full' alignItems='start'>
@@ -98,18 +173,84 @@ export const Meta = () => {
         />
         <FormErrorMessage>{errors.admins?.message?.toString()}</FormErrorMessage>
       </FormControl>
-      <FormControl isRequired isInvalid={!!errors.logo}>
+      <FormControl isInvalid={!!errors.src} isRequired>
         <FormLabel>Logo</FormLabel>
-        <FormHelperText>Add the logo of your community</FormHelperText>
-        <Input
-          mt={3}
-          placeholder={'Insert URL here'}
-          {...register('logo', { validate: (val) => urlValidation(val) || 'Must be a valid image link' })}
-        />
-        <FormErrorMessage>{errors.logo?.message?.toString()}</FormErrorMessage>
+        <Box {...getRootProps()}>
+          <input {...logoProps} {...getInputProps()} />
+          <DropZone isDragActive={isDragActive}>Drag 'n' drop some files here, or click to select files</DropZone>
+        </Box>
+        <FormErrorMessage>{errors.src?.message}</FormErrorMessage>
       </FormControl>
-      <CommunityCard pfpUrl={logo} name={name} />
-      <Box></Box>
+      <Modal isOpen={isOpen} onClose={onModalClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Crop your image</ModalHeader>
+          <ModalBody>
+            <Cropper src={cropSrc} setCompletedCrop={setCrop} imageRef={imageRef} setImageRef={setImageRef} />
+          </ModalBody>
+          <ModalFooter gap={4}>
+            <Button onClick={onModalClose} variant='ghost'>
+              Cancel
+            </Button>
+            <Button onClick={onModalConfirm}>Crop</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <CommunityCard pfpUrl={src} name={name} />
     </VStack>
   )
 }
+
+const Cropper = ({
+  src,
+  setCompletedCrop,
+  imageRef,
+  setImageRef,
+}: {
+  src?: string
+  setCompletedCrop: Dispatch<SetStateAction<Crop>>
+  imageRef: HTMLImageElement
+  setImageRef: Dispatch<SetStateAction<HTMLImageElement>>
+}) => {
+  const [crop, setCrop] = useState<Crop>(null)
+
+  const onLoad = (img) => {
+    const aspectRatio = img.target.width / img.target.height
+    const cr = {
+      unit: '%',
+      x: 0,
+      y: 0,
+      width: aspectRatio <= 1 ? 100 : 100 * (1 / aspectRatio),
+      height: aspectRatio >= 1 ? 100 : 100 * aspectRatio,
+    }
+    setCrop(cr)
+    setCompletedCrop(convertToPixelCrop(cr, img))
+    setImageRef(img)
+  }
+
+  if (!src) return
+
+  return (
+    <ReactCrop
+      crop={crop}
+      aspect={1}
+      ruleOfThirds
+      onComplete={(c) => setCompletedCrop(convertToPixelCrop(c, imageRef))}
+      onChange={setCrop}
+    >
+      <img src={src} onLoad={onLoad} />
+    </ReactCrop>
+  )
+}
+
+const DropZone = ({ isDragActive, ...props }: BoxProps & { isDragActive: boolean }) => (
+  <Box
+    p={isDragActive ? 3 : 4}
+    my={3}
+    border='1px dashed'
+    borderColor='purple.300'
+    borderWidth={isDragActive ? 4 : 1}
+    cursor='pointer'
+    {...props}
+  />
+)
