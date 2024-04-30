@@ -1,4 +1,6 @@
 import {
+  Alert,
+  AlertIcon,
   Button,
   Flex,
   HStack,
@@ -24,7 +26,7 @@ import { appUrl } from '~constants'
 import { fetchCommunity } from '~queries/communities'
 import { Meta } from './Create/Meta'
 import { CommunityFormValues } from './Create/Form'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 export type ManageCommunityProps = {
   communityID: number
@@ -51,7 +53,7 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
       disabled: data.disabled,
     }),
   })
-
+  const [error, setError] = useState<Error|null>(null)
   const methods = useForm<ManageCommunityFormValues>({
     defaultValues: community,
   })
@@ -82,7 +84,8 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
           body: JSON.stringify(community),
         }).then(() => refetch())
       } catch (e) {
-        console.error('could not swithc the community notifications', e)
+        console.error('could not update the community data', e)
+        setError(new Error(`could not update the community data: ${(e as Error).toString()}`))
       }
     },
     [bfetch, community, refetch, communityID]
@@ -114,6 +117,10 @@ export const ManageCommunity = ({ communityID, ...props }: ManageCommunityProps)
         <FormProvider {...methods}>
           <ModalBody mt={2} mb={6}>
             <VStack gap={6}>
+              {!!error && <Alert status='warning'>
+                <AlertIcon/>
+                { error.toString() }
+              </Alert>}
               <Meta />
               <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
                 <VStack alignItems={'start'}>
