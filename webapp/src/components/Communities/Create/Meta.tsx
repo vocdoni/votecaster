@@ -63,6 +63,7 @@ export const Meta = () => {
 
     const reader = new FileReader()
     resetField('src')
+    setCropSrc(null)
     reader.onloadend = () => setCropSrc(reader.result?.toString())
     reader.readAsDataURL(acceptedFiles[0])
   }, [])
@@ -185,7 +186,7 @@ export const Meta = () => {
         <ModalContent>
           <ModalHeader>Crop your image</ModalHeader>
           <ModalBody>
-            <Cropper src={cropSrc} crop={crop} setCrop={setCrop} imageRef={imageRef} setImageRef={setImageRef} />
+            <Cropper src={cropSrc} setCompletedCrop={setCrop} imageRef={imageRef} setImageRef={setImageRef} />
           </ModalBody>
           <ModalFooter gap={4}>
             <Button onClick={onModalClose} variant='ghost'>
@@ -202,18 +203,16 @@ export const Meta = () => {
 
 const Cropper = ({
   src,
-  crop,
-  setCrop,
+  setCompletedCrop,
   imageRef,
   setImageRef,
 }: {
   src?: string
-  crop: Crop
-  setCrop: Dispatch<SetStateAction<Crop>>
+  setCompletedCrop: Dispatch<SetStateAction<Crop>>
   imageRef: HTMLImageElement
   setImageRef: Dispatch<SetStateAction<HTMLImageElement>>
 }) => {
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
+  const [crop, setCrop] = useState<Crop>(null)
 
   const onLoad = (img) => {
     const aspectRatio = img.target.width / img.target.height
@@ -225,6 +224,7 @@ const Cropper = ({
       height: aspectRatio >= 1 ? 100 : 100 * aspectRatio,
     }
     setCrop(cr)
+    setCompletedCrop(convertToPixelCrop(cr, img))
     setImageRef(img)
   }
 
