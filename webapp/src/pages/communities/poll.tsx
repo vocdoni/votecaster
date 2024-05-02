@@ -45,13 +45,13 @@ const CommunityPoll = () => {
             endTime: date,
             // although it is already setted, we need to set it again to avoid type issues
             options: contractData.options,
-            // TODO: get this from the contract or api
             totalWeight: contractData.participants.reduce((acc, p) => acc + parseInt(p.toString()), 0),
+            // TODO: get this from the contract or api
             lastVoteTime: date,
             createdByUsername: '',
             createdByDisplayname: '',
             createdTime: date,
-            censusParticipantsCount: Number(contractData.totalVotingPower),
+            censusParticipantsCount: 0,
           })
           voteCount = contractData.participants.length
           console.info('results gathered from contract')

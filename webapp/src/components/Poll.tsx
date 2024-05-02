@@ -201,7 +201,7 @@ export const PollView = ({ poll, voters, electionId, loading, errorMessage, onCh
                 <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>
                   {poll?.voteCount}
                 </Text>
-                <Text>/{poll?.censusParticipantsCount}</Text>
+                {poll?.censusParticipantsCount && <Text>/{poll?.censusParticipantsCount}</Text>}
                 {!!participationPercentage && <Text fontSize='xl'>{participationPercentage}%</Text>}
               </Flex>
             </Skeleton>
