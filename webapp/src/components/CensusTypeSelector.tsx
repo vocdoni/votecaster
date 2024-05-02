@@ -48,11 +48,11 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
   const { bfetch, profile } = useAuth()
 
   const {
-    watch,
-    formState: { errors },
-    setValue,
     control,
+    formState: { errors },
     register,
+    setValue,
+    watch,
   } = useFormContext<CensusFormValues>()
   const {
     fields: addressFields,
@@ -73,10 +73,11 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
   })
 
   const censusType = watch('censusType')
+  const addresses = watch('addresses')
 
   // reset address fields when censusType changes
   useEffect(() => {
-    if (censusType === 'erc20' || censusType === 'nft') {
+    if ((censusType === 'erc20' || censusType === 'nft') && !addresses.length) {
       // Remove all fields initially
       setValue('addresses', [])
       // Add one field by default
@@ -84,7 +85,7 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
         appendAddress({ address: '', blockchain: 'base' })
       }
     }
-  }, [censusType, appendAddress, removeAddress])
+  }, [censusType, addresses])
 
   const required = {
     value: true,
