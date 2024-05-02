@@ -210,6 +210,7 @@ type Community struct {
 	Admins        []uint64        `json:"owners" bson:"owners"`
 	Notifications bool            `json:"notifications" bson:"notifications"`
 	Disabled      bool            `json:"disabled" bson:"disabled"`
+	Featured      bool            `json:"featured" bson:"featured"`
 }
 
 const (
