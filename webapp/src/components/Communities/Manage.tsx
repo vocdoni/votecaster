@@ -140,14 +140,14 @@ export const ManageCommunity = ({ community, refetch, onClose, ...props }: Manag
                   </Text>
                 </VStack>
                 <HStack gap={2} alignItems={'center'}>
-                  <Text fontSize={'xs'}>Enabled</Text>
+                  <Text fontSize={'xs'}>Disabled</Text>
                   <Switch
                     id={'disabled'}
                     disabled={methods.formState.isSubmitting}
-                    colorScheme='red'
+                    colorScheme='green'
                     {...methods.register('disabled')}
                   />
-                  <Text fontSize={'xs'}>Disabled</Text>
+                  <Text fontSize={'xs'}>Enabled</Text>
                 </HStack>
               </Flex>
             </VStack>
