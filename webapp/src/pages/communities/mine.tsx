@@ -2,13 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '~components/Auth/useAuth'
 import { Check } from '~components/Check'
 import { CommunitiesList } from '~components/Communities'
-import { fetchCommunities } from '~queries/communities'
+import { fetchCommunitiesByAdmin } from '~queries/communities'
 
-const AllCommunitiesList = () => {
-  const { bfetch } = useAuth()
+const MyCommunitiesList = () => {
+  const { bfetch, profile } = useAuth()
   const { data, error, isLoading } = useQuery({
-    queryKey: ['communities'],
-    queryFn: fetchCommunities(bfetch),
+    queryKey: ['communities', 'byAdmin'],
+    queryFn: () => fetchCommunitiesByAdmin(bfetch, profile!),
+    enabled: profile != null,
   })
 
   if (error || isLoading) {
@@ -20,4 +21,4 @@ const AllCommunitiesList = () => {
   return <CommunitiesList data={data} />
 }
 
-export default AllCommunitiesList
+export default MyCommunitiesList

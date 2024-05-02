@@ -5,8 +5,10 @@ import { SuspenseLoader } from './SuspenseLoader'
 
 const About = lazy(() => import('~pages/About'))
 const App = lazy(() => import('~pages/App'))
-const Communities = lazy(() => import('~pages/communities'))
+const CommunitiesLayout = lazy(() => import('~pages/communities/layout'))
 const CommunitiesNew = lazy(() => import('~pages/communities/new'))
+const AllCommunitiesList = lazy(() => import('~pages/communities'))
+const MyCommunitiesList = lazy(() => import('~pages/communities/mine'))
 const Community = lazy(() => import('~pages/communities/view'))
 const CommunityPoll = lazy(() => import('~pages/communities/poll'))
 const FarcasterAccountProtectedRoute = lazy(() => import('./FarcasterAccountProtectedRoute'))
@@ -54,12 +56,38 @@ export const Router = () => {
           ),
         },
         {
-          path: '/communities',
           element: (
             <SuspenseLoader>
-              <Communities />
+              <CommunitiesLayout />
             </SuspenseLoader>
           ),
+          children: [
+            {
+              path: '/communities',
+              element: (
+                <SuspenseLoader>
+                  <AllCommunitiesList />
+                </SuspenseLoader>
+              ),
+            },
+            {
+              element: (
+                <SuspenseLoader>
+                  <ProtectedRoute />
+                </SuspenseLoader>
+              ),
+              children: [
+                {
+                  path: '/communities/mine',
+                  element: (
+                    <SuspenseLoader>
+                      <MyCommunitiesList />
+                    </SuspenseLoader>
+                  ),
+                },
+              ],
+            },
+          ],
         },
         {
           path: '/communities/:id',
