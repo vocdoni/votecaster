@@ -7,6 +7,6 @@ export const community2CommunityForm = (data: Community) => ({
   channel: data.censusChannel ? data.censusChannel.id : '',
   channels: data.channels.map((channel) => ({ label: channel, value: channel })),
   enableNotifications: data.notifications,
-  disabled: data.disabled,
+  disabled: !data.disabled,
   addresses: data.censusAddresses || [],
 })

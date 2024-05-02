@@ -56,6 +56,7 @@ export const ManageCommunity = ({ community, refetch, onClose, ...props }: Manag
         ...values,
         id: community.id,
         logoURL: values.src,
+        disabled: !values.disabled,
         admins: values.admins.map((admin) => ({ fid: admin.value, username: admin.label })) as Profile[],
         notifications: values.enableNotifications,
         censusAddresses: values.addresses || [],
