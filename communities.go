@@ -70,6 +70,8 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 	// all communities
 	byAdminFID := ctx.Request.URL.Query().Get("byAdminFID")
 	byAdminUsername := ctx.Request.URL.Query().Get("byAdminUsername")
+	featured := ctx.Request.URL.Query().Get("featured")
+
 	switch {
 	case byAdminFID != "":
 		// if the query has the byAdminFID parameter, list communities by admin FID
@@ -84,6 +86,11 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 	case byAdminUsername != "":
 		// if the query has the byAdminUsername parameter, list communities by admin username
 		if dbCommunities, err = v.db.ListCommunitiesByAdminUsername(byAdminUsername); err != nil {
+			return ctx.Send([]byte("error listing communities"), http.StatusInternalServerError)
+		}
+	case featured == "true":
+		// if the query has the featured parameter, list featured communities
+		if dbCommunities, err = v.db.ListFeaturedCommunities(); err != nil {
 			return ctx.Send([]byte("error listing communities"), http.StatusInternalServerError)
 		}
 	default:
