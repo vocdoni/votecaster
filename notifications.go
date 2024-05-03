@@ -38,7 +38,7 @@ func (v *vocdoniHandler) notificationsResponseHandler(msg *apirest.APIdata, ctx 
 
 	if actionMessage.ButtonIndex == 3 {
 		// User has clicked the "filter by user" button
-		png := imageframe.NotificationsImage()
+		png := imageframe.NotificationsManageImage()
 		response := strings.ReplaceAll(frame(frameNotificationsManager), "{image}", imageLink(png))
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)

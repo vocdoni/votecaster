@@ -167,17 +167,17 @@ var frameError = header + `
 var frameNotifications = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="{image}" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:post_url" content="{server}/notifications/set" />
-    <meta property="fc:frame:button:1" content="✅ Allow them" />
-    <meta property="fc:frame:button:2" content="❌ Disable all" />
+    <meta property="fc:frame:button:1" content="✅ Allow" />
+    <meta property="fc:frame:button:2" content="❌ Disable" />
     <meta property="fc:frame:button:3" content="🔍 Mute a user" />
 ` + body
 
 var frameNotificationsResponse = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="{image}" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:post_url" content="{server}/notifications" />
     <meta property="fc:frame:button:1" content="⬅️ Back" />
 ` + body
@@ -185,9 +185,9 @@ var frameNotificationsResponse = header + `
 var frameNotificationsManager = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="{image}" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:post_url" content="{server}/notifications/filter" />
     <meta property="fc:frame:input:text" content="User handle" />
-    <meta property="fc:frame:button:1" content="📣 Allow" />
+    <meta property="fc:frame:button:1" content="✅ Allow" />
     <meta property="fc:frame:button:2" content="🤐 Mute" />
 ` + body
