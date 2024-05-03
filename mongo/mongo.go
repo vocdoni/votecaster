@@ -277,7 +277,7 @@ func (ms *MongoStorage) Reset() error {
 }
 
 func (ms *MongoStorage) String() string {
-	const contextTimeout = 20 * time.Second
+	const contextTimeout = 30 * time.Second
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -406,7 +406,23 @@ func (ms *MongoStorage) String() string {
 		avatars.Avatars = append(avatars.Avatars, avatar)
 	}
 
-	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communitites, avatars})
+	ctx11, cancel11 := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel11()
+	var userAccessProfiles UserAccessProfileCollection
+	cur, err = ms.userAccessProfiles.Find(ctx11, bson.D{{}})
+	if err != nil {
+		log.Warn(err)
+	}
+	for cur.Next(ctx10) {
+		var uap UserAccessProfile
+		err := cur.Decode(&uap)
+		if err != nil {
+			log.Warn(err)
+		}
+		userAccessProfiles.UserAccessProfiles = append(userAccessProfiles.UserAccessProfiles, uap)
+	}
+
+	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communitites, avatars, userAccessProfiles})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -425,7 +441,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	// Upsert Users
@@ -509,6 +525,18 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		_, err := ms.avatars.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
 			log.Warnw("Error upserting avatar", "err", err, "avatarID", avatar.ID)
+		}
+	}
+
+	// Upser UserAccessProfiles
+	log.Infow("importing userAccessProfiles", "count", len(collection.UserAccessProfiles))
+	for _, uap := range collection.UserAccessProfiles {
+		filter := bson.M{"_id": uap.UserID}
+		update := bson.M{"$set": uap}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.userAccessProfiles.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting userAccessProfile", "err", err, "uapID", uap.UserID)
 		}
 	}
 
