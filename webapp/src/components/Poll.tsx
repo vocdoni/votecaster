@@ -23,8 +23,8 @@ import { FaCheck, FaPlay, FaRegCircleStop, FaRegCopy } from 'react-icons/fa6'
 import { appUrl, degenContractAddress } from '~constants'
 import { fetchShortURL } from '~queries/common'
 import { useAuth } from './Auth/useAuth'
-import { CensusListModal } from './Poll/CensusListModal'
 import { Information } from './Poll/Information'
+import { ParticipantsTableModal } from './Poll/ParticipantsTableModal'
 import { ParticipantTurnout, VotingPower } from './Poll/Turnout'
 
 export type PollViewProps = {
@@ -155,9 +155,9 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
         <Flex gap={6}>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
             <Skeleton isLoaded={!loading} height='100%'>
-              <CensusListModal id={poll.electionId}>
+              <ParticipantsTableModal id={poll.electionId}>
                 <ParticipantTurnout mb='auto' poll={poll} />
-              </CensusListModal>
+              </ParticipantsTableModal>
             </Skeleton>
           </Box>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>

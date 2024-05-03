@@ -16,7 +16,7 @@ import { ParticipantsTable } from '~components/Census/ParticipantsTable'
 import { Check } from '~components/Check'
 import { fetchCensus } from '~queries/census'
 
-export const CensusListModal = ({ children, id }: PropsWithChildren<{ id?: string }>) => {
+export const ParticipantsTableModal = ({ children, id }: PropsWithChildren<{ id?: string }>) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { bfetch } = useAuth()
   const { data, error, isLoading } = useQuery({
