@@ -77,7 +77,7 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
 
   // reset address fields when censusType changes
   useEffect(() => {
-    if ((censusType === 'erc20' || censusType === 'nft') && !addresses.length) {
+    if ((censusType === 'erc20' || censusType === 'nft') && addresses && !addresses.length) {
       // Remove all fields initially
       setValue('addresses', [])
       // Add one field by default
