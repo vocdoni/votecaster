@@ -10,6 +10,17 @@ declare global {
 
   type CensusType = 'farcaster' | 'channel' | 'followers' | 'custom' | 'erc20' | 'nft' | 'community'
 
+  type Census = {
+    censusId: string
+    root: string
+    electionId: string
+    participants: { [key: string]: string }
+    fromTotalAddresses: number
+    createdBy: number
+    totalWeight: number
+    url: string
+  }
+
   type Profile = {
     fid: number
     username: string
