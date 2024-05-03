@@ -376,7 +376,7 @@ func (ms *MongoStorage) String() string {
 
 	ctx9, cancel9 := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel9()
-	var communitites CommunitiesCollection
+	var communities CommunitiesCollection
 	cur, err = ms.communities.Find(ctx9, bson.D{{}})
 	if err != nil {
 		log.Warn(err)
@@ -387,7 +387,7 @@ func (ms *MongoStorage) String() string {
 		if err != nil {
 			log.Warn(err)
 		}
-		communitites.Communities = append(communitites.Communities, community)
+		communities.Communities = append(communities.Communities, community)
 	}
 
 	ctx10, cancel10 := context.WithTimeout(context.Background(), contextTimeout)
@@ -422,7 +422,7 @@ func (ms *MongoStorage) String() string {
 		userAccessProfiles.UserAccessProfiles = append(userAccessProfiles.UserAccessProfiles, uap)
 	}
 
-	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communitites, avatars, userAccessProfiles})
+	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communities, avatars, userAccessProfiles})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -505,12 +505,12 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 	}
 
 	// Upsert Communities
-	log.Infow("importing communitites", "count", len(collection.Communities))
+	log.Infow("importing communities", "count", len(collection.Communities))
 	for _, community := range collection.Communities {
 		filter := bson.M{"_id": community.ID}
 		update := bson.M{"$set": community}
 		opts := options.Update().SetUpsert(true)
-		_, err := ms.avatars.UpdateOne(ctx, filter, update, opts)
+		_, err := ms.communities.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
 			log.Warnw("Error upserting community", "err", err, "community", community.ID)
 		}

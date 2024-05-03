@@ -76,34 +76,7 @@ func (ms *MongoStorage) ListFeaturedCommunities() ([]Community, error) {
 	defer ms.keysLock.RUnlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	cursor, err := ms.communitites.Find(ctx, bson.M{"featured": true})
-	if err != nil {
-		if strings.Contains(err.Error(), "no documents in result") {
-			return nil, nil
-		}
-		return nil, err
-	}
-	var communities []Community
-	ctx, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel2()
-	for cursor.Next(ctx) {
-		var community Community
-		if err := cursor.Decode(&community); err != nil {
-			log.Warn(err)
-			continue
-		}
-		communities = append(communities, community)
-	}
-	return communities, nil
-}
-
-// ListFeaturedCommunities returns the list of featured communities.
-func (ms *MongoStorage) ListFeaturedCommunities() ([]Community, error) {
-	ms.keysLock.RLock()
-	defer ms.keysLock.RUnlock()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	cursor, err := ms.communitites.Find(ctx, bson.M{"featured": true})
+	cursor, err := ms.communities.Find(ctx, bson.M{"featured": true})
 	if err != nil {
 		if strings.Contains(err.Error(), "no documents in result") {
 			return nil, nil
@@ -220,7 +193,7 @@ func (ms *MongoStorage) updateCommunity(community *Community) error {
 		return fmt.Errorf("failed to create update document: %w", err)
 	}
 	opts := options.Update().SetUpsert(true) // Ensures the document is created if it does not exist
-	_, err = ms.communitites.UpdateOne(ctx, bson.M{"_id": community.ID}, updateDoc, opts)
+	_, err = ms.communities.UpdateOne(ctx, bson.M{"_id": community.ID}, updateDoc, opts)
 	if err != nil {
 		return fmt.Errorf("cannot update election: %w", err)
 	}
