@@ -217,15 +217,36 @@ func (v *vocdoniHandler) votersForElection(msg *apirest.APIdata, ctx *httprouter
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
-	users, err := v.db.VotersOfElection(electionID)
+	// get current voters of the election
+	voters, err := v.db.VotersOfElection(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to get voters of election: %w", err)
 	}
-	usernames := []string{}
-	for _, u := range users {
-		usernames = append(usernames, u.Username)
+	// get the census of the election
+	census, err := v.db.CensusFromElection(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to get census from election: %w", err)
 	}
-	data, err := json.Marshal(map[string][]string{"voters": usernames})
+	// get the usernames of the voters and create an index for faster access
+	// to the voters to calculate the remaining usernames
+	votersUsernames := []string{}
+	votersIndex := make(map[string]bool)
+	for _, u := range voters {
+		votersUsernames = append(votersUsernames, u.Username)
+		votersIndex[u.Username] = true
+	}
+	// calculate the remaining usernames
+	remainingUsernames := []string{}
+	for username := range census.Participants {
+		if _, ok := votersIndex[username]; !ok {
+			remainingUsernames = append(remainingUsernames, username)
+		}
+	}
+	// send the response
+	data, err := json.Marshal(ElectionVotersUsernames{
+		Voters:    votersUsernames,
+		Remaining: remainingUsernames,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal voters: %w", err)
 	}
