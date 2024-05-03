@@ -1,4 +1,4 @@
-import { Button } from '@chakra-ui/react'
+import { Button, useToast } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { FaDownload } from 'react-icons/fa6'
@@ -19,14 +19,33 @@ export const DownloadUsersListButton = ({ electionId, filename, text, queryFn }:
     data: voters,
     refetch,
     isFetching,
+    error,
   } = useQuery({
     queryKey: [text, electionId],
     queryFn,
     enabled: false,
+    retry: (failureCount, err: any) => {
+      if (err?.status === 500) {
+        return false // Do not retry
+      }
+      return failureCount < 1
+    },
   })
+  const toast = useToast()
   const [downloaded, setDownloaded] = useState<string>('')
 
+  // Download file or show error depending on the state of the query
   useEffect(() => {
+    if (error) {
+      toast({
+        title: 'Error',
+        description: error?.message || 'Failed to download file',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+      return
+    }
     if (voters?.length && downloaded !== JSON.stringify(voters)) {
       const csv = new CsvGenerator(
         ['Username'],
@@ -36,7 +55,7 @@ export const DownloadUsersListButton = ({ electionId, filename, text, queryFn }:
       setDownloaded(JSON.stringify(voters))
       downloadFile(csv.url, csv.filename)
     }
-  }, [voters])
+  }, [voters, error])
 
   return (
     <Button

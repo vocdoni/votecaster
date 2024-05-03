@@ -4,6 +4,7 @@ import { DownloadRemainingVotersButton, DownloadVotersButton } from './DownloadB
 
 export const Information = ({ poll }: { poll?: PollInfo }) => {
   if (!poll) return
+
   return (
     <VStack spacing={6} alignItems='left' fontSize={'sm'}>
       <Text>
@@ -15,7 +16,7 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
       </Text>
       <Text>You can download multiple lists of voters.</Text>
       <HStack spacing={2} flexWrap='wrap'>
-        {!!poll.participants.length && <DownloadVotersButton electionId={poll.electionId} />}
+        <DownloadVotersButton electionId={poll.electionId} />
         <DownloadRemainingVotersButton electionId={poll.electionId} />
       </HStack>
     </VStack>
