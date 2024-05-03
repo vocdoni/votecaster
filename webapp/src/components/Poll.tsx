@@ -6,6 +6,7 @@ import {
   Button,
   Flex,
   Heading,
+  HStack,
   Icon,
   Image,
   Link,
@@ -18,32 +19,32 @@ import {
   useClipboard,
   VStack,
 } from '@chakra-ui/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { FaCheck, FaDownload, FaPlay, FaRegCircleStop, FaRegCopy } from 'react-icons/fa6'
 import { appUrl, degenContractAddress } from '~constants'
 import { fetchShortURL } from '~queries/common'
+import { fetchPollsRemainingVoters, fetchPollsVoters } from '~queries/polls'
+import { downloadFile } from '~util/files'
 import { humanDate } from '~util/strings'
 import { CsvGenerator } from '../generator'
 import { useAuth } from './Auth/useAuth'
 
 export type PollViewProps = {
-  electionId: string | undefined
   onChain: boolean
-  poll: PollInfo | null
+  poll: PollInfo
   loading: boolean
-  voters: string[]
-  errorMessage: string | null
 }
 
-export const PollView = ({ poll, voters, electionId, loading, errorMessage, onChain }: PollViewProps) => {
+export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
   const { bfetch } = useAuth()
-  const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${electionId}`)
+  const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${poll.electionId}`)
   const { setValue, onCopy, hasCopied } = useClipboard(electionURL)
 
   // retrieve and set short URL (for copy-paste)
   useEffect(() => {
-    if (loading || !poll || !electionId) return // if ()
-    const re = new RegExp(electionId)
+    if (loading || !poll || !poll.electionId) return // if ()
+    const re = new RegExp(poll.electionId)
     if (!re.test(electionURL)) return
     ;(async () => {
       try {
@@ -55,22 +56,6 @@ export const PollView = ({ poll, voters, electionId, loading, errorMessage, onCh
       }
     })()
   }, [loading, poll])
-
-  const usersfile = useMemo(() => {
-    if (!voters.length) return { url: '', filename: '' }
-    return new CsvGenerator(
-      ['Username'],
-      voters.map((username) => [username])
-    )
-  }, [voters])
-
-  const participationPercentage = useMemo(() => {
-    if (!poll || !poll.censusParticipantsCount) return 0
-
-    return ((poll.voteCount / poll.censusParticipantsCount) * 100).toFixed(1)
-  }, [poll])
-
-  if (errorMessage) return <Text>{errorMessage}</Text>
 
   return (
     <Box gap={4} display='flex' flexDir={['column', 'column', 'row']} alignItems='start'>
@@ -98,7 +83,7 @@ export const PollView = ({ poll, voters, electionId, loading, errorMessage, onCh
                 )}
               </Flex>
             </Skeleton>
-            <Image src={`${appUrl}/preview/${electionId}`} fallback={<Skeleton height={200} />} />
+            <Image src={`${appUrl}/preview/${poll.electionId}`} fallback={<Skeleton height={200} />} />
             <Button
               fontSize={'sm'}
               onClick={onCopy}
@@ -170,40 +155,27 @@ export const PollView = ({ poll, voters, electionId, loading, errorMessage, onCh
             <VStack spacing={6} alignItems='left' fontSize={'sm'}>
               <Text>
                 This poll {poll?.finalized ? 'has ended' : 'ends'} on {`${humanDate(poll?.endTime)}`}.{` `}
-                <Link variant='primary' isExternal href={`https://stg.explorer.vote/processes/show/#/${electionId}`}>
+                <Link
+                  variant='primary'
+                  isExternal
+                  href={`https://stg.explorer.vote/processes/show/#/${poll.electionId}`}
+                >
                   Check the Vocdoni blockchain explorer
                 </Link>
                 {` `}for more information.
               </Text>
-              {!!voters.length && (
-                <>
-                  <Text>You can download the list of users who casted their votes.</Text>
-                  <Link href={usersfile.url} download={'voters-list.csv'}>
-                    <Button colorScheme='blue' size='sm' rightIcon={<FaDownload />}>
-                      Download voters
-                    </Button>
-                  </Link>
-                </>
-              )}
+              <Text>You can download multiple lists of voters.</Text>
+              <HStack spacing={2} flexWrap='wrap'>
+                {!!poll.participants.length && <DownloadVotersButton electionId={poll.electionId} />}
+                <DownloadRemainingVotersButton electionId={poll.electionId} />
+              </HStack>
             </VStack>
           </Skeleton>
         </Box>
         <Flex gap={6}>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
             <Skeleton isLoaded={!loading}>
-              <Box pb={4}>
-                <Heading size='sm'>Participant Turnout</Heading>
-                <Text fontSize={'sm'} color={'gray'}>
-                  Ratio of unique voters to total elegible participants.
-                </Text>
-              </Box>
-              <Flex alignItems={'end'} gap={2}>
-                <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>
-                  {poll?.voteCount}
-                </Text>
-                {!!poll?.censusParticipantsCount && <Text>/{poll?.censusParticipantsCount}</Text>}
-                {!!participationPercentage && <Text fontSize='xl'>{participationPercentage}%</Text>}
-              </Flex>
+              <ParticipantTurnout poll={poll} />
             </Skeleton>
           </Box>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
@@ -225,5 +197,110 @@ export const PollView = ({ poll, voters, electionId, loading, errorMessage, onCh
         </Flex>
       </Flex>
     </Box>
+  )
+}
+
+type DownloadUsersListButtonProps = {
+  electionId: string
+  filename: string
+  text: string
+  queryFn: () => Promise<string[]>
+}
+
+const DownloadUsersListButton = ({ electionId, filename, text, queryFn }: DownloadUsersListButtonProps) => {
+  const {
+    data: voters,
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: [text, electionId],
+    queryFn,
+    enabled: false,
+  })
+  const [downloaded, setDownloaded] = useState<string>('')
+
+  useEffect(() => {
+    if (voters?.length && downloaded !== JSON.stringify(voters)) {
+      const csv = new CsvGenerator(
+        ['Username'],
+        voters.map((username) => [username]),
+        filename
+      )
+      setDownloaded(JSON.stringify(voters))
+      downloadFile(csv.url, csv.filename)
+    }
+  }, [voters])
+
+  return (
+    <Button
+      isLoading={isFetching}
+      loadingText='Preparing download...'
+      onClick={() => refetch()}
+      colorScheme='blue'
+      size='sm'
+      rightIcon={<FaDownload />}
+      disabled={isFetching}
+    >
+      {text}
+    </Button>
+  )
+}
+
+const DownloadVotersButton = ({ electionId }: { electionId: string }) => {
+  const { bfetch } = useAuth()
+
+  return (
+    <DownloadUsersListButton
+      electionId={electionId}
+      filename='voters.csv'
+      text='Download voters list'
+      queryFn={fetchPollsVoters(bfetch, electionId)}
+    />
+  )
+}
+
+const DownloadRemainingVotersButton = ({ electionId }: { electionId: string }) => {
+  const { bfetch } = useAuth()
+
+  return (
+    <DownloadUsersListButton
+      electionId={electionId}
+      filename='remaining-voters.csv'
+      text='Download remaining voters list'
+      queryFn={fetchPollsRemainingVoters(bfetch, electionId)}
+    />
+  )
+}
+
+const participationPercentage = (poll: PollInfo) => {
+  if (!poll || !poll.censusParticipantsCount) return 0
+
+  return ((poll.voteCount / poll.censusParticipantsCount) * 100).toFixed(1)
+}
+
+const ParticipantTurnout = ({ poll }: { poll: PollInfo | null }) => {
+  if (!poll) return
+
+  const pc = poll?.censusParticipantsCount || 0
+  const pp = participationPercentage(poll)
+
+  return (
+    <>
+      <Box pb={4}>
+        <Heading size='sm'>{pc ? `Participant Turnout` : `Participants`}</Heading>
+        <Text fontSize={'sm'} color={'gray'}>
+          {poll.censusParticipantsCount
+            ? `Ratio of unique voters to total elegible participants.`
+            : `Number of unique voters.`}
+        </Text>
+      </Box>
+      <Flex alignItems={'end'} gap={2}>
+        <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>
+          {poll?.voteCount}
+        </Text>
+        {!!poll?.censusParticipantsCount && <Text>/{poll?.censusParticipantsCount}</Text>}
+        {!!pp && <Text fontSize='xl'>{pp}%</Text>}
+      </Flex>
+    </>
   )
 }

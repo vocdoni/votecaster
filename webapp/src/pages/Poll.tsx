@@ -1,18 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
+import { Check } from '~components/Check'
 import { PollView } from '~components/Poll'
-import { fetchPollInfo, fetchPollsVoters } from '~queries/polls'
+import { fetchPollInfo } from '~queries/polls'
 
 const Poll = () => {
   const { pid: electionId } = useParams()
   const { bfetch } = useAuth()
 
-  const {
-    data: results,
-    isLoading: rLoading,
-    error,
-  } = useQuery<PollResponse, Error, PollInfo>({
+  const { data, isLoading, error } = useQuery<PollResponse, Error, PollInfo>({
     queryKey: ['poll', electionId],
     queryFn: fetchPollInfo(bfetch, electionId!),
     enabled: !!electionId && electionId.length > 0,
@@ -26,26 +23,15 @@ const Poll = () => {
     }),
   })
 
-  const {
-    data: voters,
-    isLoading: vLoading,
-    error: vError,
-  } = useQuery({
-    queryKey: ['voters', electionId],
-    queryFn: fetchPollsVoters(bfetch, electionId!),
-    enabled: !!results && results?.voteCount > 0,
-  })
+  if (error || isLoading) {
+    return <Check error={error} isLoading={isLoading} />
+  }
 
-  return (
-    <PollView
-      onChain={false}
-      loading={rLoading || vLoading}
-      poll={results || null}
-      voters={voters || []}
-      errorMessage={error?.toString() || vError?.toString() || null}
-      electionId={electionId}
-    />
-  )
+  if (!data && !isLoading) {
+    return <Check error={new Error('No results found')} isLoading={false} />
+  }
+
+  return <PollView onChain={false} loading={isLoading} poll={data as PollInfo} />
 }
 
 export default Poll

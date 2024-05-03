@@ -2,9 +2,10 @@ import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
+import { Check } from '~components/Check'
 import { PollView } from '~components/Poll'
 import { degenChainRpc, degenContractAddress } from '~constants'
-import { fetchPollInfo, fetchPollsVoters } from '~queries/polls'
+import { fetchPollInfo } from '~queries/polls'
 import { CommunityHub__factory } from '~typechain'
 import { toArrayBuffer } from '~util/hex'
 
@@ -13,10 +14,9 @@ const CommunityPoll = () => {
   const { bfetch } = useAuth()
 
   const [loaded, setLoaded] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [pollResults, setResults] = useState<PollInfo | null>(null)
-  const [voters, setVoters] = useState<string[]>([])
 
   useEffect(() => {
     if (loaded || loading || !electionId || !communityId) return
@@ -27,8 +27,7 @@ const CommunityPoll = () => {
         const provider = new ethers.JsonRpcProvider(degenChainRpc)
         const communityHubContract = CommunityHub__factory.connect(degenContractAddress, provider)
         const contractData = await communityHubContract.getResult(communityId, toArrayBuffer(electionId))
-        console.log('received contract data:', contractData.options)
-        let voteCount = 0
+        console.info('received contract data:', contractData.options)
         if (contractData.date !== '') {
           const participants = contractData.participants.map((p) => parseInt(p.toString()))
           const tally = contractData.tally.map((t) => t.map((v) => parseInt(v.toString())))
@@ -53,7 +52,6 @@ const CommunityPoll = () => {
             createdTime: date,
             censusParticipantsCount: 0,
           })
-          voteCount = contractData.participants.length
           console.info('results gathered from contract')
         } else {
           const apiData = await fetchPollInfo(bfetch, electionId)()
@@ -69,19 +67,10 @@ const CommunityPoll = () => {
             lastVoteTime: new Date(apiData.lastVoteTime),
             tally: tally,
           })
-          voteCount = apiData.voteCount
           console.info('results gathered from api')
         }
-        // get voters
-        if (voteCount > 0) {
-          try {
-            setVoters(await fetchPollsVoters(bfetch, electionId)())
-          } catch (e) {
-            console.error('error fetching voters', e)
-          }
-        }
       } catch (e) {
-        setError('Error fetching poll results')
+        setError(new Error('Error fetching poll results'))
         console.error(e)
       } finally {
         setLoaded(true)
@@ -90,16 +79,15 @@ const CommunityPoll = () => {
     })()
   }, [])
 
-  return (
-    <PollView
-      loading={loading}
-      onChain={true}
-      poll={pollResults}
-      voters={voters}
-      errorMessage={error}
-      electionId={electionId}
-    />
-  )
+  if (error || loading) {
+    return <Check error={error} isLoading={loading} />
+  }
+
+  if (!pollResults) {
+    return <Check error={new Error('No poll results found')} isLoading={false} />
+  }
+
+  return <PollView loading={loading} onChain={true} poll={pollResults} />
 }
 
 export default CommunityPoll

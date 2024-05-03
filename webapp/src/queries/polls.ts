@@ -8,6 +8,12 @@ export const fetchPollInfo = (bfetch: FetchFunction, electionID: string) => asyn
 
 export const fetchPollsVoters = (bfetch: FetchFunction, electionId: string) => async (): Promise<string[]> => {
   const response = await bfetch(`${appUrl}/votersOf/${electionId}`)
-  const { voters } = (await response.json()) as { voters: string[] }
-  return voters
+  const { usernames } = (await response.json()) as { usernames: string[] }
+  return usernames
+}
+
+export const fetchPollsRemainingVoters = (bfetch: FetchFunction, electionId: string) => async (): Promise<string[]> => {
+  const response = await bfetch(`${appUrl}/remainingVotersOf/${electionId}`)
+  const { usernames } = (await response.json()) as { usernames: string[] }
+  return usernames
 }

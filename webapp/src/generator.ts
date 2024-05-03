@@ -3,7 +3,8 @@ type DataType = string | number
 export class CsvGenerator {
   constructor(
     private headers: string[],
-    private data: DataType[][]
+    private data: DataType[][],
+    public filename?: string
   ) {}
 
   public get url(): string {
