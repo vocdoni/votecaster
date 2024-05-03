@@ -28,6 +28,7 @@ const (
 	BackgroundNotificationsDenied   = "notifications-denied.png"
 	BackgroundNotifications         = "notifications.png"
 	BackgroundNotificationsError    = "notifications-error.png"
+	BackgroundNotificationsManage   = "notifications-manage.png"
 
 	BackgroundsDir    = "images/"
 	ImageGeneratorURL = "https://img.frame.vote"
@@ -69,6 +70,7 @@ func init() {
 	backgroundFrames[BackgroundNotificationsDenied] = loadImage(BackgroundNotificationsDenied)
 	backgroundFrames[BackgroundNotifications] = loadImage(BackgroundNotifications)
 	backgroundFrames[BackgroundNotificationsError] = loadImage(BackgroundNotificationsError)
+	backgroundFrames[BackgroundNotificationsManage] = loadImage(BackgroundNotificationsManage)
 
 	var err error
 	imagesLRU, err = lru.New[string, []byte](2048)
@@ -259,6 +261,11 @@ func NotificationsDeniedImage() string {
 // NotificationsImage creates a static image to be displayed when notifications are requested.
 func NotificationsImage() string {
 	return AddImageToCache(backgroundFrames[BackgroundNotifications])
+}
+
+// NotificationsManageImage creates a static image to be displayed when the user tries to manage muted users.
+func NotificationsManageImage() string {
+	return AddImageToCache(backgroundFrames[BackgroundNotificationsManage])
 }
 
 // NotificationsErrorImage creates a static image to be displayed when there is an error with notifications.
