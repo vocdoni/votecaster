@@ -218,6 +218,24 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on castedVotes for elections: %w", err)
 	}
 
+	// Create index for election author. This index supports the $lookup stage
+	// where the elections collection is joined to the users collection based
+	// on the userId
+	electionAuthorIndexModel := mongo.IndexModel{
+		Keys: bson.D{{Key: "userId", Value: 1}},
+	}
+	if _, err := ms.elections.Indexes().CreateOne(ctx, electionAuthorIndexModel); err != nil {
+		return fmt.Errorf("failed to create index on userId for elections: %w", err)
+	}
+
+	// Create index for users reputations over the user access profiles
+	// collection to support the ranking by reputation
+	reputationIndexModel := mongo.IndexModel{
+		Keys: bson.D{{Key: "reputation", Value: -1}},
+	}
+	if _, err := ms.userAccessProfiles.Indexes().CreateOne(ctx, reputationIndexModel); err != nil {
+		return fmt.Errorf("failed to create index on reputation for users: %w", err)
+	}
 	// Create an index model for the 'community.id' field on elections
 	electionsByCommunityIndexModel := mongo.IndexModel{
 		Keys:    bson.M{"community.id": 1}, // Index in ascending order

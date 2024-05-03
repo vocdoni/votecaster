@@ -432,6 +432,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/rankings/usersByReputation", http.MethodGet, "public", handler.rankingByReputation); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/rankings/pollsByCommunity/{communityID}", http.MethodGet, "public", handler.electionsByCommunityHandler); err != nil {
 		log.Fatal(err)
 	}

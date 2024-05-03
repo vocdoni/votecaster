@@ -147,6 +147,44 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 	return ranking, nil
 }
 
+// UserByReputation returns the list of users ordered by their reputation score.
+func (ms *MongoStorage) UserByReputation() ([]UserRanking, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	// first get users fid from userAccessProfiles collection sorted by the
+	// the reputation score.
+	limit := int64(10)
+	opts := options.FindOptions{Limit: &limit}
+	opts.SetSort(bson.M{"reputation": -1})
+	opts.SetProjection(bson.M{"fid": "$_id", "count": "$reputation"})
+	// get top 10 fids sorted by reputation
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cur, err := ms.userAccessProfiles.Find(ctx, bson.M{}, &opts)
+	if err != nil {
+		return nil, err
+	}
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel2()
+	var ranking []UserRanking
+	for cur.Next(ctx2) {
+		var user UserRanking
+		if err := cur.Decode(&user); err != nil {
+			log.Warn(err)
+			continue
+		}
+		userData, err := ms.User(user.FID)
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+		user.Username = userData.Username
+		user.Displayname = userData.Displayname
+		ranking = append(ranking, user)
+	}
+	return ranking, nil
+}
+
 // LastCreatedElections returns the last created elections.
 func (ms *MongoStorage) LastCreatedElections(count int) ([]*Election, error) {
 	ms.keysLock.RLock()

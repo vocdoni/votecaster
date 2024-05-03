@@ -107,6 +107,21 @@ func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httproute
 	return ctx.Send(jresponse, http.StatusOK)
 }
 
+func (v *vocdoniHandler) rankingByReputation(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	users, err := v.db.UserByReputation()
+	if err != nil {
+		return fmt.Errorf("failed to get ranking: %w", err)
+	}
+	jresponse, err := json.Marshal(map[string]any{
+		"users": users,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.SetResponseContentType("application/json")
+	return ctx.Send(jresponse, http.StatusOK)
+}
+
 func (v *vocdoniHandler) electionsByCommunityHandler(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	// TODO: we should limit and paginate this call
 	id, err := strconv.ParseUint(ctx.URLParam("communityID"), 10, 64)
