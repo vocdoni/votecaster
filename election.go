@@ -222,17 +222,41 @@ func (v *vocdoniHandler) votersForElection(msg *apirest.APIdata, ctx *httprouter
 	if err != nil {
 		return fmt.Errorf("failed to get voters of election: %w", err)
 	}
+	// get the usernames of the voters and create an index for faster access
+	// to the voters to calculate the remaining usernames
+	votersUsernames := []string{}
+	for _, u := range voters {
+		votersUsernames = append(votersUsernames, u.Username)
+	}
+	// send the response
+	data, err := json.Marshal(ElectionVotersUsernames{
+		Usernames: votersUsernames,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal voters: %w", err)
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
+// votersForElection returns the list of voters for the given election.
+func (v *vocdoniHandler) remainingVotersForElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	// get current voters of the election
+	voters, err := v.db.VotersOfElection(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to get voters of election: %w", err)
+	}
 	// get the census of the election
 	census, err := v.db.CensusFromElection(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to get census from election: %w", err)
 	}
-	// get the usernames of the voters and create an index for faster access
-	// to the voters to calculate the remaining usernames
-	votersUsernames := []string{}
+	// create an index for faster access to the voters to calculate the remaining usernames
 	votersIndex := make(map[string]bool)
 	for _, u := range voters {
-		votersUsernames = append(votersUsernames, u.Username)
 		votersIndex[u.Username] = true
 	}
 	// calculate the remaining usernames
@@ -244,8 +268,7 @@ func (v *vocdoniHandler) votersForElection(msg *apirest.APIdata, ctx *httprouter
 	}
 	// send the response
 	data, err := json.Marshal(ElectionVotersUsernames{
-		Voters:    votersUsernames,
-		Remaining: remainingUsernames,
+		Usernames: remainingUsernames,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal voters: %w", err)
