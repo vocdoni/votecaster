@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -266,6 +267,7 @@ func (v *vocdoniHandler) remainingVotersForElection(msg *apirest.APIdata, ctx *h
 			remainingUsernames = append(remainingUsernames, username)
 		}
 	}
+	slices.Sort(remainingUsernames)
 	// send the response
 	data, err := json.Marshal(ElectionVotersUsernames{
 		Usernames: remainingUsernames,
