@@ -143,6 +143,7 @@ type Collection struct {
 	CensusCollection
 	CommunitiesCollection
 	AvatarsCollection
+	UserAccessProfileCollection
 }
 
 // UserCollection is a dataset containing several users (used for dump and import).
@@ -178,6 +179,11 @@ type CommunitiesCollection struct {
 // AvatarsCollection is a dataset containing several avatars from users and communities (used for dump and import).
 type AvatarsCollection struct {
 	Avatars []Avatar `json:"avatars" bson:"avatars"`
+}
+
+// UserAccessProfileCollection is a dataset containing several user access profiles (used for dump and import).
+type UserAccessProfileCollection struct {
+	UserAccessProfiles []UserAccessProfile `json:"userAccessProfiles" bson:"userAccessProfiles"`
 }
 
 // UserRanking is a user ranking entry.
