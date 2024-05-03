@@ -562,6 +562,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/remainingVotersOf/{electionID}", http.MethodGet, "public", handler.remainingVotersForElection); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/preview/{electionID}", http.MethodGet, "public", handler.preview); err != nil {
 		log.Fatal(err)
 	}

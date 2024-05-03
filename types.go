@@ -128,6 +128,5 @@ type CommunityList struct {
 // ElectionVotersUsernames defines the usernames of the voters and the remaining
 // users to vote in an election
 type ElectionVotersUsernames struct {
-	Voters    []string `json:"voters"`
-	Remaining []string `json:"remaining"`
+	Usernames []string `json:"usernames"`
 }
