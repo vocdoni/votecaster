@@ -49,7 +49,7 @@ func (ms *MongoStorage) ListCommunities() ([]Community, error) {
 	defer ms.keysLock.RUnlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	cursor, err := ms.communitites.Find(ctx, bson.M{"disabled": false})
+	cursor, err := ms.communities.Find(ctx, bson.M{"disabled": false})
 	if err != nil {
 		if strings.Contains(err.Error(), "no documents in result") {
 			return nil, nil
@@ -76,7 +76,7 @@ func (ms *MongoStorage) ListFeaturedCommunities() ([]Community, error) {
 	defer ms.keysLock.RUnlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	cursor, err := ms.communitites.Find(ctx, bson.M{"featured": true})
+	cursor, err := ms.communities.Find(ctx, bson.M{"featured": true})
 	if err != nil {
 		if strings.Contains(err.Error(), "no documents in result") {
 			return nil, nil
@@ -104,7 +104,7 @@ func (ms *MongoStorage) ListCommunitiesByAdminFID(fid uint64) ([]Community, erro
 	defer ms.keysLock.RUnlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	cursor, err := ms.communitites.Find(ctx, bson.M{"owners": fid})
+	cursor, err := ms.communities.Find(ctx, bson.M{"owners": fid})
 	if err != nil {
 		if strings.Contains(err.Error(), "no documents in result") {
 			return nil, nil
@@ -136,7 +136,7 @@ func (ms *MongoStorage) NextCommunityID() (uint64, error) {
 	opts := options.FindOne().SetSort(bson.M{"_id": -1})
 	// find the last community ID
 	var community Community
-	err := ms.communitites.FindOne(ctx, bson.M{}, opts).Decode(&community)
+	err := ms.communities.FindOne(ctx, bson.M{}, opts).Decode(&community)
 	if err != nil && !strings.Contains(err.Error(), "no documents in result") {
 		// if there is an error and it is not because there are no documents
 		// in the result, return the error and 0 (invalid ID)
@@ -163,7 +163,7 @@ func (ms *MongoStorage) DelCommunity(communityID uint64) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err := ms.communitites.DeleteOne(ctx, bson.M{"_id": communityID})
+	_, err := ms.communities.DeleteOne(ctx, bson.M{"_id": communityID})
 	return err
 }
 
@@ -175,7 +175,7 @@ func (ms *MongoStorage) addCommunity(community *Community) error {
 	case TypeCommunityCensusChannel, TypeCommunityCensusERC20, TypeCommunityCensusNFT:
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, err := ms.communitites.InsertOne(ctx, community)
+		_, err := ms.communities.InsertOne(ctx, community)
 		return err
 	default:
 		return fmt.Errorf("invalid census type")
@@ -193,7 +193,7 @@ func (ms *MongoStorage) updateCommunity(community *Community) error {
 		return fmt.Errorf("failed to create update document: %w", err)
 	}
 	opts := options.Update().SetUpsert(true) // Ensures the document is created if it does not exist
-	_, err = ms.communitites.UpdateOne(ctx, bson.M{"_id": community.ID}, updateDoc, opts)
+	_, err = ms.communities.UpdateOne(ctx, bson.M{"_id": community.ID}, updateDoc, opts)
 	if err != nil {
 		return fmt.Errorf("cannot update election: %w", err)
 	}
@@ -206,7 +206,7 @@ func (ms *MongoStorage) community(id uint64) (*Community, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var community Community
-	err := ms.communitites.FindOne(ctx, bson.M{"_id": id}).Decode(&community)
+	err := ms.communities.FindOne(ctx, bson.M{"_id": id}).Decode(&community)
 	if err != nil {
 		if strings.Contains(err.Error(), "no documents in result") {
 			return nil, nil
@@ -223,7 +223,7 @@ func (ms *MongoStorage) IsCommunityAdmin(userID, communityID uint64) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	// Query to check if the userID is one of the admins in the given communityID
-	count, err := ms.communitites.CountDocuments(ctx, bson.M{
+	count, err := ms.communities.CountDocuments(ctx, bson.M{
 		"_id":    communityID,
 		"owners": bson.M{"$in": []uint64{userID}}, // Correct usage of querying inside an array
 	})
@@ -241,7 +241,7 @@ func (ms *MongoStorage) IsCommunityDisabled(communityID uint64) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var community Community
-	if err := ms.communitites.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
+	if err := ms.communities.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
 		log.Errorf("error getting community %d: %v", communityID, err)
 		return false
 	}
@@ -254,7 +254,7 @@ func (ms *MongoStorage) SetCommunityStatus(communityID uint64, disabled bool) er
 	defer ms.keysLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err := ms.communitites.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"disabled": disabled}})
+	_, err := ms.communities.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"disabled": disabled}})
 	return err
 }
 
@@ -266,7 +266,7 @@ func (ms *MongoStorage) CommunityAllowNotifications(communityID uint64) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var community Community
-	if err := ms.communitites.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
+	if err := ms.communities.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
 		log.Errorf("error getting community %d: %v", communityID, err)
 		return false
 	}
@@ -279,6 +279,6 @@ func (ms *MongoStorage) SetCommunityNotifications(communityID uint64, enabled bo
 	defer ms.keysLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err := ms.communitites.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"notifications": enabled}})
+	_, err := ms.communities.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"notifications": enabled}})
 	return err
 }

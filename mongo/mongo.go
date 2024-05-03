@@ -37,7 +37,7 @@ type MongoStorage struct {
 	authentications    *mongo.Collection
 	notifications      *mongo.Collection
 	userAccessProfiles *mongo.Collection
-	communitites       *mongo.Collection
+	communities        *mongo.Collection
 	avatars            *mongo.Collection
 }
 
@@ -105,7 +105,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.authentications = client.Database(database).Collection("authentications")
 	ms.notifications = client.Database(database).Collection("notifications")
 	ms.userAccessProfiles = client.Database(database).Collection("userAccessProfiles")
-	ms.communitites = client.Database(database).Collection("communities")
+	ms.communities = client.Database(database).Collection("communities")
 	ms.avatars = client.Database(database).Collection("avatars")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
@@ -235,7 +235,7 @@ func (ms *MongoStorage) createIndexes() error {
 		Keys:    bson.D{{Key: "owners", Value: 1}}, // 1 for ascending order
 		Options: nil,
 	}
-	if _, err := ms.communitites.Indexes().CreateOne(ctx, ownersIndexModel); err != nil {
+	if _, err := ms.communities.Indexes().CreateOne(ctx, ownersIndexModel); err != nil {
 		return fmt.Errorf("failed to create index on owners for communities: %w", err)
 	}
 
@@ -376,8 +376,8 @@ func (ms *MongoStorage) String() string {
 
 	ctx9, cancel9 := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel9()
-	var communitites CommunitiesCollection
-	cur, err = ms.communitites.Find(ctx9, bson.D{{}})
+	var communities CommunitiesCollection
+	cur, err = ms.communities.Find(ctx9, bson.D{{}})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -387,7 +387,7 @@ func (ms *MongoStorage) String() string {
 		if err != nil {
 			log.Warn(err)
 		}
-		communitites.Communities = append(communitites.Communities, community)
+		communities.Communities = append(communities.Communities, community)
 	}
 
 	ctx10, cancel10 := context.WithTimeout(context.Background(), contextTimeout)
@@ -422,7 +422,7 @@ func (ms *MongoStorage) String() string {
 		userAccessProfiles.UserAccessProfiles = append(userAccessProfiles.UserAccessProfiles, uap)
 	}
 
-	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communitites, avatars, userAccessProfiles})
+	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communities, avatars, userAccessProfiles})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -505,12 +505,12 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 	}
 
 	// Upsert Communities
-	log.Infow("importing communitites", "count", len(collection.Communities))
+	log.Infow("importing communities", "count", len(collection.Communities))
 	for _, community := range collection.Communities {
 		filter := bson.M{"_id": community.ID}
 		update := bson.M{"$set": community}
 		opts := options.Update().SetUpsert(true)
-		_, err := ms.avatars.UpdateOne(ctx, filter, update, opts)
+		_, err := ms.communities.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
 			log.Warnw("Error upserting community", "err", err, "community", community.ID)
 		}
