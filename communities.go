@@ -71,7 +71,29 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 	byAdminFID := ctx.Request.URL.Query().Get("byAdminFID")
 	byAdminUsername := ctx.Request.URL.Query().Get("byAdminUsername")
 	featured := ctx.Request.URL.Query().Get("featured")
-
+	// get optional parameters to paginate the results
+	limit := int64(100)
+	strLimit := ctx.Request.URL.Query().Get("limit")
+	if strLimit != "" {
+		// if the query has the limit parameter, list the first n communities
+		n, err := strconv.Atoi(strLimit)
+		if err != nil {
+			return ctx.Send([]byte("invalid limit"), http.StatusBadRequest)
+		}
+		limit = int64(n)
+	}
+	offset := int64(0)
+	strOffset := ctx.Request.URL.Query().Get("offset")
+	if strOffset != "" {
+		// if the query has the offset parameter, list communities starting from
+		// the n th community
+		n, err := strconv.Atoi(strOffset)
+		if err != nil {
+			return ctx.Send([]byte("invalid offset"), http.StatusBadRequest)
+		}
+		offset = int64(n)
+	}
+	var totalCommunities int64
 	switch {
 	case byAdminFID != "":
 		// if the query has the byAdminFID parameter, list communities by admin FID
@@ -80,22 +102,22 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 		if err != nil {
 			return ctx.Send([]byte("invalid admin FID"), http.StatusBadRequest)
 		}
-		if dbCommunities, err = v.db.ListCommunitiesByAdminFID(uint64(adminFID)); err != nil {
+		if dbCommunities, totalCommunities, err = v.db.ListCommunitiesByAdminFID(uint64(adminFID), limit, offset); err != nil {
 			return ctx.Send([]byte("error listing communities"), http.StatusInternalServerError)
 		}
 	case byAdminUsername != "":
 		// if the query has the byAdminUsername parameter, list communities by admin username
-		if dbCommunities, err = v.db.ListCommunitiesByAdminUsername(byAdminUsername); err != nil {
+		if dbCommunities, totalCommunities, err = v.db.ListCommunitiesByAdminUsername(byAdminUsername, limit, offset); err != nil {
 			return ctx.Send([]byte("error listing communities"), http.StatusInternalServerError)
 		}
 	case featured == "true":
 		// if the query has the featured parameter, list featured communities
-		if dbCommunities, err = v.db.ListFeaturedCommunities(); err != nil {
+		if dbCommunities, totalCommunities, err = v.db.ListFeaturedCommunities(limit, offset); err != nil {
 			return ctx.Send([]byte("error listing communities"), http.StatusInternalServerError)
 		}
 	default:
 		// otherwise, list all communities
-		if dbCommunities, err = v.db.ListCommunities(); err != nil {
+		if dbCommunities, totalCommunities, err = v.db.ListCommunities(limit, offset); err != nil {
 			return ctx.Send([]byte("error listing communities"), http.StatusInternalServerError)
 		}
 	}
@@ -104,6 +126,11 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 	}
 	communities := CommunityList{
 		Communities: []*Community{},
+		Pagination: &Pagination{
+			Limit:  limit,
+			Offset: offset,
+			Total:  totalCommunities,
+		},
 	}
 	for _, c := range dbCommunities {
 		// get admin profiles from the database
