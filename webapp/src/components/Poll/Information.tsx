@@ -1,7 +1,9 @@
 import { HStack, Link, Text, VStack } from '@chakra-ui/react'
 import { vocdoniExplorer } from '~constants'
 import { humanDate } from '~util/strings'
-import { DownloadRemainingVotersButton, DownloadVotersButton } from './DownloadButtons'
+import { ParticipantsTableModal } from './ParticipantsTableModal'
+import { RemainingVotersTableModal } from './RemainingVotersTableModal'
+import { VotersTableModal } from './VotersTableModal'
 
 export const Information = ({ poll }: { poll?: PollInfo }) => {
   if (!poll) return
@@ -15,11 +17,16 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
         </Link>
         {` `}for more information.
       </Text>
-      <Text>You can download multiple lists of voters.</Text>
-      <HStack spacing={2} flexWrap='wrap'>
-        <DownloadVotersButton electionId={poll.electionId} />
-        <DownloadRemainingVotersButton electionId={poll.electionId} />
-      </HStack>
+      {!!poll.censusParticipantsCount && (
+        <>
+          <Text>You can check multiple lists of voters.</Text>
+          <HStack spacing={2} flexWrap='wrap'>
+            <VotersTableModal id={poll.electionId} />
+            <RemainingVotersTableModal id={poll.electionId} />
+            <ParticipantsTableModal id={poll.electionId} />
+          </HStack>
+        </>
+      )}
     </VStack>
   )
 }

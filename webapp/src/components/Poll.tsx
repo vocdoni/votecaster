@@ -24,7 +24,6 @@ import { appUrl, degenContractAddress } from '~constants'
 import { fetchShortURL } from '~queries/common'
 import { useAuth } from './Auth/useAuth'
 import { Information } from './Poll/Information'
-import { ParticipantsTableModal } from './Poll/ParticipantsTableModal'
 import { ParticipantTurnout, VotingPower } from './Poll/Turnout'
 
 export type PollViewProps = {
@@ -156,9 +155,7 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
         <Flex gap={6}>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
             <Skeleton isLoaded={!loading} height='100%'>
-              <ParticipantsTableModal id={poll.electionId}>
-                <ParticipantTurnout mb='auto' poll={poll} />
-              </ParticipantsTableModal>
+              <ParticipantTurnout mb='auto' poll={poll} />
             </Skeleton>
           </Box>
           <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>

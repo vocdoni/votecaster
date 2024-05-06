@@ -27,7 +27,6 @@ const CommunityPoll = () => {
         const provider = new ethers.JsonRpcProvider(degenChainRpc)
         const communityHubContract = CommunityHub__factory.connect(degenContractAddress, provider)
         const contractData = await communityHubContract.getResult(communityId, toArrayBuffer(electionId))
-        console.info('received contract data:', contractData.options)
         if (contractData.date !== '') {
           const participants = contractData.participants.map((p) => parseInt(p.toString()))
           const tally = contractData.tally.map((t) => t.map((v) => parseInt(v.toString())))
