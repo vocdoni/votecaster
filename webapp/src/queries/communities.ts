@@ -1,18 +1,22 @@
-import { appUrl } from '~constants'
+import { appUrl, paginationItemsPerPage } from '~constants'
 
-export const fetchCommunities = (bfetch: FetchFunction) => async () => {
-  const response = await bfetch(`${appUrl}/communities`)
-  const { communities } = (await response.json()) as { communities: Community[] }
+export const fetchCommunities =
+  (bfetch: FetchFunction, { limit = paginationItemsPerPage, offset = 0 }) =>
+  async () => {
+    const response = await bfetch(`${appUrl}/communities?limit=${limit}&offset=${offset}`)
+    const { communities, pagination } = (await response.json()) as { communities: Community[]; pagination: Pagination }
 
-  return communities
-}
+    return { communities, pagination }
+  }
 
-export const fetchCommunitiesByAdmin = async (bfetch: FetchFunction, profile: Profile) => {
-  const response = await bfetch(`${appUrl}/communities?byAdminFID=${profile.fid}`)
-  const { communities } = (await response.json()) as { communities: Community[] }
+export const fetchCommunitiesByAdmin =
+  (bfetch: FetchFunction, profile: Profile, { limit = paginationItemsPerPage, offset = 0 }) =>
+  async () => {
+    const response = await bfetch(`${appUrl}/communities?byAdminFID=${profile.fid}&limit=${limit}&offset=${offset}`)
+    const { communities, pagination } = (await response.json()) as { communities: Community[]; pagination: Pagination }
 
-  return communities
-}
+    return { communities, pagination }
+  }
 
 export const fetchCommunity = (bfetch: FetchFunction, id: string) => async () => {
   const response = await bfetch(`${appUrl}/communities/${id}`)

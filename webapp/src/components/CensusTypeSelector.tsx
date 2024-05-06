@@ -68,7 +68,7 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
   })
   const { data: communities, isLoading: cloading } = useQuery({
     queryKey: ['communities', 'byAdmin'],
-    queryFn: () => fetchCommunitiesByAdmin(bfetch, profile!),
+    queryFn: fetchCommunitiesByAdmin(bfetch, profile!, { offset: 0, limit: 20 }),
     enabled: !!profile && !!complete,
   })
 
@@ -132,7 +132,7 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
               <RSelect
                 placeholder='Choose a community'
                 isLoading={cloading}
-                options={communities?.filter((c) => !c.disabled) || []}
+                options={communities?.communities.filter((c) => !c.disabled) || []}
                 getOptionLabel={(option: Community) => option.name}
                 getOptionValue={(option: Community) => option.id.toString()}
                 components={communitySelector}

@@ -7,3 +7,5 @@ export const degenContractAddress = import.meta.env.VOCDONI_COMMUNITYHUBADDRESS
 export const vocdoniEnvironment = import.meta.env.VOCDONI_ENVIRONMENT
 
 export const vocdoniExplorer = import.meta.env.VOCDONI_EXPLORER
+
+export const paginationItemsPerPage = 12
