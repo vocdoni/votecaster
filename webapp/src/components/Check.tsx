@@ -1,8 +1,8 @@
-import { Alert, Spinner } from '@chakra-ui/react'
+import { Alert, Progress } from '@chakra-ui/react'
 
 export const Check = ({ isLoading, error }: { isLoading: boolean; error: Error | null }) => {
   if (isLoading) {
-    return <Spinner />
+    return <Progress w='full' colorScheme='purple' size='xs' isIndeterminate />
   }
 
   if (error) {
