@@ -19,7 +19,10 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
       </Text>
       {!!poll.censusParticipantsCount && (
         <>
-          <Text>You can check multiple lists of voters.</Text>
+          <Text>
+            Download the list of members who have already cast their votes, the list of remaining members who still need
+            to vote, and the total census of eligible voters.
+          </Text>
           <HStack spacing={2} flexWrap='wrap'>
             <VotersTableModal id={poll.electionId} />
             <RemainingVotersTableModal id={poll.electionId} />
