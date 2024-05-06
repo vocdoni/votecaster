@@ -6,6 +6,7 @@ import { ReputationProgress } from '../Auth/Reputation'
 import { SignInButton } from '../Auth/SignInButton'
 import { useAuth } from '../Auth/useAuth'
 import { MenuButton } from './MenuButton'
+import logo from '/logo-farcastervote.png'
 
 type NavbarLink = {
   name: string
@@ -51,7 +52,11 @@ export const Navbar = () => {
           onClick={isOpen ? onClose : onOpen}
         />
         <HStack spacing={8} alignItems={'center'}>
-          <Heading fontSize='2xl'>farcaster.vote</Heading>
+          <Heading fontSize='2xl'>
+            <Link to='/'>
+              <Avatar src={logo} aria-label='farcaster.vote logo' size='sm' verticalAlign='middle' /> farcaster.vote
+            </Link>
+          </Heading>
           <HStack as={'nav'} spacing={4} display={{ base: 'none', md: 'flex' }}>
             <NavbarMenuLinks />
           </HStack>
