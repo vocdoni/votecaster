@@ -40,7 +40,8 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
 
   // retrieve and set short URL (for copy-paste)
   useEffect(() => {
-    if (loading || !poll || !poll.electionId) return // if ()
+    if (loading || !poll || !poll.electionId) return
+
     const re = new RegExp(poll.electionId)
     if (!re.test(electionURL)) return
     ;(async () => {

@@ -4,6 +4,12 @@ import { createHtmlPlugin } from 'vite-plugin-html'
 import svgr from 'vite-plugin-svgr'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
+let explorer = `https://explorer.vote`
+const env = process.env.VOCDONI_ENVIRONMENT || 'dev'
+if (['dev', 'stg'].includes(env)) {
+  explorer = `https://${env}.explorer.vote`
+}
+
 // https://vitejs.dev/config/
 const viteconfig: UserConfigFn = ({ mode }) => {
   // load env variables from .env files
@@ -19,6 +25,8 @@ const viteconfig: UserConfigFn = ({ mode }) => {
     },
     define: {
       'import.meta.env.APP_URL': JSON.stringify(process.env.APP_URL || 'https://dev.farcaster.vote'),
+      'import.meta.env.VOCDONI_ENVIRONMENT': JSON.stringify(env),
+      'import.meta.env.VOCDONI_EXPLORER': JSON.stringify(explorer),
       'import.meta.env.VOCDONI_DEGENCHAINRPC': JSON.stringify(
         process.env.VOCDONI_DEGENCHAINRPC || 'https://rpc.degen.tips'
       ),

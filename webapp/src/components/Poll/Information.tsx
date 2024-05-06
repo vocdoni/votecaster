@@ -1,4 +1,5 @@
 import { HStack, Link, Text, VStack } from '@chakra-ui/react'
+import { vocdoniExplorer } from '~constants'
 import { humanDate } from '~util/strings'
 import { DownloadRemainingVotersButton, DownloadVotersButton } from './DownloadButtons'
 
@@ -9,7 +10,7 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
     <VStack spacing={6} alignItems='left' fontSize={'sm'}>
       <Text>
         This poll {poll?.finalized ? 'has ended' : 'ends'} on {`${humanDate(poll?.endTime)}`}.{` `}
-        <Link variant='primary' isExternal href={`https://stg.explorer.vote/processes/show/#/${poll.electionId}`}>
+        <Link variant='primary' isExternal href={`${vocdoniExplorer}/processes/show/#/${poll.electionId}`}>
           Check the Vocdoni blockchain explorer
         </Link>
         {` `}for more information.
