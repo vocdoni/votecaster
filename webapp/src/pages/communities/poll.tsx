@@ -22,7 +22,7 @@ const CommunityPoll = () => {
     ...apiQuery.data,
   } as PollInfo
 
-  return <PollView loading={false} onChain={true} poll={results} />
+  return <PollView loading={false} onChain={!!contractQuery.data} poll={results} />
 }
 
 export default CommunityPoll

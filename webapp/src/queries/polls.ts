@@ -50,6 +50,6 @@ export const useContractPollInfo = (communityId?: string, electionId?: string) =
       const contractData = await contract.getResult(communityId!, toArrayBuffer(electionId!))
       return contractData
     },
-    enabled: !!communityId && !!electionId, // Ensure the IDs are present
+    enabled: !!communityId && !!electionId,
   })
 }
