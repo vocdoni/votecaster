@@ -1,20 +1,5 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit'
-import { Chain, localhost } from 'wagmi/chains'
-
-export const degen: Chain = {
-  id: 666666666,
-  name: 'Degen 🎩',
-  rpcUrls: {
-    default: {
-      http: ['https://rpc.degen.tips'],
-    },
-  },
-  nativeCurrency: {
-    name: 'Degen',
-    decimals: 18,
-    symbol: 'DEGEN',
-  },
-}
+import { degen, localhost } from 'wagmi/chains'
 
 export const config = getDefaultConfig({
   appName: 'farcaster.vote',

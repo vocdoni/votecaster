@@ -1,4 +1,4 @@
-import { Alert, AlertDescription, Box, Flex, Heading, Text, VStack } from '@chakra-ui/react'
+import { Alert, AlertDescription, AlertIcon, Box, Flex, Heading, Text, VStack } from '@chakra-ui/react'
 import { BrowserProvider, JsonRpcSigner } from 'ethers'
 import { useCallback, useEffect, useState } from 'react'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
@@ -18,7 +18,7 @@ import { CommunityMetaFormValues, Meta } from './Meta'
 export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusType' | 'channel'> &
   CommunityMetaFormValues & {
     channels: { label: string; value: string }[]
-    enableNotifications: boolean // todo(kon): not for mvp
+    enableNotifications: boolean
   }
 
 export const CommunitiesCreateForm = () => {
@@ -31,7 +31,6 @@ export const CommunitiesCreateForm = () => {
   const { address } = useAccount()
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [price, setPrice] = useState<bigint | null>()
-  const calcPrice = price ? (Number(price) / 10 ** 18).toString() : ''
 
   const { data: balanceResult, isLoading: isBalanceLoading, error: balanceError } = useBalance({ address })
   const [userBalance, setUserBalance] = useState<string | null>(null)
@@ -43,7 +42,6 @@ export const CommunitiesCreateForm = () => {
     ;(async () => {
       try {
         setIsLoadingPrice(true)
-        // todo(kon): put this code on a provider and get the contract instance from there
         let signer: JsonRpcSigner | undefined
         if (walletClient && address && walletClient.account.address === address) {
           signer = await walletClientToSigner(walletClient)
@@ -55,7 +53,6 @@ export const CommunitiesCreateForm = () => {
         }
         const communityHubContract = CommunityHub__factory.connect(degenContractAddress, signer)
 
-        // todo(kon): move this to a reactQuery?
         const price = await communityHubContract.getCreateCommunityPrice()
 
         setPrice(price)
@@ -108,7 +105,6 @@ export const CommunitiesCreateForm = () => {
           'price: ' + price,
         ])
 
-        // todo(kon): put this code on a provider and get the contract instance from there
         let signer: JsonRpcSigner | undefined
         if (walletClient && address && walletClient.account.address === address) {
           signer = await walletClientToSigner(walletClient)
@@ -200,11 +196,12 @@ export const CommunitiesCreateForm = () => {
                 <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
                   <Confirm
                     isLoading={isPending || isLoadingPrice || isBalanceLoading}
-                    price={calcPrice}
+                    price={price}
                     balance={userBalance as string}
                   />
                   {error && (
                     <Alert status='error' mt={3}>
+                      <AlertIcon />
                       <AlertDescription whiteSpace='collapse' overflowWrap='anywhere' maxW='100%'>
                         {error.toString()}
                       </AlertDescription>
