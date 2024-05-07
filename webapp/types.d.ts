@@ -80,6 +80,7 @@ declare global {
     tally: number[][]
     participants: number[]
     finalized: boolean
+    community?: Pick<Community, 'id' | 'name'>
   }
 
   type UserRanking = {

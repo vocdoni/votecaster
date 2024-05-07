@@ -20,6 +20,8 @@ import {
 } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 import { FaCheck, FaPlay, FaRegCircleStop, FaRegCopy } from 'react-icons/fa6'
+import { IoMdArrowBack } from 'react-icons/io'
+import { Link as RouterLink } from 'react-router-dom'
 import { appUrl, degenContractAddress } from '~constants'
 import { fetchShortURL } from '~queries/common'
 import { useAuth } from './Auth/useAuth'
@@ -59,7 +61,13 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
       <Box flex={1} bg='white' p={6} pb={12} boxShadow='md' borderRadius='md'>
         <VStack spacing={8} alignItems='left'>
           <VStack spacing={4} alignItems='left'>
-            <Skeleton isLoaded={!loading}>
+            <Skeleton isLoaded={!loading} display='flex' justifyContent='end'>
+              {poll.community && poll.community.id ? (
+                <Back link={`/communities/${poll.community.id}`} text={poll.community.name}></Back>
+              ) : (
+                <Back link={`/profile/${poll.createdByUsername}`} text={poll.createdByDisplayname}></Back>
+              )}
+              <Box mr='auto'></Box>
               <Flex gap={4}>
                 {poll?.finalized ? (
                   <Tag>
@@ -168,3 +176,18 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
     </Box>
   )
 }
+
+const Back = ({ link, text }: { link: string; text: string }) => (
+  <Link
+    as={RouterLink}
+    colorScheme='purple'
+    alignSelf='start'
+    size='xs'
+    display='flex'
+    alignItems='center'
+    gap={1}
+    to={link}
+  >
+    <Icon as={IoMdArrowBack} /> {text}
+  </Link>
+)
