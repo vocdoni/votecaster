@@ -50,6 +50,11 @@ export const UsersTableModal = ({
         <ModalContent>
           <ModalHeader>{title}</ModalHeader>
           <ModalCloseButton />
+          <ModalHeader display='flex' justifyContent='end'>
+            <Button size='sm' rightIcon={<FaDownload />} onClick={download}>
+              {downloadText}
+            </Button>
+          </ModalHeader>
           <ModalBody>
             {error && <Check error={error} isLoading={isLoading} />}
             <UsersTable size='sm' users={data} />
@@ -57,9 +62,6 @@ export const UsersTableModal = ({
           <ModalFooter justifyContent='space-between' flexWrap='wrap'>
             <Button size='sm' onClick={onClose} variant='ghost' alignSelf='start'>
               Close
-            </Button>
-            <Button size='sm' rightIcon={<FaDownload />} onClick={download}>
-              {downloadText}
             </Button>
           </ModalFooter>
         </ModalContent>
