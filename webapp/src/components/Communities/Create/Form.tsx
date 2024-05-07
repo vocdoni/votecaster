@@ -28,7 +28,7 @@ export const CommunitiesCreateForm = () => {
   const [error, setError] = useState<string | null>(null)
   const [tx, setTx] = useState<string | null>(null)
   const { data: walletClient } = useWalletClient()
-  const { address } = useAccount()
+  const { address, chainId } = useAccount()
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [price, setPrice] = useState<bigint | null>()
 
@@ -62,7 +62,7 @@ export const CommunitiesCreateForm = () => {
         setIsLoadingPrice(false)
       }
     })()
-  }, [walletClient, address, isBalanceLoading, balanceResult, balanceError])
+  }, [walletClient, chainId, address, isBalanceLoading, balanceResult, balanceError])
 
   const onSubmit: SubmitHandler<CommunityFormValues> = useCallback(
     async (data) => {
