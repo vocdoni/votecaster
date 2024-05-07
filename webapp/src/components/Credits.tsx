@@ -90,9 +90,9 @@ export const Credits = (props: FlexProps) => {
             Do you want to create more flexible Web3 votes? <br />
             Check our Web3 voting UI for Ethereum based DAOs 👇
           </Text>
-          <Box textAlign='center'>
+          <Box display='flex'>
             <Link href='https://onvote.app' target='_blank'>
-              <Image src={logo} alt='onvote.app' maxW='50%' />
+              <Image src={logo} alt='onvote.app' maxW='150px' />
             </Link>
           </Box>
           <Box textAlign='center'>
