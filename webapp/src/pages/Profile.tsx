@@ -43,7 +43,11 @@ const Profile = () => {
         </Show>
       </GridItem>
       <GridItem gridArea='polls'>
-        <UserPolls polls={user?.polls || []} title='Your created polls' w='100%' />
+        <UserPolls
+          polls={user?.polls || []}
+          title={`${user?.user.displayName || user?.user.username}'s polls`}
+          w='100%'
+        />
       </GridItem>
       {/* MutedUsersList will now only appear here in the mobile view, since in md+ it's in the same GridItem as ReputationCard */}
       <Show below='md'>
