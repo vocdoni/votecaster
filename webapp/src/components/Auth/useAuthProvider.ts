@@ -57,7 +57,8 @@ export const useAuthProvider = (): AuthState => {
       return fetch(input, updatedInit).then(async (response) => {
         if (!response.ok) {
           const text = await response.text()
-          throw new Error(text.length ? text : response.statusText)
+          const sanitized = text.replace('\n', '')
+          throw new Error(sanitized.length ? sanitized : response.statusText)
         }
 
         return response

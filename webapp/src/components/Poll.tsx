@@ -67,7 +67,6 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
               ) : (
                 <Back link={`/profile/${poll.createdByUsername}`} text={poll.createdByDisplayname}></Back>
               )}
-              <Box mr='auto'></Box>
               <Flex gap={4}>
                 {poll?.finalized ? (
                   <Tag>
@@ -187,6 +186,7 @@ const Back = ({ link, text }: { link: string; text: string }) => (
     alignItems='center'
     gap={1}
     to={link}
+    mr='auto'
   >
     <Icon as={IoMdArrowBack} /> {text}
   </Link>
