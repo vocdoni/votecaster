@@ -27,6 +27,7 @@ export const CommunitiesCreateForm = () => {
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tx, setTx] = useState<string | null>(null)
+  const [cid, setCid] = useState<string | null>(null)
   const { data: walletClient } = useWalletClient()
   const { address, chainId } = useAccount()
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
@@ -141,6 +142,7 @@ export const CommunitiesCreateForm = () => {
         })
 
         setTx(tx.hash)
+        setCid(communityID)
       } catch (e) {
         console.error('could not create community:', e)
         if ('shortMessage' in (e as { shortMessage: string })) {
@@ -158,8 +160,8 @@ export const CommunitiesCreateForm = () => {
   return (
     <Box display='flex' flexDir='column' gap={1}>
       <FormProvider {...methods}>
-        {tx ? (
-          <CommunityDone tx={tx} />
+        {tx && cid ? (
+          <CommunityDone id={cid} tx={tx} />
         ) : (
           <>
             <Heading size='md'>Create community</Heading>

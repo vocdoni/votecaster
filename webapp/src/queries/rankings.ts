@@ -1,8 +1,8 @@
 import { appUrl } from '~constants'
 
-export const fetchPollsByVotes = (bfetch: FetchFunction) => async (): Promise<Poll[]> => {
+export const fetchPollsByVotes = (bfetch: FetchFunction) => async (): Promise<PollRanking[]> => {
   const response = await bfetch(`${appUrl}/rankings/pollsByVotes`)
-  const { polls } = (await response.json()) as { polls: Poll[] }
+  const { polls } = (await response.json()) as { polls: PollRanking[] }
   return polls
 }
 
@@ -18,11 +18,13 @@ export const fetchTopCreators = (bfetch: FetchFunction) => async (): Promise<Use
   return users
 }
 
-export const fetchLatestPolls = (bfetch: FetchFunction) => async (): Promise<Poll[]> => {
-  const response = await bfetch(`${appUrl}/rankings/lastElections`)
-  const { polls } = (await response.json()) as { polls: Poll[] }
-  return polls
-}
+export const latestPolls =
+  (bfetch: FetchFunction, { limit = 10 }: Partial<Pagination> = {}) =>
+  async (): Promise<PollRanking[]> => {
+    const response = await bfetch(`${appUrl}/rankings/lastElections`)
+    const { polls } = (await response.json()) as { polls: PollRanking[] }
+    return polls
+  }
 
 export const fetchPollsByCommunity = (bfetch: FetchFunction, community: Community) => async (): Promise<Poll[]> => {
   const response = await bfetch(`${appUrl}/rankings/pollsByCommunity/${community.id}`)

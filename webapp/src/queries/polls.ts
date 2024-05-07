@@ -23,6 +23,12 @@ export const fetchPollsRemainingVoters = (bfetch: FetchFunction, electionId: str
   return usernames
 }
 
+export const fetchShortURL = (bfetch: FetchFunction) => async (url: string) => {
+  const response = await bfetch(`${appUrl}/short?url=${url}`)
+  const { result } = (await response.json()) as { result: string }
+  return result
+}
+
 export const useApiPollInfo = (electionId?: string) => {
   const { bfetch } = useAuth()
 

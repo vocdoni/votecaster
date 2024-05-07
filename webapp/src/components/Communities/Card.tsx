@@ -9,7 +9,7 @@ type CommunityCardProps = LinkProps & {
   admins?: Profile[]
   disabled?: boolean
 }
-export const CommunityCard = ({ name, slug, pfpUrl, admins, disabled }: CommunityCardProps) => {
+export const CommunityCard = ({ name, slug, pfpUrl, admins, disabled, ...props }: CommunityCardProps) => {
   const { profile } = useAuth()
   const adminsFid = admins?.map((admin) => admin.fid) ?? []
   const isAdmin = profile && adminsFid.includes(profile.fid)
@@ -27,6 +27,7 @@ export const CommunityCard = ({ name, slug, pfpUrl, admins, disabled }: Communit
       bg='white'
       _hover={{ boxShadow: 'none', bg: 'purple.100' }}
       color={disabled ? 'gray.400' : 'black'}
+      {...props}
     >
       <HStack>
         <Avatar src={pfpUrl} filter={disabled ? 'grayscale(1)' : ''} />
@@ -38,7 +39,7 @@ export const CommunityCard = ({ name, slug, pfpUrl, admins, disabled }: Communit
           justifyContent={'space-between'}
           flexWrap={'wrap'}
         >
-          <Text fontWeight='bold' noOfLines={1}>
+          <Text fontWeight='bold' noOfLines={1} wordBreak='break-all'>
             {name}
           </Text>
 

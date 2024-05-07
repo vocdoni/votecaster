@@ -69,7 +69,11 @@ interface CensusResponseWithUsernames extends CensusResponse {
   fromTotalAddresses: number
 }
 
-const Form: React.FC = (props: FlexProps) => {
+type FormProps = FlexProps & {
+  communityId?: string
+}
+
+const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
   const methods = useForm<FormValues>({
     defaultValues: {
       choices: [{ choice: '' }, { choice: '' }],
@@ -362,7 +366,7 @@ const Form: React.FC = (props: FlexProps) => {
                       Add Choice
                     </Button>
                   )}
-                  <CensusTypeSelector complete isDisabled={loading} />
+                  <CensusTypeSelector complete isDisabled={loading} communityId={communityId} />
                   {notifyAllowed.includes(censusType) && (
                     <FormControl isDisabled={loading}>
                       <Switch {...register('notify')} lineHeight={6}>

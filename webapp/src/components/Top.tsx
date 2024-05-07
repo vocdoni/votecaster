@@ -1,14 +1,14 @@
-import { Box, BoxProps, Link, Stack, Tag, Text } from '@chakra-ui/react'
+import { Box, BoxProps, Link, Stack, StackProps, Tag, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { PropsWithChildren } from 'react'
-import { Link as RouterLink } from 'react-router-dom'
-import { fetchLatestPolls, fetchPollsByVotes, fetchTopCreators, fetchTopVoters } from '~queries/tops'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { fetchPollsByVotes, fetchTopCreators, fetchTopVoters, latestPolls } from '~queries/rankings'
 import { useAuth } from './Auth/useAuth'
 import { Check } from './Check'
 
 export const TopTenPolls = (props: BoxProps) => {
   const { bfetch } = useAuth()
-  const { data, error, isLoading } = useQuery<Poll[], Error>({
+  const { data, error, isLoading } = useQuery({
     queryKey: ['topTenPolls'],
     queryFn: fetchPollsByVotes(bfetch),
   })
@@ -22,11 +22,31 @@ export const TopTenPolls = (props: BoxProps) => {
   return <TopPolls polls={data} title='Top 10 polls (by votes)' {...props} />
 }
 
+export type LatestPollsSimplifiedProps = BoxProps & {
+  limit?: number
+}
+
+export const LatestPollsSimplified = ({ limit = 5, ...props }: LatestPollsSimplifiedProps) => {
+  const { bfetch } = useAuth()
+  const { data, error, isLoading } = useQuery({
+    queryKey: ['latestPolls', limit],
+    queryFn: latestPolls(bfetch, { limit }),
+  })
+
+  if (isLoading || error) {
+    return <Check isLoading={isLoading} error={error} />
+  }
+
+  if (!data || !data.length) return null
+
+  return <TopPollsSimplified polls={data} {...props} />
+}
+
 export const LatestPolls = (props: BoxProps) => {
   const { bfetch } = useAuth()
-  const { data, error, isLoading } = useQuery<Poll[], Error>({
+  const { data, error, isLoading } = useQuery({
     queryKey: ['latestPolls'],
-    queryFn: fetchLatestPolls(bfetch),
+    queryFn: latestPolls(bfetch),
   })
 
   if (isLoading || error) {
@@ -70,22 +90,14 @@ export const TopVoters = (props: BoxProps) => {
   return <TopUsers users={data} title='Top voters' {...props} />
 }
 
-export const TopPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: string } & BoxProps) => (
+export const TopPolls = ({ polls, title, ...rest }: { polls: PollRanking[]; title: string } & BoxProps) => (
   <Box bg={'purple.100'} p={5} borderRadius='lg' boxShadow='md' {...rest}>
     <Text fontSize='xl' mb={4} fontWeight='600' color='purple.800'>
       {title || 'Top Polls'}
     </Text>
     <Stack spacing={3}>
       {polls.map((poll, index) => (
-        <Link
-          key={index}
-          as={RouterLink}
-          to={`/poll/${poll.electionId}`}
-          _hover={{
-            textDecoration: 'none',
-          }}
-          style={{ textDecoration: 'none' }}
-        >
+        <Link key={index} as={RouterLink} to={`/poll/${poll.electionId}`}>
           <TopCard>
             <Text color='purple.500' fontWeight='medium'>
               {poll.title} —{' '}
@@ -103,6 +115,24 @@ export const TopPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: stri
   </Box>
 )
 
+export const TopPollsSimplified = ({ polls, ...rest }: { polls: PollRanking[] } & StackProps) => {
+  const navigate = useNavigate()
+  return (
+    <Stack spacing={3} {...rest}>
+      {polls.map((poll, index) => (
+        <TopCard p={2} key={index} onClick={() => navigate(`/poll/${poll.electionId}`)} cursor='pointer'>
+          <Text fontWeight='medium'>
+            {poll.title} —{' '}
+            <Link as={RouterLink} to={`/profile/${poll.createdByUsername}`} variant='primary'>
+              by {poll.createdByDisplayname || poll.createdByUsername}
+            </Link>
+          </Text>
+        </TopCard>
+      ))}
+    </Stack>
+  )
+}
+
 export const UserPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: string } & BoxProps) => (
   <Box bg={'purple.100'} p={5} borderRadius='lg' boxShadow='md' {...rest}>
     <Text fontSize='xl' mb={4} fontWeight='600' color='purple.800'>
@@ -110,15 +140,7 @@ export const UserPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: str
     </Text>
     <Stack spacing={3}>
       {polls.map((poll, index) => (
-        <Link
-          key={index}
-          as={RouterLink}
-          to={`/poll/${poll.electionId}`}
-          _hover={{
-            textDecoration: 'none',
-          }}
-          style={{ textDecoration: 'none' }}
-        >
+        <Link key={index} as={RouterLink} to={`/poll/${poll.electionId}`}>
           <TopCard>
             <Text color='purple.500' fontWeight='medium' maxW='80%'>
               {poll.title}
@@ -163,7 +185,7 @@ export const TopUsers = ({ users, title, ...rest }: { users: UserRanking[]; titl
   </Box>
 )
 
-const TopCard = ({ children }: PropsWithChildren) => {
+const TopCard = ({ children, ...props }: PropsWithChildren<BoxProps>) => {
   return (
     <Box
       p={3}
@@ -178,6 +200,7 @@ const TopCard = ({ children }: PropsWithChildren) => {
       _hover={{
         bg: 'purple.50', // Light hover effect for the box
       }}
+      {...props}
     >
       {children}
     </Box>

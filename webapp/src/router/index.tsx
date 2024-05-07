@@ -4,7 +4,8 @@ import { Layout } from '~components/Layout'
 import { SuspenseLoader } from './SuspenseLoader'
 
 const About = lazy(() => import('~pages/About'))
-const App = lazy(() => import('~pages/App'))
+const Home = lazy(() => import('~pages/Home'))
+const AppForm = lazy(() => import('~pages/Form'))
 const CommunitiesLayout = lazy(() => import('~pages/communities/layout'))
 const CommunitiesNew = lazy(() => import('~pages/communities/new'))
 const AllCommunitiesList = lazy(() => import('~pages/communities'))
@@ -27,7 +28,15 @@ export const Router = () => {
           path: '/',
           element: (
             <SuspenseLoader>
-              <App />
+              <Home />
+            </SuspenseLoader>
+          ),
+        },
+        {
+          path: '/form/:id?',
+          element: (
+            <SuspenseLoader>
+              <AppForm />
             </SuspenseLoader>
           ),
         },

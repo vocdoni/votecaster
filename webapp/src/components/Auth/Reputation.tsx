@@ -81,7 +81,7 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
           )}
           <SimpleGrid columns={2} spacing={3} mt={4}>
             <Stat>
-              <StatLabel fontSize='x-small'>Communities you're manager of</StatLabel>
+              <StatLabel fontSize='x-small'>Manager of</StatLabel>
               <FlexStatNumber>
                 {reputation.data.communitiesCount}
                 {` `}

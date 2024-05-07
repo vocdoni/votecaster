@@ -1,19 +1,20 @@
 import { Flex, Icon, Image, Link, VStack } from '@chakra-ui/react'
 import { FaDiscord, FaGithub, FaXTwitter } from 'react-icons/fa6'
 import { SiFarcaster } from 'react-icons/si'
-import { Outlet } from 'react-router-dom'
+import { Outlet, ScrollRestoration } from 'react-router-dom'
 import { Navbar } from './Navbar'
 import logo from '/poweredby.svg'
 
 export const Layout = () => {
   return (
     <>
+      <ScrollRestoration />
       <Navbar />
       <Flex
         flexDir='column'
         justifyContent='center'
         alignItems='center'
-        p={{ base: 0, sm: 5, xl: 10 }}
+        p={{ base: 2, sm: 5, xl: 10 }}
         mx='auto'
         maxW='1980px'
       >

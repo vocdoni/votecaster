@@ -44,7 +44,12 @@ export type CensusFormValues = {
   csv?: File | undefined
 }
 
-const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complete?: boolean }) => {
+export type CensusTypeSelectorProps = FormControlProps & {
+  complete?: boolean
+  communityId?: string
+}
+
+const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelectorProps) => {
   const { bfetch, profile } = useAuth()
 
   const {
@@ -86,6 +91,16 @@ const CensusTypeSelector = ({ complete, ...props }: FormControlProps & { complet
       }
     }
   }, [censusType, addresses])
+
+  // set community id if received
+  useEffect(() => {
+    if (communityId && !cloading) {
+      setValue(
+        'community',
+        communities?.communities.find((c) => c.id === parseInt(communityId))
+      )
+    }
+  }, [communityId, cloading])
 
   const required = {
     value: true,
