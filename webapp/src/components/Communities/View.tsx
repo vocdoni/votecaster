@@ -30,7 +30,7 @@ import { FaPlay, FaRegCircleStop, FaSliders } from 'react-icons/fa6'
 import { MdHowToVote } from 'react-icons/md'
 import { SiFarcaster } from 'react-icons/si'
 import { TbExternalLink } from 'react-icons/tb'
-import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
 import { degenContractAddress } from '~constants'
 import { fetchPollsByCommunity } from '~queries/tops'
@@ -188,9 +188,9 @@ export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) =>
                   </Thead>
                   <Tbody>
                     {communityPolls?.map((poll, index) => (
-                      <Tr key={index}>
+                      <Tr key={index} role='link' onClick={() => navigate(`poll/${poll.electionId}`)} cursor='pointer'>
                         <Td>
-                          <RouterLink to={`poll/${poll.electionId}`}>{poll.question}</RouterLink>
+                          {poll.question}
                           <Text as={'p'} fontSize={'xs'} color='gray'>
                             by {poll.createdByDisplayname}
                           </Text>
