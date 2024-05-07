@@ -21,6 +21,12 @@ declare global {
     url: string
   }
 
+  type Pagination = {
+    limit: number
+    offset: number
+    total: number
+  }
+
   type Profile = {
     fid: number
     username: string
