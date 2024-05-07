@@ -88,7 +88,10 @@ export const TopPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: stri
         >
           <TopCard>
             <Text color='purple.500' fontWeight='medium'>
-              {poll.title} — by {poll.createdByDisplayname || poll.createdByUsername}
+              {poll.title} —{' '}
+              <Link as={RouterLink} to={`/profile/${poll.createdByUsername}`} variant='primary'>
+                by {poll.createdByDisplayname || poll.createdByUsername}
+              </Link>
             </Text>
             <Text color='gray.500' alignSelf={{ base: 'start', sm: 'end' }}>
               {poll.voteCount} votes

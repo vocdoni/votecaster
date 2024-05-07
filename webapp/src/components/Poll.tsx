@@ -165,11 +165,13 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
               <ParticipantTurnout mb='auto' poll={poll} />
             </Skeleton>
           </Box>
-          <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
-            <Skeleton isLoaded={!loading}>
-              <VotingPower poll={poll} />
-            </Skeleton>
-          </Box>
+          {!!poll.turnout && (
+            <Box flex={1} bg='white' p={6} boxShadow='md' borderRadius='md'>
+              <Skeleton isLoaded={!loading}>
+                <VotingPower poll={poll} />
+              </Skeleton>
+            </Box>
+          )}
         </Flex>
       </Flex>
     </Box>

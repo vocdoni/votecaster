@@ -19,7 +19,8 @@ import {
   useBreakpointValue,
   useColorModeValue,
 } from '@chakra-ui/react'
-import { FaHeart, FaInfo, FaRegFaceGrinStars } from 'react-icons/fa6'
+import { PropsWithChildren } from 'react'
+import { FaHeart, FaInfo, FaRegFaceGrinStars, FaUserGroup } from 'react-icons/fa6'
 import { ImStatsDots } from 'react-icons/im'
 import { MdOutlineHowToVote } from 'react-icons/md'
 import { SlPencil } from 'react-icons/sl'
@@ -80,36 +81,48 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
           )}
           <SimpleGrid columns={2} spacing={3} mt={4}>
             <Stat>
+              <StatLabel fontSize='x-small'>Communities you're manager of</StatLabel>
+              <FlexStatNumber>
+                {reputation.data.communitiesCount}
+                {` `}
+                <Icon as={FaUserGroup} boxSize={3} />
+              </FlexStatNumber>
+            </Stat>{' '}
+            <Stat>
               <StatLabel fontSize='x-small'>Casted votes</StatLabel>
-              <StatNumber fontSize='sm'>
+              <FlexStatNumber>
                 {reputation.data.castedVotes}
                 {` `}
                 <Icon as={MdOutlineHowToVote} boxSize={3.5} />
-              </StatNumber>
+              </FlexStatNumber>
             </Stat>
             <Stat>
               <StatLabel fontSize='x-small'>Created polls</StatLabel>
-              <StatNumber fontSize='sm'>
+              <FlexStatNumber>
                 {reputation.data.electionsCreated}
                 {` `}
                 <Icon as={SlPencil} boxSize={3} />
-              </StatNumber>
+              </FlexStatNumber>
             </Stat>
             <Stat>
               <StatLabel fontSize='x-small'>Followers</StatLabel>
-              <StatNumber fontSize='sm'>
+              <FlexStatNumber>
                 {reputation.data.followersCount}
                 {` `}
                 <Icon as={FaHeart} boxSize={3} />
-              </StatNumber>
+                &nbsp;&amp;&nbsp;
+                {reputation.data.communitiesCount}
+                {` `}
+                <Icon as={FaUserGroup} boxSize={3} />
+              </FlexStatNumber>
             </Stat>
             <Stat>
               <StatLabel fontSize='x-small'>Participation in created polls</StatLabel>
-              <StatNumber fontSize='sm'>
+              <FlexStatNumber>
                 {reputation.data.participationAchievement}
                 {` `}
                 <Icon as={FaRegFaceGrinStars} boxSize={3} />
-              </StatNumber>
+              </FlexStatNumber>
             </Stat>
           </SimpleGrid>
         </Box>
@@ -125,3 +138,9 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
     </Popover>
   )
 }
+
+const FlexStatNumber = ({ children }: PropsWithChildren) => (
+  <StatNumber fontSize='sm' display='flex' flexDir='row' alignItems='center' gap={1}>
+    {children}
+  </StatNumber>
+)

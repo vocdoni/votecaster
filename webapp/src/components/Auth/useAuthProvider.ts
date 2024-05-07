@@ -18,6 +18,7 @@ const baseRep = {
     electionsCreated: 0,
     followersCount: 0,
     participationAchievement: 0,
+    communitiesCount: 0,
   },
 }
 
