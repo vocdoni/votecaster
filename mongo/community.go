@@ -64,7 +64,7 @@ func (ms *MongoStorage) ListFeaturedCommunities(limit, offset int64) ([]Communit
 func (ms *MongoStorage) ListCommunitiesByAdminFID(fid uint64, limit, offset int64) ([]Community, int64, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
-	return ms.listCommunities(bson.M{"owners": fid}, 0, 0)
+	return ms.listCommunities(bson.M{"owners": fid}, limit, offset)
 }
 
 // NextCommunityID returns the next community ID which will be assigned to a new
