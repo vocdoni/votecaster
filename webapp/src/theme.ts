@@ -23,6 +23,17 @@ export const theme = extendTheme({
         colorScheme: 'purple',
       },
     }),
+    FormLabel: defineStyleConfig({
+      baseStyle: {
+        fontWeight: 500,
+      },
+    }),
+    Heading: defineStyleConfig({
+      baseStyle: {
+        fontWeight: 500,
+        color: 'gray.700',
+      },
+    }),
     Link: defineStyleConfig({
       baseStyle: {
         _hover: {
@@ -37,16 +48,6 @@ export const theme = extendTheme({
             textDecoration: 'underline',
           },
         },
-      },
-    }),
-    Heading: defineStyleConfig({
-      baseStyle: {
-        fontWeight: 500,
-      },
-    }),
-    FormLabel: defineStyleConfig({
-      baseStyle: {
-        fontWeight: 500,
       },
     }),
   },
