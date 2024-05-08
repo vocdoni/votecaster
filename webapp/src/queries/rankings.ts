@@ -21,7 +21,7 @@ export const fetchTopCreators = (bfetch: FetchFunction) => async (): Promise<Use
 export const latestPolls =
   (bfetch: FetchFunction, { limit = 10 }: Partial<Pagination> = {}) =>
   async (): Promise<PollRanking[]> => {
-    const response = await bfetch(`${appUrl}/rankings/lastElections`)
+    const response = await bfetch(`${appUrl}/rankings/latestElections?limit=${limit}`)
     const { polls } = (await response.json()) as { polls: PollRanking[] }
     return polls
   }

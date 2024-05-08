@@ -135,6 +135,16 @@ func (ms *MongoStorage) ElectionsByCommunity(communityID uint64) ([]*Election, e
 	return elections, nil
 }
 
+func (ms *MongoStorage) LatestElections(limit, offset int64) ([]*Election, int64, error) {
+	opts := options.Find().SetSort(bson.D{{Key: "createdTime", Value: -1}})
+	elections := []*Election{}
+	total, err := paginatedObjects(ms.elections, bson.M{}, opts, limit, offset, &elections)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to retrieve elections: %w", err)
+	}
+	return elections, total, nil
+}
+
 func (ms *MongoStorage) addElection(election *Election) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

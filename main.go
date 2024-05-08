@@ -428,7 +428,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/rankings/lastElections", http.MethodGet, "public", handler.lastElectionsHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/rankings/latestPolls", http.MethodGet, "public", handler.latestElectionsHandler); err != nil {
 		log.Fatal(err)
 	}
 

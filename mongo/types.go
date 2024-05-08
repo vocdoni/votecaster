@@ -1,11 +1,15 @@
 package mongo
 
 import (
+	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
@@ -299,4 +303,39 @@ func dynamicUpdateDocument(item interface{}, alwaysUpdateTags []string) (bson.M,
 	}
 
 	return bson.M{"$set": update}, nil
+}
+
+// paginatedObjects method returns the paginated list of objects from the given
+// collection by the provided query. It returns the list of resulting objects,
+// the total number of results, and an error if something goes wrong. It
+// receives the query to filter the collections objects, the limit of results
+// to return, and the offset (the number of objects to skip).
+func paginatedObjects(collection *mongo.Collection, query bson.M, opts *options.FindOptions, limit, offset int64, results any) (int64, error) {
+	// count total communities by query
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	total, err := collection.CountDocuments(ctx, query)
+	if err != nil {
+		return 0, err
+	}
+	// get communities with pagination
+	if opts == nil {
+		opts = options.Find()
+	}
+	opts = opts.SetLimit(limit).SetSkip(offset)
+	ctx, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel2()
+	cursor, err := collection.Find(ctx, query, opts)
+	if err != nil {
+		if strings.Contains(err.Error(), "no documents in result") {
+			return total, nil
+		}
+		return total, err
+	}
+	ctx, cancel3 := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel3()
+	if err := cursor.All(ctx, results); err != nil {
+		return total, err
+	}
+	return total, nil
 }

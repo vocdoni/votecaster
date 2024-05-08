@@ -49,14 +49,25 @@ func (ms *MongoStorage) ListCommunities(limit, offset int64) ([]Community, int64
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 	// filter by enabled and communities
-	return ms.listCommunities(bson.M{"disabled": false}, limit, offset)
+
+	communities := []Community{}
+	total, err := paginatedObjects(ms.communities, bson.M{"disabled": false}, nil, limit, offset, &communities)
+	if err != nil {
+		return nil, 0, err
+	}
+	return communities, total, nil
 }
 
 // ListFeaturedCommunities returns the list of featured communities.
 func (ms *MongoStorage) ListFeaturedCommunities(limit, offset int64) ([]Community, int64, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
-	return ms.listCommunities(bson.M{"featured": true}, limit, offset)
+	communities := []Community{}
+	total, err := paginatedObjects(ms.communities, bson.M{"featured": true}, nil, limit, offset, &communities)
+	if err != nil {
+		return nil, 0, err
+	}
+	return communities, total, nil
 }
 
 // ListCommunitiesByAdminFID returns the list of communities where the user is an
@@ -64,7 +75,13 @@ func (ms *MongoStorage) ListFeaturedCommunities(limit, offset int64) ([]Communit
 func (ms *MongoStorage) ListCommunitiesByAdminFID(fid uint64, limit, offset int64) ([]Community, int64, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
-	return ms.listCommunities(bson.M{"owners": fid}, limit, offset)
+	communities := []Community{}
+	total, err := paginatedObjects(ms.communities, bson.M{"owners": fid}, nil, limit, offset, &communities)
+	if err != nil {
+		log.Debug("error listing communities by admin FID: ", err)
+		return nil, 0, err
+	}
+	return communities, total, nil
 }
 
 // NextCommunityID returns the next community ID which will be assigned to a new
@@ -156,44 +173,6 @@ func (ms *MongoStorage) community(id uint64) (*Community, error) {
 		return nil, err
 	}
 	return &community, nil
-}
-
-// listCommunities method returns the list of communities by query. It returns
-// the list of communities, the total number of communities by query, and an
-// error if something goes wrong. It receives the query to filter the
-// communities, the limit of communities to return, and the offset to start
-// returning the communities. It allows to paginate the results of the query.
-func (ms *MongoStorage) listCommunities(query bson.M, limit, offset int64) ([]Community, int64, error) {
-	// count total communities by query
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	total, err := ms.communities.CountDocuments(ctx, query)
-	if err != nil {
-		return nil, 0, err
-	}
-	// get communities with pagination
-	opts := options.Find().SetLimit(limit).SetSkip(offset)
-	ctx, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel2()
-	cursor, err := ms.communities.Find(ctx, query, opts)
-	if err != nil {
-		if strings.Contains(err.Error(), "no documents in result") {
-			return nil, total, nil
-		}
-		return nil, total, err
-	}
-	var communities []Community
-	ctx, cancel3 := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel3()
-	for cursor.Next(ctx) {
-		var community Community
-		if err := cursor.Decode(&community); err != nil {
-			log.Warn(err)
-			continue
-		}
-		communities = append(communities, community)
-	}
-	return communities, total, nil
 }
 
 // IsCommunityAdmin checks if the user is an admin of the given community by ID.
