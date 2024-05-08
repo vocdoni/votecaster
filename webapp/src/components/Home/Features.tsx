@@ -1,4 +1,4 @@
-import { Box, BoxProps, Heading, SimpleGrid, Text, VStack } from '@chakra-ui/react'
+import { Box, BoxProps, Card, CardBody, CardHeader, Heading, SimpleGrid, Text, VStack } from '@chakra-ui/react'
 
 type FeatureProps = {
   title: string
@@ -6,14 +6,16 @@ type FeatureProps = {
 }
 
 const Feature: React.FC<FeatureProps> = ({ title, description }) => (
-  <Box p={5} boxShadow='md' bg='white' borderRadius='md'>
-    <Heading size='md' mb={2} fontWeight={600}>
-      {title}
-    </Heading>
-    <VStack color='gray.500' spacing={4} alignItems='start'>
-      {description instanceof Array ? description.map((text) => <Text>{text}</Text>) : <Text>{description}</Text>}
-    </VStack>
-  </Box>
+  <Card>
+    <CardHeader fontWeight={600} pb={2}>
+      <Heading size='md'>{title}</Heading>
+    </CardHeader>
+    <CardBody pt={2}>
+      <VStack color='gray.500' spacing={4} alignItems='start'>
+        {description instanceof Array ? description.map((text) => <Text>{text}</Text>) : <Text>{description}</Text>}
+      </VStack>
+    </CardBody>
+  </Card>
 )
 
 export const Features = (props: BoxProps) => (

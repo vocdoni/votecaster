@@ -117,10 +117,11 @@ export const TopPolls = ({ polls, title, ...rest }: { polls: PollRanking[]; titl
 
 export const TopPollsSimplified = ({ polls, ...rest }: { polls: PollRanking[] } & StackProps) => {
   const navigate = useNavigate()
+
   return (
     <Stack spacing={3} {...rest}>
       {polls.map((poll, index) => (
-        <TopCard p={2} key={index} onClick={() => navigate(`/poll/${poll.electionId}`)} cursor='pointer'>
+        <TopCard py={2} px={4} key={index} onClick={() => navigate(`/poll/${poll.electionId}`)} cursor='pointer'>
           <Text fontWeight='medium'>
             {poll.title} —{' '}
             <Link as={RouterLink} to={`/profile/${poll.createdByUsername}`} variant='primary'>
@@ -185,24 +186,22 @@ export const TopUsers = ({ users, title, ...rest }: { users: UserRanking[]; titl
   </Box>
 )
 
-const TopCard = ({ children, ...props }: PropsWithChildren<BoxProps>) => {
-  return (
-    <Box
-      p={3}
-      bg={'white'}
-      borderRadius='md'
-      display='flex'
-      justifyContent='space-between'
-      gap={{ base: 0, sm: 2 }}
-      boxShadow='sm'
-      border='1px'
-      borderColor='purple.200'
-      _hover={{
-        bg: 'purple.50', // Light hover effect for the box
-      }}
-      {...props}
-    >
-      {children}
-    </Box>
-  )
-}
+const TopCard = ({ children, ...props }: PropsWithChildren<BoxProps>) => (
+  <Box
+    p={3}
+    bg={'white'}
+    borderRadius='md'
+    display='flex'
+    justifyContent='space-between'
+    gap={{ base: 0, sm: 2 }}
+    boxShadow='sm'
+    border='1px'
+    borderColor='purple.200'
+    _hover={{
+      bg: 'purple.50', // Light hover effect for the box
+    }}
+    {...props}
+  >
+    {children}
+  </Box>
+)

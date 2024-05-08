@@ -4,7 +4,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import hat from '/degen-hat.png'
 
 export const Jumbotron = () => (
-  <Box p={20} bg='white' boxShadow='md' borderRadius='md' textAlign='center' w='full'>
+  <Box boxShadow='md' bg='white' borderRadius='md' p={20} textAlign='center' w='full'>
     <VStack spacing={4} alignItems='center'>
       <Heading as='h1' size='2xl' fontWeight='800' maxW='800px' display='block'>
         The governance platform for your Farcaster community.
