@@ -110,10 +110,6 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
                 {reputation.data.followersCount}
                 {` `}
                 <Icon as={FaHeart} boxSize={3} />
-                &nbsp;&amp;&nbsp;
-                {reputation.data.communitiesCount}
-                {` `}
-                <Icon as={FaUserGroup} boxSize={3} />
               </FlexStatNumber>
             </Stat>
             <Stat>
