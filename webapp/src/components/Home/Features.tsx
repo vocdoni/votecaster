@@ -55,5 +55,8 @@ export const Features = (props: BoxProps) => (
         ]}
       />
     </SimpleGrid>
+    <Text w='full' textAlign='center' fontSize='xl' color='gray.600' mt={4}>
+      And much more to come!
+    </Text>
   </Box>
 )
