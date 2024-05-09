@@ -12,7 +12,11 @@ const Feature: React.FC<FeatureProps> = ({ title, description }) => (
     </CardHeader>
     <CardBody pt={2}>
       <VStack color='gray.500' spacing={4} alignItems='start'>
-        {description instanceof Array ? description.map((text) => <Text>{text}</Text>) : <Text>{description}</Text>}
+        {description instanceof Array ? (
+          description.map((text, k) => <Text key={k}>{text}</Text>)
+        ) : (
+          <Text>{description}</Text>
+        )}
       </VStack>
     </CardBody>
   </Card>
