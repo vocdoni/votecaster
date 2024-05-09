@@ -158,7 +158,7 @@ export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) =>
                   display='flex'
                   flexDir='row'
                   gap={1}
-                  alignContent='center'
+                  alignItems='center'
                 >
                   Group chat
                   <Icon as={TbExternalLink} size={4} />
