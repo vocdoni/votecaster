@@ -6,15 +6,15 @@ import { useAuth } from '~components/Auth/useAuth'
 import { fetchCensus } from '~queries/census'
 import { UsersTableModal } from './UsersTableModal'
 
-export const ParticipantsTableModal = ({ id }: { id?: string }) => {
+export const ParticipantsTableModal = ({ poll }: { poll: PollInfo }) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { bfetch } = useAuth()
   const toast = useToast()
 
   const { data, error, isLoading } = useQuery({
-    queryKey: ['census', id],
-    queryFn: fetchCensus(bfetch, id!),
-    enabled: !!id && isOpen,
+    queryKey: ['census', poll.electionId],
+    queryFn: fetchCensus(bfetch, poll.electionId),
+    enabled: !!poll.electionId && isOpen,
     refetchOnWindowFocus: false,
     retry: (count, error: any) => {
       if (error.status !== 200) {
@@ -36,7 +36,7 @@ export const ParticipantsTableModal = ({ id }: { id?: string }) => {
     })
   }, [error])
 
-  if (!id) return
+  if (!poll || !poll.electionId) return
 
   return (
     <>

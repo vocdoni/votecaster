@@ -24,9 +24,9 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
             to vote, and the total census of eligible voters.
           </Text>
           <HStack spacing={2} flexWrap='wrap'>
-            <VotersTableModal id={poll.electionId} />
-            <RemainingVotersTableModal id={poll.electionId} />
-            <ParticipantsTableModal id={poll.electionId} />
+            <VotersTableModal poll={poll} />
+            <RemainingVotersTableModal poll={poll} />
+            <ParticipantsTableModal poll={poll} />
           </HStack>
         </>
       )}

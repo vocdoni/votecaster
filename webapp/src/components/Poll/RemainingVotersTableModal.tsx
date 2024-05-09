@@ -1,19 +1,19 @@
-import { Button, useDisclosure, useToast } from '@chakra-ui/react'
+import { Button, Tooltip, useDisclosure, useToast } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { FaUserGroup } from 'react-icons/fa6'
+import { TbUserQuestion } from 'react-icons/tb'
 import { useAuth } from '~components/Auth/useAuth'
 import { fetchPollsRemainingVoters } from '~queries/polls'
 import { UsersTableModal } from './UsersTableModal'
 
-export const RemainingVotersTableModal = ({ id }: { id?: string }) => {
+export const RemainingVotersTableModal = ({ poll }: { poll: PollInfo }) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { bfetch } = useAuth()
   const toast = useToast()
   const { data, error, isLoading } = useQuery({
-    queryKey: ['remainingVoters', id],
-    queryFn: fetchPollsRemainingVoters(bfetch, id!),
-    enabled: !!id && isOpen,
+    queryKey: ['remainingVoters', poll.electionId],
+    queryFn: fetchPollsRemainingVoters(bfetch, poll.electionId),
+    enabled: !!poll.electionId && isOpen,
     refetchOnWindowFocus: false,
     retry: (count, error: any) => {
       if (error.status !== 200) {
@@ -35,13 +35,21 @@ export const RemainingVotersTableModal = ({ id }: { id?: string }) => {
     })
   }, [error])
 
-  if (!id) return
+  if (!poll || !poll.electionId) return
 
   return (
     <>
-      <Button size='sm' onClick={onOpen} isLoading={isLoading} rightIcon={<FaUserGroup />}>
-        Remaining voters
-      </Button>
+      <Tooltip hasArrow label={!poll.voteCount && `No voters yet; check census.`} placement='top'>
+        <Button
+          size='sm'
+          onClick={onOpen}
+          isLoading={isLoading}
+          rightIcon={<TbUserQuestion />}
+          isDisabled={!poll.voteCount}
+        >
+          Remaining voters
+        </Button>
+      </Tooltip>
       <UsersTableModal
         isOpen={isOpen}
         onClose={onClose}

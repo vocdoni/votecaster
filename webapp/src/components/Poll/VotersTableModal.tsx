@@ -1,4 +1,4 @@
-import { Button, useDisclosure, useToast } from '@chakra-ui/react'
+import { Button, Tooltip, useDisclosure, useToast } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { FaVoteYea } from 'react-icons/fa'
@@ -6,14 +6,14 @@ import { useAuth } from '~components/Auth/useAuth'
 import { fetchPollsVoters } from '~queries/polls'
 import { UsersTableModal } from './UsersTableModal'
 
-export const VotersTableModal = ({ id }: { id?: string }) => {
+export const VotersTableModal = ({ poll }: { poll: PollInfo }) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { bfetch } = useAuth()
   const toast = useToast()
   const { data, error, isLoading } = useQuery({
-    queryKey: ['voters', id],
-    queryFn: fetchPollsVoters(bfetch, id!),
-    enabled: !!id && isOpen,
+    queryKey: ['voters', poll.electionId],
+    queryFn: fetchPollsVoters(bfetch, poll.electionId),
+    enabled: !!poll.electionId && isOpen,
     refetchOnWindowFocus: false,
     retry: (count, error: any) => {
       if (error.status !== 200) {
@@ -35,13 +35,15 @@ export const VotersTableModal = ({ id }: { id?: string }) => {
     })
   }, [error])
 
-  if (!id) return
+  if (!poll || !poll.electionId) return
 
   return (
     <>
-      <Button size='sm' onClick={onOpen} isLoading={isLoading} rightIcon={<FaVoteYea />}>
-        Voters
-      </Button>
+      <Tooltip hasArrow label={!poll.voteCount && `No voters yet`} placement='top'>
+        <Button size='sm' onClick={onOpen} isLoading={isLoading} rightIcon={<FaVoteYea />} isDisabled={!poll.voteCount}>
+          Voters
+        </Button>
+      </Tooltip>
       <UsersTableModal
         isOpen={isOpen}
         onClose={onClose}
