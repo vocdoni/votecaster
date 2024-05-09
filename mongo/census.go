@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.vocdoni.io/dvote/types"
 )
 
@@ -125,6 +126,9 @@ func (ms *MongoStorage) censusFromElection(electionID types.HexBytes) (*Census, 
 	var census Census
 	err := ms.census.FindOne(ctx, bson.M{"electionId": electionID.String()}).Decode(&census)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrElectionUnknown
+		}
 		return nil, fmt.Errorf("cannot find Census with electionID: %w", err)
 	}
 
