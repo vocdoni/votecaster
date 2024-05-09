@@ -25,11 +25,11 @@ import { FaBell, FaEyeSlash } from 'react-icons/fa6'
 import { useAuth } from '~components/Auth/useAuth'
 import { appUrl } from '~constants'
 import { community2CommunityForm } from '~util/mappings'
-import { CensusSelector } from './Create/CensusSelector'
-import { Channels } from './Create/Channels'
-import { CommunityFormValues } from './Create/Form'
-import { GroupChat } from './Create/GroupChat'
-import { Meta } from './Create/Meta'
+import { CommunityFormValues } from './Form'
+import { CensusSelector } from './Form/CensusSelector'
+import { Channels } from './Form/Channels'
+import { GroupChat } from './Form/GroupChat'
+import { Meta } from './Form/Meta'
 
 export type ManageCommunityProps = {
   community: Community

@@ -126,7 +126,7 @@ declare global {
     logoURL: string
     admins: Profile[]
     notifications: boolean
-    censusType: string
+    censusType: CensusType
     censusAddresses: Address[]
     censusChannel: Channel
     channels: string[]

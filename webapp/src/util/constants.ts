@@ -9,3 +9,9 @@ export const vocdoniEnvironment = import.meta.env.VOCDONI_ENVIRONMENT
 export const vocdoniExplorer = import.meta.env.VOCDONI_EXPLORER
 
 export const paginationItemsPerPage = 12
+
+export const explorers = {
+  degen: 'https://explorer.degen.tips',
+  base: 'https://basescan.org',
+  ethereum: 'https://etherscan.io',
+}

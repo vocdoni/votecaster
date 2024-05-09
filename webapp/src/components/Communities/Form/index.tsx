@@ -135,7 +135,6 @@ export const CommunitiesCreateForm = () => {
           data: data.src,
         }
 
-        console.info('uploading avatar...', avatar)
         await bfetch(`${appUrl}/images/avatar`, {
           method: 'POST',
           body: JSON.stringify(avatar),

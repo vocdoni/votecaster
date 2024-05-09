@@ -24,7 +24,7 @@ import {
   VStack,
 } from '@chakra-ui/react'
 import { QueryObserverResult, RefetchOptions, useQuery } from '@tanstack/react-query'
-import { Fragment, PropsWithChildren, ReactElement, useMemo } from 'react'
+import { Fragment, PropsWithChildren, useMemo } from 'react'
 import { BsChatDotsFill } from 'react-icons/bs'
 import { FaPlay, FaRegCircleStop, FaSliders } from 'react-icons/fa6'
 import { MdHowToVote } from 'react-icons/md'
@@ -35,6 +35,7 @@ import { useAuth } from '~components/Auth/useAuth'
 import { degenContractAddress } from '~constants'
 import { fetchPollsByCommunity } from '~queries/rankings'
 import { humanDate } from '~util/strings'
+import { CensusTypeInfo } from './CensusTypeInfo'
 import { ManageCommunity } from './Manage'
 
 type CommunitiesViewProps = {
@@ -72,31 +73,8 @@ export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) =>
     () => isAuthenticated && community?.admins.some((admin) => admin.fid == profile?.fid),
     [isAuthenticated, community, profile]
   )
-  if (!community) return
 
-  const channelLinks: ReactElement[] = []
-  community.channels.forEach((channel, index: number) => {
-    channelLinks.push(
-      <Link
-        key={`link-${channel}`}
-        fontSize='sm'
-        color='gray'
-        isExternal
-        _hover={{ textDecoration: 'underline' }}
-        href={`https://warpcast.com/~/channel/${channel}`}
-      >
-        /{channel}
-      </Link>
-    )
-    // Add the separator if it's not the last item
-    if (index !== community.channels.length - 1) {
-      channelLinks.push(
-        <Text as='span' fontSize='sm' mx={1} color={'grey'} key={`separator-${index}`}>
-          &amp;
-        </Text>
-      )
-    }
-  })
+  if (!community) return
 
   return (
     <Grid
@@ -115,8 +93,8 @@ export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) =>
             </Text>
             <Text fontSize='smaller' mt='6'>
               Deployed on{' '}
-              <Link isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`}>
-                <Text as={'u'}>🎩 DegenChain</Text>
+              <Link isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`} variant='primary'>
+                🎩 DegenChain
               </Link>
             </Text>
             {!!imAdmin && (
@@ -135,38 +113,58 @@ export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) =>
       </GridItem>
       <GridItem gridArea='links'>
         <WhiteBox>
-          <Box>
+          <VStack alignItems='start' fontSize='sm'>
             <Heading size={'sm'} mb={2}>
-              Community Engagement
+              Community Info
             </Heading>
-            {!!channelLinks.length && (
-              <>
+            {!!community.channels && (
+              <VStack alignItems='start' spacing={0}>
                 <HStack spacing={2} align='center'>
                   <Icon as={SiFarcaster} size={8} />
-                  <Text fontWeight={'semibold'} fontSize={'sm'}>
-                    Farcaster channels
-                  </Text>
+                  <Text fontWeight={'semibold'}>Farcaster channels</Text>
                 </HStack>
-                <Box ml={6} mb={2}>
-                  {channelLinks}
+                <Box ml={6}>
+                  {community.channels.map((channel, index) => (
+                    <>
+                      <Link
+                        key={`link-${channel}`}
+                        isExternal
+                        href={`https://warpcast.com/~/channel/${channel}`}
+                        variant='primary'
+                      >
+                        /{channel}
+                      </Link>
+                      {index < community.channels.length && (
+                        <Text as='span' mx={1} color='gray'>
+                          {index < community.channels.length - 2
+                            ? ', '
+                            : index === community.channels.length - 2 && ' & '}
+                        </Text>
+                      )}
+                    </>
+                  ))}
                 </Box>
-              </>
+              </VStack>
             )}
             {!!community.groupChat && (
-              <Link isExternal href={community.groupChat}>
-                <HStack spacing={2} align='center'>
-                  <Icon as={BsChatDotsFill} />
-                  <Heading size='xs'>
-                    <Text as='u'>Group chat</Text>
-                  </Heading>
+              <HStack spacing={2} align='center'>
+                <Icon as={BsChatDotsFill} />
+                <Link
+                  isExternal
+                  href={community.groupChat}
+                  variant='primary'
+                  display='flex'
+                  flexDir='row'
+                  gap={1}
+                  alignContent='center'
+                >
+                  Group chat
                   <Icon as={TbExternalLink} size={4} />
-                </HStack>
-              </Link>
+                </Link>
+              </HStack>
             )}
-            {!channelLinks.length && !community.groupChat && (
-              <Text>There is no aditional information for this community.</Text>
-            )}
-          </Box>
+            <CensusTypeInfo community={community} />
+          </VStack>
         </WhiteBox>
       </GridItem>
       {!!communityPolls && (

@@ -1,4 +1,4 @@
-import { CommunitiesCreateForm } from '~components/Communities/Create/Form'
+import { CommunitiesCreateForm } from '~components/Communities/Form'
 
 const CommunitiesNew = () => <CommunitiesCreateForm />
 

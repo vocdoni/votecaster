@@ -23,3 +23,5 @@ export const hashString = async (str: string) => {
   const full = sha256(str).toString()
   return full.substring(0, 14)
 }
+
+export const shortHex = (hex: string) => hex.substring(0, 6) + '...' + hex.substring(hex.length - 4)
