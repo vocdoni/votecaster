@@ -50,18 +50,18 @@ export const ConfirmDegenTransactionButton = ({ price, ...props }: ConfirmDegenT
   const { openConnectModal } = useConnectModal()
   const { data, isLoading, error } = useBalance({ address, chainId: degen.id })
 
-  if (chainId !== degen.id) {
-    return (
-      <Button onClick={() => switchChain({ chainId: degen.id })} leftIcon={<GiTopHat />} {...props}>
-        Switch to Degenchain
-      </Button>
-    )
-  }
-
   if (!isConnected) {
     return (
       <Button onClick={openConnectModal} leftIcon={<CiWallet />} {...props}>
         Connect wallet first
+      </Button>
+    )
+  }
+
+  if (chainId !== degen.id) {
+    return (
+      <Button onClick={() => switchChain({ chainId: degen.id })} leftIcon={<GiTopHat />} {...props}>
+        Switch to Degenchain
       </Button>
     )
   }
