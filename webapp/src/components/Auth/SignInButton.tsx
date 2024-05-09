@@ -23,7 +23,7 @@ import { useAuth } from './useAuth'
 import '@farcaster/auth-kit/styles.css'
 
 export const SignInButton = (props: ButtonProps) => {
-  const { login, bearer } = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [url, setUrl] = useState<string | null>(null)
   const [id, setId] = useState<string | null>(null)
@@ -67,7 +67,7 @@ export const SignInButton = (props: ButtonProps) => {
 
   // as soon as we have the QR, start polling for the bearer
   useEffect(() => {
-    if (bearer !== null || !id) return
+    if (isAuthenticated || !id) return
 
     const interval = setInterval(async () => {
       if (await bearerCheck(id)) {
@@ -80,7 +80,7 @@ export const SignInButton = (props: ButtonProps) => {
     if (!isOpen) clearInterval(interval)
 
     return () => clearInterval(interval)
-  }, [url, bearer, isOpen])
+  }, [url, isAuthenticated, isOpen])
 
   return (
     <>
