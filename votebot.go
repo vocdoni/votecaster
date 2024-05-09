@@ -40,25 +40,25 @@ func initBot(ctx context.Context, handler *vocdoniHandler, api fapi.API,
 				// check if the message is a poll and create an election
 				user, poll, isPool, err := voteBot.PollMessageHandler(ctx, msg, maxElectionDuration)
 				if err == nil && isPool {
-					log.Infow("new poll received, creating election...",
+					if err := pollToCast(ctx, handler, poll, user, msg, voteBot, defaultCensus); err != nil {
+						log.Errorf("error creating election: %s", err)
+						continue
+					}
+					log.Debugw("poll created and reply sent",
 						"poll", poll,
 						"userdata", user,
 						"msg-hash", msg.Hash)
-					if err := pollToCast(ctx, handler, poll, user, msg, voteBot, defaultCensus); err != nil {
-						log.Errorf("error creating election: %s", err)
-					}
 					continue
 				}
 				// check if the message is a mute request and mute the user
 				user, parentMsg, isMuteRequest, err := voteBot.MuteRequestHandler(ctx, msg)
 				if err == nil && isMuteRequest {
-					log.Infow("mute request received, muting user...",
-						"userdata", user,
-						"msg-hash", msg.Hash,
-						"parent-msg", parentMsg)
 					if err := mutePollCreator(handler, user, parentMsg); err != nil {
 						log.Errorf("error muting user: %s", err)
 					}
+					log.Debugw("poll creator muted",
+						"user", user,
+						"poll", parentMsg.Embeds)
 					continue
 				}
 			}
@@ -91,9 +91,6 @@ func pollToCast(ctx context.Context, handler *vocdoniHandler, poll *poll.Poll,
 	if err != nil {
 		return fmt.Errorf("error creating election: %w", err)
 	}
-	log.Infow("election created",
-		"electionID", electionID,
-		"poll", poll)
 	frameUrl := fmt.Sprintf("%s/%s", serverURL, electionID.String())
 	shortenedUrl, err := shortener.ShortURL(ctx, frameUrl)
 	if err != nil {
@@ -103,10 +100,6 @@ func pollToCast(ctx context.Context, handler *vocdoniHandler, poll *poll.Poll,
 	if err := voteBot.ReplyWithPollURL(ctx, msg, shortenedUrl); err != nil {
 		return fmt.Errorf("error replying to poll: %s", err)
 	}
-	log.Infow("poll reply sent",
-		"frame-url", frameUrl,
-		"author", msg.Author,
-		"msg-hash", msg.Hash)
 	return nil
 }
 
@@ -139,7 +132,6 @@ func mutePollCreator(handler *vocdoniHandler, user *fapi.Userdata, parent *fapi.
 	if err := handler.db.AddNotificationMutedUser(user.FID, election.UserID); err != nil {
 		return fmt.Errorf("error muting user: %w", err)
 	}
-	log.Infow("user muted", "from", user.FID, "muted", election.UserID)
 	return nil
 }
 

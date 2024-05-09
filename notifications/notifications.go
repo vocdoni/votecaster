@@ -148,7 +148,6 @@ func (nm *NotificationManager) Start() {
 					log.Errorf("error getting notifications: %s", err)
 					continue
 				}
-				log.Infow("notifications found", "count", len(notifications))
 				if err := nm.handleNotifications(notifications); err != nil {
 					log.Errorf("error sending notifications: %s", err)
 				}
@@ -239,8 +238,6 @@ func (nm *NotificationManager) handleNotifications(notifications []mongo.Notific
 				errCh <- fmt.Errorf("error retrieving bot user data: %s", err)
 				return
 			}
-			// send notification and remove it from the database
-			log.Debugw("permission granted, sending and removing notification...", "notification", n.ID)
 			// compose the notification message and mentions using the default
 			// template or the custom template if the custom text is not empty
 			var msg string
@@ -298,7 +295,6 @@ func (nm *NotificationManager) checkOrReqPermission(userID uint64, username, aut
 	if alreadyRequested {
 		return profile.NotificationsAccepted, nil
 	}
-	log.Debugw("notifications not requested, requesting...", "user", userID)
 	// if the user has not been requested for notifications yet, send the
 	// notification request with the permission message and the frame URL
 	msg := fmt.Sprintf(nm.permissionMsg, username, author, community)

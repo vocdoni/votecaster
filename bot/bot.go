@@ -86,7 +86,6 @@ func (b *Bot) Start(ctx context.Context) {
 				b.lastCast = lastCast
 				if len(messages) > 0 {
 					for _, msg := range messages {
-						log.Infow("new bot cast", "from", msg.Author, "message", msg.Content)
 						b.Messages <- msg
 					}
 				}
