@@ -109,7 +109,7 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
 
   return (
     <>
-      <FormControl {...props}>
+      <FormControl {...props} isRequired>
         <FormLabel>Census/voters</FormLabel>
         <RadioGroup onChange={(val: CensusType) => setValue('censusType', val)} value={censusType} id='census-type'>
           {complete && (
