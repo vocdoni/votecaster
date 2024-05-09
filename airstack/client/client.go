@@ -22,7 +22,6 @@ const (
 // add new blockchains if airstack schema changed and bindings regenerated
 var airstackSupportedBlockchains = map[string]gql.TokenBlockchain{
 	"ethereum": gql.TokenBlockchainEthereum,
-	"gold":     gql.TokenBlockchainGold,
 	"base":     gql.TokenBlockchainBase,
 	"zora":     gql.TokenBlockchainZora,
 	"degen":    gql.TokenBlockchainDegen,
@@ -60,10 +59,10 @@ func NewClient(ctx context.Context, endpoint, apiKey string, blockchains []strin
 		url:    endpoint,
 		ctx:    ctx,
 	}
-	// check if api requested blockchains are supported by airstack api
+	// check if api requested blockchains are supported
 	for _, chain := range blockchains {
 		if _, ok := airstackSupportedBlockchains[chain]; !ok {
-			log.Warnf("requested network %s not supported by airstack", chain)
+			log.Warnf("requested network %s not supported", chain)
 			continue
 		}
 		ac.blockchains = append(ac.blockchains, chain)
