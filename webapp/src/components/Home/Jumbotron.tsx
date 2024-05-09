@@ -6,7 +6,7 @@ import hat from '/degen-hat.png'
 export const Jumbotron = () => (
   <Box boxShadow='md' bg='white' borderRadius='md' p={20} textAlign='center' w='full'>
     <VStack spacing={4} alignItems='center'>
-      <Heading as='h1' size='2xl' fontWeight='800' maxW='800px' display='block'>
+      <Heading as='h1' size='jumbo' fontWeight='800' maxW='800px' display='block'>
         The governance platform for your Farcaster community.
       </Heading>
       <Text fontWeight='500' size='2xl' color='gray.600'>

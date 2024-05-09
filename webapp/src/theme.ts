@@ -1,4 +1,4 @@
-import { defineStyleConfig, extendTheme } from '@chakra-ui/react'
+import { defineStyle, defineStyleConfig, extendTheme } from '@chakra-ui/react'
 
 export const theme = extendTheme({
   colors: {
@@ -32,6 +32,16 @@ export const theme = extendTheme({
       baseStyle: {
         fontWeight: 500,
         color: 'gray.700',
+      },
+      sizes: {
+        jumbo: defineStyle({
+          fontSize: { base: '3xl', md: '4xl', xl: '5xl' },
+          lineHeight: {
+            base: 1.33,
+            md: 1.2,
+            xl: 1,
+          },
+        }),
       },
     }),
     Link: defineStyleConfig({
