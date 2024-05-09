@@ -127,13 +127,8 @@ export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) =>
                 </HStack>
                 <Box ml={6}>
                   {community.channels.map((channel, index) => (
-                    <>
-                      <Link
-                        key={`link-${channel}`}
-                        isExternal
-                        href={`https://warpcast.com/~/channel/${channel}`}
-                        variant='primary'
-                      >
+                    <Fragment key={index}>
+                      <Link isExternal href={`https://warpcast.com/~/channel/${channel}`} variant='primary'>
                         /{channel}
                       </Link>
                       {index < community.channels.length && (
@@ -143,7 +138,7 @@ export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) =>
                             : index === community.channels.length - 2 && ' & '}
                         </Text>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </Box>
               </VStack>
