@@ -57,25 +57,41 @@ func (v *vocdoniHandler) rankingOfElections(msg *apirest.APIdata, ctx *httproute
 	return ctx.Send(jresponse, http.StatusOK)
 }
 
-func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	dbElections, err := v.db.LastCreatedElections(10)
+func (v *vocdoniHandler) latestElectionsHandler(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// get optional parameters to paginate the results
+	limit := maxPaginatedItems
+	strLimit := ctx.Request.URL.Query().Get("limit")
+	if strLimit != "" {
+		// if the query has the limit parameter, list the first n elections
+		n, err := strconv.Atoi(strLimit)
+		if err != nil {
+			return ctx.Send([]byte("invalid limit"), http.StatusBadRequest)
+		}
+		limit = int64(n)
+		if limit > maxPaginatedItems {
+			limit = maxPaginatedItems
+		} else if limit < minPaginatedItems {
+			limit = minPaginatedItems
+		}
+	}
+	offset := int64(0)
+	strOffset := ctx.Request.URL.Query().Get("offset")
+	if strOffset != "" {
+		// if the query has the offset parameter, list elections starting from
+		// the n th election
+		n, err := strconv.Atoi(strOffset)
+		if err != nil {
+			return ctx.Send([]byte("invalid offset"), http.StatusBadRequest)
+		}
+		offset = int64(n)
+	}
+	// get elections from the database
+	dbElections, total, err := v.db.LatestElections(limit, offset)
 	if err != nil {
-		return fmt.Errorf("failed to get last elections: %w", err)
+		return fmt.Errorf("failed to get latest elections: %w", err)
 	}
-
-	type Election struct {
-		CreatedTime             time.Time `json:"createdTime"`
-		ElectionID              string    `json:"electionId"`
-		LastVoteTime            time.Time `json:"lastVoteTime"`
-		Question                string    `json:"title"`
-		CastedVotes             uint64    `json:"voteCount"`
-		CensusParticipantsCount uint64    `json:"censusParticipantsCount"`
-		Username                string    `json:"createdByUsername"`
-		Displayname             string    `json:"createdByDisplayname"`
-	}
-
-	var elections []*Election
-
+	// decode the elections to the response format
+	var elections []*RankedElection
 	for i := range dbElections {
 		var username, displayname string
 		user, err := v.db.User(dbElections[i].UserID)
@@ -86,7 +102,24 @@ func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httproute
 			username = user.Username
 			displayname = user.Displayname
 		}
-		elections = append(elections, &Election{
+		var community *Community
+		if dbElections[i].Community != nil {
+			dbCommunity, err := v.db.Community(dbElections[i].Community.ID)
+			if err != nil {
+				log.Warnw("failed to fetch community", "error", err)
+			} else if dbCommunity != nil {
+				community = &Community{
+					ID:            dbCommunity.ID,
+					Name:          dbCommunity.Name,
+					LogoURL:       dbCommunity.ImageURL,
+					GroupChatURL:  dbCommunity.GroupChatURL,
+					Notifications: dbCommunity.Notifications,
+					Channels:      dbCommunity.Channels,
+				}
+			}
+		}
+
+		elections = append(elections, &RankedElection{
 			dbElections[i].CreatedTime,
 			dbElections[i].ElectionID,
 			dbElections[i].LastVoteTime,
@@ -95,10 +128,17 @@ func (v *vocdoniHandler) lastElectionsHandler(_ *apirest.APIdata, ctx *httproute
 			uint64(dbElections[i].FarcasterUserCount),
 			username,
 			displayname,
+			community,
 		})
 	}
-	jresponse, err := json.Marshal(map[string]any{
-		"polls": elections,
+	// encode the response to json including pagination information
+	jresponse, err := json.Marshal(RankedElections{
+		Elections: elections,
+		Pagination: &Pagination{
+			Total:  total,
+			Limit:  limit,
+			Offset: offset,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal response: %w", err)

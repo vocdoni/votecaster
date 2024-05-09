@@ -8,6 +8,8 @@ import (
 
 const (
 	maxElectionDuration = 24 * time.Hour * 15
+	minPaginatedItems   = int64(1)
+	maxPaginatedItems   = int64(100)
 )
 
 // FarcasterProfile is the profile of a farcaster user.
@@ -62,6 +64,25 @@ type ElectionInfo struct {
 	Community               *mongo.ElectionCommunity `json:"community,omitempty"`
 }
 
+// RankedElection defines the attributes of a ranked election
+type RankedElection struct {
+	CreatedTime             time.Time  `json:"createdTime"`
+	ElectionID              string     `json:"electionId"`
+	LastVoteTime            time.Time  `json:"lastVoteTime"`
+	Question                string     `json:"title"`
+	CastedVotes             uint64     `json:"voteCount"`
+	CensusParticipantsCount uint64     `json:"censusParticipantsCount"`
+	Username                string     `json:"createdByUsername"`
+	Displayname             string     `json:"createdByDisplayname"`
+	Community               *Community `json:"community,omitempty"`
+}
+
+// RankedElections defines the list of ranked elections and the pagination info
+type RankedElections struct {
+	Elections  []*RankedElection `json:"polls"`
+	Pagination *Pagination       `json:"pagination,omitempty"`
+}
+
 // CensusToken defines the parameters for a census token
 type CensusToken struct {
 	Address    string `json:"address"`
@@ -111,12 +132,12 @@ type Community struct {
 	Name            string           `json:"name"`
 	LogoURL         string           `json:"logoURL"`
 	GroupChatURL    string           `json:"groupChat"`
-	Admins          []*User          `json:"admins"`
+	Admins          []*User          `json:"admins,omitempty"`
 	Notifications   bool             `json:"notifications"`
-	CensusType      string           `json:"censusType"`
+	CensusType      string           `json:"censusType,omitempty"`
 	CensusAddresses []*CensusAddress `json:"censusAddresses,omitempty"`
 	CensusChannel   *Channel         `json:"censusChannel,omitempty"`
-	Channels        []string         `json:"channels"`
+	Channels        []string         `json:"channels,omitempty"`
 	Disabled        bool             `json:"disabled"`
 }
 

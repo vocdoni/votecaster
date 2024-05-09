@@ -30,10 +30,10 @@ import { FaPlay, FaRegCircleStop, FaSliders } from 'react-icons/fa6'
 import { MdHowToVote } from 'react-icons/md'
 import { SiFarcaster } from 'react-icons/si'
 import { TbExternalLink } from 'react-icons/tb'
-import { useNavigate } from 'react-router-dom'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
 import { degenContractAddress } from '~constants'
-import { fetchPollsByCommunity } from '~queries/tops'
+import { fetchPollsByCommunity } from '~queries/rankings'
 import { humanDate } from '~util/strings'
 import { ManageCommunity } from './Manage'
 
@@ -125,9 +125,9 @@ export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) =>
                   Manage
                 </Button>
                 <ManageCommunity {...modalProps} community={community} refetch={refetch} />
-                <Button onClick={() => navigate('/')} leftIcon={<MdHowToVote />}>
-                  Create vote
-                </Button>
+                <RouterLink to={`/form/${community.id}`}>
+                  <Button leftIcon={<MdHowToVote />}>Create vote</Button>
+                </RouterLink>
               </Flex>
             )}
           </Box>

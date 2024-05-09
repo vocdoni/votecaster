@@ -89,6 +89,15 @@ declare global {
     community?: Pick<Community, 'id' | 'name'>
   }
 
+  type PollRanking = {
+    electionId: string
+    title: string
+    voteCount: number
+    createdByFID: number
+    createdByUsername: string
+    createdByDisplayname: string
+  }
+
   type UserRanking = {
     fid: number
     username: string

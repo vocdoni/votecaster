@@ -16,8 +16,12 @@ type NavbarLink = {
 
 const links: NavbarLink[] = [
   {
-    name: 'App',
+    name: 'Home',
     to: '/',
+  },
+  {
+    name: 'Create poll',
+    to: '/form',
   },
   {
     name: 'Communities',
@@ -48,7 +52,7 @@ export const Navbar = () => {
         <IconButton
           icon={isOpen ? <Icon as={IoClose} /> : <Icon as={GiHamburgerMenu} />}
           aria-label={'Open Menu'}
-          display={{ md: 'none' }}
+          display={{ lg: 'none' }}
           onClick={isOpen ? onClose : onOpen}
         />
         <HStack spacing={8} alignItems={'center'}>
@@ -57,7 +61,7 @@ export const Navbar = () => {
               <Avatar src={logo} aria-label='farcaster.vote logo' size='sm' verticalAlign='middle' /> farcaster.vote
             </Link>
           </Heading>
-          <HStack as={'nav'} spacing={4} display={{ base: 'none', md: 'flex' }}>
+          <HStack as={'nav'} spacing={4} display={{ base: 'none', lg: 'flex' }}>
             <NavbarMenuLinks />
           </HStack>
         </HStack>
@@ -74,7 +78,7 @@ export const Navbar = () => {
       </Flex>
 
       {isOpen && (
-        <Box pb={4} display={{ md: 'none' }}>
+        <Box pb={4} display={{ lg: 'none' }}>
           <Stack as={'nav'} spacing={4}>
             <NavbarMenuLinks />
           </Stack>

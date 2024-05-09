@@ -9,6 +9,15 @@ export const fetchCommunities =
     return { communities, pagination }
   }
 
+export const fetchFeatured =
+  (bfetch: FetchFunction, { limit = paginationItemsPerPage, offset = 0 }) =>
+  async () => {
+    const response = await bfetch(`${appUrl}/communities?featured=true&limit=${limit}&offset=${offset}`)
+    const { communities, pagination } = (await response.json()) as { communities: Community[]; pagination: Pagination }
+
+    return { communities, pagination }
+  }
+
 export const fetchCommunitiesByAdmin =
   (bfetch: FetchFunction, profile: Profile, { limit = paginationItemsPerPage, offset = 0 }) =>
   async () => {

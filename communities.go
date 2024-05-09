@@ -72,7 +72,7 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 	byAdminUsername := ctx.Request.URL.Query().Get("byAdminUsername")
 	featured := ctx.Request.URL.Query().Get("featured")
 	// get optional parameters to paginate the results
-	limit := int64(100)
+	limit := maxPaginatedItems
 	strLimit := ctx.Request.URL.Query().Get("limit")
 	if strLimit != "" {
 		// if the query has the limit parameter, list the first n communities
@@ -81,6 +81,11 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 			return ctx.Send([]byte("invalid limit"), http.StatusBadRequest)
 		}
 		limit = int64(n)
+		if limit > maxPaginatedItems {
+			limit = maxPaginatedItems
+		} else if limit < minPaginatedItems {
+			limit = minPaginatedItems
+		}
 	}
 	offset := int64(0)
 	strOffset := ctx.Request.URL.Query().Get("offset")

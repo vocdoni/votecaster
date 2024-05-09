@@ -2,17 +2,17 @@ import { Avatar, Box, Button, Card, CardBody, Flex, Heading, Icon, Link } from '
 import { useFormContext } from 'react-hook-form'
 import { FaExternalLinkAlt } from 'react-icons/fa'
 import { MdHowToVote } from 'react-icons/md'
-import { useNavigate } from 'react-router-dom'
+import { Link as RouterLink } from 'react-router-dom'
 import { CommunityMetaFormValues } from './Meta'
 
 type DoneProps = {
   tx: string
+  id: string
 }
 
-const CommunityDone = ({ tx }: DoneProps) => {
+const CommunityDone = ({ tx, id }: DoneProps) => {
   const { watch } = useFormContext<CommunityMetaFormValues>()
   const src = watch('src')
-  const navigate = useNavigate() // Hook to control navigation
 
   return (
     <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 500 }}>
@@ -37,9 +37,9 @@ const CommunityDone = ({ tx }: DoneProps) => {
               <br />
               to engage with your members!
             </Heading>
-            <Button onClick={() => navigate('/')} leftIcon={<MdHowToVote />}>
-              Create your first vote
-            </Button>
+            <RouterLink to={`/form/${id}`}>
+              <Button leftIcon={<MdHowToVote />}>Create your first vote</Button>
+            </RouterLink>
           </Flex>
         </CardBody>
       </Card>
