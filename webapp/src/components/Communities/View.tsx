@@ -103,9 +103,11 @@ export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) =>
                   Manage
                 </Button>
                 <ManageCommunity {...modalProps} community={community} refetch={refetch} />
-                <RouterLink to={`/form/${community.id}`}>
-                  <Button leftIcon={<MdHowToVote />}>Create vote</Button>
-                </RouterLink>
+                {!community.disabled && (
+                  <RouterLink to={`/form/${community.id}`}>
+                    <Button leftIcon={<MdHowToVote />}>Create vote</Button>
+                  </RouterLink>
+                )}
               </Flex>
             )}
           </Box>
