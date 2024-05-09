@@ -220,10 +220,7 @@ func (v *vocdoniHandler) votersForElection(msg *apirest.APIdata, ctx *httprouter
 	}
 	// get current voters of the election
 	voters, err := v.db.VotersOfElection(electionID)
-	if err != nil {
-		if errors.Is(err, mongo.ErrElectionUnknown) {
-			return ctx.Send(nil, http.StatusOK)
-		}
+	if err != nil && !errors.Is(err, mongo.ErrElectionUnknown) {
 		return fmt.Errorf("failed to get voters of election: %w", err)
 	}
 	// get the usernames of the voters and create an index for faster access
@@ -250,17 +247,14 @@ func (v *vocdoniHandler) remainingVotersForElection(msg *apirest.APIdata, ctx *h
 	}
 	// get current voters of the election
 	voters, err := v.db.VotersOfElection(electionID)
-	if err != nil {
-		if errors.Is(err, mongo.ErrElectionUnknown) {
-			return ctx.Send(nil, http.StatusOK)
-		}
+	if err != nil && !errors.Is(err, mongo.ErrElectionUnknown) {
 		return fmt.Errorf("failed to get voters of election: %w", err)
 	}
 	// get the census of the election
 	census, err := v.db.CensusFromElection(electionID)
 	if err != nil {
 		if errors.Is(err, mongo.ErrElectionUnknown) {
-			return ctx.Send(nil, http.StatusOK)
+			return ctx.Send([]byte("census not found"), http.StatusNotFound)
 		}
 		return fmt.Errorf("failed to get census from election: %w", err)
 	}
