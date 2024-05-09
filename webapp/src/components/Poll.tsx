@@ -98,7 +98,7 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
               size='xs'
               rightIcon={<Icon as={hasCopied ? FaCheck : FaRegCopy} />}
             >
-              Copy link to the frame
+              Copy frame link
             </Button>
           </VStack>
           <VStack spacing={4} alignItems='left'>
