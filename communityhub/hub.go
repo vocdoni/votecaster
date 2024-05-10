@@ -292,11 +292,6 @@ func (l *CommunityHub) SetCommunity(communityID uint64, newData *HubCommunity) (
 	if newData.ImageURL != "" && newData.ImageURL != community.ImageURL {
 		community.ImageURL = newData.ImageURL
 	}
-	// if a new group chat URL is provided and it is different from the current
-	// one, set the new group chat URL
-	if newData.GroupChatURL != "" && newData.GroupChatURL != community.GroupChatURL {
-		community.GroupChatURL = newData.GroupChatURL
-	}
 	// if a new census type is provided and it is different from the current one,
 	// set the new census type
 	if newData.CensusType != "" && newData.CensusType != community.CensusType {
@@ -320,11 +315,10 @@ func (l *CommunityHub) SetCommunity(communityID uint64, newData *HubCommunity) (
 		}
 		community.Admins = newData.Admins
 	}
-	// if a new channels list is provided with at least one channel update the
-	// channels list
-	if len(newData.Channels) > 0 {
-		community.Channels = newData.Channels
-	}
+	// overwrite the group chat URL with the new group chat URL
+	community.GroupChatURL = newData.GroupChatURL
+	// overwrite the channels list with the new channels list
+	community.Channels = newData.Channels
 	// if a new notifications value is provided set the new notifications value
 	if newData.Notifications != nil {
 		community.Notifications = newData.Notifications
