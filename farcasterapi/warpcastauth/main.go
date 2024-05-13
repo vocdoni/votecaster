@@ -5,13 +5,28 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
+
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
-const (
-	FID = 398983
+var (
+	AccountPrivKey string
+	FID            uint64
 )
 
 func main() {
+	AccountPrivKey = os.Getenv("PRIVKEY")
+	FIDstr := os.Getenv("FID")
+	if AccountPrivKey == "" || FIDstr == "" {
+		log.Fatal("PRIVKEY and FID environment variables are required")
+	}
+	var err error
+	FID, err = strconv.ParseUint(os.Getenv("FID"), 10, 64)
+	if err != nil {
+		log.Fatalf("Error parsing FID: %v", err)
+	}
 	http.HandleFunc("/", handleRequest)
 	log.Println("Server started on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -19,17 +34,20 @@ func main() {
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
 	// Generate Ed25519 key pair
-	_, privateKey, err := GenerateKeyPair()
+	signerPubKey, signerPrivKey, err := GenerateKeyPair()
 	if err != nil {
 		http.Error(w, "Error generating key pair", http.StatusInternalServerError)
 		return
 	}
 
-	// Set a deadline for signing request (example purpose)
-	deadline := GetDeadline()
+	privKey, err := crypto.HexToECDSA(AccountPrivKey)
+	if err != nil {
+		http.Error(w, "Error converting private key", http.StatusInternalServerError)
+		return
+	}
 
 	// Make API request
-	_, deeplinkUrl, err := CreateSignedKeyRequest(privateKey, FID, deadline)
+	deeplinkUrl, err := CreateSignedKeyRequest(privKey, signerPubKey, FID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error making signed key request: %v", err), http.StatusInternalServerError)
 		return
@@ -46,7 +64,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	// Display the information
 	fmt.Fprintf(w, "<h1>Warpcast API Integration</h1>")
 	fmt.Fprintf(w, "<p><strong>URL with Token:</strong> <a href='%s'>%s</a></p>", deeplinkUrl, deeplinkUrl)
-	fmt.Fprintf(w, "<p><strong>Public Key:</strong> %x</p>", privateKey.Public())
-	fmt.Fprintf(w, "<p><strong>Private Key:</strong> %x</p>", privateKey)
+	fmt.Fprintf(w, "<p><strong>Public Key:</strong> %x</p>", signerPrivKey)
+	fmt.Fprintf(w, "<p><strong>Private Key:</strong> %x</p>", signerPubKey)
 	fmt.Fprintf(w, "<p><strong>QR Code:</strong><br><img src='data:image/png;base64,%s'/></p>", base64.StdEncoding.EncodeToString(qrCode))
 }
