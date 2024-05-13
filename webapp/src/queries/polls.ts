@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ethers } from 'ethers'
 import { useAuth } from '~components/Auth/useAuth'
+import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { appUrl, degenChainRpc, degenContractAddress } from '~constants'
 import { CommunityHub__factory } from '~typechain'
 import { toArrayBuffer } from '~util/hex'
@@ -47,8 +48,9 @@ export const useApiPollInfo = (electionId?: string) => {
   })
 }
 
-export const useContractPollInfo = (communityId?: string, electionId?: string) =>
-  useQuery({
+export const useContractPollInfo = (communityId?: string, electionId?: string) => {
+  const { connected } = useDegenHealthcheck()
+  return useQuery({
     queryKey: ['contractPollInfo', communityId, electionId],
     queryFn: async () => {
       const provider = new ethers.JsonRpcProvider(degenChainRpc, undefined, { polling: false, staticNetwork: true })
@@ -61,8 +63,7 @@ export const useContractPollInfo = (communityId?: string, electionId?: string) =
         throw e
       }
     },
-    // throwOnError: true,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 60 * 1000),
-    retry: false,
+    retry: connected,
     enabled: !!communityId && !!electionId,
   })
+}
