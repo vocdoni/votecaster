@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -53,9 +54,11 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("Deep link URL: %s\n", deeplinkUrl)
+	warpcastDeepLinkURL := strings.ReplaceAll(deeplinkUrl, "farcaster://", "https://client.warpcast.com/deeplinks/")
+	fmt.Printf("Warpcast deep link URL: %s\n", warpcastDeepLinkURL)
 
 	// Generate the QR code
-	qrCode, err := GenerateQRCode(deeplinkUrl)
+	qrCode, err := GenerateQRCode(warpcastDeepLinkURL)
 	if err != nil {
 		http.Error(w, "Error generating QR code", http.StatusInternalServerError)
 		return
@@ -64,6 +67,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	// Display the information
 	fmt.Fprintf(w, "<h1>Warpcast API Integration</h1>")
 	fmt.Fprintf(w, "<p><strong>URL with Token:</strong> <a href='%s'>%s</a></p>", deeplinkUrl, deeplinkUrl)
+	fmt.Fprintf(w, "<p><strong>Warpcast URL with Token:</strong> <a href='%s'>%s</a></p>", warpcastDeepLinkURL, warpcastDeepLinkURL)
 	fmt.Fprintf(w, "<p><strong>Public Key:</strong> %x</p>", signerPrivKey)
 	fmt.Fprintf(w, "<p><strong>Private Key:</strong> %x</p>", signerPubKey)
 	fmt.Fprintf(w, "<p><strong>QR Code:</strong><br><img src='data:image/png;base64,%s'/></p>", base64.StdEncoding.EncodeToString(qrCode))
