@@ -10,6 +10,7 @@ import { theme } from './theme'
 import { config } from './util/rainbow'
 
 import '@rainbow-me/rainbowkit/styles.css'
+import { HealthcheckProvider } from '~components/Healthcheck/HealthcheckProvider'
 
 const queryClient = new QueryClient()
 const rootElement = document.getElementById('root')
@@ -24,9 +25,11 @@ ReactDOM.createRoot(rootElement).render(
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider>
-            <AuthProvider>
-              <Router />
-            </AuthProvider>
+            <HealthcheckProvider>
+              <AuthProvider>
+                <Router />
+              </AuthProvider>
+            </HealthcheckProvider>
           </RainbowKitProvider>
         </QueryClientProvider>
       </WagmiProvider>

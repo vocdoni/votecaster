@@ -1,9 +1,7 @@
-import { Box, Flex, Icon, Image, Link, VStack } from '@chakra-ui/react'
-import { FaDiscord, FaGithub, FaXTwitter } from 'react-icons/fa6'
-import { SiFarcaster } from 'react-icons/si'
+import { Box, Flex } from '@chakra-ui/react'
 import { Outlet, ScrollRestoration } from 'react-router-dom'
+import { Footer } from './Footer'
 import { Navbar } from './Navbar'
-import logo from '/poweredby.svg'
 
 export const Layout = () => (
   <Box maxW={1920} margin='0 auto'>
@@ -18,25 +16,7 @@ export const Layout = () => (
       maxW='1980px'
     >
       <Outlet />
-      <VStack my={24} spacing={12}>
-        <Link isExternal href='https://vocdoni.io' width='80%'>
-          <Image src={logo} alt='powered by vocdoni' />
-        </Link>
-        <Flex gap={8} justifyContent='center' color={'gray.600'}>
-          <Link isExternal href='https://github.com/vocdoni'>
-            <Icon as={FaGithub} />
-          </Link>
-          <Link isExternal href='https://warpcast.com/vocdoni'>
-            <Icon as={SiFarcaster} />
-          </Link>
-          <Link isExternal href='https://x.com/vocdoni'>
-            <Icon as={FaXTwitter} />
-          </Link>
-          <Link isExternal href='https://chat.vocdoni.io/'>
-            <Icon as={FaDiscord} />
-          </Link>
-        </Flex>
-      </VStack>
+      <Footer />
     </Flex>
   </Box>
 )

@@ -1,6 +1,7 @@
 import {
   Alert,
   AlertDescription,
+  AlertIcon,
   AlertTitle,
   Box,
   Button,
@@ -25,6 +26,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { appUrl, degenContractAddress } from '~constants'
 import { fetchShortURL } from '~queries/polls'
 import { useAuth } from './Auth/useAuth'
+import { useDegenHealthcheck } from './Healthcheck/use-healthcheck'
 import { Information } from './Poll/Information'
 import { ParticipantTurnout, VotingPower } from './Poll/Turnout'
 
@@ -36,6 +38,7 @@ export type PollViewProps = {
 
 export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
   const { bfetch } = useAuth()
+  const { connected } = useDegenHealthcheck()
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${poll.electionId}`)
   const { setValue, onCopy, hasCopied } = useClipboard(electionURL)
 
@@ -173,6 +176,15 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
             </Box>
           )}
         </Flex>
+        {!connected && (
+          <Alert status='warning'>
+            <AlertIcon />
+            <AlertDescription>
+              Degenchain seems down right now. Because of this, some information might be missing or outdated, and the
+              page may misbehave.
+            </AlertDescription>
+          </Alert>
+        )}
       </Flex>
     </Box>
   )

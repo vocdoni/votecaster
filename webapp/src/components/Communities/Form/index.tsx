@@ -1,12 +1,13 @@
 import { Alert, AlertDescription, AlertIcon, Box, Flex, Heading, Text, VStack } from '@chakra-ui/react'
-import { BrowserProvider, JsonRpcSigner } from 'ethers'
+import { JsonRpcSigner } from 'ethers'
 import { useCallback, useEffect, useState } from 'react'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
-import { useAccount, useBalance, useWalletClient, type UseWalletClientReturnType } from 'wagmi'
+import { useAccount, useBalance, useWalletClient } from 'wagmi'
 import { useAuth } from '~components/Auth/useAuth'
 import { CensusFormValues } from '~components/CensusTypeSelector'
 import { appUrl, degenContractAddress } from '~constants'
 import { CommunityHub__factory, ICommunityHub } from '~typechain'
+import { walletClientToSigner } from '~util/rainbow'
 import { censusTypeToEnum } from '~util/types'
 import { CensusSelector } from './CensusSelector'
 import { Channels } from './Channels'
@@ -216,16 +217,4 @@ export const CommunitiesCreateForm = () => {
       </FormProvider>
     </Box>
   )
-}
-
-export async function walletClientToSigner(walletClient: UseWalletClientReturnType['data']) {
-  const { account, chain, transport } = walletClient!
-  const network = {
-    chainId: chain.id,
-    name: chain.name,
-    ensAddress: chain.contracts?.ensRegistry?.address,
-  }
-  const provider = new BrowserProvider(transport, network)
-  const signer = await provider.getSigner(account.address)
-  return signer
 }

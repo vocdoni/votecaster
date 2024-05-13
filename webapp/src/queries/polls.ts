@@ -47,15 +47,22 @@ export const useApiPollInfo = (electionId?: string) => {
   })
 }
 
-export const useContractPollInfo = (communityId?: string, electionId?: string) => {
-  const provider = new ethers.JsonRpcProvider(degenChainRpc)
-  const contract = CommunityHub__factory.connect(degenContractAddress, provider)
-  return useQuery({
+export const useContractPollInfo = (communityId?: string, electionId?: string) =>
+  useQuery({
     queryKey: ['contractPollInfo', communityId, electionId],
     queryFn: async () => {
-      const contractData = await contract.getResult(communityId!, toArrayBuffer(electionId!))
-      return contractData
+      const provider = new ethers.JsonRpcProvider(degenChainRpc, undefined, { polling: false, staticNetwork: true })
+      try {
+        const contract = CommunityHub__factory.connect(degenContractAddress, provider)
+        const contractData = await contract.getResult(communityId!, toArrayBuffer(electionId!))
+        return contractData
+      } catch (e) {
+        provider.destroy()
+        throw e
+      }
     },
+    // throwOnError: true,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 60 * 1000),
+    retry: false,
     enabled: !!communityId && !!electionId,
   })
-}

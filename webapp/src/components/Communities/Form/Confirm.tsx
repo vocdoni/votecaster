@@ -16,29 +16,43 @@ import { GiTopHat } from 'react-icons/gi'
 import { MdOutlineRocketLaunch } from 'react-icons/md'
 import { useAccount, useBalance, useSwitchChain } from 'wagmi'
 import { degen } from 'wagmi/chains'
+import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
 
 type ConfirmProps = {
   price: bigint | null | undefined
   balance: string
 } & ButtonProps
 
-export const Confirm = ({ price, ...props }: ConfirmProps) => (
-  <Box display='flex' gap={4} flexDir='column'>
-    <Heading size='sm'>Create your community</Heading>
-    <Text>Your community will be deployed on the Degenchain.</Text>
-    <Text>
-      As soon as it's created, you will be able to create and manage polls secured by the Vocdoni protocol for
-      decentralized, censorship-resistant and gassless voting.
-    </Text>
-    {!!price && (
-      <Box display='flex' justifyContent='space-between' fontWeight='500' w='full'>
-        <Text>Cost</Text>
-        <Text>{(Number(price) / 10 ** 18).toString()} $DEGEN</Text>
-      </Box>
-    )}
-    <ConfirmDegenTransactionButton price={price} {...props} />
-  </Box>
-)
+export const Confirm = ({ price, ...props }: ConfirmProps) => {
+  const { connected } = useDegenHealthcheck()
+
+  if (!connected) {
+    return (
+      <Alert status='warning'>
+        <AlertIcon />
+        <AlertDescription>Degenchain is currently down. Please try again later.</AlertDescription>
+      </Alert>
+    )
+  }
+
+  return (
+    <Box display='flex' gap={4} flexDir='column'>
+      <Heading size='sm'>Create your community</Heading>
+      <Text>Your community will be deployed on the Degenchain.</Text>
+      <Text>
+        As soon as it's created, you will be able to create and manage polls secured by the Vocdoni protocol for
+        decentralized, censorship-resistant and gassless voting.
+      </Text>
+      {!!price && (
+        <Box display='flex' justifyContent='space-between' fontWeight='500' w='full'>
+          <Text>Cost</Text>
+          <Text>{(Number(price) / 10 ** 18).toString()} $DEGEN</Text>
+        </Box>
+      )}
+      <ConfirmDegenTransactionButton price={price} {...props} />
+    </Box>
+  )
+}
 
 type ConfirmDegenTransactionButtonProps = {
   price: bigint | null | undefined
