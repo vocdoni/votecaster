@@ -69,13 +69,3 @@ func signKeyRequest(privateKey *ecdsa.PrivateKey, requestFid uint64, publicKey [
 
 	return signature, nil
 }
-
-func signEIP191(data []byte, privateKey *ecdsa.PrivateKey) ([]byte, error) {
-	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data)
-	hash := crypto.Keccak256([]byte(msg))
-	signature, err := crypto.Sign(hash, privateKey)
-	if err != nil {
-		return nil, err
-	}
-	return signature, nil
-}

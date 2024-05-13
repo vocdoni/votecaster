@@ -8,19 +8,17 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var (
-	AccountPrivKey string
-	FID            uint64
+	accountMnemonic string
+	FID             uint64
 )
 
 func main() {
-	AccountPrivKey = os.Getenv("PRIVKEY")
+	accountMnemonic = os.Getenv("MNEMONIC")
 	FIDstr := os.Getenv("FID")
-	if AccountPrivKey == "" || FIDstr == "" {
+	if accountMnemonic == "" || FIDstr == "" {
 		log.Fatal("PRIVKEY and FID environment variables are required")
 	}
 	var err error
@@ -40,13 +38,11 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error generating key pair", http.StatusInternalServerError)
 		return
 	}
-
-	privKey, err := crypto.HexToECDSA(AccountPrivKey)
+	// Convert mnemonic to private key
+	privKey, err := mnemonicToPrivateKey(accountMnemonic, "")
 	if err != nil {
-		http.Error(w, "Error converting private key", http.StatusInternalServerError)
-		return
+		log.Fatalf("Error converting mnemonic to private key: %v", err)
 	}
-
 	// Make API request
 	deeplinkUrl, err := CreateSignedKeyRequest(privKey, signerPubKey, FID)
 	if err != nil {
