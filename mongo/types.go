@@ -48,6 +48,7 @@ type UserAccessProfile struct {
 	AccessLevel             uint32   `json:"accessLevel" bson:"accessLevel"`
 	WhiteListed             bool     `json:"whiteListed" bson:"whiteListed"`
 	NotificationsMutedUsers []uint64 `json:"notificationsMutedUsers" bson:"notificationsMutedUsers"`
+	WarpcastAPIKey          string   `json:"warpcastAPIKey" bson:"warpcastAPIKey"`
 }
 
 // ElectionCommunity represents the community used to create an election.

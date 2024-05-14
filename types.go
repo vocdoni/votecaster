@@ -23,6 +23,11 @@ type FarcasterProfile struct {
 	Verifications []string `json:"verifications"`
 }
 
+// WarpcastAPIKey is the user API key for the warpcast API service.
+type WarpcastAPIKey struct {
+	APIKey string `json:"apiKey"`
+}
+
 // ElectionCreateRequest is the request received by the farcaster auth, when creating an election.
 type ElectionCreateRequest struct {
 	ElectionDescription

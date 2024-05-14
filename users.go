@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/vocdoni/vote-frame/mongo"
@@ -195,4 +196,25 @@ func (v *vocdoniHandler) profilePublicHandler(msg *apirest.APIdata, ctx *httprou
 		return fmt.Errorf("could not marshal response: %v", err)
 	}
 	return ctx.Send(data, apirest.HTTPstatusOK)
+}
+
+func (v *vocdoniHandler) registerWarpcastApiKey(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	token := msg.AuthToken
+	if token == "" {
+		return fmt.Errorf("missing auth token header")
+	}
+	auth, err := v.db.UpdateActivityAndGetData(token)
+	if err != nil {
+		return ctx.Send([]byte(err.Error()), http.StatusNotFound)
+	}
+	// decode the api key
+	var apiKey WarpcastAPIKey
+	if err := json.Unmarshal(msg.Data, &apiKey); err != nil {
+		return ctx.Send([]byte("could not parse request"), apirest.HTTPstatusBadRequest)
+	}
+	// store the api key
+	if err := v.db.SetWarpcastAPIKey(auth.UserID, apiKey.APIKey); err != nil {
+		return ctx.Send([]byte("could not store api key"), http.StatusInternalServerError)
+	}
+	return ctx.Send([]byte("ok"), apirest.HTTPstatusOK)
 }

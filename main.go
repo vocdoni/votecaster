@@ -628,6 +628,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/profile/warpcast", http.MethodPost, "private", handler.registerWarpcastApiKey); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/channels", http.MethodGet, "public", handler.findChannelHandler); err != nil {
 		log.Fatal(err)
 	}
