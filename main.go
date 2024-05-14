@@ -278,17 +278,23 @@ func main() {
 	// Create the community hub service
 	var comHub *communityhub.CommunityHub
 	if communityHubAddress != "" {
-		if comHub, err = communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
-			DB:              db,
-			ContractAddress: common.HexToAddress(communityHubAddress),
-			ChainID:         communityHubChainID,
-			PrivKey:         communityHubAdminPrivKey,
-		}); err != nil {
-			log.Fatal(err)
+		// try to get a valid web3 client for the community hub chain, if not
+		// available, skip the community hub initialization
+		if _, err := web3pool.Client(communityHubChainID); err != nil {
+			log.Warnw("failed to get web3 client for community hub", "error", err)
+		} else {
+			if comHub, err = communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
+				DB:              db,
+				ContractAddress: common.HexToAddress(communityHubAddress),
+				ChainID:         communityHubChainID,
+				PrivKey:         communityHubAdminPrivKey,
+			}); err != nil {
+				log.Fatal(err)
+			}
+			comHub.ScanNewCommunities()
+			comHub.SyncCommunities()
+			defer comHub.Stop()
 		}
-		comHub.ScanNewCommunities()
-		comHub.SyncCommunities()
-		defer comHub.Stop()
 	}
 
 	// Create Airstack artifact
