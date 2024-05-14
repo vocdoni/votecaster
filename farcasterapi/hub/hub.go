@@ -531,6 +531,14 @@ func (h *Hub) FindChannel(ctx context.Context, query string) ([]*farcasterapi.Ch
 	return nil, fmt.Errorf("hub api does not support channels yet")
 }
 
+// DirectMessage method sends a direct message to the user with the given fid.
+// If something goes wrong, it returns an error.
+func (h *Hub) DirectMessage(ctx context.Context, userKey, content string, to uint64) error {
+	// not implemented yet, it will be available when the direct message
+	// decentralization roadmap is completed
+	return fmt.Errorf("not implemented")
+}
+
 // WebhookHandler method handles the incoming webhooks. Hub does not implement
 // this method.
 func (h *Hub) WebhookHandler(_ []byte) error {

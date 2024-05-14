@@ -81,6 +81,37 @@ func (ms *MongoStorage) VotersOfElection(electionID types.HexBytes) ([]*User, er
 	return users, nil
 }
 
+// HasAlreadyVoted returns true if the user has already voted in the election.
+// If the user is not a participant of the election, it returns an error. If
+// the user has already voted, it returns true, otherwise false. If something
+// goes wrong, it returns an error.
+func (ms *MongoStorage) HasAlreadyVoted(userFID uint64, electionID types.HexBytes) (bool, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	user, err := ms.userData(userFID)
+	if err != nil {
+		return false, err
+	}
+	census, err := ms.censusFromElection(electionID)
+	if err != nil {
+		return false, err
+	}
+	if _, ok := census.Participants[user.Username]; !ok {
+		return false, fmt.Errorf("user %s is not a participant of the election", user.Username)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	n, err := ms.voters.CountDocuments(ctx, bson.M{
+		"_id":    electionID,
+		"voters": bson.M{"$in": []uint64{userFID}},
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to count voters: %w", err)
+	}
+	return n > 0, nil
+}
+
 func (ms *MongoStorage) votersOfElection(electionID types.HexBytes) (*VotersOfElection, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

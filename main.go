@@ -608,6 +608,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/notifications/direct", http.MethodPost, "public", handler.directNotificationsHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/profile", http.MethodGet, "private", handler.profileHandler); err != nil {
 		log.Fatal(err)
 	}

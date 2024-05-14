@@ -164,3 +164,11 @@ type Pagination struct {
 type ElectionVotersUsernames struct {
 	Usernames []string `json:"usernames"`
 }
+
+// DirectNotification defines the required parameters to send a notification
+// via direct message
+type DirectNotification struct {
+	ElectionID string   `json:"electionId"`
+	Content    string   `json:"content"`
+	FIDs       []uint64 `json:"fids"`
+}
