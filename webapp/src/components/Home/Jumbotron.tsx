@@ -9,7 +9,7 @@ export const Jumbotron = () => (
       <Heading as='h1' size='jumbo' fontWeight='800' maxW='800px' display='block'>
         The governance platform for your Farcaster community.
       </Heading>
-      <Text fontWeight='500' size='2xl' color='gray.600'>
+      <Text fontWeight='500' fontSize='xl' color='gray.600'>
         Kickstart your community
       </Text>
       <RouterLink to='/communities/new'>
