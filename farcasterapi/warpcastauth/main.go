@@ -44,7 +44,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("Error converting mnemonic to private key: %v", err)
 	}
 	// Make API request
-	deeplinkUrl, err := CreateSignedKeyRequest(privKey, signerPubKey, FID)
+	deeplinkUrl, done, err := CreateSignedKeyRequest(privKey, signerPubKey, FID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error making signed key request: %v", err), http.StatusInternalServerError)
 		return
@@ -67,4 +67,8 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<p><strong>Public Key:</strong> %x</p>", signerPrivKey)
 	fmt.Fprintf(w, "<p><strong>Private Key:</strong> %x</p>", signerPubKey)
 	fmt.Fprintf(w, "<p><strong>QR Code:</strong><br><img src='data:image/png;base64,%s'/></p>", base64.StdEncoding.EncodeToString(qrCode))
+
+	// Wait for the user to scan the QR code
+	<-done
+	fmt.Fprintf(w, "<p>QR code scanned!</p>")
 }
