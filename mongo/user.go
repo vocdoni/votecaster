@@ -199,14 +199,7 @@ func (ms *MongoStorage) UserBySigner(signer string) (*User, error) {
 func (ms *MongoStorage) UserByUsername(username string) (*User, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	var userByUsername User
-	if err := ms.users.FindOne(ctx, bson.M{"username": username}).Decode(&userByUsername); err != nil {
-		return nil, ErrUserUnknown
-	}
-	return &userByUsername, nil
+	return ms.userDataByUsername(username)
 }
 
 // userData retrieves the user data based on the user ID (FID).
@@ -214,6 +207,18 @@ func (ms *MongoStorage) userData(userID uint64) (*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	result := ms.users.FindOne(ctx, bson.M{"_id": userID})
+	var user User
+	if err := result.Decode(&user); err != nil {
+		return nil, ErrUserUnknown
+	}
+	return &user, nil
+}
+
+// userDataByUsername retrieves the user data based on the username.
+func (ms *MongoStorage) userDataByUsername(username string) (*User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	result := ms.users.FindOne(ctx, bson.M{"username": username})
 	var user User
 	if err := result.Decode(&user); err != nil {
 		return nil, ErrUserUnknown

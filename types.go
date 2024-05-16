@@ -172,3 +172,31 @@ type DirectNotification struct {
 	Content    string   `json:"content"`
 	FIDs       []uint64 `json:"fids"`
 }
+
+// Rminders defines the data related to a election reminders, such as the
+// list of remindable voters and the number of reminders that have been already
+// sent
+type Reminders struct {
+	RemindableVoters map[uint64]string `json:"remindableVoters"`
+	AlreadySent      int               `json:"alreadySent"`
+}
+
+const (
+	// IndividualRemindersType is the type of reminder that is sent to each user
+	// individually
+	IndividualRemindersType = "individual"
+	// RankedRemindersType is the type of reminder that is sent to a ranked list
+	// of users
+	RankedRemindersType = "ranked"
+)
+
+// ReminderRequest defines the parameters to send a reminder, including the
+// type of reminder, the content of the reminder, the users to send the reminder
+// to (for individual reminders) and the number of users to send the reminder
+// to (for ranked reminders)
+type ReminderRequest struct {
+	Type          string            `json:"type"`          // 'individual' or 'ranked'
+	Content       string            `json:"content"`       // content of the reminder
+	Users         map[uint64]string `json:"users"`         // map of userFID to username for 'individual' type
+	NumberOfUsers int               `json:"numberOfUsers"` // number of users to send reminders to for 'ranked' type
+}

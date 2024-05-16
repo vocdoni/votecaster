@@ -148,8 +148,15 @@ func (ms *MongoStorage) LatestElections(limit, offset int64) ([]*Election, int64
 func (ms *MongoStorage) addElection(election *Election) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err := ms.elections.InsertOne(ctx, election)
-	return err
+	if _, err := ms.elections.InsertOne(ctx, election); err != nil {
+		return fmt.Errorf("cannot insert election: %w", err)
+	}
+	// Populate the election participants as remindable voters only if the 
+	// election is a community election
+	if election.Community != nil {
+		return ms.populateRemindableVoters(types.HexStringToHexBytes(election.ElectionID))
+	}
+	return nil
 }
 
 func (ms *MongoStorage) Election(electionID types.HexBytes) (*Election, error) {

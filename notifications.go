@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -208,56 +207,4 @@ func (v *vocdoniHandler) createNotifications(electionID types.HexBytes, ownerFID
 		}
 	}
 	return nil
-}
-
-func (v *vocdoniHandler) directNotificationsHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	token := msg.AuthToken
-	if token == "" {
-		return fmt.Errorf("missing auth token header")
-	}
-	auth, err := v.db.UpdateActivityAndGetData(token)
-	if err != nil {
-		return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
-	}
-	// get access profile to use the warpcast api key of the current user
-	accessProfile, err := v.db.UserAccessProfile(auth.UserID)
-	if err != nil {
-		return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
-	}
-	// check if the user has a configured warpcast api key
-	if accessProfile == nil || accessProfile.WarpcastAPIKey == "" {
-		return ctx.Send([]byte("no warpcast api key configured"), http.StatusBadRequest)
-	}
-	// decode the request body
-	var directNotification DirectNotification
-	if err := json.Unmarshal(msg.Data, &directNotification); err != nil {
-		return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
-	}
-	// get users to notify checking if they have already voted
-	toNotify := []uint64{}
-	electionID := types.HexStringToHexBytes(directNotification.ElectionID)
-	for _, userFID := range directNotification.FIDs {
-		alreadyVoted, err := v.db.HasAlreadyVoted(userFID, electionID)
-		if err != nil {
-			log.Warnf("failed to check if user has already voted: %v", err)
-			continue
-		}
-		if !alreadyVoted {
-			toNotify = append(toNotify, userFID)
-		}
-	}
-	internalCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	// send the direct notifications
-	failed := 0
-	for _, userFID := range toNotify {
-		if err := v.fcapi.DirectMessage(internalCtx, accessProfile.WarpcastAPIKey, directNotification.Content, userFID); err != nil {
-			log.Warnf("failed to send direct notification: %v", err)
-			failed++
-		}
-	}
-	if failed > 0 {
-		return ctx.Send([]byte(fmt.Sprintf("failed to send %d direct notifications", failed)), http.StatusInternalServerError)
-	}
-	return ctx.Send([]byte("ok"), http.StatusOK)
 }

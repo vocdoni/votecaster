@@ -483,6 +483,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/poll/{electionID}/reminders", http.MethodGet, "private", handler.remindersHandler); err != nil {
+		log.Fatal(err)
+	}
+	
+	if err := uAPI.Endpoint.RegisterMethod("/poll/{electionID}/reminders", http.MethodPost, "private", handler.sendRemindersHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/poll/info/{electionID}", http.MethodGet, "public", handler.electionFullInfo); err != nil {
 		log.Fatal(err)
 	}
@@ -605,10 +613,6 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/notifications/filter", http.MethodPost, "public", handler.notificationsFilterByUserHandler); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := uAPI.Endpoint.RegisterMethod("/notifications/direct", http.MethodPost, "public", handler.directNotificationsHandler); err != nil {
 		log.Fatal(err)
 	}
 
