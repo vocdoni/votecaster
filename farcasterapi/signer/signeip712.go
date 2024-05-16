@@ -1,6 +1,8 @@
-package main
+package signer
 
 // reference https://docs.farcaster.xyz/reference/contracts/reference/signed-key-request-validator#signedkeyrequest-signature
+// reference https://github.com/farcasterxyz/hub-monorepo/blob/main/packages/core/src/eth/contracts/signedKeyRequestValidator.ts#L19
+// reference https://github.com/farcasterxyz/contracts/blob/1aceebe916de446f69b98ba1745a42f071785730/src/validators/SignedKeyRequestValidator.sol
 
 import (
 	"crypto/ecdsa"
@@ -12,10 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 )
-
-// reference https://github.com/farcasterxyz/hub-monorepo/blob/main/packages/core/src/eth/contracts/signedKeyRequestValidator.ts#L19
-// https://github.com/farcasterxyz/contracts/blob/1aceebe916de446f69b98ba1745a42f071785730/src/validators/SignedKeyRequestValidator.sol
-// signature over keccak256("SignedKeyRequest(uint256 requestFid,bytes key,uint256 deadline)");
 
 var SIGNED_KEY_REQUEST_VALIDATOR_EIP_712_TYPES = map[string][]apitypes.Type{
 	"EIP712Domain": {
@@ -63,7 +61,7 @@ func signKeyRequest(privateKey *ecdsa.PrivateKey, requestFid uint64, publicKey [
 		return nil, fmt.Errorf("error signing typed data: %w", err)
 	}
 
-	// update the recovery Id
+	// update the recovery Id to produce the signature in the exact same format as the typescript implementation
 	// https://github.com/ethereum/go-ethereum/blob/55599ee95d4151a2502465e0afc7c47bd1acba77/internal/ethapi/api.go#L442
 	signature[64] += 27
 

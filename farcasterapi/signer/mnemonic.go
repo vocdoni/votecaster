@@ -1,4 +1,4 @@
-package main
+package signer
 
 import (
 	"crypto/ecdsa"
@@ -8,8 +8,8 @@ import (
 	"github.com/tyler-smith/go-bip39"
 )
 
-func mnemonicToPrivateKey(mnemonic, passphrase string) (*ecdsa.PrivateKey, error) {
-	seed := bip39.NewSeed(mnemonic, passphrase) // Empty passphrase
+func MnemonicToPrivateKey(mnemonic string) (*ecdsa.PrivateKey, error) {
+	seed := bip39.NewSeed(mnemonic, "") // Empty passphrase
 	// Generate a master key from the seed
 	masterKey, err := bip32.NewMasterKey(seed)
 	if err != nil {

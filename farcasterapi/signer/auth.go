@@ -1,4 +1,4 @@
-package main
+package signer
 
 import (
 	"crypto/ecdsa"
@@ -10,25 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skip2/go-qrcode"
 	"go.vocdoni.io/dvote/log"
 )
 
 const (
-	ApiEndpoint    = "https://api.warpcast.com/v2/signed-key-requests"
-	DeadlineOffset = 60 * time.Minute
+	ApiEndpoint      = "https://api.warpcast.com/v2/signed-key-requests"
+	ApiEndpointCheck = "https://api.warpcast.com/v2/signed-key-request"
 )
 
-type SignedKeyRequest struct {
-	Token       string `json:"token"`
-	DeeplinkUrl string `json:"deeplinkUrl"`
-	Key         string `json:"key"`
-	RequestFid  int    `json:"requestFid"`
-	State       string `json:"state"`
-}
-
-// GenerateKeyPair generates an Ed25519 key pair.
-func GenerateKeyPair() (ed25519.PublicKey, ed25519.PrivateKey, error) {
+// GenerateSigner generates an Ed25519 key pair.
+func GenerateSigner() (ed25519.PublicKey, ed25519.PrivateKey, error) {
 	return ed25519.GenerateKey(nil)
 }
 
@@ -38,9 +29,10 @@ func SignData(privateKey ed25519.PrivateKey, data []byte) (signature []byte, err
 	return signature, nil
 }
 
-// CreateSignedKeyRequest sends a request to WarpCast API and returns the token and deep link URL.
-func CreateSignedKeyRequest(privKey *ecdsa.PrivateKey, signer ed25519.PublicKey, fid uint64) (string, chan (bool), error) {
-	deadline := uint64(time.Now().Add(time.Hour).Unix())
+// RegisterSigner sends a request to WarpCast API and returns the deep link URL to send to the user.
+// It also returns a channel, which will be used to notify when signer registration is processed. The channel will return the FID of the user.
+func RegisterSigner(privKey *ecdsa.PrivateKey, signer ed25519.PublicKey, fid uint64) (string, chan (uint64), error) {
+	deadline := uint64(time.Now().Add(time.Minute * 5).Unix())
 	signature, err := signKeyRequest(privKey, fid, signer, deadline)
 	if err != nil {
 		return "", nil, fmt.Errorf("error signing key request: %w", err)
@@ -67,7 +59,6 @@ func CreateSignedKeyRequest(privKey *ecdsa.PrivateKey, signer ed25519.PublicKey,
 	if err != nil {
 		return "", nil, err
 	}
-	fmt.Printf("Response: %s\n", responseData)
 
 	var result struct {
 		Result struct {
@@ -86,9 +77,10 @@ func CreateSignedKeyRequest(privKey *ecdsa.PrivateKey, signer ed25519.PublicKey,
 		"farcaster://", "https://client.warpcast.com/deeplinks/",
 	)
 
-	isStateDone := make(chan bool)
-
+	isStateDone := make(chan uint64)
 	go func() {
+		// Wait for the token to be processed
+		time.Sleep(20 * time.Second)
 		maxAttempts := 60
 		for {
 			time.Sleep(5 * time.Second)
@@ -96,60 +88,55 @@ func CreateSignedKeyRequest(privKey *ecdsa.PrivateKey, signer ed25519.PublicKey,
 				log.Warnw("max attempts reached for token status check", "token", result.Result.SignedKeyRequest.Token)
 				break
 			}
-
-			done, err := checkTokenStatus(result.Result.SignedKeyRequest.Token)
+			maxAttempts--
+			done, fid, err := checkTokenStatus(result.Result.SignedKeyRequest.Token)
 			if err != nil {
 				log.Warnw("error checking token status", "error", err)
 				continue
 			}
 			if done {
-				isStateDone <- true
+				isStateDone <- fid
 				break
 			}
-			maxAttempts--
 		}
 	}()
 
 	return deeplink, isStateDone, nil
 }
 
-// GenerateQRCode generates a QR code from the given URL.
-func GenerateQRCode(url string) ([]byte, error) {
-	fmt.Printf("Generating QR code for URL: %s\n", url)
-	return qrcode.Encode(url, qrcode.Medium, 256)
-}
-
-func checkTokenStatus(token string) (bool, error) {
+func checkTokenStatus(token string) (bool, uint64, error) {
 	client := &http.Client{}
-	statusReq, err := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", ApiEndpoint, token), nil)
+	statusReq, err := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", ApiEndpointCheck, token), nil)
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
 
 	statusReq.Header.Set("Content-Type", "application/json")
 	statusResp, err := client.Do(statusReq)
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
 
 	bodyBytes, err := io.ReadAll(statusResp.Body)
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
-	fmt.Printf("Token status response: %s\n", bodyBytes)
 
 	result := struct {
+		Errors []map[string]string `json:"errors"`
 		Result struct {
 			SignedKeyRequest struct {
 				State string `json:"state"`
+				FID   uint64 `json:"userFid"`
 			} `json:"signedKeyRequest"`
 		} `json:"result"`
 	}{}
 
 	if err := json.Unmarshal(bodyBytes, &result); err != nil {
-		return false, err
+		return false, 0, err
 	}
-
-	fmt.Printf("Token status: %s\n", result.Result.SignedKeyRequest.State)
-	return result.Result.SignedKeyRequest.State == "accept", nil
+	if len(result.Errors) > 0 {
+		return false, 0, fmt.Errorf("error checking token status: %v", result.Errors[0]["message"])
+	}
+	return result.Result.SignedKeyRequest.State == "completed", result.Result.SignedKeyRequest.FID, nil
 }
