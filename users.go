@@ -21,12 +21,15 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 	if err != nil {
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
 	}
-
+	// get user data and access profile
 	user, err := v.db.User(auth.UserID)
 	if err != nil {
 		return ctx.Send([]byte("user not found"), apirest.HTTPstatusNotFound)
 	}
-
+	accessprofile, err := v.db.UserAccessProfile(auth.UserID)
+	if err != nil {
+		return ctx.Send([]byte("could not get user access profile"), apirest.HTTPstatusInternalErr)
+	}
 	// Get and update the user's reputation
 	reputation, reputationData, err := v.db.UpdateAndGetReputationForUser(auth.UserID)
 	if err != nil {
@@ -49,11 +52,12 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
-		"user":           user,
-		"reputation":     reputation,
-		"reputationData": reputationData,
-		"polls":          userElections,
-		"mutedUsers":     mutedUsers,
+		"user":               user,
+		"reputation":         reputation,
+		"reputationData":     reputationData,
+		"polls":              userElections,
+		"mutedUsers":         mutedUsers,
+		"warpcastApiEnabled": accessprofile.WarpcastAPIKey != "",
 	})
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)
