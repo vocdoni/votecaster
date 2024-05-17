@@ -94,6 +94,11 @@ func (ms *MongoStorage) RemindersOfElection(electionID types.HexBytes) (map[uint
 	return voters.RemindableVoters, len(voters.AlreadyReminded), nil
 }
 
+// RemindersSent updates the list of remindable voters and the list of already
+// reminded voters of an election. It receives a map of user fids and usernames
+// of the last reminders sent, and updates the lists accordingly, by removing
+// the users from the remindable list and adding them to the already reminded
+// list.
 func (ms *MongoStorage) RemindersSent(electionID types.HexBytes, reminders map[uint64]string) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
