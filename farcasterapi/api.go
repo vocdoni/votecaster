@@ -72,7 +72,7 @@ type API interface {
 	FindChannel(ctx context.Context, query string) ([]*Channel, error)
 	// DirectMessage method sends a direct message to the user with the given
 	// fid. If something goes wrong, it returns an error.
-	DirectMessage(ctx context.Context, userKey, content string, to uint64) error
+	DirectMessage(ctx context.Context, content string, to uint64) error
 }
 
 // ParentAPIMessage is a struct that represents the parent message of an

@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/google/uuid"
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/web3"
@@ -29,8 +28,6 @@ const (
 	NeynarHubEndpoint      = "https://hub-api.neynar.com/v1"
 	NeynarAPIEndpoint      = "https://api.neynar.com"
 	WarpcastClientEndpoint = "https://client.warpcast.com/v2"
-	// warpcast api, temporary used to send direct messages
-	WarpcastApi = "https://api.warpcast.com/v2"
 
 	// endpoints
 	neynarGetUsernameEndpoint = NeynarAPIEndpoint + "/v2/farcaster/user/bulk?fids=%d"
@@ -44,7 +41,6 @@ const (
 	neynarUsersByChannelID    = NeynarAPIEndpoint + "/v2/farcaster/channel/followers?id=%s&limit=1000&cursor=%s"
 	neynarVerificationsByFID  = NeynarHubEndpoint + "/verificationsByFid?fid=%d"
 	warpcastChannelInfo       = WarpcastClientEndpoint + "/channel?key=%s"
-	warpcastDirectMessage     = WarpcastApi + "/ext-send-direct-cast"
 
 	MaxAddressesPerRequest = 200
 
@@ -492,28 +488,7 @@ func (n *NeynarAPI) FindChannel(ctx context.Context, query string) ([]*farcaster
 
 // DirectMessage method sends a direct message to the user with the given fid.
 // If something goes wrong, it returns an error.
-func (n *NeynarAPI) DirectMessage(ctx context.Context, userKey, content string, to uint64) error {
-	var reqBody = map[string]interface{}{
-		"recipientFid":   to,
-		"message":        content,
-		"idempotencyKey": uuid.New().String(),
-	}
-	body, err := json.Marshal(reqBody)
-	if err != nil {
-		return fmt.Errorf("error marshalling request body: %w", err)
-	}
-	log.Infow("sending direct message", "req", string(body), "key", userKey, "url", warpcastDirectMessage)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, warpcastDirectMessage, bytes.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("error creating request: %w", err)
-	}
-	// set user key as bearer token
-	req.Header.Set("Authorization", "Bearer "+userKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	if _, err := n.sendRequest(req); err != nil {
-		return fmt.Errorf("error sending direct message: %w", err)
-	}
+func (n *NeynarAPI) DirectMessage(ctx context.Context, content string, to uint64) error {
 	return nil
 }
 

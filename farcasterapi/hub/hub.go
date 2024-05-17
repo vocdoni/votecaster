@@ -533,7 +533,7 @@ func (h *Hub) FindChannel(ctx context.Context, query string) ([]*farcasterapi.Ch
 
 // DirectMessage method sends a direct message to the user with the given fid.
 // If something goes wrong, it returns an error.
-func (h *Hub) DirectMessage(ctx context.Context, userKey, content string, to uint64) error {
+func (h *Hub) DirectMessage(ctx context.Context, content string, to uint64) error {
 	// not implemented yet, it will be available when the direct message
 	// decentralization roadmap is completed
 	return fmt.Errorf("not implemented")

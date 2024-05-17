@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vocdoni/vote-frame/farcasterapi/warpcast"
 	"github.com/vocdoni/vote-frame/features"
 	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/imageframe"
@@ -720,6 +721,11 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 	if accessProfile == nil || accessProfile.WarpcastAPIKey == "" {
 		return ctx.Send([]byte("no warpcast api key configured"), http.StatusBadRequest)
 	}
+	// init warpcast client to send the reminders with the user warpcast api key
+	warpcastClient := new(warpcast.WarpcastAPI)
+	if err := warpcastClient.SetFarcasterUser(auth.UserID, accessProfile.WarpcastAPIKey); err != nil {
+		return ctx.Send([]byte("failed to initialize warpcast client"), http.StatusInternalServerError)
+	}
 	// get the election id from the url params
 	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
 	if err != nil {
@@ -791,7 +797,11 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 				continue
 			}
 			// send the reminder to the user
-			if err := v.fcapi.DirectMessage(ctx, accessProfile.WarpcastAPIKey, req.Content, fid); err != nil {
+			log.Debugw("sending direct message reminder",
+				"req", string(req.Content),
+				"to", fid,
+				"from", auth.UserID)
+			if err := warpcastClient.DirectMessage(ctx, req.Content, fid); err != nil {
 				log.Warnw("failed to send direct notification", "error", err, "fid", fid, "username", username)
 				continue
 			}
