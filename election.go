@@ -171,13 +171,13 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 			opt := ""
 			switch i {
 			case 0:
-				opt = "1️⃣"
+				opt = "A"
 			case 1:
-				opt = "2️⃣"
+				opt = "B"
 			case 2:
-				opt = "3️⃣"
+				opt = "C"
 			case 3:
-				opt = "4️⃣"
+				opt = "D"
 			}
 			response = strings.ReplaceAll(response, fmt.Sprintf("{option%d}", i), opt)
 			continue

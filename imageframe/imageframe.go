@@ -19,11 +19,6 @@ import (
 )
 
 const (
-	BackgroundAfterVote    = "aftervote.png"
-	BackgroundAlreadyVoted = "alreadyvoted.png"
-	BackgroundNotElegible  = "notelegible.png"
-	BackgroundNotFound     = "notfound.png"
-
 	BackgroundNotificationsAccepted = "notifications-accepted.png"
 	BackgroundNotificationsDenied   = "notifications-denied.png"
 	BackgroundNotifications         = "notifications.png"
@@ -62,10 +57,6 @@ func init() {
 		return b
 	}
 	backgroundFrames = make(map[string][]byte)
-	backgroundFrames[BackgroundAfterVote] = loadImage(BackgroundAfterVote)
-	backgroundFrames[BackgroundAlreadyVoted] = loadImage(BackgroundAlreadyVoted)
-	backgroundFrames[BackgroundNotElegible] = loadImage(BackgroundNotElegible)
-	backgroundFrames[BackgroundNotFound] = loadImage(BackgroundNotFound)
 	backgroundFrames[BackgroundNotificationsAccepted] = loadImage(BackgroundNotificationsAccepted)
 	backgroundFrames[BackgroundNotificationsDenied] = loadImage(BackgroundNotificationsDenied)
 	backgroundFrames[BackgroundNotifications] = loadImage(BackgroundNotifications)
@@ -230,22 +221,23 @@ func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeigh
 
 // AfterVoteImage creates a static image to be displayed after a vote has been cast.
 func AfterVoteImage() string {
-	return AddImageToCache(backgroundFrames[BackgroundAfterVote])
+	return emptyBodyImage("votecast")
 }
 
 // AlreadyVotedImage creates a static image to be displayed when a user has already voted.
 func AlreadyVotedImage() string {
-	return AddImageToCache(backgroundFrames[BackgroundAlreadyVoted])
+	return emptyBodyImage("alreadyvoted")
 }
 
 // NotElegibleImage creates a static image to be displayed when a user is not elegible to vote.
 func NotElegibleImage() string {
-	return AddImageToCache(backgroundFrames[BackgroundNotElegible])
+	return emptyBodyImage("noteligible")
 }
 
 // NotFoundImage creates a static image to be displayed when an election is not found.
 func NotFoundImage() string {
-	return AddImageToCache(backgroundFrames[BackgroundNotFound])
+	png, _ := ErrorImage("Election not found")
+	return png
 }
 
 // NotificationsAcceptedImage creates a static image to be displayed when notifications are accepted.
@@ -271,6 +263,24 @@ func NotificationsManageImage() string {
 // NotificationsErrorImage creates a static image to be displayed when there is an error with notifications.
 func NotificationsErrorImage() string {
 	return AddImageToCache(backgroundFrames[BackgroundNotificationsError])
+}
+
+// emptyBodyImage creates images of methods that do not have body
+func emptyBodyImage(t string) string {
+	requestData := ImageRequest{
+		Type: t,
+	}
+	imgCacheKey := oneTimeImageCacheKey()
+	go func() {
+		png, err := makeRequest(requestData)
+		if err != nil {
+			log.Errorw(fmt.Errorf("failed to create "+t+" image: %w", err), "error image")
+			return
+		}
+		AddImageToCacheWithID(imgCacheKey, png)
+	}()
+	time.Sleep(2 * time.Second)
+	return imgCacheKey
 }
 
 // makeRequest handles the communication with the API, with retries on failure.

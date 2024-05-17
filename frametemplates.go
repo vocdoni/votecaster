@@ -52,7 +52,7 @@ var body = `
 var frameMain = header + `
     <meta name="fc:frame" content="vNext" />
     <meta name="fc:frame:image" content="{image}" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta name="fc:frame:post_url" content="{server}/router/{processID}" />
 
     <meta name="fc:frame:button:1" content="🗳️ Vote" />
@@ -77,7 +77,7 @@ var frameMain = header + `
 var frameVote = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="{image}" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:post_url" content="{server}/vote/{processID}" />
     <meta property="fc:frame:button:1" content="{option0}" />
     <meta property="fc:frame:button:2" content="{option1}" />
@@ -88,7 +88,7 @@ var frameVote = header + `
 
 var frameAfterVote = header + `
     <meta property="fc:frame" content="vNext" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:image" content="{image}" />
     <meta property="fc:frame:post_url" content="{server}/poll/results/{processID}" />
     <meta property="fc:frame:button:1" content="📋 Results" />
@@ -99,7 +99,7 @@ var frameAfterVote = header + `
 
 var frameResults = header + `
     <meta property="fc:frame" content="vNext" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:image" content="{image}" />
 
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
@@ -116,14 +116,14 @@ var frameResults = header + `
 
 var frameFinalResults = header + `
     <meta property="fc:frame" content="vNext" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:image" content="{image}" />
     <meta http-equiv="refresh" content="0;url={server}/app/#poll/{processID}" />
 ` + body
 
 var frameInfo = header + `
     <meta property="fc:frame" content="vNext" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:image" content="{image}" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="️⬅️ Back" />
@@ -140,7 +140,7 @@ var frameInfo = header + `
 var frameAlreadyVoted = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="{image}" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="⬅️ Back" />
     <meta property="fc:frame:button:2" content="🔍 Verify on explorer" />
@@ -151,7 +151,7 @@ var frameAlreadyVoted = header + `
 var frameNotElegible = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="{image}" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="Back" />
 ` + body
@@ -159,7 +159,7 @@ var frameNotElegible = header + `
 var frameError = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="{image}" />
-    <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta property="fc:frame:post_url" content="{server}/{processID}" />
     <meta property="fc:frame:button:1" content="⬅️ Back" />
 ` + body
