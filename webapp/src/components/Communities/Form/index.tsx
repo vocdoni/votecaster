@@ -8,6 +8,7 @@ import { CensusFormValues } from '~components/CensusTypeSelector'
 import { appUrl, degenContractAddress } from '~constants'
 import { CommunityHub__factory, ICommunityHub } from '~typechain'
 import { walletClientToSigner } from '~util/rainbow'
+import { cleanChannel } from '~util/strings'
 import { censusTypeToEnum } from '~util/types'
 import { CensusSelector } from './CensusSelector'
 import { Channels } from './Channels'
@@ -92,7 +93,7 @@ export const CommunitiesCreateForm = () => {
                   contractAddress,
                 } as ICommunityHub.TokenStruct
               }) ?? ([] as ICommunityHub.TokenStruct[]), // tokens
-          channel: data.channel ?? '', // channel
+          channel: data.channel ? cleanChannel(data.channel) : '', // channel
         }
 
         const guardians = data.admins.map((admin) => BigInt(admin.value))
