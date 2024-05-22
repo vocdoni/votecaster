@@ -21,7 +21,7 @@ const CommunityPoll = () => {
     ...apiQuery.data,
   } as PollInfo
 
-  if (connected) {
+  if (connected && contractQuery.data?.date) {
     results = {
       ...results,
       ...contractDataToObject(contractQuery.data),

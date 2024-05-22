@@ -2,7 +2,6 @@ import {
   Alert,
   AlertDescription,
   AlertIcon,
-  AlertTitle,
   Box,
   Button,
   Flex,
@@ -10,12 +9,10 @@ import {
   Icon,
   Image,
   Link,
-  Progress,
   Skeleton,
   Tag,
   TagLabel,
   TagLeftIcon,
-  Text,
   useClipboard,
   VStack,
 } from '@chakra-ui/react'
@@ -23,11 +20,12 @@ import { useEffect, useState } from 'react'
 import { FaCheck, FaPlay, FaRegCircleStop, FaRegCopy } from 'react-icons/fa6'
 import { IoMdArrowBack } from 'react-icons/io'
 import { Link as RouterLink } from 'react-router-dom'
-import { appUrl, degenContractAddress } from '~constants'
+import { appUrl } from '~constants'
 import { fetchShortURL } from '~queries/polls'
 import { useAuth } from './Auth/useAuth'
 import { useDegenHealthcheck } from './Healthcheck/use-healthcheck'
 import { Information } from './Poll/Information'
+import { ResultsSection } from './Poll/Results'
 import { ParticipantTurnout, VotingPower } from './Poll/Turnout'
 
 export type PollViewProps = {
@@ -104,55 +102,7 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
               Copy frame link
             </Button>
           </VStack>
-          <VStack spacing={4} alignItems='left'>
-            <Heading size='md'>Results</Heading>
-            <Skeleton isLoaded={!loading}>
-              <VStack px={4} alignItems='left'>
-                <Heading size='sm' fontWeight={'semibold'}>
-                  {poll?.question}
-                </Heading>
-                {poll?.finalized && onChain && (
-                  <Alert status='success' variant='left-accent' rounded={4}>
-                    <Box>
-                      <AlertTitle fontSize={'sm'}>Results verifiable on Degenchain</AlertTitle>
-                      <AlertDescription fontSize={'sm'}>
-                        <Text>
-                          This poll has ended. The results are definitive and have been settled on the 🎩 Degenchain.
-                        </Text>
-                        <Link
-                          fontSize={'xs'}
-                          color='gray'
-                          textAlign={'right'}
-                          isExternal
-                          href={`https://explorer.degen.tips/address/${degenContractAddress}`}
-                        >
-                          View contract
-                        </Link>
-                      </AlertDescription>
-                    </Box>
-                  </Alert>
-                )}
-                <VStack spacing={6} alignItems='left'>
-                  {poll?.options.map((option, index) => {
-                    const [tally] = poll!.tally
-                    const weight = tally.reduce((acc, curr) => acc + curr, 0)
-
-                    return (
-                      <Box key={index} w='full'>
-                        <Flex justifyContent='space-between' w='full'>
-                          <Text>{option}</Text>
-                          {!!poll.voteCount && !!tally && <Text>{tally[index]} votes</Text>}
-                        </Flex>
-                        {!!poll.voteCount && !!tally && (
-                          <Progress size='sm' rounded={50} value={(tally[index] / weight) * 100} />
-                        )}
-                      </Box>
-                    )
-                  })}
-                </VStack>
-              </VStack>
-            </Skeleton>
-          </VStack>
+          <ResultsSection poll={poll} onChain={onChain} loading={loading} />
         </VStack>
       </Box>
       <Flex flex={1} direction={'column'} gap={4}>
