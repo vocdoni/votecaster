@@ -24,3 +24,10 @@ export const fetchMutedUsers = (bfetch: FetchFunction) => async (): Promise<Prof
   const data = await response.json()
   return data.mutedUsers
 }
+
+export const fetchWarpcastAPIEnabled = (bfetch: FetchFunction) => async (): Promise<boolean> => {
+  const response = await bfetch(`${appUrl}/profile`)
+  const data = await response.json()
+  return data.warpcastApiEnabled
+}
+
