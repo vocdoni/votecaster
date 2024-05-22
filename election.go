@@ -722,7 +722,7 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 		return ctx.Send([]byte("no warpcast api key configured"), http.StatusBadRequest)
 	}
 	// init warpcast client to send the reminders with the user warpcast api key
-	warpcastClient := new(warpcast.WarpcastAPI)
+	warpcastClient := warpcast.NewWarpcastAPI()
 	if err := warpcastClient.SetFarcasterUser(auth.UserID, accessProfile.WarpcastAPIKey); err != nil {
 		return ctx.Send([]byte("failed to initialize warpcast client"), http.StatusInternalServerError)
 	}
@@ -785,7 +785,6 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 		return fmt.Errorf("failed to get voters of election: %w", err)
 	}
 	maxDMs := v.db.MaxDirectMessages(auth.UserID, maxDirectMessages)
-	log.Info(maxDMs)
 	if uint32(len(remindableUsers)) > maxDMs {
 		msg := fmt.Sprintf("too many users to remind, by your reputation you only can sent %d reminds", maxDMs)
 		return ctx.Send([]byte(msg), http.StatusBadRequest)
@@ -804,7 +803,7 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 			}
 			// send the reminder to the user
 			log.Debugw("sending direct message reminder",
-				"req", string(req.Content),
+				"content", string(req.Content),
 				"to", fid,
 				"from", auth.UserID)
 			if err := warpcastClient.DirectMessage(ctx, req.Content, fid); err != nil {

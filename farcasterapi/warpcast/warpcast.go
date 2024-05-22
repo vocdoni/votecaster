@@ -35,10 +35,20 @@ type errResponse struct {
 	} `json:"errors"`
 }
 
+// WarpcastAPI struct represents the Warpcast API client. It contains the user
+// FID and the API key to authenticate the requests. It also contains a
+// semaphore to limit the number of concurrent requests.
 type WarpcastAPI struct {
 	userFID      uint64
 	apiKey       string
 	reqSemaphore chan struct{} // Semaphore to limit concurrent requests
+}
+
+// NewWarpcastAPI method creates a new WarpcastAPI instance and returns it.
+func NewWarpcastAPI() *WarpcastAPI {
+	return &WarpcastAPI{
+		reqSemaphore: make(chan struct{}, 10),
+	}
 }
 
 func (w *WarpcastAPI) SetFarcasterUser(fid uint64, apiKey string) error {
@@ -132,7 +142,6 @@ func (w *WarpcastAPI) validApiKey() (bool, error) {
 		}
 		// check if the error is due to an invalid API key, if not, the API key
 		// is valid
-		log.Info(errResp)
 		if errResp.Errors[0].Message != unauthorizedMessage {
 			return true, nil
 		}
@@ -175,10 +184,12 @@ func (w *WarpcastAPI) sendRequest(req *http.Request) ([]byte, error) {
 		} else if res.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("error downloading json: %s", res.Status)
 		} else {
+			log.Info("Response status code: ", res.StatusCode)
 			respBody, err := io.ReadAll(res.Body)
 			if err != nil {
 				return nil, fmt.Errorf("error reading response body: %w", err)
 			}
+			log.Info("Response body: ", string(respBody))
 			return respBody, nil // Success
 		}
 	}
