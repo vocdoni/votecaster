@@ -784,6 +784,12 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 	if err != nil {
 		return fmt.Errorf("failed to get voters of election: %w", err)
 	}
+	maxDMs := v.db.MaxDirectMessages(auth.UserID, maxDirectMessages)
+	log.Info(maxDMs)
+	if uint32(len(remindableUsers)) > maxDMs {
+		msg := fmt.Sprintf("too many users to remind, by your reputation you only can sent %d reminds", maxDMs)
+		return ctx.Send([]byte(msg), http.StatusBadRequest)
+	}
 	// send the reminders to the users in background
 	go func() {
 		ctx, cancel := context.WithCancel(context.Background())

@@ -34,9 +34,10 @@ import (
 )
 
 var (
-	serverURL   = "http://localhost:8888"
-	explorerURL = "https://dev.explorer.vote"
-	onvoteURL   = "https://dev.onvote.app"
+	serverURL         = "http://localhost:8888"
+	explorerURL       = "https://dev.explorer.vote"
+	onvoteURL         = "https://dev.onvote.app"
+	maxDirectMessages = uint32(10000)
 )
 
 func main() {
@@ -89,6 +90,7 @@ func main() {
 
 	// Limited features flags
 	flag.Int32("featureNotificationReputation", 15, "Reputation threshold to enable the notification feature")
+	flag.Int32("maxDirectMessages", 10000, "The maximum number of direct messages that any user can send. It will be scaled based on the reputation of the user.")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -146,6 +148,7 @@ func main() {
 
 	// limited features vars
 	featureNotificationReputation := uint32(viper.GetInt32("featureNotificationReputation"))
+	maxDirectMessages = uint32(viper.GetInt32("maxDirectMessages"))
 
 	// overwrite features thesholds
 	if featureNotificationReputation > 0 {
@@ -486,7 +489,7 @@ func main() {
 	if err := uAPI.Endpoint.RegisterMethod("/poll/{electionID}/reminders", http.MethodGet, "private", handler.remindersHandler); err != nil {
 		log.Fatal(err)
 	}
-	
+
 	if err := uAPI.Endpoint.RegisterMethod("/poll/{electionID}/reminders", http.MethodPost, "private", handler.sendRemindersHandler); err != nil {
 		log.Fatal(err)
 	}
