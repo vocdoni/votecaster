@@ -13,20 +13,18 @@ import {
 } from '@chakra-ui/react'
 import { degenContractAddress } from '~constants'
 
-export const ResultsSection = ({ poll, onChain, loading }: { poll: PollInfo; loading: boolean; onChain: boolean }) => {
-  return (
-    <VStack spacing={4} alignItems='left'>
-      <Heading size='md'>Results</Heading>
-      <Skeleton isLoaded={!loading}>
-        {poll.voteCount ? (
-          <Results poll={poll} onChain={onChain} />
-        ) : (
-          <Text>{poll.finalized ? 'This poll received no votes' : 'No votes yet'}</Text>
-        )}
-      </Skeleton>
-    </VStack>
-  )
-}
+export const ResultsSection = ({ poll, onChain, loading }: { poll: PollInfo; loading: boolean; onChain: boolean }) => (
+  <VStack spacing={4} alignItems='left'>
+    <Heading size='md'>Results</Heading>
+    <Skeleton isLoaded={!loading}>
+      {poll.voteCount ? (
+        <Results poll={poll} onChain={onChain} />
+      ) : (
+        <Text>{poll.finalized ? 'This poll received no votes' : 'No votes yet'}</Text>
+      )}
+    </Skeleton>
+  </VStack>
+)
 
 export const Results = ({ poll, onChain }: { poll: PollInfo; onChain: boolean }) => (
   <VStack px={4} alignItems='left'>
