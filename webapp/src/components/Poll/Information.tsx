@@ -3,9 +3,19 @@ import { vocdoniExplorer } from '~constants'
 import { humanDate } from '~util/strings'
 import { ParticipantsTableModal } from './ParticipantsTableModal'
 import { RemainingVotersTableModal } from './RemainingVotersTableModal'
+import { PollRemindersModal } from './PollRemindersModal'
 import { VotersTableModal } from './VotersTableModal'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '../Auth/useAuth'
+import { fetchWarpcastAPIEnabled } from '~queries/profile'
 
 export const Information = ({ poll }: { poll?: PollInfo }) => {
+  const { bfetch } = useAuth()
+  const { data: isAlreadyEnabled } = useQuery<boolean, Error>({
+    queryKey: ['apiKeyEnabled'],
+    queryFn: fetchWarpcastAPIEnabled(bfetch),
+  })
+
   if (!poll) return
 
   return (
@@ -27,6 +37,7 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
             <VotersTableModal poll={poll} />
             <RemainingVotersTableModal poll={poll} />
             <ParticipantsTableModal poll={poll} />
+            {isAlreadyEnabled && <PollRemindersModal poll={poll} />}
           </HStack>
         </>
       )}

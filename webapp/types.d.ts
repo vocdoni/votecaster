@@ -89,6 +89,11 @@ declare global {
     community?: Pick<Community, 'id' | 'name'>
   }
 
+  type PollReminders = {
+    remindableVoters: Profile[]
+    alreadySent: number
+  }
+
   type PollRanking = {
     electionId: string
     title: string

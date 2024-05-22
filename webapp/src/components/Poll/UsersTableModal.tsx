@@ -23,6 +23,7 @@ type UsersTableModalProps = {
   title: string
   downloadText: string
   filename: string
+  selectable?: boolean
 }
 
 export const UsersTableModal = ({
@@ -34,6 +35,7 @@ export const UsersTableModal = ({
   onClose,
   title,
   downloadText,
+  selectable,
 }: UsersTableModalProps) => {
   if (!data || !data.length) return
 
@@ -50,14 +52,14 @@ export const UsersTableModal = ({
         <ModalContent>
           <ModalHeader>{title}</ModalHeader>
           <ModalCloseButton />
-          <ModalHeader display='flex' justifyContent='end'>
-            <Button size='sm' rightIcon={<FaDownload />} onClick={download}>
-              {downloadText}
-            </Button>
-          </ModalHeader>
+          {!!downloadText &&  <ModalHeader display='flex' justifyContent='end'>
+              <Button size='sm' rightIcon={<FaDownload />} onClick={download}>
+                {downloadText}
+              </Button>
+          </ModalHeader>}
           <ModalBody>
             {error && <Check error={error} isLoading={isLoading} />}
-            <UsersTable size='sm' users={data} />
+            <UsersTable size='sm' users={data} selectable={selectable}/>
           </ModalBody>
           <ModalFooter justifyContent='space-between' flexWrap='wrap'>
             <Button size='sm' onClick={onClose} variant='ghost' alignSelf='start'>
