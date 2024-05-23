@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +22,8 @@ const (
 	warpcastDirectMessage = WarpcastApi + "/ext-send-direct-cast"
 
 	unauthorizedMessage = "Must provide Authorization header with API key"
+	apiKeyPrefix        = "wc_secret_"
+	apiKeyMinLength     = 70
 )
 
 type dmRequest struct {
@@ -52,6 +55,9 @@ func NewWarpcastAPI() *WarpcastAPI {
 }
 
 func (w *WarpcastAPI) SetFarcasterUser(fid uint64, apiKey string) error {
+	if !strings.HasPrefix(apiKey, apiKeyPrefix) || len(apiKey) < apiKeyMinLength {
+		return fmt.Errorf("invalid API key format")
+	}
 	w.userFID = fid
 	w.apiKey = apiKey
 	// check if the provided API key is valid

@@ -136,10 +136,10 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
       </Button>
 
       {isAlreadyEnabled ? (
-        <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside'>
-          <ModalOverlay />
-          <ModalContent>
-            <form onSubmit={handleSubmit(sendReminders)}>
+        <form onSubmit={handleSubmit(sendReminders)}>
+          <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside'>
+            <ModalOverlay />
+            <ModalContent>
               <ModalHeader>
                 Reminders
                 <Text fontSize={'sm'} color='gray' fontWeight='normal'>Send a Direct Cast to members, inviting them to vote in the poll. Please note that they will only receive the reminder if you both follow each other.</Text>
@@ -197,16 +197,16 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
                       })
                       setSelectedUsers(profiles)
                     }}/>
-              </ModalBody>
-            <ModalFooter justifyContent='space-between' flexWrap='wrap'>
-            <Text fontSize={'sm'} color='gray' fontWeight='normal' mt={2} mb={8}>You already sent {reminders?.alreadySent} reminders. You can send {reminders?.maxReminders} more.</Text>
-              <Button w={'full'} size='sm' type='submit' rightIcon={<MdSend />} isLoading={loading} flexGrow={1} isDisabled={selectedUsers.length == 0 || !isValid}>
-                Send
-              </Button>
-            </ModalFooter>
-            </form>
-          </ModalContent>
-        </Modal>
+                </ModalBody>
+              <ModalFooter justifyContent='space-between' flexWrap='wrap'>
+              <Text fontSize={'sm'} color='gray' fontWeight='normal' mt={2} mb={8}>You already sent {reminders?.alreadySent} reminders. You can send {reminders?.maxReminders} more.</Text>
+                <Button w={'full'} size='sm' type='submit' rightIcon={<MdSend />} isLoading={loading} flexGrow={1} isDisabled={selectedUsers.length == 0 || !isValid}>
+                  Send
+                </Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
+        </form>
       ) : (
         <Modal isOpen={isOpen} onClose={onClose} >
           <ModalOverlay />

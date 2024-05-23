@@ -747,7 +747,7 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 	warpcastClient := warpcast.NewWarpcastAPI()
 	if err := warpcastClient.SetFarcasterUser(auth.UserID, accessProfile.WarpcastAPIKey); err != nil {
 		log.Warnw("failed to initialize warpcast client", "error", err)
-		return ctx.Send([]byte("failed to initialize warpcast client"), http.StatusInternalServerError)
+		return ctx.Send([]byte("failed to initialize warpcast client: "+err.Error()), http.StatusInternalServerError)
 	}
 	// get the election id from the url params
 	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))

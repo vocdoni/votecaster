@@ -218,7 +218,7 @@ func (v *vocdoniHandler) registerWarpcastApiKey(msg *apirest.APIdata, ctx *httpr
 	}
 	// store the api key
 	if err := v.db.SetWarpcastAPIKey(auth.UserID, apiKey.APIKey); err != nil {
-		return ctx.Send([]byte("could not store api key"), http.StatusInternalServerError)
+		return ctx.Send([]byte("could not store api key: "+err.Error()), http.StatusInternalServerError)
 	}
 	return ctx.Send([]byte("ok"), apirest.HTTPstatusOK)
 }
