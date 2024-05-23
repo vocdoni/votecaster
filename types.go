@@ -59,6 +59,7 @@ type ElectionInfo struct {
 	CastedWeight            string                   `json:"castedWeight,omitempty"`
 	CensusParticipantsCount uint64                   `json:"censusParticipantsCount"`
 	Turnout                 float32                  `json:"turnout"`
+	FID                     uint64                   `json:"createdByFID,omitempty"`
 	Username                string                   `json:"createdByUsername,omitempty"`
 	Displayname             string                   `json:"createdByDisplayname,omitempty"`
 	TotalWeight             string                   `json:"totalWeight,omitempty"`
@@ -177,8 +178,10 @@ type DirectNotification struct {
 // list of remindable voters and the number of reminders that have been already
 // sent
 type Reminders struct {
-	RemindableVoters map[uint64]string `json:"remindableVoters"`
-	AlreadySent      int               `json:"alreadySent"`
+	RemindableVoters       map[uint64]string `json:"remindableVoters"`
+	RemindableVotersWeight map[uint64]string `json:"votersWeight"`
+	AlreadySent            uint32            `json:"alreadySent"`
+	MaxReminders           uint32            `json:"maxReminders"`
 }
 
 const (

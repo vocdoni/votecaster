@@ -344,6 +344,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		CastedVotes:             dbElection.CastedVotes,
 		CensusParticipantsCount: uint64(dbElection.FarcasterUserCount),
 		Turnout:                 helpers.CalculateTurnout(census.TotalWeight, dbElection.CastedWeight),
+		FID:                     dbElection.UserID,
 		Username:                username,
 		Displayname:             displayname,
 		TotalWeight:             census.TotalWeight,
@@ -684,10 +685,31 @@ func (v *vocdoniHandler) remindersHandler(msg *apirest.APIdata, ctx *httprouter.
 	if err != nil {
 		return fmt.Errorf("failed to get voters of election: %w", err)
 	}
+	// get the census to include the voters weight
+	census, err := v.db.CensusFromElection(electionID)
+	if err != nil {
+		return fmt.Errorf("failed to get census from election: %w", err)
+	}
+	reminableWeights := map[uint64]string{}
+	for fid := range remindableUsers {
+		if weight, ok := census.Participants[remindableUsers[fid]]; ok {
+			reminableWeights[fid] = weight
+		}
+	}
+	// remove the authenticated user from the remindable users
+	delete(remindableUsers, auth.UserID)
+	delete(reminableWeights, auth.UserID)
+	// get the maximum number of direct messages the user can send by reputation
+	maxDMs := v.db.MaxDirectMessages(auth.UserID, maxDirectMessages)
+	if uint32(len(remindableUsers)) < maxDMs {
+		maxDMs = uint32(len(remindableUsers))
+	}
 	// encode results
 	res, err := json.Marshal(&Reminders{
-		RemindableVoters: remindableUsers,
-		AlreadySent:      remindersSent,
+		RemindableVoters:       remindableUsers,
+		RemindableVotersWeight: reminableWeights,
+		AlreadySent:            uint32(remindersSent),
+		MaxReminders:           maxDMs,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal reminders: %w", err)
@@ -724,6 +746,7 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 	// init warpcast client to send the reminders with the user warpcast api key
 	warpcastClient := warpcast.NewWarpcastAPI()
 	if err := warpcastClient.SetFarcasterUser(auth.UserID, accessProfile.WarpcastAPIKey); err != nil {
+		log.Warnw("failed to initialize warpcast client", "error", err)
 		return ctx.Send([]byte("failed to initialize warpcast client"), http.StatusInternalServerError)
 	}
 	// get the election id from the url params
@@ -780,13 +803,17 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 		return ctx.Send([]byte("invalid reminder type"), http.StatusBadRequest)
 	}
 	// get the remindable users to check if the users to remind are remindable
-	remindableUsers, _, err := v.db.RemindersOfElection(electionID)
+	remindableUsers, alreadySent, err := v.db.RemindersOfElection(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to get voters of election: %w", err)
 	}
 	maxDMs := v.db.MaxDirectMessages(auth.UserID, maxDirectMessages)
 	if uint32(len(remindableUsers)) > maxDMs {
 		msg := fmt.Sprintf("too many users to remind, by your reputation you only can sent %d reminds", maxDMs)
+		return ctx.Send([]byte(msg), http.StatusBadRequest)
+	}
+	if alreadySent >= maxDMs {
+		msg := fmt.Sprintf("you have already sent the maximum number of reminders (%d)", maxDMs)
 		return ctx.Send([]byte(msg), http.StatusBadRequest)
 	}
 	// send the reminders to the users in background

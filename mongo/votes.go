@@ -83,7 +83,7 @@ func (ms *MongoStorage) VotersOfElection(electionID types.HexBytes) ([]*User, er
 
 // RemindersOfElection returns the list of remindable voters of an election and
 // the number of already reminded voters.
-func (ms *MongoStorage) RemindersOfElection(electionID types.HexBytes) (map[uint64]string, int, error) {
+func (ms *MongoStorage) RemindersOfElection(electionID types.HexBytes) (map[uint64]string, uint32, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -91,7 +91,7 @@ func (ms *MongoStorage) RemindersOfElection(electionID types.HexBytes) (map[uint
 	if err != nil {
 		return nil, 0, err
 	}
-	return voters.RemindableVoters, len(voters.AlreadyReminded), nil
+	return voters.RemindableVoters, uint32(len(voters.AlreadyReminded)), nil
 }
 
 // RemindersSent updates the list of remindable voters and the list of already

@@ -193,6 +193,7 @@ func (v *vocdoniHandler) electionsByCommunityHandler(_ *apirest.APIdata, ctx *ht
 			Question:                dbElections[i].Question,
 			CastedVotes:             dbElections[i].CastedVotes,
 			CensusParticipantsCount: uint64(dbElections[i].FarcasterUserCount),
+			FID:                     dbElections[i].UserID,
 			Username:                username,
 			Displayname:             displayname,
 			Finalized:               time.Now().After(dbElections[i].EndTime), // return true if EndTime is in the past
