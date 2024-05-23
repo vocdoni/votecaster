@@ -136,7 +136,6 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
       </Button>
 
       {isAlreadyEnabled ? (
-        <form onSubmit={handleSubmit(sendReminders)}>
           <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside'>
             <ModalOverlay />
             <ModalContent>
@@ -146,38 +145,40 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
               </ModalHeader>
               <ModalCloseButton />
               <ModalHeader>
-                    <VStack spacing={4} alignItems={'start'}>
-                      <Box w={'full'}>
-                        <FormLabel>Content</FormLabel>
-                        <FormControl isInvalid={!!errors.message} flexGrow={1} mr={2}>
-                          <Textarea
-                            size='sm'
-                            placeholder='Type a personalized message here to invite users to participate in the poll.'
-                            {...register('message', { required: 'This field is required' })}
-                            onBlur={() => trigger('message')}
-                          />
-                          <FormErrorMessage>{errors.message?.message?.toString()}</FormErrorMessage>
-                        </FormControl>
-                      </Box>
-                      <Box w={'full'}>
-                        <FormLabel>Cast URL</FormLabel>
-                        <FormControl isInvalid={!!errors.castURL} flexGrow={1} mr={2}>
-                          <Input
-                            size='sm'
-                            placeholder='Paste the URL of a cast that includes the poll frame.'
-                            {...register('castURL', {
-                              required: 'Please enter Warpcast URL',
-                              pattern: {
-                                value: /^(https?:\/\/).+(0x[a-f\d]+)$/,
-                                message: 'Invalid URL format'
-                              },
-                            })}
-                            onBlur={() => trigger('castURL')}
-                          />
-                          <FormErrorMessage>{errors.castURL?.message?.toString()}</FormErrorMessage>
-                        </FormControl>
-                      </Box>
-                    </VStack>
+                <form onSubmit={handleSubmit(sendReminders)}>
+                  <VStack spacing={4} alignItems={'start'}>
+                    <Box w={'full'}>
+                      <FormLabel>Content</FormLabel>
+                      <FormControl isInvalid={!!errors.message} flexGrow={1} mr={2}>
+                        <Textarea
+                          size='sm'
+                          placeholder='Type a personalized message here to invite users to participate in the poll.'
+                          {...register('message', { required: 'This field is required' })}
+                          onBlur={() => trigger('message')}
+                        />
+                        <FormErrorMessage>{errors.message?.message?.toString()}</FormErrorMessage>
+                      </FormControl>
+                    </Box>
+                    <Box w={'full'}>
+                      <FormLabel>Cast URL</FormLabel>
+                      <FormControl isInvalid={!!errors.castURL} flexGrow={1} mr={2}>
+                        <Input
+                          size='sm'
+                          placeholder='Paste the URL of a cast that includes the poll frame.'
+                          {...register('castURL', {
+                            required: 'Please enter Warpcast URL',
+                            pattern: {
+                              value: /^(https?:\/\/).+(0x[a-f\d]+)$/,
+                              message: 'Invalid URL format'
+                            },
+                          })}
+                          onBlur={() => trigger('castURL')}
+                        />
+                        <FormErrorMessage>{errors.castURL?.message?.toString()}</FormErrorMessage>
+                      </FormControl>
+                    </Box>
+                  </VStack>
+                </form>
               </ModalHeader>
               <ModalBody>
                 {(error || success) && <Check error={error} success={success} isLoading={isLoading} />}
@@ -200,13 +201,12 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
                 </ModalBody>
               <ModalFooter justifyContent='space-between' flexWrap='wrap'>
               <Text fontSize={'sm'} color='gray' fontWeight='normal' mt={2} mb={8}>You already sent {reminders?.alreadySent} reminders. You can send {reminders?.maxReminders} more.</Text>
-                <Button w={'full'} size='sm' type='submit' rightIcon={<MdSend />} isLoading={loading} flexGrow={1} isDisabled={selectedUsers.length == 0 || !isValid}>
+                <Button w={'full'} size='sm' onClick={handleSubmit(sendReminders)} rightIcon={<MdSend />} isLoading={loading} flexGrow={1} isDisabled={selectedUsers.length == 0 || !isValid}>
                   Send
                 </Button>
               </ModalFooter>
             </ModalContent>
           </Modal>
-        </form>
       ) : (
         <Modal isOpen={isOpen} onClose={onClose} >
           <ModalOverlay />
