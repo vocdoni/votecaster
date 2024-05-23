@@ -111,6 +111,18 @@ func (ms *MongoStorage) UpdateAndGetReputationForUser(userID uint64) (uint32, *U
 	return newReputation, &userData, nil
 }
 
+// MaxDirectMessages calculates the maximum number of direct messages the user
+// can send based on their reputation. It computes the maximum number of direct
+// messages by calculating the percentage of the absolute maximum number of
+// messages using the user's reputation.
+func (ms *MongoStorage) MaxDirectMessages(userID uint64, absoluteMax uint32) uint32 {
+	userRep, _, err := ms.UpdateAndGetReputationForUser(userID)
+	if err != nil {
+		return 0
+	}
+	return absoluteMax * userRep / 100
+}
+
 // totalVotesForUserElections calculates the total number of votes casted on elections created by the user.
 func (ms *MongoStorage) totalVotesForUserElections(userID uint64) (uint64, error) {
 	ms.keysLock.RLock()

@@ -52,6 +52,11 @@ func (ms *MongoStorage) SetWhiteListedForUser(userID uint64, whiteListed bool) e
 	return ms.updateUserAccessProfile(userID, bson.M{"$set": bson.M{"whiteListed": whiteListed}})
 }
 
+// SetWarpcastAPIKey updates the user api key for warpcast.
+func (ms *MongoStorage) SetWarpcastAPIKey(userID uint64, apiKey string) error {
+	return ms.updateUserAccessProfile(userID, bson.M{"$set": bson.M{"warpcastAPIKey": apiKey}})
+}
+
 // updateUserAccessProfile is a helper function to update fields in the UserAccessProfile document.
 // It now performs an upsert, creating the document if it doesn't already exist.
 func (ms *MongoStorage) updateUserAccessProfile(userID uint64, update bson.M) error {

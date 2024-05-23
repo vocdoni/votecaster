@@ -143,7 +143,7 @@ func (n *NeynarAPI) LastMentions(ctx context.Context, timestamp uint64) ([]*farc
 func (n *NeynarAPI) GetCast(ctx context.Context, _ uint64, hash string) (*farcasterapi.APIMessage, error) {
 	msgResponse := &castResponseV2{}
 	url := fmt.Sprintf(neynarGetCastEndpoint, hash)
-	body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
+	body, err := n.neynarReq(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request to get the cast: %w", err)
 	}
@@ -185,7 +185,7 @@ func (n *NeynarAPI) Publish(ctx context.Context, content string, _ []uint64, emb
 		return fmt.Errorf("error marshalling request body: %w", err)
 	}
 	// create request with the bot fid and set the api key header
-	_, err = n.request(ctx, neynarReplyEndpoint, http.MethodPost, body, defaultRequestTimeout)
+	_, err = n.neynarReq(ctx, neynarReplyEndpoint, http.MethodPost, body, defaultRequestTimeout)
 	return err
 }
 
@@ -217,7 +217,7 @@ func (n *NeynarAPI) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessag
 		return fmt.Errorf("error marshalling request body: %w", err)
 	}
 	// create request with the bot fid and set the api key header
-	_, err = n.request(ctx, neynarReplyEndpoint, http.MethodPost, body, 0)
+	_, err = n.neynarReq(ctx, neynarReplyEndpoint, http.MethodPost, body, 0)
 	return err
 }
 
@@ -226,7 +226,7 @@ func (n *NeynarAPI) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessag
 func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.Userdata, error) {
 	// create request with the bot fid
 	url := fmt.Sprintf(neynarGetUsernameEndpoint, fid)
-	body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
+	body, err := n.neynarReq(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -274,7 +274,7 @@ func (n *NeynarAPI) UserDataByVerificationAddress(ctx context.Context, addresses
 	// Construct the URL with multiple addresses
 	url := fmt.Sprintf(neynarUserByEthAddresses, addressesStr)
 	// Make the request
-	body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
+	body, err := n.neynarReq(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +332,7 @@ func (n *NeynarAPI) UserFollowers(ctx context.Context, fid uint64) ([]uint64, er
 	for {
 		// create request with the channel id provided
 		url := fmt.Sprintf(neynarUserFollowers, fid, cursor)
-		body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
+		body, err := n.neynarReq(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 		if err != nil {
 			return nil, fmt.Errorf("error creating request: %w", err)
 		}
@@ -362,7 +362,7 @@ func (n *NeynarAPI) Channel(ctx context.Context, channelID string) (*farcasterap
 	}
 	// create request with the channel id provided
 	url := fmt.Sprintf(neynarChannelDataByID, channelID)
-	res, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
+	res, err := n.neynarReq(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		log.Warnw("error getting channel", "channel", channelID, "error", err)
 		if strings.Contains(err.Error(), "404") {
@@ -408,7 +408,7 @@ func (n *NeynarAPI) ChannelFIDs(ctx context.Context, channelID string, progress 
 	for {
 		// create request with the channel id provided
 		url := fmt.Sprintf(neynarUsersByChannelID, channelID, cursor)
-		body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
+		body, err := n.neynarReq(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 		if err != nil {
 			failedAttempts--
 			if failedAttempts == 0 {
@@ -462,7 +462,7 @@ func (n *NeynarAPI) FindChannel(ctx context.Context, query string) ([]*farcaster
 	// create request with the channel id provided
 	url := fmt.Sprintf(neynarSuggestChannels, query)
 	log.Info(url)
-	body, err := n.request(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
+	body, err := n.neynarReq(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -484,6 +484,12 @@ func (n *NeynarAPI) FindChannel(ctx context.Context, query string) ([]*farcaster
 		})
 	}
 	return channels, nil
+}
+
+// DirectMessage method sends a direct message to the user with the given fid.
+// If something goes wrong, it returns an error.
+func (n *NeynarAPI) DirectMessage(ctx context.Context, content string, to uint64) error {
+	return nil
 }
 
 func (n *NeynarAPI) WebhookHandler(body []byte) error {
@@ -551,17 +557,25 @@ func (n *NeynarAPI) parseCastData(data *castWebhookData) (*farcasterapi.APIMessa
 	return message, nil
 }
 
-func (n *NeynarAPI) request(ctx context.Context, url, method string, body []byte, timeout time.Duration) ([]byte, error) {
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		ctx, cancel := context.WithTimeout(ctx, timeout)
-		defer cancel()
-		req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
-		if err != nil {
-			return nil, fmt.Errorf("error creating request: %w", err)
-		}
-		req.Header.Set("api_key", n.apiKey)
-		req.Header.Set("Content-Type", "application/json")
+// neynarReq method sends a request to the Neynar API with the given URL, method,
+// body and timeout. It returns the response body and an error if something goes
+// wrong. It retries the request if it fails using sendRequest method.
+func (n *NeynarAPI) neynarReq(ctx context.Context, url, method string, body []byte, timeout time.Duration) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout*maxRetries)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+	req.Header.Set("api_key", n.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	return n.sendRequest(req)
+}
 
+// sendRequest method sends the given request and returns the response body and
+// an error if something goes wrong. It retries the request if it fails.
+func (n *NeynarAPI) sendRequest(req *http.Request) ([]byte, error) {
+	for attempt := 0; attempt < maxRetries; attempt++ {
 		// We need to avoid too much concurrent requests and penalization from the API
 		n.reqSemaphore <- struct{}{}
 		res, err := http.DefaultClient.Do(req)
@@ -581,9 +595,8 @@ func (n *NeynarAPI) request(ctx context.Context, url, method string, body []byte
 			}
 			return respBody, nil // Success
 		}
-		log.Debugw("retrying request", "attempt", attempt+1, "url", url, "method", method)
+		log.Debugw("retrying request", "attempt", attempt+1, "url", req.URL.String(), "method", req.Method)
 	}
-
 	return nil, fmt.Errorf("error downloading json: exceeded retry limit")
 }
 

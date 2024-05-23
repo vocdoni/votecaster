@@ -48,6 +48,7 @@ type UserAccessProfile struct {
 	AccessLevel             uint32   `json:"accessLevel" bson:"accessLevel"`
 	WhiteListed             bool     `json:"whiteListed" bson:"whiteListed"`
 	NotificationsMutedUsers []uint64 `json:"notificationsMutedUsers" bson:"notificationsMutedUsers"`
+	WarpcastAPIKey          string   `json:"warpcastAPIKey" bson:"warpcastAPIKey"`
 }
 
 // ElectionCommunity represents the community used to create an election.
@@ -101,10 +102,14 @@ type Results struct {
 	Finalized  bool     `json:"finalized" bson:"finalized"`
 }
 
-// VotersOfElection represents the list of voters of an election.
+// VotersOfElection represents the list of voters of an election. It includes
+// the list of voters, the list of users that have already been reminded and
+// the list of users that can be reminded about the election.
 type VotersOfElection struct {
-	ElectionID string   `json:"electionId" bson:"_id"`
-	Voters     []uint64 `json:"voters" bson:"voters"`
+	ElectionID       string            `json:"electionId" bson:"_id"`
+	Voters           []uint64          `json:"voters" bson:"voters"`
+	AlreadyReminded  map[uint64]string `json:"already_reminded" bson:"already_reminded"`
+	RemindableVoters map[uint64]string `json:"remindable_voters" bson:"remindable_voters"`
 }
 
 // Authentication represents the authentication data for a user.

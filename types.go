@@ -23,6 +23,11 @@ type FarcasterProfile struct {
 	Verifications []string `json:"verifications"`
 }
 
+// WarpcastAPIKey is the user API key for the warpcast API service.
+type WarpcastAPIKey struct {
+	APIKey string `json:"apiKey"`
+}
+
 // ElectionCreateRequest is the request received by the farcaster auth, when creating an election.
 type ElectionCreateRequest struct {
 	ElectionDescription
@@ -54,6 +59,7 @@ type ElectionInfo struct {
 	CastedWeight            string                   `json:"castedWeight,omitempty"`
 	CensusParticipantsCount uint64                   `json:"censusParticipantsCount"`
 	Turnout                 float32                  `json:"turnout"`
+	FID                     uint64                   `json:"createdByFID,omitempty"`
 	Username                string                   `json:"createdByUsername,omitempty"`
 	Displayname             string                   `json:"createdByDisplayname,omitempty"`
 	TotalWeight             string                   `json:"totalWeight,omitempty"`
@@ -158,4 +164,42 @@ type Pagination struct {
 // users to vote in an election
 type ElectionVotersUsernames struct {
 	Usernames []string `json:"usernames"`
+}
+
+// DirectNotification defines the required parameters to send a notification
+// via direct message
+type DirectNotification struct {
+	ElectionID string   `json:"electionId"`
+	Content    string   `json:"content"`
+	FIDs       []uint64 `json:"fids"`
+}
+
+// Rminders defines the data related to a election reminders, such as the
+// list of remindable voters and the number of reminders that have been already
+// sent
+type Reminders struct {
+	RemindableVoters       map[uint64]string `json:"remindableVoters"`
+	RemindableVotersWeight map[uint64]string `json:"votersWeight"`
+	AlreadySent            uint32            `json:"alreadySent"`
+	MaxReminders           uint32            `json:"maxReminders"`
+}
+
+const (
+	// IndividualRemindersType is the type of reminder that is sent to each user
+	// individually
+	IndividualRemindersType = "individual"
+	// RankedRemindersType is the type of reminder that is sent to a ranked list
+	// of users
+	RankedRemindersType = "ranked"
+)
+
+// ReminderRequest defines the parameters to send a reminder, including the
+// type of reminder, the content of the reminder, the users to send the reminder
+// to (for individual reminders) and the number of users to send the reminder
+// to (for ranked reminders)
+type ReminderRequest struct {
+	Type          string            `json:"type"`          // 'individual' or 'ranked'
+	Content       string            `json:"content"`       // content of the reminder
+	Users         map[uint64]string `json:"users"`         // map of userFID to username for 'individual' type
+	NumberOfUsers int               `json:"numberOfUsers"` // number of users to send reminders to for 'ranked' type
 }

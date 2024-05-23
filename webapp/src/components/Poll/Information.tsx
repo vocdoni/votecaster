@@ -3,9 +3,14 @@ import { vocdoniExplorer } from '~constants'
 import { humanDate } from '~util/strings'
 import { ParticipantsTableModal } from './ParticipantsTableModal'
 import { RemainingVotersTableModal } from './RemainingVotersTableModal'
+import { PollRemindersModal } from './PollRemindersModal'
 import { VotersTableModal } from './VotersTableModal'
+import { useAuth } from '../Auth/useAuth'
 
 export const Information = ({ poll }: { poll?: PollInfo }) => {
+  const { profile } = useAuth()
+  
+
   if (!poll) return
 
   return (
@@ -27,6 +32,7 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
             <VotersTableModal poll={poll} />
             <RemainingVotersTableModal poll={poll} />
             <ParticipantsTableModal poll={poll} />
+            {profile?.fid == poll.createdByFID && <PollRemindersModal poll={poll}/>}
           </HStack>
         </>
       )}

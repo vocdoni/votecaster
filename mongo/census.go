@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sort"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -74,6 +75,32 @@ func (ms *MongoStorage) Census(censusID types.HexBytes) (Census, error) {
 	}
 
 	return census, nil
+}
+
+// ParticipantsByWeight retrieves the top N participants by weight in a census.
+func (ms *MongoStorage) ParticipantsByWeight(censusID types.HexBytes, n int) (map[string]*big.Int, error) {
+	census, err := ms.censusFromElection(censusID)
+	if err != nil {
+		return nil, err
+	}
+	keys := []string{}
+	for k := range census.Participants {
+		keys = append(keys, k)
+	}
+	// sort the keys by the value of the participants, descending
+	sort.SliceStable(keys, func(i, j int) bool {
+		iWeight, _ := new(big.Int).SetString(census.Participants[keys[i]], 10)
+		jWeight, _ := new(big.Int).SetString(census.Participants[keys[j]], 10)
+		return iWeight.Cmp(jWeight) > 0
+	})
+	if n > len(keys) {
+		n = len(keys)
+	}
+	users := map[string]*big.Int{}
+	for _, username := range keys[:n] {
+		users[username], _ = new(big.Int).SetString(census.Participants[username], 10)
+	}
+	return users, nil
 }
 
 // SetRootForCensus updates the root for a given census document.

@@ -7,6 +7,7 @@ import { ReputationResponse, reputationResponse2Reputation } from '~components/A
 import { Check } from '~components/Check'
 import { FarcasterLogo } from '~components/FarcasterLogo'
 import { MutedUsersList } from '~components/MutedUsersList'
+import { WarpcastApiKey } from '~components/WarpcastApiKey'
 import { UserPolls } from '~components/Top'
 import { fetchUserProfile } from '~queries/profile'
 
@@ -35,8 +36,8 @@ const Profile = () => {
       templateRows={{ base: 'repeat(3, auto)', md: 'auto 1fr' }} // Creates enough rows for the content on mobile
       gap={4}
       templateAreas={{
-        base: `"profile" "muted" "muted" "polls"`,
-        md: `"polls profile" "polls muted" "polls muted"`,
+        base: `"profile" "muted" "muted" "warpcastapikey" "polls"`,
+        md: `"polls profile" "polls muted" "polls muted" "polls warpcastapikey"`,
       }}
     >
       <GridItem gridArea='profile'>
@@ -51,6 +52,7 @@ const Profile = () => {
         </Box>
       </GridItem>
       <GridItem gridArea='muted'>{isOwnProfile && <MutedUsersList />}</GridItem>
+      <GridItem gridArea='warpcastapikey'>{isOwnProfile && <WarpcastApiKey />}</GridItem>
       <GridItem gridArea='polls'>
         <UserPolls
           polls={user?.polls || []}

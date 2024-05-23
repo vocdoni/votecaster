@@ -24,6 +24,29 @@ export const fetchPollsRemainingVoters = (bfetch: FetchFunction, electionId: str
   return usernames
 }
 
+export const fetchPollsReminders = (bfetch: FetchFunction, electionId: string) => async (): Promise<PollReminders> => {
+  const response = await bfetch(`${appUrl}/poll/${electionId}/reminders`)
+  const data = await response.json()
+  const remindableVoters: Profile[] = []
+  for (const fid in data.remindableVoters) {
+    remindableVoters.push({
+      fid: parseInt(fid),
+      username: data.remindableVoters[fid]
+    } as Profile)
+  }
+
+  const votersWeight: [username: string, weight: string] = {} as [string, string]
+  for (const fid in data.votersWeight) {
+    votersWeight[data.remindableVoters[fid]] = data.votersWeight[fid]
+  }
+  return {
+    remindableVoters,
+    alreadySent: data.alreadySent,
+    maxReminders: data.maxReminders,
+    votersWeight: votersWeight,
+  } as PollReminders
+}
+
 export const fetchShortURL = (bfetch: FetchFunction) => async (url: string) => {
   const response = await bfetch(`${appUrl}/short?url=${url}`)
   const { result } = (await response.json()) as { result: string }
