@@ -1,15 +1,17 @@
-import { Checkbox, Table, TableProps, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react'
+import { Checkbox, Box, Input, Table, TableProps, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react'
 import { useState } from 'react';
 
 interface UsersTableProps extends TableProps {
   users?: string[][];
   selectable?: boolean;
   hasWeight?: boolean;
+  findable?: boolean;
   onSelectionChange?: (selected: string[][]) => void;
 }
 
-export const UsersTable = ({ users, selectable, onSelectionChange, hasWeight, ...props }: UsersTableProps) => {
+export const UsersTable = ({ users, selectable, onSelectionChange, hasWeight, findable, ...props }: UsersTableProps) => {
   const [selectedUsers, setSelectedUsers] = useState<string[][]>([]);
+  const [filterText, setFilterText] = useState('');
 
   if (!users || !users.length) return
 
@@ -17,6 +19,9 @@ export const UsersTable = ({ users, selectable, onSelectionChange, hasWeight, ..
   if (hasWeight === undefined) {
     hasWeight = users[0].length > 1
   }
+  const filteredUsers = users.filter(([username]) =>
+    username.toLowerCase().includes(filterText.toLowerCase())
+  );
 
   const handleCheckboxChange = (username: string, weight: string, isChecked: boolean) => {
     const data = [username]
@@ -35,29 +40,42 @@ export const UsersTable = ({ users, selectable, onSelectionChange, hasWeight, ..
   };
 
   return (
-    <Table {...props}>
-      <Thead>
-        <Tr>
-          <Th>Username</Th>
-          {hasWeight && <Th>Weight</Th>}
-        </Tr>
-      </Thead>
-      <Tbody>
-        {users.map(([username, weight]) => (
-          <Tr key={username}>
-            <Td>
-              {selectable && (
-                <Checkbox
-                  pr={3}
-                  onChange={(e) => handleCheckboxChange(username, weight, e.target.checked)}
-                />
-              )}
-              {username}
-            </Td>
-            {hasWeight && !!weight  && <Td>{weight}</Td>}
+    <Box>
+        {!!findable && <Box px={2}>
+          <Input
+            size={'xs'}
+            p={2}
+            rounded={'md'}
+            placeholder="Filter by username"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            mb={4}
+          />
+        </Box>}
+      <Table {...props}>
+        <Thead>
+          <Tr>
+            <Th>Username</Th>
+            {hasWeight && <Th>Weight</Th>}
           </Tr>
-        ))}
-      </Tbody>
-    </Table>
+        </Thead>
+        <Tbody>
+          {filteredUsers.map(([username, weight]) => (
+            <Tr key={username}>
+              <Td>
+                {selectable && (
+                  <Checkbox
+                    pr={3}
+                    onChange={(e) => handleCheckboxChange(username, weight, e.target.checked)}
+                  />
+                )}
+                {username}
+              </Td>
+              {hasWeight && !!weight  && <Td>{weight}</Td>}
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </Box>
   )
 }

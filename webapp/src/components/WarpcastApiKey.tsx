@@ -6,22 +6,14 @@ import {
   FormErrorMessage,
   Heading,
   HStack,
-  Icon,
   Input,
   Link,
-  Popover,
-  PopoverArrow,
-  PopoverBody,
-  PopoverCloseButton,
-  PopoverContent,
-  PopoverTrigger,
   Text,
   VStack,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { MdOutlineInfo } from "react-icons/md";
 
 import { appUrl } from '~constants'
 import { fetchWarpcastAPIEnabled } from '~queries/profile'
@@ -89,22 +81,11 @@ export const WarpcastApiKey: React.FC = (props: BoxProps) => {
 
   return (
     <Box borderRadius='md' p={4} bg='purple.100' {...props}>
-      <Popover placement='auto' trigger='hover' closeOnBlur>
-        <PopoverTrigger>
-          <Heading fontSize='xl' mb={4} fontWeight='600' color='purple.800' pos='relative'>
-            Warpcast Api Key 
-            <Icon as={MdOutlineInfo} color='purple.500' mt={2} ml={5}/>
-          </Heading>
-        </PopoverTrigger>
-        <PopoverContent bg='purple.500' border='none'>
-          <PopoverArrow bg='purple.500' />
-          <PopoverCloseButton color='white' />
-          <PopoverBody color='white' p={5} fontSize='md' fontWeight={'normal'}>
-            To unlock features like poll remindersGet your Warpcast API Key from the <Link href="https://warpcast.com/~/developers/api-keys" _hover={{ bg: "white", color: "purple" }} isExternal >official developer portal</Link>.
-          </PopoverBody>
-        </PopoverContent>
-      </Popover>
+      <Heading fontSize='xl' mb={4} fontWeight='600' color='purple.800' pos='relative'>
+        Warpcast Api Key 
+      </Heading>
       <VStack spacing={4} align='stretch'>
+        <Text>Set your Warpcast API Key here to unlock awesome features like poll reminders.</Text>
         { (isLoading || error) && <Check isLoading={isLoading} error={error} />}
         
         { !isAlreadyEnabled && <>
@@ -122,6 +103,7 @@ export const WarpcastApiKey: React.FC = (props: BoxProps) => {
                   Save
                 </Button>
               </HStack>
+              <Text fontSize={'sm'} mt={2}>Get your Warpcast API Key from the <Link textDecoration='underline' href="https://warpcast.com/~/developers/api-keys" isExternal>official developer portal</Link>.</Text>
             </Box>
           </form>
           </>

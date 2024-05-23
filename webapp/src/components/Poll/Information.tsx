@@ -5,16 +5,11 @@ import { ParticipantsTableModal } from './ParticipantsTableModal'
 import { RemainingVotersTableModal } from './RemainingVotersTableModal'
 import { PollRemindersModal } from './PollRemindersModal'
 import { VotersTableModal } from './VotersTableModal'
-import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../Auth/useAuth'
-import { fetchWarpcastAPIEnabled } from '~queries/profile'
 
 export const Information = ({ poll }: { poll?: PollInfo }) => {
-  const { bfetch } = useAuth()
-  const { data: isAlreadyEnabled } = useQuery<boolean, Error>({
-    queryKey: ['apiKeyEnabled'],
-    queryFn: fetchWarpcastAPIEnabled(bfetch),
-  })
+  const { profile } = useAuth()
+  
 
   if (!poll) return
 
@@ -37,7 +32,7 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
             <VotersTableModal poll={poll} />
             <RemainingVotersTableModal poll={poll} />
             <ParticipantsTableModal poll={poll} />
-            {isAlreadyEnabled && <PollRemindersModal poll={poll} />}
+            {profile?.fid == poll.createdByFID && <PollRemindersModal poll={poll}/>}
           </HStack>
         </>
       )}

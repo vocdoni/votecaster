@@ -3,6 +3,7 @@ import {
   Button,
   FormControl,
   FormErrorMessage,
+  FormLabel,
   Input,
   Modal,
   ModalBody,
@@ -11,9 +12,11 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  Tooltip,
+  Text,
+  Textarea,
   useDisclosure,
-  useToast
+  useToast,
+  VStack
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -21,11 +24,14 @@ import { useForm } from 'react-hook-form'
 import { MdSend } from "react-icons/md"
 import { appUrl } from '~constants'
 import { useAuth } from '~components/Auth/useAuth'
-import { UsersTable } from '~components/Census/UsersTable'
 import { Check } from '~components/Check'
+import { WarpcastApiKey } from '~components/WarpcastApiKey'
+import { UsersTable } from '~components/Census/UsersTable'
 import { fetchPollsReminders } from '~queries/polls'
+import { fetchWarpcastAPIEnabled } from '~queries/profile'
 
 type ReminderFormValues = {
+  castURL: string
   message: string
 }
 
@@ -35,16 +41,22 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
     handleSubmit,
     reset,
     setError,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<ReminderFormValues>({
     defaultValues: {
       message: '',
+      castURL: '',
     },
   })
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { bfetch } = useAuth()
   const toast = useToast()
   const [loading, setLoading] = useState<boolean>(false)
+  const [success, setSuccess] = useState<string>()
+  const { data: isAlreadyEnabled } = useQuery<boolean, Error>({
+    queryKey: ['apiKeyEnabled'],
+    queryFn: fetchWarpcastAPIEnabled(bfetch),
+  })
   const { data: reminders, error, isLoading, refetch } = useQuery({
     queryKey: ['reminders', poll.electionId],
     queryFn: fetchPollsReminders(bfetch, poll.electionId),
@@ -72,10 +84,19 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
     })
   }, [error])
 
+  useEffect(() => {
+    if (!success) return
+    const timer = setTimeout(() => {
+      setSuccess(undefined)
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [success])
+
   if (!poll || !poll.electionId) return
 
   const sendReminders = async (data: ReminderFormValues) => {
     setLoading(true)
+    setSuccess(undefined)
 
     const users = {} as { [key: string]: string }
     selectedUsers.forEach(({ fid, username }) => {
@@ -86,11 +107,12 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
         method: 'POST',
         body: JSON.stringify({ 
           type: "individual",
-          content: data.message,
+          content: data.message + `\n\n${data.castURL}`,
           users: users,
         }),
       }).then(() => refetch())
-      reset({ message: '' }) // Reset the message field
+      reset({ message: '', castURL: '' }) // Reset the message field
+      setSuccess('Reminders sent successfully')
     } catch (e) {
       if (e instanceof Error) {
         setError('message', { message: e.message })
@@ -103,56 +125,97 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
 
   return (
     <>
-      <Tooltip hasArrow label={!poll.voteCount && `No voters yet; check census.`} placement='top'>
-        <Button
-          size='sm'
-          onClick={onOpen}
-          isLoading={isLoading}
-          rightIcon={<MdSend />}
-        >
-          Send reminders
-        </Button>
-      </Tooltip>
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Reminders</ModalHeader>
-          <ModalCloseButton />
-          <ModalHeader>
+      <Button
+        size='sm'
+        onClick={onOpen}
+        isLoading={isLoading}
+        rightIcon={<MdSend />}
+      >
+        Send reminders
+      </Button>
+
+      {isAlreadyEnabled ? (
+        <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside'>
+          <ModalOverlay />
+          <ModalContent>
             <form onSubmit={handleSubmit(sendReminders)}>
-              <Box display='flex' justifyContent='end'>
-              <FormControl isInvalid={!!errors.message} flexGrow={1} mr={2}>
-                <Input
-                  size='sm'
-                  placeholder='Type here the content of the reminder message...'
-                  {...register('message', { required: 'This field is required' })}
-                />
-                <FormErrorMessage>{errors.message?.message?.toString()}</FormErrorMessage>
-              </FormControl>
-              <Button size='sm' type='submit' rightIcon={<MdSend />} isLoading={loading} flexGrow={1} isDisabled={selectedUsers.length == 0}>
+              <ModalHeader>
+                Reminders
+                <Text fontSize={'sm'} color='gray' fontWeight='normal'>Send a Direct Cast to members, inviting them to vote in the poll. Please note that they will only receive the reminder if you both follow each other.</Text>
+              </ModalHeader>
+              <ModalCloseButton />
+              <ModalHeader>
+                
+                    <VStack spacing={4} alignItems={'start'}>
+                      <Box w={'full'}>
+                        <FormLabel>Content</FormLabel>
+                        <FormControl isInvalid={!!errors.message} flexGrow={1} mr={2}>
+                          <Textarea
+                            size='sm'
+                            placeholder='Type a personalized message here to invite users to participate in the poll.'
+                            {...register('message', { required: 'This field is required' })}
+                          />
+                          <FormErrorMessage>{errors.message?.message?.toString()}</FormErrorMessage>
+                        </FormControl>
+                      </Box>
+                      <Box w={'full'}>
+                        <FormLabel>Cast URL</FormLabel>
+                        <FormControl isInvalid={!!errors.message} flexGrow={1} mr={2}>
+                          <Input
+                            size='sm'
+                            placeholder='Paste the URL of a cast that includes the poll frame.'
+                            {...register('castURL', {
+                              required: 'Please enter Warpcast URL',
+                              pattern: {
+                                value: /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/,
+                                message: 'Invalid URL format'
+                              },
+                            })}
+                          />
+                          <FormErrorMessage>{errors.castURL?.message?.toString()}</FormErrorMessage>
+                        </FormControl>
+                      </Box>
+                    </VStack>
+              </ModalHeader>
+              <ModalBody>
+                {(error || success) && <Check error={error} success={success} isLoading={isLoading} />}
+                <FormLabel>Select users</FormLabel>
+                  <UsersTable 
+                    size='sm' 
+                    users={reminders?.remindableVoters.map((profile) => [profile.username, reminders?.votersWeight[profile.username]])} 
+                    selectable={true}
+                    findable={true}
+                    onSelectionChange={(selected) => {
+                      const profiles : Profile[] = []
+                      selected.forEach(([username]) => {
+                        const profile = reminders?.remindableVoters.find((profile) => profile.username === username)
+                        if (profile) {
+                          profiles.push(profile)
+                        }
+                      })
+                      setSelectedUsers(profiles)
+                    }}/>
+              </ModalBody>
+            <ModalFooter justifyContent='space-between' flexWrap='wrap'>
+            <Text fontSize={'sm'} color='gray' fontWeight='normal' mt={2} mb={8}>You already sent {reminders?.alreadySent} reminders. You can send {reminders?.maxReminders} more.</Text>
+              <Button w={'full'} size='sm' type='submit' rightIcon={<MdSend />} isLoading={loading} flexGrow={1} isDisabled={selectedUsers.length == 0 || !isValid}>
                 Send
               </Button>
-              </Box>
+            </ModalFooter>
             </form>
-          </ModalHeader>
-          <ModalBody>
-            {error && <Check error={error} isLoading={isLoading} />}
-            <UsersTable 
-              size='sm' 
-              users={reminders?.remindableVoters.map((profile) => [profile.username, profile.fid.toString()])} 
-              selectable={true}
-              onSelectionChange={(selected) => {
-                setSelectedUsers(selected.map(([username, fid]) => ({ username, fid: parseInt(fid) } as Profile)))
-              }}
-              hasWeight={false}/>
-          </ModalBody>
-          <ModalFooter justifyContent='space-between' flexWrap='wrap'>
-            <Button size='sm' onClick={onClose} variant='ghost' alignSelf='start'>
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          </ModalContent>
+        </Modal>
+      ) : (
+        <Modal isOpen={isOpen} onClose={onClose} >
+          <ModalOverlay />
+          <ModalContent p={0}>
+            <ModalBody p={0}>
+              <WarpcastApiKey />
+            </ModalBody>
+            <ModalCloseButton />
+          </ModalContent>
+        </Modal>
+      )}
     </>
   )
 }

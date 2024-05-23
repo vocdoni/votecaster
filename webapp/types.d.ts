@@ -79,6 +79,7 @@ declare global {
     voteCount: number
     censusParticipantsCount: number
     turnout: number
+    createdByFID: number
     createdByUsername: string
     createdByDisplayname: string
     totalWeight: number
@@ -92,6 +93,8 @@ declare global {
   type PollReminders = {
     remindableVoters: Profile[]
     alreadySent: number
+    maxReminders: number
+    votersWeight: [username: string, weight: string]
   }
 
   type PollRanking = {
