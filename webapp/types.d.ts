@@ -97,6 +97,19 @@ declare global {
     votersWeight: [username: string, weight: string]
   }
 
+  type PollReminderQueue = {
+    queueId: string
+  }
+
+  type PollReminderStatus = {
+    completed: boolean
+    electionId: string
+    userFID: number
+    alreadySent: number
+    total: number
+    fails: [username: string, error: string][]
+  }
+
   type PollRanking = {
     electionId: string
     title: string

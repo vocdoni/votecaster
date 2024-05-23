@@ -23,6 +23,7 @@ import (
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
+	"go.vocdoni.io/dvote/util"
 )
 
 const (
@@ -817,9 +818,18 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 		return ctx.Send([]byte(msg), http.StatusBadRequest)
 	}
 	// send the reminders to the users in background
+	taskID := util.RandomHex(16)
+	v.backgroundQueue.Store(taskID, RemindersStatus{
+		Total:      len(usersToRemind),
+		ElectionID: election.ElectionID,
+		UserFID:    auth.UserID,
+	})
 	go func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
+		// get the status of the task from the background queue
+		s, _ := v.backgroundQueue.Load(taskID)
+		currentStatus := s.(RemindersStatus)
 		// iterate over the list of users to remind, check if the user is remindable
 		// and send the reminder to the user, store the reminded users in a list
 		remindsSent := map[uint64]string{}
@@ -835,15 +845,69 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 				"from", auth.UserID)
 			if err := warpcastClient.DirectMessage(ctx, req.Content, fid); err != nil {
 				log.Warnw("failed to send direct notification", "error", err, "fid", fid, "username", username)
+				currentStatus.Fails[username] = err.Error()
+				v.backgroundQueue.Store(taskID, currentStatus)
 				continue
 			}
 			remindsSent[fid] = username
+			// update the status of the task
+			currentStatus.AlreadySent++
+			v.backgroundQueue.Store(taskID, currentStatus)
 		}
 		// update the already reminded users and the remindable users in the
 		// database with the list of reminded users
 		if err := v.db.RemindersSent(electionID, remindsSent); err != nil {
 			log.Warnf("failed to update reminders: %v", err)
 		}
+		currentStatus.Completed = true
+		v.backgroundQueue.Store(taskID, currentStatus)
 	}()
-	return ctx.Send([]byte("ok"), http.StatusOK)
+	res, err := json.Marshal(&ReminderResponse{
+		QueueID: taskID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal reminders response: %w", err)
+	}
+	return ctx.Send(res, http.StatusOK)
+}
+
+func (v *vocdoniHandler) remindersQueueHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// get the authenticated user from the token
+	token := msg.AuthToken
+	if token == "" {
+		return fmt.Errorf("missing auth token header")
+	}
+	auth, err := v.db.UpdateActivityAndGetData(token)
+	if err != nil {
+		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
+	}
+	// get the election id from the url params
+	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
+	if err != nil {
+		return fmt.Errorf("failed to decode electionID: %w", err)
+	}
+	// get the queue id from the url params
+	queueID := ctx.URLParam("queueID")
+	if queueID == "" {
+		return ctx.Send([]byte("missing queueID"), http.StatusBadRequest)
+	}
+	// get the status of the reminders task from the background queue
+	status, ok := v.backgroundQueue.Load(queueID)
+	if !ok {
+		return ctx.Send([]byte("task not found"), http.StatusNotFound)
+	}
+	currentStatus := status.(RemindersStatus)
+	// check if the user and the election match the task
+	if currentStatus.UserFID != auth.UserID {
+		return ctx.Send([]byte("user is not the owner of the election"), http.StatusForbidden)
+	}
+	if currentStatus.ElectionID != hex.EncodeToString(electionID) {
+		return ctx.Send([]byte("task does not match the election"), http.StatusBadRequest)
+	}
+	// encode the status of the task
+	res, err := json.Marshal(currentStatus)
+	if err != nil {
+		return fmt.Errorf("failed to marshal reminders response: %w", err)
+	}
+	return ctx.Send(res, http.StatusOK)
 }

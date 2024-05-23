@@ -494,6 +494,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/poll/{electionID}/reminders/queue/{queueID}", http.MethodGet, "private", handler.remindersQueueHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/poll/info/{electionID}", http.MethodGet, "public", handler.electionFullInfo); err != nil {
 		log.Fatal(err)
 	}

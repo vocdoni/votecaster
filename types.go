@@ -203,3 +203,23 @@ type ReminderRequest struct {
 	Users         map[uint64]string `json:"users"`         // map of userFID to username for 'individual' type
 	NumberOfUsers int               `json:"numberOfUsers"` // number of users to send reminders to for 'ranked' type
 }
+
+// ReminderResponse defines the response of a reminder request, including the
+// queue ID of the background process that will send the reminders. It allows to
+// check the status of the process.
+type ReminderResponse struct {
+	QueueID string `json:"queueId"`
+}
+
+// RemindersStatus defines the status of a reminders process, including the
+// number of reminders that have been already sent, the total number of
+// reminders to send and the list of users that have failed to receive the
+// reminder (with the error message)
+type RemindersStatus struct {
+	Completed   bool              `json:"completed"`
+	ElectionID  string            `json:"electionId"`
+	UserFID     uint64            `json:"userFID"`
+	AlreadySent int               `json:"alreadySent"`
+	Total       int               `json:"total"`
+	Fails       map[string]string `json:"fails,omitempty"`
+}

@@ -52,6 +52,8 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { bfetch } = useAuth()
   const toast = useToast()
+  const [queueId, setQueueId] = useState<string>();
+  const [status, setStatus] = useState<PollReminderStatus>();
   const [loading, setLoading] = useState<boolean>(false)
   const [success, setSuccess] = useState<string>()
   const { data: isAlreadyEnabled } = useQuery<boolean, Error>({
@@ -89,10 +91,37 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
     if (!success) return
     const timer = setTimeout(() => {
       setSuccess(undefined)
-    }, 2000)
+    }, 5000)
     return () => clearTimeout(timer)
   }, [success])
 
+  useEffect(() => {
+    if (!queueId) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await bfetch(`${appUrl}/poll/${poll.electionId}/reminders/queue/${queueId}`)
+        const data = await res.json() as PollReminderStatus
+        if (data.completed) {
+          setStatus(data)
+          refetch()
+          if (data.fails.length > 0) {
+            const failedUsers = data.fails.map(([username, error]) => `${username}: ${error}`).join('\n')
+            setError('message', { message: `Failed to send reminders to the following users:\n${failedUsers}` })
+          }
+          clearInterval(interval)
+        }
+      } catch (e) {
+        if (e instanceof Error) {
+          setError('message', { message: e.message })
+        }
+        console.error('could not send reminders', e)
+      } finally {
+        setLoading(false)
+      }
+    }, 500)
+    return () => clearInterval(interval)
+  }, [queueId])
+  
   if (!poll || !poll.electionId) return
 
   const sendReminders = async (data: ReminderFormValues) => {
@@ -104,14 +133,16 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
       users[fid.toString()] = username
     })
     try {
-      await bfetch(`${appUrl}/poll/${poll.electionId}/reminders`, {
+      const res = await bfetch(`${appUrl}/poll/${poll.electionId}/reminders`, {
         method: 'POST',
         body: JSON.stringify({ 
           type: "individual",
           content: data.message + `\n\n${data.castURL}`,
           users: users,
         }),
-      }).then(() => refetch())
+      })
+      const { queueId } = await res.json() as PollReminderQueue
+      setQueueId(queueId)
       reset({ message: '', castURL: '' }) // Reset the message field
       setSuccess('Reminders sent successfully')
     } catch (e) {
@@ -119,7 +150,6 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
         setError('message', { message: e.message })
       }
       console.error('could not send reminders', e)
-    } finally {
       setLoading(false)
     }
   }
@@ -200,7 +230,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
                     }}/>
                 </ModalBody>
               <ModalFooter justifyContent='space-between' flexWrap='wrap'>
-              <Text fontSize={'sm'} color='gray' fontWeight='normal' mt={2} mb={8}>You already sent {reminders?.alreadySent} reminders. You can send {reminders?.maxReminders} more.</Text>
+                <Text fontSize={'sm'} color='gray' fontWeight='normal' mt={2} mb={8}>You already sent {reminders?.alreadySent} reminders. You can send {reminders?.maxReminders} more.</Text>
                 <Button w={'full'} size='sm' onClick={handleSubmit(sendReminders)} rightIcon={<MdSend />} isLoading={loading} flexGrow={1} isDisabled={selectedUsers.length == 0 || !isValid}>
                   Send
                 </Button>

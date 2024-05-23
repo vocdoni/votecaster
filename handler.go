@@ -43,8 +43,8 @@ type vocdoniHandler struct {
 	airstack      *airstack.Airstack
 	comhub        *communityhub.CommunityHub
 
-	censusCreationMap sync.Map
-	addAuthTokenFunc  func(uint64, string)
+	backgroundQueue  sync.Map
+	addAuthTokenFunc func(uint64, string)
 }
 
 func NewVocdoniHandler(
