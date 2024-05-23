@@ -168,7 +168,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
                             {...register('castURL', {
                               required: 'Please enter Warpcast URL',
                               pattern: {
-                                value: /^(https?:\/\/)[a-z/.]+(0x[a-f\d]+)$/,
+                                value: /^(https?:\/\/).+(0x[a-f\d]+)$/,
                                 message: 'Invalid URL format'
                               },
                             })}
