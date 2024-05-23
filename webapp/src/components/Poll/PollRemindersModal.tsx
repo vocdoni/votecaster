@@ -42,6 +42,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
     reset,
     setError,
     formState: { errors, isValid },
+    trigger,
   } = useForm<ReminderFormValues>({
     defaultValues: {
       message: '',
@@ -145,7 +146,6 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
               </ModalHeader>
               <ModalCloseButton />
               <ModalHeader>
-                
                     <VStack spacing={4} alignItems={'start'}>
                       <Box w={'full'}>
                         <FormLabel>Content</FormLabel>
@@ -154,13 +154,14 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
                             size='sm'
                             placeholder='Type a personalized message here to invite users to participate in the poll.'
                             {...register('message', { required: 'This field is required' })}
+                            onBlur={() => trigger('message')}
                           />
                           <FormErrorMessage>{errors.message?.message?.toString()}</FormErrorMessage>
                         </FormControl>
                       </Box>
                       <Box w={'full'}>
                         <FormLabel>Cast URL</FormLabel>
-                        <FormControl isInvalid={!!errors.message} flexGrow={1} mr={2}>
+                        <FormControl isInvalid={!!errors.castURL} flexGrow={1} mr={2}>
                           <Input
                             size='sm'
                             placeholder='Paste the URL of a cast that includes the poll frame.'
@@ -171,6 +172,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
                                 message: 'Invalid URL format'
                               },
                             })}
+                            onBlur={() => trigger('castURL')}
                           />
                           <FormErrorMessage>{errors.castURL?.message?.toString()}</FormErrorMessage>
                         </FormControl>
