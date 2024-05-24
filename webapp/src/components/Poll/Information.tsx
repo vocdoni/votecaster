@@ -17,8 +17,8 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
     enabled: !!poll?.community?.id.toString(),
   })
 
-  const isAdmin = () =>{
-    if (!profile || !community) return false
+  const isAdmin = () => {
+    if (!profile || !community) return false;
     return community.admins.some((admin) => admin.fid === profile.fid)
   }
 

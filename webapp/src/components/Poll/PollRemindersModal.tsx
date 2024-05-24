@@ -4,6 +4,8 @@ import {
   FormControl,
   FormErrorMessage,
   FormLabel,
+  HStack,
+  Icon,
   Input,
   Modal,
   ModalBody,
@@ -22,11 +24,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { MdSend } from "react-icons/md"
-import { appUrl } from '~constants'
+import { FaFlagCheckered } from "react-icons/fa6";
 import { useAuth } from '~components/Auth/useAuth'
+import { UsersTable } from '~components/Census/UsersTable'
 import { Check } from '~components/Check'
 import { WarpcastApiKey } from '~components/WarpcastApiKey'
-import { UsersTable } from '~components/Census/UsersTable'
+import { appUrl } from '~constants'
 import { fetchPollsReminders } from '~queries/polls'
 import { fetchWarpcastAPIEnabled } from '~queries/profile'
 
@@ -72,7 +75,6 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
     },
   })
 
-  console.log(poll)
   const [selectedUsers, setSelectedUsers] = useState<Profile[]>([]);
 
   useEffect(() => {
@@ -120,7 +122,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
     }, 500)
     return () => clearInterval(interval)
   }, [queueId])
-  
+
   if (!poll || !poll.electionId) return
 
   const sendReminders = async (data: ReminderFormValues) => {
@@ -134,7 +136,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
     try {
       const res = await bfetch(`${appUrl}/poll/${poll.electionId}/reminders`, {
         method: 'POST',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           type: "individual",
           content: data.message + `\n\n${data.castURL}`,
           users: users,
@@ -165,14 +167,15 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
       </Button>
 
       {isAlreadyEnabled ? (
-          <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside'>
-            <ModalOverlay />
-            <ModalContent>
-              <ModalHeader>
-                Reminders
-                <Text fontSize={'sm'} color='gray' fontWeight='normal'>Send a Direct Cast to members, inviting them to vote in the poll. Please note that they will only receive the reminder if you both follow each other.</Text>
-              </ModalHeader>
-              <ModalCloseButton />
+        <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside'>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>
+              Reminders
+              <Text fontSize={'sm'} color='gray' fontWeight='normal'>Send a Direct Cast to members, inviting them to vote in the poll. Please note that they will only receive the reminder if you both follow each other.</Text>
+            </ModalHeader>
+            <ModalCloseButton />
+            {(reminders?.remindableVoters.length || 0 > 0) ? (<>
               <ModalHeader>
                 <form onSubmit={handleSubmit(sendReminders)}>
                   <VStack spacing={4} alignItems={'start'}>
@@ -212,30 +215,41 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
               <ModalBody>
                 {(error || success) && <Check error={error} success={success} isLoading={isLoading} />}
                 <FormLabel>Select users</FormLabel>
-                  <UsersTable 
-                    size='sm' 
-                    users={reminders?.remindableVoters.map((profile) => [profile.username, reminders?.votersWeight[profile.username]])} 
-                    selectable={true}
-                    findable={true}
-                    onSelectionChange={(selected) => {
-                      const profiles : Profile[] = []
-                      selected.forEach(([username]) => {
-                        const profile = reminders?.remindableVoters.find((profile) => profile.username === username)
-                        if (profile) {
-                          profiles.push(profile)
-                        }
-                      })
-                      setSelectedUsers(profiles)
-                    }}/>
-                </ModalBody>
+                <UsersTable
+                  size='sm'
+                  users={reminders?.remindableVoters.map((profile) => [profile.username, reminders?.votersWeight[profile.username]])}
+                  selectable={true}
+                  findable={true}
+                  onSelectionChange={(selected) => {
+                    const profiles: Profile[] = []
+                    selected.forEach(([username]) => {
+                      const profile = reminders?.remindableVoters.find((profile) => profile.username === username)
+                      if (profile) {
+                        profiles.push(profile)
+                      }
+                    })
+                    setSelectedUsers(profiles)
+                  }} />
+              </ModalBody>
               <ModalFooter justifyContent='space-between' flexWrap='wrap'>
                 <Text fontSize={'sm'} color='gray' fontWeight='normal' mt={2} mb={8}>You already sent {reminders?.alreadySent} reminders. You can send {reminders?.maxReminders} more.</Text>
                 <Button w={'full'} size='sm' onClick={handleSubmit(sendReminders)} rightIcon={<MdSend />} isLoading={loading} flexGrow={1} isDisabled={selectedUsers.length == 0 || !isValid}>
                   Send
                 </Button>
               </ModalFooter>
-            </ModalContent>
-          </Modal>
+            </>) : (
+              <ModalBody>
+                <HStack spacing={4} alignItems={'center'} mb={4}>
+                  <Icon as={FaFlagCheckered} />
+                  <VStack align={'start'} spacing={1}>
+                    <Text fontWeight='semibold' fontSize={'sm'}>All the reminders have been sent.</Text>
+                    <Text fontSize={'sm'}>There are no users left to send reminders to.</Text>
+                  </VStack>
+                </HStack>
+              </ModalBody>
+            )}
+          </ModalContent>
+        </Modal>
       ) : (
         <Modal isOpen={isOpen} onClose={onClose} >
           <ModalOverlay />
