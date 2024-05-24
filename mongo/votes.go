@@ -195,6 +195,13 @@ func (ms *MongoStorage) createVotersList(ctx context.Context, electionID types.H
 	return nil
 }
 
+// PopulateRemindableVoters creates the list of remindable voters for an election.
+func (ms *MongoStorage) PopulateRemindableVoters(electionID types.HexBytes) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+	return ms.populateRemindableVoters(electionID)
+}
+
 // populateRemindableVoters creates the list of remindable voters for an election.
 // It gets the list of participants from the census and creates the list of
 // remindable voters from the participants usernames and fids.
