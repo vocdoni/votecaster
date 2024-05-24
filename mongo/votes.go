@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 )
@@ -145,8 +146,11 @@ func (ms *MongoStorage) votersOfElection(electionID types.HexBytes) (*VotersOfEl
 	result := ms.voters.FindOne(ctx, bson.M{"_id": electionID.String()})
 	var voters VotersOfElection
 	if err := result.Decode(&voters); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrElectionUnknown
+		}
 		log.Warn(err)
-		return nil, ErrElectionUnknown
+		return nil, err
 	}
 	return &voters, nil
 }
