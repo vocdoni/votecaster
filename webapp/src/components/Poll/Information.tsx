@@ -1,15 +1,26 @@
 import { HStack, Link, Text, VStack } from '@chakra-ui/react'
+import { useQuery } from '@tanstack/react-query'
 import { vocdoniExplorer } from '~constants'
+import { fetchCommunity } from '~queries/communities'
 import { humanDate } from '~util/strings'
-import { ParticipantsTableModal } from './ParticipantsTableModal'
-import { RemainingVotersTableModal } from './RemainingVotersTableModal'
-import { PollRemindersModal } from './PollRemindersModal'
-import { VotersTableModal } from './VotersTableModal'
 import { useAuth } from '../Auth/useAuth'
+import { ParticipantsTableModal } from './ParticipantsTableModal'
+import { PollRemindersModal } from './PollRemindersModal'
+import { RemainingVotersTableModal } from './RemainingVotersTableModal'
+import { VotersTableModal } from './VotersTableModal'
 
 export const Information = ({ poll }: { poll?: PollInfo }) => {
-  const { profile } = useAuth()
-  
+  const { profile, bfetch } = useAuth()
+  const {data: community} = useQuery({
+    queryKey: ['community', poll?.community?.id],
+    queryFn: fetchCommunity(bfetch, poll?.community?.id.toString() || ''),
+    enabled: !!poll?.community?.id.toString(),
+  })
+
+  const isAdmin = () =>{
+    if (!profile || !community) return false
+    return community.admins.some((admin) => admin.fid === profile.fid)
+  }
 
   if (!poll) return
 
@@ -32,7 +43,7 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
             <VotersTableModal poll={poll} />
             <RemainingVotersTableModal poll={poll} />
             <ParticipantsTableModal poll={poll} />
-            {profile?.fid == poll.createdByFID && <PollRemindersModal poll={poll}/>}
+            {!!poll.community && isAdmin() && <PollRemindersModal poll={poll}/>}
           </HStack>
         </>
       )}

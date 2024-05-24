@@ -53,7 +53,6 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
   const { bfetch } = useAuth()
   const toast = useToast()
   const [queueId, setQueueId] = useState<string>();
-  const [status, setStatus] = useState<PollReminderStatus>();
   const [loading, setLoading] = useState<boolean>(false)
   const [success, setSuccess] = useState<string>()
   const { data: isAlreadyEnabled } = useQuery<boolean, Error>({
@@ -73,6 +72,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
     },
   })
 
+  console.log(poll)
   const [selectedUsers, setSelectedUsers] = useState<Profile[]>([]);
 
   useEffect(() => {
@@ -102,21 +102,20 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
         const res = await bfetch(`${appUrl}/poll/${poll.electionId}/reminders/queue/${queueId}`)
         const data = await res.json() as PollReminderStatus
         if (data.completed) {
-          setStatus(data)
-          refetch()
-          if (data.fails.length > 0) {
+          clearInterval(interval);
+          setQueueId(undefined)
+          if (!!data.fails && data.fails.length > 0) {
             const failedUsers = data.fails.map(([username, error]) => `${username}: ${error}`).join('\n')
             setError('message', { message: `Failed to send reminders to the following users:\n${failedUsers}` })
           }
-          clearInterval(interval)
+          refetch()
+          setLoading(false)
         }
       } catch (e) {
         if (e instanceof Error) {
           setError('message', { message: e.message })
         }
         console.error('could not send reminders', e)
-      } finally {
-        setLoading(false)
       }
     }, 500)
     return () => clearInterval(interval)

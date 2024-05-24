@@ -104,7 +104,6 @@ declare global {
   type PollReminderStatus = {
     completed: boolean
     electionId: string
-    userFID: number
     alreadySent: number
     total: number
     fails: [username: string, error: string][]

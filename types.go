@@ -218,7 +218,6 @@ type ReminderResponse struct {
 type RemindersStatus struct {
 	Completed   bool              `json:"completed"`
 	ElectionID  string            `json:"electionId"`
-	UserFID     uint64            `json:"userFID"`
 	AlreadySent int               `json:"alreadySent"`
 	Total       int               `json:"total"`
 	Fails       map[string]string `json:"fails,omitempty"`

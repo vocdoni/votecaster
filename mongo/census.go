@@ -78,8 +78,8 @@ func (ms *MongoStorage) Census(censusID types.HexBytes) (Census, error) {
 }
 
 // ParticipantsByWeight retrieves the top N participants by weight in a census.
-func (ms *MongoStorage) ParticipantsByWeight(censusID types.HexBytes, n int) (map[string]*big.Int, error) {
-	census, err := ms.censusFromElection(censusID)
+func (ms *MongoStorage) ParticipantsByWeight(electionID types.HexBytes, n int) (map[string]*big.Int, error) {
+	census, err := ms.censusFromElection(electionID)
 	if err != nil {
 		return nil, err
 	}

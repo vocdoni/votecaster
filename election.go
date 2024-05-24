@@ -677,8 +677,12 @@ func (v *vocdoniHandler) remindersHandler(msg *apirest.APIdata, ctx *httprouter.
 		}
 		return fmt.Errorf("failed to get election: %w", err)
 	}
-	if election.UserID != auth.UserID {
-		return ctx.Send([]byte("user is not the owner of the election"), http.StatusForbidden)
+	// check if the election is a community election and if the user is an admin
+	if election.Community == nil || election.Community.ID == 0 {
+		return fmt.Errorf("election is not a community election")
+	}
+	if !v.db.IsCommunityAdmin(auth.UserID, election.Community.ID) {
+		return ctx.Send([]byte("user is not an admin of the community"), http.StatusForbidden)
 	}
 	// get the remindable users and the number of alredy reminded users from the
 	// database
@@ -763,8 +767,12 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 		}
 		return fmt.Errorf("failed to get election: %w", err)
 	}
-	if election.UserID != auth.UserID {
-		return ctx.Send([]byte("user is not the owner of the election"), http.StatusForbidden)
+	// check if the election is a community election and if the user is an admin
+	if election.Community == nil || election.Community.ID == 0 {
+		return fmt.Errorf("election is not a community election")
+	}
+	if !v.db.IsCommunityAdmin(auth.UserID, election.Community.ID) {
+		return ctx.Send([]byte("user is not an admin of the community"), http.StatusForbidden)
 	}
 	// decode the reminders request from the body, there are two types of
 	// reminders, one for ranked list of n users by weight and another for
@@ -822,7 +830,6 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 	v.backgroundQueue.Store(taskID, RemindersStatus{
 		Total:      len(usersToRemind),
 		ElectionID: election.ElectionID,
-		UserFID:    auth.UserID,
 	})
 	go func() {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -872,13 +879,12 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 }
 
 func (v *vocdoniHandler) remindersQueueHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	// get the authenticated user from the token
+	// get the authenticated user from the token and check if the user is logged in
 	token := msg.AuthToken
 	if token == "" {
 		return fmt.Errorf("missing auth token header")
 	}
-	auth, err := v.db.UpdateActivityAndGetData(token)
-	if err != nil {
+	if _, err := v.db.UpdateActivityAndGetData(token); err != nil {
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
 	}
 	// get the election id from the url params
@@ -897,12 +903,13 @@ func (v *vocdoniHandler) remindersQueueHandler(msg *apirest.APIdata, ctx *httpro
 		return ctx.Send([]byte("task not found"), http.StatusNotFound)
 	}
 	currentStatus := status.(RemindersStatus)
-	// check if the user and the election match the task
-	if currentStatus.UserFID != auth.UserID {
-		return ctx.Send([]byte("user is not the owner of the election"), http.StatusForbidden)
-	}
+	// check if the election match the task
 	if currentStatus.ElectionID != hex.EncodeToString(electionID) {
 		return ctx.Send([]byte("task does not match the election"), http.StatusBadRequest)
+	}
+	// check if the task is completed and remove it from the queue
+	if currentStatus.Completed {
+		v.backgroundQueue.Delete(queueID)
 	}
 	// encode the status of the task
 	res, err := json.Marshal(currentStatus)
