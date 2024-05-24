@@ -43,7 +43,7 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
             <VotersTableModal poll={poll} />
             <RemainingVotersTableModal poll={poll} />
             <ParticipantsTableModal poll={poll} />
-            {!!poll.community && isAdmin() && <PollRemindersModal poll={poll}/>}
+            {!!poll.community && poll?.finalized && isAdmin() && <PollRemindersModal poll={poll}/>}
           </HStack>
         </>
       )}
