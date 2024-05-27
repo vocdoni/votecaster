@@ -167,7 +167,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
       </Button>
 
       {isAlreadyEnabled ? (
-        <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside'>
+        <Modal isOpen={isOpen && !isLoading} onClose={onClose} scrollBehavior='inside'>
           <ModalOverlay />
           <ModalContent>
             <ModalHeader>
