@@ -1,4 +1,4 @@
-import { Checkbox, Box, Input, Table, TableProps, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react'
+import { Checkbox, Box, Input, Table, TableProps, Tbody, Td, Th, Thead, Tr, Button, HStack } from '@chakra-ui/react'
 import { useState } from 'react';
 
 interface UsersTableProps extends TableProps {
@@ -12,6 +12,7 @@ interface UsersTableProps extends TableProps {
 export const UsersTable = ({ users, selectable, onSelectionChange, hasWeight, findable, ...props }: UsersTableProps) => {
   const [selectedUsers, setSelectedUsers] = useState<string[][]>([]);
   const [filterText, setFilterText] = useState('');
+  const [selectedAll, setSelectedAll] = useState(false);
 
   if (!users || !users.length) return
 
@@ -39,18 +40,36 @@ export const UsersTable = ({ users, selectable, onSelectionChange, hasWeight, fi
     }
   };
 
+  const isSelected = (username: string) => {
+    return selectedUsers.some(user => user[0] === username);
+  };
+
+  const selectAll = () => {
+    if (selectedAll) {
+      setSelectedUsers([]);
+      onSelectionChange && onSelectionChange([]);
+      setSelectedAll(false);
+      return
+    }
+    setSelectedUsers(filteredUsers);
+    onSelectionChange && onSelectionChange(filteredUsers);
+    setSelectedAll(true);
+  }
+
   return (
     <Box>
         {!!findable && <Box px={2}>
-          <Input
-            size={'xs'}
-            p={2}
-            rounded={'md'}
-            placeholder="Filter by username"
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-            mb={4}
-          />
+          <HStack my={4} justifyItems={'center'} alignItems={'center'} align={'center'} alignContent={'center'}>
+            <Button size={'xs'} px='4' onClick={selectAll}>{selectedAll ? 'Clear' : 'SelectAll'}</Button>
+            <Input
+              size={'xs'}
+              p={2}
+              rounded={'md'}
+              placeholder="Filter by username"
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+            />
+          </HStack>
         </Box>}
       <Table {...props}>
         <Thead>
@@ -66,6 +85,7 @@ export const UsersTable = ({ users, selectable, onSelectionChange, hasWeight, fi
                 {selectable && (
                   <Checkbox
                     pr={3}
+                    isChecked={isSelected(username)}
                     onChange={(e) => handleCheckboxChange(username, weight, e.target.checked)}
                   />
                 )}

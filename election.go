@@ -692,13 +692,7 @@ func (v *vocdoniHandler) remindersHandler(msg *apirest.APIdata, ctx *httprouter.
 	}
 	// if the reminders have not been populated yet, populate them and retry
 	if len(remindableUsers) == 0 && remindersSent == 0 {
-		if err := v.db.PopulateRemindableVoters(electionID); err != nil {
-			return fmt.Errorf("failed to populate remindable voters: %w", err)
-		}
-		remindableUsers, remindersSent, err = v.db.RemindersOfElection(electionID)
-		if err != nil {
-			return fmt.Errorf("failed to get voters of election: %w", err)
-		}
+		return fmt.Errorf("failed to get remindable voters")
 	}
 	// get the census to include the voters weight
 	census, err := v.db.CensusFromElection(electionID)
