@@ -9,7 +9,7 @@ import { FarcasterLogo } from '~components/FarcasterLogo'
 import { MutedUsersList } from '~components/MutedUsersList'
 import { WarpcastApiKey } from '~components/WarpcastApiKey'
 import { UserPolls } from '~components/Top'
-import { fetchUserProfile } from '~queries/profile'
+import { fetchUserProfile, useUserDegenOrEnsName } from '~queries/profile'
 
 const Profile = () => {
   const { id } = useParams()
@@ -25,6 +25,8 @@ const Profile = () => {
     queryKey: ['profile', username],
     queryFn: fetchUserProfile(bfetch, username as string),
   })
+
+  const { data: degenOrEnsName } = useUserDegenOrEnsName(user)
 
   if (isLoading || error) {
     return <Check isLoading={isLoading} error={error} />
@@ -43,7 +45,7 @@ const Profile = () => {
       <GridItem gridArea='profile'>
         <Box boxShadow='md' borderRadius='md' bg='purple.100' p={4} display='flex' flexDir='column' gap={2}>
           <Box display='flex' flexDir='row' gap={2}>
-            <Text fontWeight='500'>{user?.user.displayName || user?.user.username}</Text>
+            <Text fontWeight='500'>{degenOrEnsName || user?.user.displayName || user?.user.username}</Text>
             <Link href={`https://warpcast.com/${user?.user.username}`} isExternal>
               <FarcasterLogo fill='purple' />
             </Link>
@@ -56,7 +58,7 @@ const Profile = () => {
       <GridItem gridArea='polls'>
         <UserPolls
           polls={user?.polls || []}
-          title={`${user?.user.displayName || user?.user.username}'s polls`}
+          title={`${degenOrEnsName || user?.user.displayName || user?.user.username}'s polls`}
           w='100%'
         />
       </GridItem>
