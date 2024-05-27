@@ -35,6 +35,7 @@ declare global {
     pfpUrl: string
     custody: string
     verifications: string[]
+    addresses?: string[]
   }
 
   type Poll = {
