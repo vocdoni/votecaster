@@ -26,17 +26,36 @@ import (
 // information.
 func (v *vocdoniHandler) censusChannelOrAddresses(ctx context.Context,
 	dbCensus mongo.CommunityCensus,
-) ([]*CensusAddress, *Channel, error) {
+) ([]*CensusAddress, *Channel, *User, error) {
 	var censusChannel *Channel
 	var censusAddresses []*CensusAddress
+	var user *User
 	switch dbCensus.Type {
+	case mongo.TypeCommunityCensusFollowers:
+		fid, err := communityhub.UserRefToFID(dbCensus.Channel)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("invalid user reference: %w", err)
+		}
+		dbUser, err := v.db.User(fid)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("error getting user: %w", err)
+		}
+		if dbUser == nil {
+			return nil, nil, nil, fmt.Errorf("user not found")
+		}
+		user = &User{
+			FID:         dbUser.UserID,
+			Username:    dbUser.Username,
+			DisplayName: dbUser.Displayname,
+			Avatar:      dbUser.Avatar,
+		}
 	case mongo.TypeCommunityCensusChannel:
 		channel, err := v.fcapi.Channel(ctx, dbCensus.Channel)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		if channel == nil {
-			return nil, nil, farcasterapi.ErrChannelNotFound
+			return nil, nil, nil, farcasterapi.ErrChannelNotFound
 		}
 		censusChannel = &Channel{
 			ID:          channel.ID,
@@ -57,9 +76,9 @@ func (v *vocdoniHandler) censusChannelOrAddresses(ctx context.Context,
 			}
 		}
 	default:
-		return nil, nil, fmt.Errorf("invalid census type")
+		return nil, nil, nil, fmt.Errorf("invalid census type")
 	}
-	return censusAddresses, censusChannel, nil
+	return censusAddresses, censusChannel, user, nil
 }
 
 func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -161,8 +180,8 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 				Avatar:      user.Avatar,
 			})
 		}
-		// get census channel or addresses based on the type
-		cAddresses, cChannel, err := v.censusChannelOrAddresses(ctx.Request.Context(), c.Census)
+		// get census channel, addresses or user reference based on the type
+		cAddresses, cChannel, userRef, err := v.censusChannelOrAddresses(ctx.Request.Context(), c.Census)
 		if err != nil && err != farcasterapi.ErrChannelNotFound {
 			return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
 		}
@@ -177,6 +196,7 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 			CensusType:      c.Census.Type,
 			CensusAddresses: cAddresses,
 			CensusChannel:   cChannel,
+			UserRef:         userRef,
 			Channels:        c.Channels,
 			Disabled:        c.Disabled,
 		})
@@ -228,7 +248,7 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 		})
 	}
 	// get census channel or addresses based on the type
-	cAddresses, cChannel, err := v.censusChannelOrAddresses(ctx.Request.Context(), dbCommunity.Census)
+	cAddresses, cChannel, userRef, err := v.censusChannelOrAddresses(ctx.Request.Context(), dbCommunity.Census)
 	if err != nil && err != farcasterapi.ErrChannelNotFound {
 		return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
 	}
@@ -243,6 +263,7 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 		CensusType:      dbCommunity.Census.Type,
 		CensusAddresses: cAddresses,
 		CensusChannel:   cChannel,
+		UserRef:         userRef,
 		Channels:        dbCommunity.Channels,
 		Disabled:        dbCommunity.Disabled,
 	})

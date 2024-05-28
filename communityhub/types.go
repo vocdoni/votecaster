@@ -20,6 +20,9 @@ const (
 	// CensusTypeNFT represents the census that includes all the holders of an
 	// NFT
 	CensusTypeNFT CensusType = "nft"
+	// CensusTypeFollowers represents the census that includes all the followers
+	// of an user in a source (farcaster or other like alfafrens)
+	CensusTypeFollowers CensusType = "followers"
 )
 
 const (
@@ -47,16 +50,18 @@ const (
 )
 
 var internalCensusTypes = map[uint8]CensusType{
-	CONTRACT_CENSUS_TYPE_CHANNEL: CensusTypeChannel,
-	CONTRACT_CENSUS_TYPE_ERC20:   CensusTypeERC20,
-	CONTRACT_CENSUS_TYPE_NFT:     CensusTypeNFT,
+	CONTRACT_CENSUS_TYPE_CHANNEL:   CensusTypeChannel,
+	CONTRACT_CENSUS_TYPE_ERC20:     CensusTypeERC20,
+	CONTRACT_CENSUS_TYPE_NFT:       CensusTypeNFT,
+	CONTRACT_CENSUS_TYPE_FOLLOWERS: CensusTypeFollowers,
 }
 
 // contractCensusTypes is the reverse of internalCensusTypes
 var contractCensusTypes = map[CensusType]uint8{
-	CensusTypeChannel: CONTRACT_CENSUS_TYPE_CHANNEL,
-	CensusTypeERC20:   CONTRACT_CENSUS_TYPE_ERC20,
-	CensusTypeNFT:     CONTRACT_CENSUS_TYPE_NFT,
+	CensusTypeChannel:   CONTRACT_CENSUS_TYPE_CHANNEL,
+	CensusTypeERC20:     CONTRACT_CENSUS_TYPE_ERC20,
+	CensusTypeNFT:       CONTRACT_CENSUS_TYPE_NFT,
+	CensusTypeFollowers: CONTRACT_CENSUS_TYPE_FOLLOWERS,
 }
 
 // ContractAddress represents the address of a contract in a certain blockchain,
@@ -74,7 +79,7 @@ type HubCommunity struct {
 	GroupChatURL   string
 	CensusType     CensusType
 	CensusAddesses []*ContractAddress
-	CensusChannel  string   // warpcast channels id
+	CensusChannel  string   // channels id or user reference (for follower census type)
 	Channels       []string // warpcast channels ids
 	Admins         []uint64 // farcaster users fids
 	Notifications  *bool

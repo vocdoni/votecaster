@@ -238,6 +238,9 @@ const (
 	// TypeCommunityCensusNFT is the type for a community census that uses
 	// NFT holders as source.
 	TypeCommunityCensusNFT = "nft"
+	// TypeCommunityCensusFollowers is the type for a community census that uses
+	// followers as source.
+	TypeCommunityCensusFollowers = "followers"
 )
 
 // CommunityCensus represents the census of a community in the database. It

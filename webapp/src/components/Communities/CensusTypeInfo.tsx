@@ -34,6 +34,16 @@ const CensusTypeDetail = ({ community }: { community: Community }) => {
           {community.censusChannel.name}
         </Link>
       )
+    case 'followers':
+      return (
+        <Link
+          isExternal
+          href={`https://warpcast.com/${community.userRef.username}`}
+          variant='primary'
+        >
+          {community.userRef.displayName}
+        </Link>
+      )
     default:
       return null
   }

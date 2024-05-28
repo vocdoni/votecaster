@@ -48,6 +48,9 @@ var (
 	// ErrNoChannelProvided is returned when no channel is provided during the
 	// creation of a community with a channel census type
 	ErrNoChannelProvided = fmt.Errorf("no channel provided")
+	// ErrNoUserRefProvided is returned when no user reference is provided
+	// during the creation of a community with a followers census type
+	ErrNoUserRefProvided = fmt.Errorf("no user reference provided")
 	// ErrBadCensusAddressees is returned when the census addressees are not
 	// provided in the correct format or are empty
 	ErrBadCensusAddressees = fmt.Errorf("bad community census addressees")

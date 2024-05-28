@@ -538,7 +538,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/census/followers/{userFid}", http.MethodPost, "private", handler.censusFollowers); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/census/followers/{userFid}", http.MethodPost, "private", handler.censusFollowersHandler); err != nil {
 		log.Fatal(err)
 	}
 

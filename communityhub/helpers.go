@@ -3,10 +3,26 @@ package communityhub
 import (
 	"fmt"
 	"math/big"
+	"strconv"
+	"strings"
 
 	comhub "github.com/vocdoni/vote-frame/communityhub/contracts/communityhubtoken"
 	dbmongo "github.com/vocdoni/vote-frame/mongo"
 )
+
+// farcasterUserRefPrefix is the prefix used to encode a user reference from
+// farcaster to a user FID.
+const farcasterUserRefPrefix = "fid:"
+
+// UserRefToFID converts a user reference to a farcaster user to a user FID. It
+// is used to encode the user reference from farcaster in CensusChannel contract
+// field to support followers censuses from farcaster.
+func UserRefToFID(userRef string) (uint64, error) {
+	if strings.HasPrefix(userRef, farcasterUserRefPrefix) {
+		return strconv.ParseUint(userRef[len(farcasterUserRefPrefix):], 10, 64)
+	}
+	return 0, fmt.Errorf("invalid user reference: %s", userRef)
+}
 
 // ContractToHub converts a contract community struct (ICommunityHubCommunity)
 // to a internal community struct (HubCommunity)
@@ -33,7 +49,7 @@ func ContractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, 
 	community.CensusType = internalCensusTypes[cc.Census.CensusType]
 	// decode census data according to the census type
 	switch community.CensusType {
-	case CensusTypeChannel:
+	case CensusTypeChannel, CensusTypeFollowers:
 		// if the census type is a channel, set the channel
 		community.CensusChannel = cc.Census.Channel
 	case CensusTypeERC20, CensusTypeNFT:
@@ -64,6 +80,10 @@ func HubToContract(hcommunity *HubCommunity) (comhub.ICommunityHubCommunity, err
 	case CensusTypeERC20, CensusTypeNFT:
 		if len(hcommunity.CensusAddesses) == 0 {
 			return comhub.ICommunityHubCommunity{}, ErrBadCensusAddressees
+		}
+	case CensusTypeFollowers:
+		if hcommunity.CensusChannel == "" {
+			return comhub.ICommunityHubCommunity{}, ErrNoUserRefProvided
 		}
 	default:
 		return comhub.ICommunityHubCommunity{}, ErrUnknownCensusType
@@ -122,7 +142,7 @@ func HubToDB(hcommunity *HubCommunity) (*dbmongo.Community, error) {
 	}
 	// if the census type is a channel, set the channel
 	switch hcommunity.CensusType {
-	case CensusTypeChannel:
+	case CensusTypeChannel, CensusTypeFollowers:
 		if hcommunity.CensusChannel == "" {
 			return nil, fmt.Errorf("%w: %s", ErrNoChannelProvided, hcommunity.Name)
 		}

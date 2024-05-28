@@ -3,7 +3,7 @@ export const isErrorWithHTTPResponse = (error: any): error is HTTPErrorResponse 
   error && typeof error === 'object' && 'response' in error && 'data' in error.response
 
 // This enum comes from the contract repo
-enum ContractCensusType {
+export enum ContractCensusType {
   FC, /// All Farcaster users.
   CHANNEL, /// Users in a specific channel.
   FOLLOWERS, /// Users following a specific account.

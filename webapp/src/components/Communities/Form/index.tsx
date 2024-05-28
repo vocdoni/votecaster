@@ -9,7 +9,7 @@ import { appUrl, degenContractAddress } from '~constants'
 import { CommunityHub__factory, ICommunityHub } from '~typechain'
 import { walletClientToSigner } from '~util/rainbow'
 import { cleanChannel } from '~util/strings'
-import { censusTypeToEnum } from '~util/types'
+import { censusTypeToEnum, ContractCensusType } from '~util/types'
 import { CensusSelector } from './CensusSelector'
 import { Channels } from './Channels'
 import { Confirm } from './Confirm'
@@ -24,7 +24,7 @@ export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusTy
   }
 
 export const CommunitiesCreateForm = () => {
-  const { bfetch } = useAuth()
+  const { profile, bfetch } = useAuth()
   const methods = useForm<CommunityFormValues>()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -82,8 +82,28 @@ export const CommunitiesCreateForm = () => {
           notifications: true, // notifications
         }
 
+        const cencusType = censusTypeToEnum(data.censusType)
+        switch (cencusType) {
+          case ContractCensusType.CHANNEL:
+            if (!data.channel) throw Error('Channel is not set')
+            break
+          case ContractCensusType.FOLLOWERS:
+            // to include the reference of the user in the contract, we need to 
+            // add the fid to the channel field in the census metadata with type 
+            // follower. The prefix fid: is used to identify the field as a 
+            // farcaster id. It could be used in the future to add more types of
+            // followers like alfafrens.
+            data.channel = `fid:${profile?.fid}`
+            break
+          case ContractCensusType.ERC20, ContractCensusType.NFT:
+            if (data.addresses?.length === 0) throw Error('Tokens is not set')
+            break
+          default:
+            throw Error('Census type is not allowed')
+        }
+
         const census: ICommunityHub.CensusStruct = {
-          censusType: censusTypeToEnum(data.censusType), // Census type
+          censusType: cencusType,
           tokens:
             data.addresses
               ?.filter(({ address }) => address !== '')
@@ -95,6 +115,8 @@ export const CommunitiesCreateForm = () => {
               }) ?? ([] as ICommunityHub.TokenStruct[]), // tokens
           channel: data.channel ? cleanChannel(data.channel) : '', // channel
         }
+
+        console.log(census)
 
         const guardians = data.admins.map((admin) => BigInt(admin.value))
         const createElectionPermission = 0
@@ -155,7 +177,7 @@ export const CommunitiesCreateForm = () => {
         setIsPending(false)
       }
     },
-    [walletClient, address, isPending, price]
+    [walletClient, address, isPending, price, profile]
   )
 
   return (

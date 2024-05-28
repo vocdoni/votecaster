@@ -340,11 +340,7 @@ func (v *vocdoniHandler) censusChannel(msg *apirest.APIdata, ctx *httprouter.HTT
 		return ctx.Send([]byte("channel not found"), http.StatusNotFound)
 	}
 	// create a censusID for the queue and store into it
-	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
-	if err != nil {
-		return err
-	}
-	data, err := v.censusWarpcastChannel(censusID, channelID, userFID)
+	data, err := v.censusWarpcastChannel(channelID, userFID)
 	if err != nil {
 		log.Warnf("error creating census for the chanel: %s: %v", channelID, err)
 		return ctx.Send([]byte("error creating channel census"), http.StatusInternalServerError)
@@ -352,7 +348,7 @@ func (v *vocdoniHandler) censusChannel(msg *apirest.APIdata, ctx *httprouter.HTT
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) censusFollowers(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+func (v *vocdoniHandler) censusFollowersHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	req := struct {
 		Profile FarcasterProfile `json:"profile"`
 	}{}
@@ -365,57 +361,13 @@ func (v *vocdoniHandler) censusFollowers(msg *apirest.APIdata, ctx *httprouter.H
 	if strUserFid == "" {
 		return ctx.Send([]byte("userFid is required"), http.StatusBadRequest)
 	}
-	userFid, err := strconv.ParseUint(strUserFid, 10, 64)
+	userFID, err := strconv.ParseUint(strUserFid, 10, 64)
 	if err != nil {
 		return ctx.Send([]byte("invalid userFid"), http.StatusBadRequest)
 	}
-	// create a censusID for the queue and store into it
-	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
-	if err != nil {
-		return err
-	}
-	v.backgroundQueue.Store(censusID.String(), CensusInfo{})
-	// run a goroutine to create the census, update the queue with the progress,
-	// and update the queue result when it's ready
-	go func() {
-		internalCtx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		users, err := v.fcapi.UserFollowers(internalCtx, userFid)
-		if err != nil {
-			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})
-			return
-		}
-		// include poll author in the census
-		users = append(users, req.Profile.FID)
-		// create the participants from the database users using the fids
-		var participants []*FarcasterParticipant
-		v.trackStepProgress(censusID, 1, 2, func(progress chan int) {
-			participants = v.farcasterCensusFromFids(users, progress)
-		})
-		if len(participants) == 0 {
-			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: "no valid participants"})
-			return
-		}
-		// create the census from the participants
-		var censusInfo *CensusInfo
-		v.trackStepProgress(censusID, 2, 2, func(progress chan int) {
-			censusInfo, err = CreateCensus(v.cli, participants, FrameCensusTypeChannelGated, progress)
-		})
-		if err != nil {
-			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})
-			return
-		}
-		for _, p := range participants {
-			censusInfo.Usernames = append(censusInfo.Usernames, p.Username)
-		}
-		censusInfo.FromTotalAddresses = uint32(len(censusInfo.Usernames))
-		v.backgroundQueue.Store(censusID.String(), *censusInfo)
-		log.Infow("census created from user followers",
-			"fid", userFid,
-			"participants", len(censusInfo.Usernames))
-	}()
-	// return the censusID to the client
-	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
+	// create the census from the followers of the user and return the data as
+	// response
+	data, err := v.censusFollowers(userFID)
 	if err != nil {
 		return err
 	}
@@ -456,57 +408,65 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 	if !v.db.IsCommunityAdmin(userFID, req.CommunityID) {
 		return fmt.Errorf("user is not an admin of the community")
 	}
-
-	// create a censusID for the queue and store into it
-	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
-	if err != nil {
-		return err
-	}
-	// check the type to create it from the correct source (channel or airstak
-	// (nft/erc20)) and in the correct way (async or sync)
-	if community.Census.Type == mongo.TypeCommunityCensusChannel {
+	// check the type to create it from the correct source (channel, airstak
+	// (nft/erc20) or user followers) and in the correct way (async or sync)
+	switch community.Census.Type {
+	case mongo.TypeCommunityCensusFollowers:
+		// if the census type is followers, create the census from the users who
+		// follow the user, the process is async so return add the censusID to the
+		// queue and return it to the client
+		data, err := v.censusFollowers(userFID)
+		if err != nil {
+			log.Warnf("error creating census for the user: %d: %v", userFID, err)
+			return ctx.Send([]byte("error creating user followers census"), http.StatusInternalServerError)
+		}
+		return ctx.Send(data, http.StatusOK)
+	case mongo.TypeCommunityCensusChannel:
 		// if the census type is a channel, create the census from the users who
 		// follow the channel, the process is async so return add the censusID
 		// to the queue and return it to the client
-		data, err := v.censusWarpcastChannel(censusID, community.Census.Channel, userFID)
+		data, err := v.censusWarpcastChannel(community.Census.Channel, userFID)
 		if err != nil {
 			log.Warnf("error creating census for the chanel: %s: %v", community.Census.Channel, err)
 			return ctx.Send([]byte("error creating channel census"), http.StatusInternalServerError)
 		}
 		return ctx.Send(data, http.StatusOK)
-	}
-	// if the census type is not a channel, the type is NFT or ERC20, so create
-	// the census sync and from the token holders from airstack
-	censusAddresses := []*CensusToken{}
-	for _, addr := range community.Census.Addresses {
-		censusAddresses = append(censusAddresses, &CensusToken{
-			Address:    addr.Address,
-			Blockchain: addr.Blockchain,
-		})
-	}
-	// check valid token
-	if err := v.checkTokens(censusAddresses); err != nil {
-		return err
-	}
-	// convert the census type to the correct type for the CreateCensus function
-	var censusType int
-	switch community.Census.Type {
-	case mongo.TypeCommunityCensusNFT:
-		// set the census type to NFT
-		censusType = NFTtype
-	case mongo.TypeCommunityCensusERC20:
-		// set the census type to ERC20 and check the number of tokens is 1
-		censusType = ERC20type
-		if len(censusAddresses) != 1 {
-			return fmt.Errorf("erc20 census must have only one token address")
+	case mongo.TypeCommunityCensusNFT, mongo.TypeCommunityCensusERC20:
+		// if the census type is not a channel, the type is NFT or ERC20, so create
+		// the census sync and from the token holders from airstack
+		censusAddresses := []*CensusToken{}
+		for _, addr := range community.Census.Addresses {
+			censusAddresses = append(censusAddresses, &CensusToken{
+				Address:    addr.Address,
+				Blockchain: addr.Blockchain,
+			})
 		}
+		// check valid token
+		if err := v.checkTokens(censusAddresses); err != nil {
+			return err
+		}
+		// convert the census type to the correct type for the CreateCensus function
+		var censusType int
+		switch community.Census.Type {
+		case mongo.TypeCommunityCensusNFT:
+			// set the census type to NFT
+			censusType = NFTtype
+		case mongo.TypeCommunityCensusERC20:
+			// set the census type to ERC20 and check the number of tokens is 1
+			censusType = ERC20type
+			if len(censusAddresses) != 1 {
+				return fmt.Errorf("erc20 census must have only one token address")
+			}
+		}
+		// create the census from the token holders
+		data, err := v.censusTokenAirstack(censusAddresses, censusType, userFID)
+		if err != nil {
+			return fmt.Errorf("cannot create erc20/nft based census: %w", err)
+		}
+		return ctx.Send(data, http.StatusOK)
+	default:
+		return ctx.Send([]byte("invalid census type"), http.StatusBadRequest)
 	}
-	// create the census from the token holders
-	data, err := v.censusTokenAirstack(censusAddresses, censusType, userFID)
-	if err != nil {
-		return fmt.Errorf("cannot create erc20/nft based census: %w", err)
-	}
-	return ctx.Send(data, http.StatusOK)
 }
 
 // censusQueueInfo returns the status of the census creation process.
@@ -750,7 +710,12 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType in
 // censusWarpcastChannel helper method creates a new census from a Warpcast
 // Channel. The process is async and returns the json encoded censusID. It
 // updates the progress in the queue and the result when it's ready.
-func (v *vocdoniHandler) censusWarpcastChannel(censusID types.HexBytes, channelID string, authorFID uint64) ([]byte, error) {
+func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint64) ([]byte, error) {
+	// create a censusID for the queue and store into it
+	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
+	if err != nil {
+		return nil, err
+	}
 	v.backgroundQueue.Store(censusID.String(), CensusInfo{})
 	if err := v.db.AddCensus(censusID, authorFID); err != nil {
 		return nil, fmt.Errorf("cannot add census to database: %w", err)
@@ -819,6 +784,86 @@ func (v *vocdoniHandler) censusWarpcastChannel(censusID types.HexBytes, channelI
 		}
 		log.Infow("census created from channel",
 			"channelID", channelID,
+			"participants", len(censusInfo.Usernames))
+	}()
+	// return the censusID to the client
+	return json.Marshal(map[string]string{"censusId": censusID.String()})
+}
+
+// censusFollowers helper creates a new census from the followers of a user.
+// The process is async and returns the json encoded censusID. It updates the
+// progress in the queue and the result when it's ready. If something fails
+// during the process, it returns an error or the error is stored in the queue
+// if it's async.
+func (v *vocdoniHandler) censusFollowers(userFID uint64) ([]byte, error) {
+	// create a censusID for the queue and store into it
+	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
+	if err != nil {
+		return nil, err
+	}
+	// store the censusID in the database and the queue
+	if err := v.db.AddCensus(censusID, userFID); err != nil {
+		return nil, fmt.Errorf("cannot add census to database: %w", err)
+	}
+	v.backgroundQueue.Store(censusID.String(), CensusInfo{})
+	// run a goroutine to create the census, update the queue with the progress,
+	// and update the queue result when it's ready
+	go func() {
+		internalCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		users, err := v.fcapi.UserFollowers(internalCtx, userFID)
+		if err != nil {
+			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+		// include poll author in the census
+		users = append(users, userFID)
+		// create the participants from the database users using the fids
+		var participants []*FarcasterParticipant
+		v.trackStepProgress(censusID, 1, 2, func(progress chan int) {
+			participants = v.farcasterCensusFromFids(users, progress)
+		})
+		if len(participants) == 0 {
+			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: "no valid participants"})
+			return
+		}
+		// create the census from the participants
+		var censusInfo *CensusInfo
+		v.trackStepProgress(censusID, 2, 2, func(progress chan int) {
+			censusInfo, err = CreateCensus(v.cli, participants, FrameCensusTypeFollowers, progress)
+		})
+		if err != nil {
+			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+		for _, p := range participants {
+			censusInfo.Usernames = append(censusInfo.Usernames, p.Username)
+		}
+		censusInfo.FromTotalAddresses = uint32(len(censusInfo.Usernames))
+		uniqueParticipantsMap := make(map[string]*big.Int)
+		totalWeight := new(big.Int).SetUint64(0)
+		for _, p := range participants {
+			if _, ok := uniqueParticipantsMap[p.Username]; ok {
+				// if the username is already in the map, continue
+				continue
+			}
+			uniqueParticipantsMap[p.Username] = p.Weight
+			totalWeight.Add(totalWeight, p.Weight)
+		}
+		// store the census info in the database
+		if err := v.db.AddParticipantsToCensus(
+			censusID,
+			uniqueParticipantsMap,
+			censusInfo.FromTotalAddresses,
+			totalWeight,
+			censusInfo.Url,
+		); err != nil {
+			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
+		}
+
+		v.backgroundQueue.Store(censusID.String(), *censusInfo)
+		log.Infow("census created from user followers",
+			"fid", userFID,
 			"participants", len(censusInfo.Usernames))
 	}()
 	// return the censusID to the client

@@ -131,7 +131,7 @@ func (ms *MongoStorage) DelCommunity(communityID uint64) error {
 // database.
 func (ms *MongoStorage) addCommunity(community *Community) error {
 	switch community.Census.Type {
-	case TypeCommunityCensusChannel, TypeCommunityCensusERC20, TypeCommunityCensusNFT:
+	case TypeCommunityCensusChannel, TypeCommunityCensusERC20, TypeCommunityCensusNFT, TypeCommunityCensusFollowers:
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_, err := ms.communities.InsertOne(ctx, community)

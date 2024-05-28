@@ -114,7 +114,7 @@ type Channel struct {
 type User struct {
 	FID         uint64 `json:"fid"`
 	Username    string `json:"username"`
-	DisplayName string `json:"displayname"`
+	DisplayName string `json:"displayName"`
 	Avatar      string `json:"pfpUrl"`
 }
 
@@ -143,6 +143,7 @@ type Community struct {
 	CensusType      string           `json:"censusType,omitempty"`
 	CensusAddresses []*CensusAddress `json:"censusAddresses,omitempty"`
 	CensusChannel   *Channel         `json:"censusChannel,omitempty"`
+	UserRef         *User            `json:"userRef,omitempty"`
 	Channels        []string         `json:"channels,omitempty"`
 	Disabled        bool             `json:"disabled"`
 }

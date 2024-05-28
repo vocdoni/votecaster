@@ -153,6 +153,7 @@ declare global {
     channels: string[]
     groupChat: string
     disabled: boolean
+    userRef: Profile
   }
 
   type HTTPErrorResponse = {
