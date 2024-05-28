@@ -7,7 +7,7 @@ import { CommunityMetaFormValues } from './Meta'
 
 type DoneProps = {
   tx: string
-  id: string
+  id: string | null
 }
 
 const CommunityDone = ({ tx, id }: DoneProps) => {
