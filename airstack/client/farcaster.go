@@ -110,3 +110,63 @@ func (c *Client) FarcasterUsersByChannel(channelId string) ([]*FarcasterUser, er
 	}
 	return fuser, nil
 }
+
+// FarcasterUserFollowerCount gets the number of followers of a given Farcaster user.
+func (c *Client) FarcasterUserFollowerCount(farcasterUserId string) (int, error) {
+	followersCount, err := c.farcasterUserFollowersCount(farcasterUserId)
+	if err != nil {
+		return 0, fmt.Errorf("cannot get followers count from Airstack: %w", err)
+	}
+	return followersCount, nil
+}
+
+// farcasterUserFollowersCount is a wrapper around the GQL generated function GetFarcasterUserFollowers
+func (c *Client) farcasterUserFollowersCount(userId string) (int, error) {
+	cctx, cancel := context.WithTimeout(c.ctx, apiTimeout)
+	defer cancel()
+	r := 0
+	var err error
+	var resp *gql.GetFarcasterUserFollowersResponse
+	for r < maxAPIRetries {
+		resp, err = gql.GetFarcasterUserFollowers(cctx, c.Client, userId)
+		if err != nil {
+			r += 1
+			time.Sleep(time.Second * 3)
+			continue
+		}
+		return resp.Socials.Social[0].FollowerCount, nil
+	}
+	return 0, fmt.Errorf("max GraphQL retries reached, error: %w", err)
+}
+
+// FarcasterCheckIfUserIsFollowing checks if a user is following another user.
+func (c *Client) FarcasterCheckIfUserIsFollowing(followerUserId, followedUserId string) (bool, error) {
+	isFollowing, err := c.farcasterUserIsFollowing(followerUserId, followedUserId)
+	if err != nil {
+		return false, fmt.Errorf("cannot check if user is following another user: %w", err)
+	}
+	return isFollowing, nil
+}
+
+// farcasterUserIsFollowing is a wrapper around the GQL generated function CheckFarcasterFollowing
+func (c *Client) farcasterUserIsFollowing(followerUserId, followedUserId string) (bool, error) {
+	cctx, cancel := context.WithTimeout(c.ctx, apiTimeout)
+	defer cancel()
+	r := 0
+	var err error
+	var resp *gql.CheckFarcasterFollowingResponse
+	// convert followerUserId and followedUserId to expected internal string format
+	// "fc_fid:followerUserId" and "fc_fid:followedUserId"
+	followerUserId = fmt.Sprintf("fc_fid:%s", followerUserId)
+	followedUserId = fmt.Sprintf("fc_fid:%s", followedUserId)
+	for r < maxAPIRetries {
+		resp, err = gql.CheckFarcasterFollowing(cctx, c.Client, followerUserId, followedUserId)
+		if err != nil {
+			r += 1
+			time.Sleep(time.Second * 3)
+			continue
+		}
+		return resp.SocialFollowings.Following[0].FollowingAddress.Socials[0].ProfileName == followedUserId, nil
+	}
+	return false, fmt.Errorf("max GraphQL retries reached, error: %w", err)
+}

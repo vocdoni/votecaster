@@ -1,6 +1,6 @@
 directive @binding(constraint: String!, errorCode: String!) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION
 
-directive @db(collectionFieldName: String, collectionFieldName2: String, startPrefix: String, endPrefix: String, isStartExclusive: String, isEndExclusive: String, isHexField: String) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+directive @db(collectionFieldName: String, sqlTableName: String, startPrefix: String, endPrefix: String, isStartExclusive: String, isEndExclusive: String, isHexField: String) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
 """
 The @specifiedBy built-in directive is used within the type system definition
@@ -384,33 +384,33 @@ type FarcasterCast {
   rawText: String
   parentFid: String
   hash: String
-  rootParentHash: String
   rootParentUrl: String
   parentHash: String
-  parentUrl: String
   url: String
   embeds: [Map]
   mentions: [Mentions!]
   castedAtTimestamp: Time
   frame: FarcasterFrame
   parentCast: FarcasterCast
+  quotedCast: [FarcasterCast]
   channel: FarcasterChannel
   castedBy: Social
   numberOfLikes: Int
   numberOfRecasts: Int
   numberOfReplies: Int
+  socialCapitalValue: SocialCapitalValue
 }
 
 input FarcasterCastFilter {
-  frameUrl: Simple_String_Comparator_Exp
+  frameUrl: String_Eq_In_Comparator_Exp
   castedBy: Identity_Comparator_Exp
-  hash: Simple_String_Comparator_Exp
-  parentHash: Simple_String_Comparator_Exp
-  url: Simple_String_Comparator_Exp
+  hash: String_Eq_In_Comparator_Exp
+  url: String_Eq_In_Comparator_Exp
   hasFrames: Boolean_Comparator_Exp
   hasEmbeds: Boolean_Comparator_Exp
   hasMentions: Boolean_Comparator_Exp
   castedAtTimestamp: Time_Comparator_Exp
+  rootParentUrl: String_Eq_In_Comparator_Exp
 }
 
 input FarcasterCastInput {
@@ -437,13 +437,18 @@ type FarcasterChannel {
   imageUrl: String!
   leadIds: [String!]
   leadProfiles(input: SocialsNestedInput): [Social!]
+  moderatorIds: [String!]
+  moderatorProfiles(input: SocialsNestedInput): [Social!]
+  isModerationEnabled: Boolean
   createdAtTimestamp: Time!
+  followerCount: Int
   participants(input: FarcasterChannelParticipantNestedInput): [FarcasterChannelParticipant!]
 }
 
 enum FarcasterChannelActionType {
   cast
   reply
+  follow
 }
 
 input FarcasterChannelActionType_Comparator_Exp {
@@ -456,6 +461,8 @@ input FarcasterChannelFilter {
   name: Regex_String_Comparator_Exp
   leadId: String_Comparator_Exp
   leadIdentity: Identity_Comparator_Exp
+  moderatorId: String_Comparator_Exp
+  moderatorIdentity: Identity_Comparator_Exp
   createdAtTimestamp: Time_Comparator_Exp
 }
 
@@ -468,6 +475,7 @@ input FarcasterChannelNestedInput {
 
 input FarcasterChannelOrderBy {
   createdAtTimestamp: OrderBy
+  followerCount: OrderBy
 }
 
 type FarcasterChannelParticipant {
@@ -479,10 +487,11 @@ type FarcasterChannelParticipant {
   channelName: String!
   participantId: String!
   participant(input: SocialsNestedInput): Social
-  channel(input: FarcasterChannelNestedInput): FarcasterChannel!
+  channel(input: FarcasterChannelNestedInput): FarcasterChannel
   lastActionTimestamp: Time!
   lastRepliedTimestamp: Time
   lastCastedTimestamp: Time
+  lastFollowedTimestamp: Time
   channelActions: [FarcasterChannelActionType!]
 }
 
@@ -532,7 +541,6 @@ type FarcasterChannelsOutput {
 }
 
 type FarcasterFrame {
-  id: String
   frameHash: String
   frameUrl: String
   postUrl: String
@@ -561,6 +569,79 @@ type FarcasterFrameMessageOutput {
   castedBy: Social
   interactedByFid: Int
   interactedBy: Social
+}
+
+input FarcasterQuotedRecastsFilter {
+  recastedBy: Identity_Comparator_Exp
+  parentCastedBy: Identity_Comparator_Exp
+  parentHash: String_Eq_In_Comparator_Exp
+  parentUrl: String_Eq_In_Comparator_Exp
+}
+
+input FarcasterQuotedRecastsInput {
+  filter: FarcasterQuotedRecastsFilter!
+  blockchain: EveryBlockchain!
+  limit: Int
+  cursor: String
+}
+
+type FarcasterQuotedRecastsOutput {
+  QuotedRecast: [FarcasterCast!]
+  pageInfo: PageInfo
+}
+
+type FarcasterReaction {
+  cast: FarcasterCast
+  castHash: String
+  reactedBy: Social
+}
+
+enum FarcasterReactionCriteria {
+  liked
+  replied
+  recasted
+}
+
+input FarcasterReactionsFilter {
+  criteria: FarcasterReactionCriteria!
+  castHash: String_Eq_In_Comparator_Exp
+  castUrl: String_Eq_In_Comparator_Exp
+  frameUrl: String_Eq_In_Comparator_Exp
+  reactedBy: Identity_Comparator_Exp
+  channelId: String_Comparator_Exp
+}
+
+input FarcasterReactionsInput {
+  filter: FarcasterReactionsFilter!
+  blockchain: EveryBlockchain!
+  limit: Int
+  cursor: String
+}
+
+type FarcasterReactionsOutput {
+  Criteria: FarcasterReactionCriteria
+  Reaction: [FarcasterReaction!]
+  pageInfo: PageInfo
+}
+
+input FarcasterRepliesFilter {
+  repliedBy: Identity_Comparator_Exp
+  parentCastedBy: Identity_Comparator_Exp
+  parentHash: String_Eq_In_Comparator_Exp
+  parentUrl: String_Eq_In_Comparator_Exp
+  hash: String_Eq_In_Comparator_Exp
+}
+
+input FarcasterRepliesInput {
+  filter: FarcasterRepliesFilter!
+  blockchain: EveryBlockchain!
+  limit: Int
+  cursor: String
+}
+
+type FarcasterRepliesOutput {
+  Reply: [FarcasterCast!]
+  pageInfo: PageInfo
 }
 
 input Float_Comparator_Exp {
@@ -679,6 +760,61 @@ type Mentions {
   fid: String
   position: Int
   profile: Social
+}
+
+type NativeBalance {
+  """Airstack unique identifier for the data point"""
+  id: ID!
+
+  """Unique identifier for the blockchain"""
+  chainId: String!
+
+  """Blockchain where the token smart contract is deployed"""
+  blockchain: NativeBalanceBlockchain
+
+  """
+  Nested Query allowing to retrieve address, domain names, social profiles of the owner
+  """
+  owner: Wallet!
+
+  """Token amount the address currently holds"""
+  amount: String!
+
+  """Formatted token balance in decimals"""
+  formattedAmount: Float
+
+  """Block number of the latest token balance change happened"""
+  lastUpdatedBlock: Int!
+
+  """Timestamp of the latest token balance change happened"""
+  lastUpdatedTimestamp: Time
+}
+
+enum NativeBalanceBlockchain {
+  degen
+}
+
+input NativeBalanceFilter {
+  owner: Identity_Comparator_Exp
+  formattedAmount: Float_Comparator_Exp
+  lastUpdatedTimestamp: Time_Comparator_Exp
+}
+
+input NativeBalanceOrderBy {
+  lastUpdatedTimestamp: OrderBy
+}
+
+input NativeBalancesInput {
+  order: [NativeBalanceOrderBy!]
+  filter: NativeBalanceFilter!
+  blockchain: NativeBalanceBlockchain!
+  limit: Int
+  cursor: String
+}
+
+type NativeBalancesOutput {
+  NativeBalance: [NativeBalance!]
+  pageInfo: PageInfo
 }
 
 type NftAttribute {
@@ -997,6 +1133,10 @@ type Query {
   FarcasterValidateFrameMessage(input: FarcasterFrameMessageInput!): FarcasterFrameMessageOutput
   TrendingSwaps(input: TrendingSwapsInput!): TrendingSwapsOutput
   FarcasterCasts(input: FarcasterCastInput!): FarcasterCastOutput
+  TrendingCasts(input: TrendingCastsInput!): TrendingCastsOutput
+  FarcasterReplies(input: FarcasterRepliesInput!): FarcasterRepliesOutput
+  FarcasterQuotedRecasts(input: FarcasterQuotedRecastsInput!): FarcasterQuotedRecastsOutput
+  FarcasterReactions(input: FarcasterReactionsInput!): FarcasterReactionsOutput
 }
 
 scalar Range
@@ -1146,6 +1286,19 @@ type Social {
   coverImageContentValue: Media
   profileHandle: String
   updatedAt: Time
+  socialCapital: SocialCapital
+}
+
+type SocialCapital {
+  socialCapitalScoreRaw: String
+  socialCapitalScore: Float
+  socialCapitalRank: Int
+}
+
+type SocialCapitalValue {
+  hash: String
+  rawValue: String
+  formattedValue: Float
 }
 
 enum SocialDappName {
@@ -1163,6 +1316,7 @@ enum SocialDappSlug {
   farcaster_goerli
   lens_polygon
   farcaster_v2_optimism
+  farcaster_v3_optimism
   lens_v2_polygon
 }
 
@@ -1183,6 +1337,8 @@ input SocialFilter {
   followerCount: Int_Comparator_Exp
   followingCount: Int_Comparator_Exp
   updatedAt: Time_Comparator_Exp
+  socialCapitalScore: Float_Comparator_Exp
+  socialCapitalRank: Int_Comparator_Exp
 }
 
 type SocialFollower {
@@ -1288,6 +1444,8 @@ input SocialOrderBy {
   followerCount: OrderBy
   followingCount: OrderBy
   updatedAt: OrderBy
+  socialCapitalScore: OrderBy
+  socialCapitalRank: OrderBy
 }
 
 input SocialsInput {
@@ -1322,6 +1480,11 @@ input String_Comparator_Exp {
 
 input String_Eq_Comparator_Exp {
   _eq: String
+}
+
+input String_Eq_In_Comparator_Exp {
+  _eq: String
+  _in: [String!]
 }
 
 scalar Time
@@ -1601,7 +1764,7 @@ input TokenNftsInput {
 }
 
 input TokenNftsNestedInput {
-  order: [TokenNftOrderBy!]
+  order: [TokenNftOrderBy]
   filter: TokenNftFilter
   blockchain: TokenBlockchain
   limit: Int
@@ -1764,6 +1927,64 @@ input Trending_Comparator_Exp {
 
 enum TrendingBlockchain {
   base
+  degen
+}
+
+type TrendingCast {
+  id: String
+  hash: String
+  fid: Int
+  rootParentUrl: String
+  criteriaCount: Float
+  socialCapitalValueFormatted: Float
+  socialCapitalValueRaw: String
+  cast: FarcasterCast
+  criteria: String
+  timeFrom: Time
+  timeTo: Time
+  channel: FarcasterChannel
+}
+
+input TrendingCast_Int_Comparator_Exp {
+  _eq: Int
+}
+
+input TrendingCastFilter {
+  fid: TrendingCast_Int_Comparator_Exp
+  rootParentUrl: String_Eq_Comparator_Exp
+}
+
+enum TrendingCastsCriteria {
+  social_capital_value
+  likes
+  recasts
+  replies
+  likes_recasts_replies
+}
+
+input TrendingCastsInput {
+  filter: TrendingCastFilter
+  timeFrame: TrendingCastTimeFrame!
+  blockchain: EveryBlockchain!
+  criteria: TrendingCastsCriteria!
+  limit: Int
+  cursor: String
+}
+
+type TrendingCastsOutput {
+  TrendingCast: [TrendingCast!]
+  pageInfo: PageInfo
+}
+
+enum TrendingCastTimeFrame {
+  one_hour
+  two_hours
+  four_hours
+  eight_hours
+  twelve_hours
+  one_day
+  two_days
+  seven_days
 }
 
 input TrendingFilter {

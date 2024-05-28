@@ -9,6 +9,118 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// CheckFarcasterFollowingResponse is returned by CheckFarcasterFollowing on success.
+type CheckFarcasterFollowingResponse struct {
+	SocialFollowings CheckFarcasterFollowingSocialFollowingsSocialFollowingOutput `json:"SocialFollowings"`
+}
+
+// GetSocialFollowings returns CheckFarcasterFollowingResponse.SocialFollowings, and is useful for accessing the field via an interface.
+func (v *CheckFarcasterFollowingResponse) GetSocialFollowings() CheckFarcasterFollowingSocialFollowingsSocialFollowingOutput {
+	return v.SocialFollowings
+}
+
+// CheckFarcasterFollowingSocialFollowingsSocialFollowingOutput includes the requested fields of the GraphQL type SocialFollowingOutput.
+type CheckFarcasterFollowingSocialFollowingsSocialFollowingOutput struct {
+	Following []CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowing `json:"Following"`
+}
+
+// GetFollowing returns CheckFarcasterFollowingSocialFollowingsSocialFollowingOutput.Following, and is useful for accessing the field via an interface.
+func (v *CheckFarcasterFollowingSocialFollowingsSocialFollowingOutput) GetFollowing() []CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowing {
+	return v.Following
+}
+
+// CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowing includes the requested fields of the GraphQL type SocialFollowing.
+type CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowing struct {
+	FollowingAddress CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWallet `json:"followingAddress"`
+}
+
+// GetFollowingAddress returns CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowing.FollowingAddress, and is useful for accessing the field via an interface.
+func (v *CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowing) GetFollowingAddress() CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWallet {
+	return v.FollowingAddress
+}
+
+// CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWallet includes the requested fields of the GraphQL type Wallet.
+type CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWallet struct {
+	// Returns social profile information related to the address
+	Socials []CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWalletSocialsSocial `json:"socials"`
+}
+
+// GetSocials returns CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWallet.Socials, and is useful for accessing the field via an interface.
+func (v *CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWallet) GetSocials() []CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWalletSocialsSocial {
+	return v.Socials
+}
+
+// CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWalletSocialsSocial includes the requested fields of the GraphQL type Social.
+type CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWalletSocialsSocial struct {
+	ProfileName string `json:"profileName"`
+}
+
+// GetProfileName returns CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWalletSocialsSocial.ProfileName, and is useful for accessing the field via an interface.
+func (v *CheckFarcasterFollowingSocialFollowingsSocialFollowingOutputFollowingSocialFollowingFollowingAddressWalletSocialsSocial) GetProfileName() string {
+	return v.ProfileName
+}
+
+// CheckTokenOwnershipResponse is returned by CheckTokenOwnership on success.
+type CheckTokenOwnershipResponse struct {
+	TokenBalances CheckTokenOwnershipTokenBalancesTokenBalancesOutput `json:"TokenBalances"`
+}
+
+// GetTokenBalances returns CheckTokenOwnershipResponse.TokenBalances, and is useful for accessing the field via an interface.
+func (v *CheckTokenOwnershipResponse) GetTokenBalances() CheckTokenOwnershipTokenBalancesTokenBalancesOutput {
+	return v.TokenBalances
+}
+
+// CheckTokenOwnershipTokenBalancesTokenBalancesOutput includes the requested fields of the GraphQL type TokenBalancesOutput.
+type CheckTokenOwnershipTokenBalancesTokenBalancesOutput struct {
+	TokenBalance []CheckTokenOwnershipTokenBalancesTokenBalancesOutputTokenBalance `json:"TokenBalance"`
+}
+
+// GetTokenBalance returns CheckTokenOwnershipTokenBalancesTokenBalancesOutput.TokenBalance, and is useful for accessing the field via an interface.
+func (v *CheckTokenOwnershipTokenBalancesTokenBalancesOutput) GetTokenBalance() []CheckTokenOwnershipTokenBalancesTokenBalancesOutputTokenBalance {
+	return v.TokenBalance
+}
+
+// CheckTokenOwnershipTokenBalancesTokenBalancesOutputTokenBalance includes the requested fields of the GraphQL type TokenBalance.
+type CheckTokenOwnershipTokenBalancesTokenBalancesOutputTokenBalance struct {
+	// Formatted token balance in decimals
+	FormattedAmount float64 `json:"formattedAmount"`
+}
+
+// GetFormattedAmount returns CheckTokenOwnershipTokenBalancesTokenBalancesOutputTokenBalance.FormattedAmount, and is useful for accessing the field via an interface.
+func (v *CheckTokenOwnershipTokenBalancesTokenBalancesOutputTokenBalance) GetFormattedAmount() float64 {
+	return v.FormattedAmount
+}
+
+// GetFarcasterUserFollowersResponse is returned by GetFarcasterUserFollowers on success.
+type GetFarcasterUserFollowersResponse struct {
+	Socials GetFarcasterUserFollowersSocialsSocialsOutput `json:"Socials"`
+}
+
+// GetSocials returns GetFarcasterUserFollowersResponse.Socials, and is useful for accessing the field via an interface.
+func (v *GetFarcasterUserFollowersResponse) GetSocials() GetFarcasterUserFollowersSocialsSocialsOutput {
+	return v.Socials
+}
+
+// GetFarcasterUserFollowersSocialsSocialsOutput includes the requested fields of the GraphQL type SocialsOutput.
+type GetFarcasterUserFollowersSocialsSocialsOutput struct {
+	Social []GetFarcasterUserFollowersSocialsSocialsOutputSocial `json:"Social"`
+}
+
+// GetSocial returns GetFarcasterUserFollowersSocialsSocialsOutput.Social, and is useful for accessing the field via an interface.
+func (v *GetFarcasterUserFollowersSocialsSocialsOutput) GetSocial() []GetFarcasterUserFollowersSocialsSocialsOutputSocial {
+	return v.Social
+}
+
+// GetFarcasterUserFollowersSocialsSocialsOutputSocial includes the requested fields of the GraphQL type Social.
+type GetFarcasterUserFollowersSocialsSocialsOutputSocial struct {
+	FollowerCount int `json:"followerCount"`
+}
+
+// GetFollowerCount returns GetFarcasterUserFollowersSocialsSocialsOutputSocial.FollowerCount, and is useful for accessing the field via an interface.
+func (v *GetFarcasterUserFollowersSocialsSocialsOutputSocial) GetFollowerCount() int {
+	return v.FollowerCount
+}
+
 // GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutput includes the requested fields of the GraphQL type FarcasterChannelsOutput.
 type GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutput struct {
 	FarcasterChannel []GetFarcasterUsersByChannelFarcasterChannelsFarcasterChannelsOutputFarcasterChannel `json:"FarcasterChannel"`
@@ -330,6 +442,42 @@ const (
 	TokenBlockchainDegen    TokenBlockchain = "degen"
 )
 
+// __CheckFarcasterFollowingInput is used internally by genqlient
+type __CheckFarcasterFollowingInput struct {
+	UserId      string `json:"userId"`
+	FollowingId string `json:"followingId"`
+}
+
+// GetUserId returns __CheckFarcasterFollowingInput.UserId, and is useful for accessing the field via an interface.
+func (v *__CheckFarcasterFollowingInput) GetUserId() string { return v.UserId }
+
+// GetFollowingId returns __CheckFarcasterFollowingInput.FollowingId, and is useful for accessing the field via an interface.
+func (v *__CheckFarcasterFollowingInput) GetFollowingId() string { return v.FollowingId }
+
+// __CheckTokenOwnershipInput is used internally by genqlient
+type __CheckTokenOwnershipInput struct {
+	OwnerAddress string          `json:"ownerAddress"`
+	TokenAddress common.Address  `json:"tokenAddress"`
+	Blockchain   TokenBlockchain `json:"blockchain"`
+}
+
+// GetOwnerAddress returns __CheckTokenOwnershipInput.OwnerAddress, and is useful for accessing the field via an interface.
+func (v *__CheckTokenOwnershipInput) GetOwnerAddress() string { return v.OwnerAddress }
+
+// GetTokenAddress returns __CheckTokenOwnershipInput.TokenAddress, and is useful for accessing the field via an interface.
+func (v *__CheckTokenOwnershipInput) GetTokenAddress() common.Address { return v.TokenAddress }
+
+// GetBlockchain returns __CheckTokenOwnershipInput.Blockchain, and is useful for accessing the field via an interface.
+func (v *__CheckTokenOwnershipInput) GetBlockchain() TokenBlockchain { return v.Blockchain }
+
+// __GetFarcasterUserFollowersInput is used internally by genqlient
+type __GetFarcasterUserFollowersInput struct {
+	UserId string `json:"userId"`
+}
+
+// GetUserId returns __GetFarcasterUserFollowersInput.UserId, and is useful for accessing the field via an interface.
+func (v *__GetFarcasterUserFollowersInput) GetUserId() string { return v.UserId }
+
 // __GetFarcasterUsersByChannelInput is used internally by genqlient
 type __GetFarcasterUsersByChannelInput struct {
 	ChannelId string `json:"channelId"`
@@ -389,6 +537,128 @@ func (v *__GetTokenDetailsInput) GetTokenAddress() common.Address { return v.Tok
 
 // GetBlockchain returns __GetTokenDetailsInput.Blockchain, and is useful for accessing the field via an interface.
 func (v *__GetTokenDetailsInput) GetBlockchain() TokenBlockchain { return v.Blockchain }
+
+// The query or mutation executed by CheckFarcasterFollowing.
+const CheckFarcasterFollowing_Operation = `
+query CheckFarcasterFollowing ($userId: Identity, $followingId: Identity) {
+	SocialFollowings(input: {filter:{identity:{_eq:$userId},dappName:{_eq:farcaster}},blockchain:ALL,limit:1}) {
+		Following {
+			followingAddress {
+				socials(input: {filter:{identity:{_eq:$followingId},dappName:{_eq:farcaster}}}) {
+					profileName
+				}
+			}
+		}
+	}
+}
+`
+
+// always prefix userId and followingId with "fc_fid:<userId || followingId>"
+func CheckFarcasterFollowing(
+	ctx context.Context,
+	client graphql.Client,
+	userId string,
+	followingId string,
+) (*CheckFarcasterFollowingResponse, error) {
+	req := &graphql.Request{
+		OpName: "CheckFarcasterFollowing",
+		Query:  CheckFarcasterFollowing_Operation,
+		Variables: &__CheckFarcasterFollowingInput{
+			UserId:      userId,
+			FollowingId: followingId,
+		},
+	}
+	var err error
+
+	var data CheckFarcasterFollowingResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+// The query or mutation executed by CheckTokenOwnership.
+const CheckTokenOwnership_Operation = `
+query CheckTokenOwnership ($ownerAddress: Identity!, $tokenAddress: Address!, $blockchain: TokenBlockchain!) {
+	TokenBalances(input: {filter:{owner:{_eq:$ownerAddress},tokenAddress:{_eq:$tokenAddress}},blockchain:$blockchain}) {
+		TokenBalance {
+			formattedAmount
+		}
+	}
+}
+`
+
+func CheckTokenOwnership(
+	ctx context.Context,
+	client graphql.Client,
+	ownerAddress string,
+	tokenAddress common.Address,
+	blockchain TokenBlockchain,
+) (*CheckTokenOwnershipResponse, error) {
+	req := &graphql.Request{
+		OpName: "CheckTokenOwnership",
+		Query:  CheckTokenOwnership_Operation,
+		Variables: &__CheckTokenOwnershipInput{
+			OwnerAddress: ownerAddress,
+			TokenAddress: tokenAddress,
+			Blockchain:   blockchain,
+		},
+	}
+	var err error
+
+	var data CheckTokenOwnershipResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+// The query or mutation executed by GetFarcasterUserFollowers.
+const GetFarcasterUserFollowers_Operation = `
+query GetFarcasterUserFollowers ($userId: String) {
+	Socials(input: {filter:{dappName:{_eq:farcaster},userId:{_eq:$userId}},blockchain:ethereum}) {
+		Social {
+			followerCount
+		}
+	}
+}
+`
+
+func GetFarcasterUserFollowers(
+	ctx context.Context,
+	client graphql.Client,
+	userId string,
+) (*GetFarcasterUserFollowersResponse, error) {
+	req := &graphql.Request{
+		OpName: "GetFarcasterUserFollowers",
+		Query:  GetFarcasterUserFollowers_Operation,
+		Variables: &__GetFarcasterUserFollowersInput{
+			UserId: userId,
+		},
+	}
+	var err error
+
+	var data GetFarcasterUserFollowersResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
 
 // The query or mutation executed by GetFarcasterUsersByChannel.
 const GetFarcasterUsersByChannel_Operation = `
