@@ -161,7 +161,7 @@ export const CommunitiesCreateForm = () => {
   return (
     <Box display='flex' flexDir='column' gap={1}>
       <FormProvider {...methods}>
-        {tx && cid ? (
+        {tx ? (
           <CommunityDone id={cid} tx={tx} />
         ) : (
           <>
