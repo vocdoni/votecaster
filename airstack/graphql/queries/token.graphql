@@ -29,3 +29,13 @@ query GetTokenBalances($tokenAddress: Address!, $blockchain: TokenBlockchain!, $
     }
   }
 }
+
+query CheckTokenOwnership($ownerAddress: Identity!, $tokenAddress: Address!, $blockchain: TokenBlockchain!) {
+  TokenBalances(
+    input: {filter: {owner: {_eq: $ownerAddress}, tokenAddress: {_eq: $tokenAddress}}, blockchain: $blockchain}
+  ) {
+    TokenBalance {
+      formattedAmount
+    }
+  }
+}

@@ -39,3 +39,29 @@ query GetFarcasterUsersByChannel($channelId: String, $limit: Int, $cursor: Strin
         }
     }
 }
+
+query GetFarcasterUserFollowers($userId: String) {
+    Socials(
+        input: {filter: {dappName: {_eq: farcaster}, userId: {_eq: $userId}}, blockchain: ethereum}
+    ) {
+        Social {
+            followerCount
+        }
+    }
+}
+
+
+# always prefix userId and followingId with "fc_fid:<userId || followingId>"
+query CheckFarcasterFollowing($userId: Identity, $followingId: Identity) {
+    SocialFollowings(
+        input: {filter: {identity: {_eq: $userId}, dappName: {_eq: farcaster}}, blockchain: ALL, limit:1}
+    ) {
+        Following {
+            followingAddress {
+                socials(input: {filter: {identity: {_eq: $followingId}, dappName: {_eq: farcaster}}}) {
+                    profileName
+                }
+            }
+        }
+    }
+}

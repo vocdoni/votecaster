@@ -13,3 +13,5 @@ bindings:
     type: time.Time
   Address:
     type: github.com/ethereum/go-ethereum/common.Address
+  Identity:
+    type: string
