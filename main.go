@@ -542,6 +542,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/census/alfafrens", http.MethodPost, "private", handler.censusAlfafrensChannelHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/census/channel-gated/{channelID}", http.MethodPost, "private", handler.censusChannel); err != nil {
 		log.Fatal(err)
 	}

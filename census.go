@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/vocdoni/vote-frame/alfafrens"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
 	"github.com/vocdoni/vote-frame/helpers"
@@ -74,6 +75,8 @@ const (
 	FrameCensusTypeNFT
 	// FrameCensusTypeERC20 is a census created from the token holders of an ERC20
 	FrameCensusTypeERC20
+	// FrameCensusTypeAlfaFrensChannel is a census created from the users who follow a specific AlfaFrens Channel
+	FrameCensusTypeAlfaFrensChannel
 )
 
 // CensusInfo contains the information of a census.
@@ -370,6 +373,28 @@ func (v *vocdoniHandler) censusFollowersHandler(msg *apirest.APIdata, ctx *httpr
 	data, err := v.censusFollowers(userFID)
 	if err != nil {
 		return err
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
+// censusAlfafrensChannelHandler creates a new census from the users who follow the AlfaFrens channel of the user
+// making the request.
+func (v *vocdoniHandler) censusAlfafrensChannelHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// extract userFID from auth token
+	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
+	if err != nil {
+		return fmt.Errorf("cannot get user from auth token: %w", err)
+	}
+
+	// create a censusID for the queue and store into it
+	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
+	if err != nil {
+		return err
+	}
+	data, err := v.censusAlfafrensChannel(censusID, userFID)
+	if err != nil {
+		log.Warnf("error creating census for alfafrens channel of user: %d: %v", userFID, err)
+		return ctx.Send([]byte("error creating channel census"), http.StatusInternalServerError)
 	}
 	return ctx.Send(data, http.StatusOK)
 }
@@ -864,6 +889,87 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64) ([]byte, error) {
 		v.backgroundQueue.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from user followers",
 			"fid", userFID,
+			"participants", len(censusInfo.Usernames))
+	}()
+	// return the censusID to the client
+	return json.Marshal(map[string]string{"censusId": censusID.String()})
+}
+
+// censusAlfafrensChannel creates a new census from an AlfaFrens Channel.
+func (v *vocdoniHandler) censusAlfafrensChannel(censusID types.HexBytes, ownerFID uint64) ([]byte, error) {
+	v.backgroundQueue.Store(censusID.String(), CensusInfo{})
+	if err := v.db.AddCensus(censusID, ownerFID); err != nil {
+		return nil, fmt.Errorf("cannot add census to database: %w", err)
+	}
+	// get the channel address from the alfafrens API
+	channelAddr, err := alfafrens.ChannelByFid(ownerFID)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get alfafrens channel address for user %d: %w", ownerFID, err)
+	}
+	// run a goroutine to create the census, update the queue with the progress,
+	// and update the queue result when it's ready
+	go func() {
+		var err error
+		var users []uint64
+		// get the fids of the users in the channel from neynar farcaster API, if
+		// the channel does not exist, return a NotFound error
+		v.trackStepProgress(censusID, 1, 3, func(progress chan int) {
+			progress <- 10
+			users, err = alfafrens.ChannelFids(channelAddr)
+			progress <- 100
+		})
+		if err != nil {
+			log.Errorw(err, "failed to get channel fids from farcaster API")
+			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+		if len(users) == 0 {
+			log.Errorw(fmt.Errorf("no valid participants found for alfafrens channel %s", channelAddr.String()), "")
+			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: "no valid participants found for the channel"})
+			return
+		}
+		// create the participants from the database users using the fids
+		var participants []*FarcasterParticipant
+		v.trackStepProgress(censusID, 1, 2, func(progress chan int) {
+			participants = v.farcasterCensusFromFids(users, progress)
+		})
+		if len(participants) == 0 {
+			log.Errorw(fmt.Errorf("no valid participant signers found for alfafrens channel %s", channelAddr.String()), "")
+			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: "no valid participant signers found for the channel"})
+			return
+		}
+		// create the census from the participants
+		var censusInfo *CensusInfo
+		v.trackStepProgress(censusID, 2, 2, func(progress chan int) {
+			censusInfo, err = CreateCensus(v.cli, participants, FrameCensusTypeAlfaFrensChannel, progress)
+		})
+		if err != nil {
+			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})
+			return
+		}
+		uniqueParticipantsMap := make(map[string]*big.Int)
+		for _, p := range participants {
+			if _, ok := uniqueParticipantsMap[p.Username]; !ok {
+				uniqueParticipantsMap[p.Username] = new(big.Int).SetUint64(1)
+			}
+		}
+		for username := range uniqueParticipantsMap {
+			censusInfo.Usernames = append(censusInfo.Usernames, username)
+		}
+		censusInfo.FromTotalAddresses = uint32(len(users))
+		v.backgroundQueue.Store(censusID.String(), *censusInfo)
+		// add participants to the census in the database
+		if err := v.db.AddParticipantsToCensus(
+			censusID,
+			uniqueParticipantsMap,
+			censusInfo.FromTotalAddresses,
+			new(big.Int).SetUint64(uint64(len(uniqueParticipantsMap))),
+			censusInfo.Url,
+		); err != nil {
+			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
+		}
+		log.Infow("census created for alfafrens channel",
+			"channelID", channelAddr.String(),
 			"participants", len(censusInfo.Usernames))
 	}()
 	// return the censusID to the client
