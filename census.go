@@ -928,8 +928,6 @@ func (v *vocdoniHandler) censusAlfafrensChannel(censusID types.HexBytes, ownerFI
 			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: "no valid participants found for the channel"})
 			return
 		}
-		// add the owner to the users list
-		users = append(users, ownerFID)
 		// create the participants from the database users using the fids
 		var participants []*FarcasterParticipant
 		v.trackStepProgress(censusID, 1, 2, func(progress chan int) {
