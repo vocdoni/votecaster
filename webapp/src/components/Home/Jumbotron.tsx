@@ -10,14 +10,14 @@ export const Jumbotron = () => (
         The governance platform for your Farcaster community.
       </Heading>
       <Text fontWeight='500' fontSize='xl' color='gray.600'>
-        Kickstart your community
+        Get started today.
       </Text>
       <RouterLink to='/communities/new'>
         <Button display='flex' gap={2} fontWeight='500'>
           <Box width='1.2rem' height='1.2rem' lineHeight='1'>
             <Image src={hat} />
           </Box>{' '}
-          Create your community
+          Create your Farcaster community
         </Button>
       </RouterLink>
       <Text fontStyle='italic' color='gray.400'>
@@ -28,11 +28,11 @@ export const Jumbotron = () => (
         </Link>
       </Text>
       <Text fontWeight='500' fontSize='xl' color='gray.600'>
-        or run a quick poll within a frame
+        or ask all the Farcaster community
       </Text>
       <RouterLink to='/form'>
         <Button fontWeight='500' leftIcon={<MdHowToVote />}>
-          Create a quick poll
+          Run a 1-click poll within a Frame
         </Button>
       </RouterLink>
     </VStack>
