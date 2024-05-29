@@ -55,7 +55,11 @@ const Profile = () => {
               {degenOrEnsName && (
                 <Link
                   isExternal
-                  href={`https://nftdegen.lol/profile/?id=${degenOrEnsName}`}
+                  href={
+                    degenOrEnsName.endsWith('.eth')
+                      ? `https://rainbow.me/${degenOrEnsName}`
+                      : `https://nftdegen.lol/profile/?id=${degenOrEnsName}`
+                  }
                   fontSize='sm'
                   fontStyle='italic'
                 >
