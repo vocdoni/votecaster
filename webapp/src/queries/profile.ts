@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { createPublicClient, getContract, http, isAddress } from 'viem'
+import { isAddress } from 'viem'
 import { degen, mainnet } from 'viem/chains'
 import abi from '~abis/nftdegen.json'
+import { useBlockchain } from '~components/Blockchains/BlockchainContext'
 import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { appUrl, degenNameResolverContractAddress } from '~constants'
 
@@ -36,68 +37,41 @@ export const fetchWarpcastAPIEnabled = (bfetch: FetchFunction) => async (): Prom
   return data.warpcastApiEnabled
 }
 
-const mainnetClient = createPublicClient({
-  chain: mainnet,
-  transport: http(),
-})
-
-const degenClient = createPublicClient({
-  chain: degen,
-  transport: http(),
-})
-
-const getDegenNameContract = () => {
-  return getContract({
-    address: degenNameResolverContractAddress,
-    client: {
-      public: degenClient,
-    },
-    abi,
-  })
-}
-
-const fetchDegenOrEnsName = async (addr: string): Promise<string | null> => {
-  if (!isAddress(addr)) {
-    return null
-  }
-
-  const degenNameContract = getDegenNameContract()
-  const degenName = await degenNameContract.read.defaultNames([addr])
-  if (degenName) {
-    return `${degenName}.degen`
-  }
-
-  return mainnetClient.getEnsName({ address: addr })
-}
-
-export const getProfileAddresses = (p?: UserProfileResponse) => {
-  return p?.user.verifications ?? p?.user.addresses ?? []
-}
-
 export const useFirstDegenOrEnsName = (addresses: string[] = []) => {
   const { connected } = useDegenHealthcheck()
+  const { getContract } = useBlockchain(degen)
+  const { client } = useBlockchain(mainnet)
+
+  const contract = getContract(degenNameResolverContractAddress, abi)
   // Process the addresses to ensure a consistent react query function key
-  const sortedAddresses = addresses
-    .map((v) => v.toLowerCase())
-    .sort((a, b) => {
-      if (a > b) {
-        return 1
-      } else if (a < b) {
-        return -1
-      } else {
-        return 0
-      }
-    })
+  const sortedAddresses = addresses.map((v) => v.toLowerCase()).sort((a, b) => a.localeCompare(b))
 
   return useQuery({
     queryKey: ['firstDegenOrEnsName', ...sortedAddresses],
     retry: connected,
     queryFn: async () => {
-      const degenOrEnsNames = await Promise.all(sortedAddresses.map(async (addr) => fetchDegenOrEnsName(addr)))
+      const degenOrEnsNames = await Promise.all(
+        sortedAddresses.map(async (addr) => {
+          if (!isAddress(addr)) {
+            return null
+          }
+
+          const degenName = await contract.read.defaultNames([addr])
+          if (degenName) {
+            return `${degenName}.degen`
+          }
+
+          return client.getEnsName({ address: addr })
+        })
+      )
       const firstValidName = degenOrEnsNames.find((v) => !!v)
       return firstValidName || null
     },
   })
+}
+
+export const getProfileAddresses = (p?: UserProfileResponse) => {
+  return p?.user.verifications ?? p?.user.addresses ?? []
 }
 
 export const useUserDegenOrEnsName = (user?: UserProfileResponse) => {

@@ -52,7 +52,7 @@ export const ManageCommunity = ({ community, refetch, onClose, ...props }: Manag
 
     setError(null)
     try {
-      const com: Community = {
+      const com: CommunityCreate = {
         ...values,
         id: community.id,
         logoURL: values.src,

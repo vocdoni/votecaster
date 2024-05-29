@@ -31,11 +31,11 @@ export const fetchPollsReminders = (bfetch: FetchFunction, electionId: string) =
   for (const fid in data.remindableVoters) {
     remindableVoters.push({
       fid: parseInt(fid),
-      username: data.remindableVoters[fid]
+      username: data.remindableVoters[fid],
     } as Profile)
   }
 
-  const votersWeight: [username: string, weight: string] = {} as [string, string]
+  const votersWeight: { [key: string]: string } = {}
   for (const fid in data.votersWeight) {
     votersWeight[data.remindableVoters[fid]] = data.votersWeight[fid]
   }

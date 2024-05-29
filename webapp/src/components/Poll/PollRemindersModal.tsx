@@ -18,13 +18,13 @@ import {
   Textarea,
   useDisclosure,
   useToast,
-  VStack
+  VStack,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { MdSend } from "react-icons/md"
-import { FaFlagCheckered } from "react-icons/fa6";
+import { FaFlagCheckered } from 'react-icons/fa6'
+import { MdSend } from 'react-icons/md'
 import { useAuth } from '~components/Auth/useAuth'
 import { UsersTable } from '~components/Census/UsersTable'
 import { Check } from '~components/Check'
@@ -55,14 +55,19 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { bfetch } = useAuth()
   const toast = useToast()
-  const [queueId, setQueueId] = useState<string>();
+  const [queueId, setQueueId] = useState<string>()
   const [loading, setLoading] = useState<boolean>(false)
   const [success, setSuccess] = useState<string>()
   const { data: isAlreadyEnabled } = useQuery<boolean, Error>({
     queryKey: ['apiKeyEnabled'],
     queryFn: fetchWarpcastAPIEnabled(bfetch),
   })
-  const { data: reminders, error, isLoading, refetch } = useQuery({
+  const {
+    data: reminders,
+    error,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['reminders', poll.electionId],
     queryFn: fetchPollsReminders(bfetch, poll.electionId),
     enabled: !!poll.electionId && isOpen,
@@ -75,7 +80,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
     },
   })
 
-  const [selectedUsers, setSelectedUsers] = useState<Profile[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<Profile[]>([])
 
   useEffect(() => {
     if (!error) return
@@ -102,9 +107,9 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
     const interval = setInterval(async () => {
       try {
         const res = await bfetch(`${appUrl}/poll/${poll.electionId}/reminders/queue/${queueId}`)
-        const data = await res.json() as PollReminderStatus
+        const data = (await res.json()) as PollReminderStatus
         if (data.completed) {
-          clearInterval(interval);
+          clearInterval(interval)
           setQueueId(undefined)
           if (!!data.fails && data.fails.length > 0) {
             const failedUsers = data.fails.map(([username, error]) => `${username}: ${error}`).join('\n')
@@ -137,12 +142,12 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
       const res = await bfetch(`${appUrl}/poll/${poll.electionId}/reminders`, {
         method: 'POST',
         body: JSON.stringify({
-          type: "individual",
+          type: 'individual',
           content: data.message + `\n\n${data.castURL}`,
           users: users,
         }),
       })
-      const { queueId } = await res.json() as PollReminderQueue
+      const { queueId } = (await res.json()) as PollReminderQueue
       setQueueId(queueId)
       reset({ message: '', castURL: '' }) // Reset the message field
       setSuccess('Reminders sent successfully')
@@ -157,12 +162,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
 
   return (
     <>
-      <Button
-        size='sm'
-        onClick={onOpen}
-        isLoading={isLoading}
-        rightIcon={<MdSend />}
-      >
+      <Button size='sm' onClick={onOpen} isLoading={isLoading} rightIcon={<MdSend />}>
         Send reminders
       </Button>
 
@@ -172,78 +172,99 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
           <ModalContent>
             <ModalHeader>
               Reminders
-              <Text fontSize={'sm'} color='gray' fontWeight='normal'>Send a Direct Cast to members, inviting them to vote in the poll. Please note that they will only receive the reminder if you both follow each other.</Text>
+              <Text fontSize={'sm'} color='gray' fontWeight='normal'>
+                Send a Direct Cast to members, inviting them to vote in the poll. Please note that they will only
+                receive the reminder if you both follow each other.
+              </Text>
             </ModalHeader>
             <ModalCloseButton />
-            {(reminders?.remindableVoters.length || 0 > 0) ? (<>
-              <ModalHeader>
-                <form onSubmit={handleSubmit(sendReminders)}>
-                  <VStack spacing={4} alignItems={'start'}>
-                    <Box w={'full'}>
-                      <FormLabel>Content</FormLabel>
-                      <FormControl isInvalid={!!errors.message} flexGrow={1} mr={2}>
-                        <Textarea
-                          size='sm'
-                          placeholder='Type a personalized message here to invite users to participate in the poll.'
-                          {...register('message', { required: 'This field is required' })}
-                          onBlur={() => trigger('message')}
-                        />
-                        <FormErrorMessage>{errors.message?.message?.toString()}</FormErrorMessage>
-                      </FormControl>
-                    </Box>
-                    <Box w={'full'}>
-                      <FormLabel>Cast URL</FormLabel>
-                      <FormControl isInvalid={!!errors.castURL} flexGrow={1} mr={2}>
-                        <Input
-                          size='sm'
-                          placeholder='Paste the URL of a cast that includes the poll frame.'
-                          {...register('castURL', {
-                            required: 'Please enter Warpcast URL',
-                            pattern: {
-                              value: /^(https?:\/\/).+(0x[a-f\d]+)$/,
-                              message: 'Invalid URL format'
-                            },
-                          })}
-                          onBlur={() => trigger('castURL')}
-                        />
-                        <FormErrorMessage>{errors.castURL?.message?.toString()}</FormErrorMessage>
-                      </FormControl>
-                    </Box>
-                  </VStack>
-                </form>
-              </ModalHeader>
-              <ModalBody>
-                {(error || success) && <Check error={error} success={success} isLoading={isLoading} />}
-                <FormLabel>Select users</FormLabel>
-                <UsersTable
-                  size='sm'
-                  users={reminders?.remindableVoters.map((profile) => [profile.username, reminders?.votersWeight[profile.username]])}
-                  selectable={true}
-                  findable={true}
-                  onSelectionChange={(selected) => {
-                    console.log(selected)
-                    const profiles: Profile[] = []
-                    selected.forEach(([username]) => {
-                      const profile = reminders?.remindableVoters.find((profile) => profile.username === username)
-                      if (profile) {
-                        profiles.push(profile)
-                      }
-                    })
-                    setSelectedUsers(profiles)
-                  }} />
-              </ModalBody>
-              <ModalFooter justifyContent='space-between' flexWrap='wrap'>
-                <Text fontSize={'sm'} color='gray' fontWeight='normal' mt={2} mb={8}>You already sent {reminders?.alreadySent} reminders. You can send {reminders?.maxReminders} more.</Text>
-                <Button w={'full'} size='sm' onClick={handleSubmit(sendReminders)} rightIcon={<MdSend />} isLoading={loading} flexGrow={1} isDisabled={selectedUsers.length == 0 || !isValid}>
-                  Send
-                </Button>
-              </ModalFooter>
-            </>) : (
+            {reminders?.remindableVoters.length || 0 > 0 ? (
+              <>
+                <ModalHeader>
+                  <form onSubmit={handleSubmit(sendReminders)}>
+                    <VStack spacing={4} alignItems={'start'}>
+                      <Box w={'full'}>
+                        <FormLabel>Content</FormLabel>
+                        <FormControl isInvalid={!!errors.message} flexGrow={1} mr={2}>
+                          <Textarea
+                            size='sm'
+                            placeholder='Type a personalized message here to invite users to participate in the poll.'
+                            {...register('message', { required: 'This field is required' })}
+                            onBlur={() => trigger('message')}
+                          />
+                          <FormErrorMessage>{errors.message?.message?.toString()}</FormErrorMessage>
+                        </FormControl>
+                      </Box>
+                      <Box w={'full'}>
+                        <FormLabel>Cast URL</FormLabel>
+                        <FormControl isInvalid={!!errors.castURL} flexGrow={1} mr={2}>
+                          <Input
+                            size='sm'
+                            placeholder='Paste the URL of a cast that includes the poll frame.'
+                            {...register('castURL', {
+                              required: 'Please enter Warpcast URL',
+                              pattern: {
+                                value: /^(https?:\/\/).+(0x[a-f\d]+)$/,
+                                message: 'Invalid URL format',
+                              },
+                            })}
+                            onBlur={() => trigger('castURL')}
+                          />
+                          <FormErrorMessage>{errors.castURL?.message?.toString()}</FormErrorMessage>
+                        </FormControl>
+                      </Box>
+                    </VStack>
+                  </form>
+                </ModalHeader>
+                <ModalBody>
+                  {(error || success) && <Check error={error} success={success} isLoading={isLoading} />}
+                  <FormLabel>Select users</FormLabel>
+                  <UsersTable
+                    size='sm'
+                    users={reminders?.remindableVoters.map((profile) => [
+                      profile.username,
+                      reminders?.votersWeight[profile.username],
+                    ])}
+                    selectable={true}
+                    findable={true}
+                    onSelectionChange={(selected) => {
+                      console.log(selected)
+                      const profiles: Profile[] = []
+                      selected.forEach(([username]) => {
+                        const profile = reminders?.remindableVoters.find((profile) => profile.username === username)
+                        if (profile) {
+                          profiles.push(profile)
+                        }
+                      })
+                      setSelectedUsers(profiles)
+                    }}
+                  />
+                </ModalBody>
+                <ModalFooter justifyContent='space-between' flexWrap='wrap'>
+                  <Text fontSize={'sm'} color='gray' fontWeight='normal' mt={2} mb={8}>
+                    You already sent {reminders?.alreadySent} reminders. You can send {reminders?.maxReminders} more.
+                  </Text>
+                  <Button
+                    w={'full'}
+                    size='sm'
+                    onClick={handleSubmit(sendReminders)}
+                    rightIcon={<MdSend />}
+                    isLoading={loading}
+                    flexGrow={1}
+                    isDisabled={selectedUsers.length == 0 || !isValid}
+                  >
+                    Send
+                  </Button>
+                </ModalFooter>
+              </>
+            ) : (
               <ModalBody>
                 <HStack spacing={4} alignItems={'center'} mb={4}>
                   <Icon as={FaFlagCheckered} />
                   <VStack align={'start'} spacing={1}>
-                    <Text fontWeight='semibold' fontSize={'sm'}>All the reminders have been sent.</Text>
+                    <Text fontWeight='semibold' fontSize={'sm'}>
+                      All the reminders have been sent.
+                    </Text>
                     <Text fontSize={'sm'}>There are no users left to send reminders to.</Text>
                   </VStack>
                 </HStack>
@@ -252,7 +273,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
           </ModalContent>
         </Modal>
       ) : (
-        <Modal isOpen={isOpen} onClose={onClose} >
+        <Modal isOpen={isOpen} onClose={onClose}>
           <ModalOverlay />
           <ModalContent p={0}>
             <ModalBody p={0}>

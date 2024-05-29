@@ -71,23 +71,12 @@ declare global {
     finalized: boolean
   }
 
-  type PollInfo = {
+  type PollInfo = Omit<PollResponse, 'createdTime' | 'lastVoteTime' | 'endTime' | 'tally' | 'totalWeight'> & {
     createdTime: Date
-    electionId: string
     lastVoteTime: Date
     endTime: Date
-    question: string
-    voteCount: number
-    censusParticipantsCount: number
-    turnout: number
-    createdByFID: number
-    createdByUsername: string
-    createdByDisplayname: string
-    totalWeight: number
-    options: string[]
     tally: number[][]
-    participants: number[]
-    finalized: boolean
+    totalWeight: number
     community?: Pick<Community, 'id' | 'name'>
   }
 
@@ -95,7 +84,7 @@ declare global {
     remindableVoters: Profile[]
     alreadySent: number
     maxReminders: number
-    votersWeight: [username: string, weight: string]
+    votersWeight: { [key: string]: string }
   }
 
   type PollReminderQueue = {
@@ -155,6 +144,8 @@ declare global {
     disabled: boolean
     userRef: Profile
   }
+
+  type CommunityCreate = Omit<Community, 'userRef'>
 
   type HTTPErrorResponse = {
     response?: {
