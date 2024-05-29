@@ -13,7 +13,7 @@ export const VotingPower = ({ poll }: { poll?: PollInfo }) => {
       </Box>
       <Flex alignItems={'end'} gap={2}>
         <Text fontSize={'xx-large'} lineHeight={1} fontWeight={'semibold'}>
-          {poll?.turnout}
+          {Math.round(poll?.turnout * 100) / 100}
         </Text>
         <Text>%</Text>
       </Flex>
