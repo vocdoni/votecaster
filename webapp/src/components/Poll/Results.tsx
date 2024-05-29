@@ -62,14 +62,15 @@ export const ResultsOptions = ({ poll }: { poll: PollInfo }) => {
   return poll.options.map((option, index) => {
     const [tally] = poll.tally
     const weight = tally.reduce((acc, curr) => acc + curr, 0)
+    const percentage = (tally[index] / weight) * 100
 
     return (
       <Box key={index} w='full'>
         <Flex justifyContent='space-between' w='full'>
-          <Text>{option}</Text>
+          <Text>{option} {!!tally && <>({percentage.toFixed(2)} %)</>}</Text>
           {!!tally && <Text>{tally[index]} votes</Text>}
         </Flex>
-        {!!tally && <Progress size='sm' rounded={50} value={(tally[index] / weight) * 100} />}
+        {!!tally && <Progress size='sm' rounded={50} value={percentage} />}
       </Box>
     )
   })
