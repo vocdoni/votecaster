@@ -53,9 +53,14 @@ const Profile = () => {
                 </Link>
               </Text>
               {degenOrEnsName && (
-                <Text fontSize='sm' fontStyle='italic'>
+                <Link
+                  isExternal
+                  href={`https://nftdegen.lol/profile/?id=${degenOrEnsName}`}
+                  fontSize='sm'
+                  fontStyle='italic'
+                >
                   {degenOrEnsName}
-                </Text>
+                </Link>
               )}
             </VStack>
           </Box>
