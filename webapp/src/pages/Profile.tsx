@@ -1,4 +1,4 @@
-import { Box, Grid, GridItem, Link, Text } from '@chakra-ui/react'
+import { Box, Grid, GridItem, Link, Text, VStack } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { ReputationCard } from '~components/Auth/Reputation'
@@ -7,8 +7,8 @@ import { ReputationResponse, reputationResponse2Reputation } from '~components/A
 import { Check } from '~components/Check'
 import { FarcasterLogo } from '~components/FarcasterLogo'
 import { MutedUsersList } from '~components/MutedUsersList'
-import { WarpcastApiKey } from '~components/WarpcastApiKey'
 import { UserPolls } from '~components/Top'
+import { WarpcastApiKey } from '~components/WarpcastApiKey'
 import { fetchUserProfile, useUserDegenOrEnsName } from '~queries/profile'
 
 const Profile = () => {
@@ -45,10 +45,19 @@ const Profile = () => {
       <GridItem gridArea='profile'>
         <Box boxShadow='md' borderRadius='md' bg='purple.100' p={4} display='flex' flexDir='column' gap={2}>
           <Box display='flex' flexDir='row' gap={2}>
-            <Text fontWeight='500'>{degenOrEnsName || user?.user.displayName || user?.user.username}</Text>
-            <Link href={`https://warpcast.com/${user?.user.username}`} isExternal>
-              <FarcasterLogo fill='purple' />
-            </Link>
+            <VStack spacing={0} alignItems='start'>
+              <Text fontWeight='500' display='flex' gap={2}>
+                {user?.user.displayName || user?.user.username}{' '}
+                <Link href={`https://warpcast.com/${user?.user.username}`} isExternal>
+                  <FarcasterLogo fill='purple' />
+                </Link>
+              </Text>
+              {degenOrEnsName && (
+                <Text fontSize='sm' fontStyle='italic'>
+                  {degenOrEnsName}
+                </Text>
+              )}
+            </VStack>
           </Box>
           <ReputationCard reputation={reputationResponse2Reputation(user as ReputationResponse)} />
         </Box>
@@ -58,7 +67,7 @@ const Profile = () => {
       <GridItem gridArea='polls'>
         <UserPolls
           polls={user?.polls || []}
-          title={`${degenOrEnsName || user?.user.displayName || user?.user.username}'s polls`}
+          title={`${user?.user.displayName || user?.user.username}'s polls`}
           w='100%'
         />
       </GridItem>
