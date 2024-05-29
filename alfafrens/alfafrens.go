@@ -41,7 +41,8 @@ func ChannelFids(channelAddress types.HexBytes) ([]uint64, error) {
 	// Extract the fids and convert to []uint64
 	var fids []uint64
 	for _, member := range channelResponse.Members {
-		if member.FID != 0 {
+		// Only add the fid if the member is subscribed and has a fid
+		if member.IsSubscribed && member.FID != 0 {
 			fids = append(fids, uint64(member.FID))
 		}
 	}
