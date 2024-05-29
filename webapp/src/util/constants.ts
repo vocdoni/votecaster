@@ -15,3 +15,5 @@ export const explorers = {
   base: 'https://basescan.org',
   ethereum: 'https://etherscan.io',
 }
+
+export const degenNameResolverContractAddress = '0x4087fb91A1fBdef05761C02714335D232a2Bf3a1'

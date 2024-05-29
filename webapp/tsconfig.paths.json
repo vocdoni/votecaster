@@ -2,6 +2,7 @@
   "compilerOptions": {
     "baseUrl": "src",
     "paths": {
+      "~abis/*": ["abis/*"],
       "~components/*": ["components/*"],
       "~constants": ["util/constants.ts"],
       "~util/*": ["util/*"],

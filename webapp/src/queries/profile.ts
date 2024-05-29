@@ -1,12 +1,9 @@
-import { ethers } from 'ethers'
-import { mainnet } from 'viem/chains'
-import { isAddress, createPublicClient, http } from 'viem'
-
-import { appUrl, degenChainRpc } from '~constants'
 import { useQuery } from '@tanstack/react-query'
-
-const degenNameResolverAbiJson =
-  '[{"inputs":[{"internalType":"string","name":"_domainName","type":"string"}],"name":"getDomainHolder","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"defaultNames","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}]'
+import { createPublicClient, getContract, http, isAddress } from 'viem'
+import { degen, mainnet } from 'viem/chains'
+import abi from '~abis/nftdegen.json'
+import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
+import { appUrl, degenNameResolverContractAddress } from '~constants'
 
 export const fetchUserProfile = (bfetch: FetchFunction, username: string) => async (): Promise<UserProfileResponse> => {
   const response = await bfetch(`${appUrl}/profile/user/${username}`)
@@ -39,15 +36,24 @@ export const fetchWarpcastAPIEnabled = (bfetch: FetchFunction) => async (): Prom
   return data.warpcastApiEnabled
 }
 
-const publicClient = createPublicClient({
+const mainnetClient = createPublicClient({
   chain: mainnet,
   transport: http(),
 })
 
-const getDegenNameContract = () => {
-  const provider = new ethers.JsonRpcProvider(degenChainRpc)
+const degenClient = createPublicClient({
+  chain: degen,
+  transport: http(),
+})
 
-  return new ethers.Contract('0x4087fb91A1fBdef05761C02714335D232a2Bf3a1', degenNameResolverAbiJson, provider)
+const getDegenNameContract = () => {
+  return getContract({
+    address: degenNameResolverContractAddress,
+    client: {
+      public: degenClient,
+    },
+    abi,
+  })
 }
 
 const fetchDegenOrEnsName = async (addr: string): Promise<string | null> => {
@@ -56,12 +62,12 @@ const fetchDegenOrEnsName = async (addr: string): Promise<string | null> => {
   }
 
   const degenNameContract = getDegenNameContract()
-  const degenName = await degenNameContract.defaultNames(addr)
+  const degenName = await degenNameContract.read.defaultNames([addr])
   if (degenName) {
     return `${degenName}.degen`
   }
 
-  return publicClient.getEnsName({ address: addr })
+  return mainnetClient.getEnsName({ address: addr })
 }
 
 export const getProfileAddresses = (p?: UserProfileResponse) => {
@@ -69,6 +75,7 @@ export const getProfileAddresses = (p?: UserProfileResponse) => {
 }
 
 export const useFirstDegenOrEnsName = (addresses: string[] = []) => {
+  const { connected } = useDegenHealthcheck()
   // Process the addresses to ensure a consistent react query function key
   const sortedAddresses = addresses
     .map((v) => v.toLowerCase())
@@ -84,6 +91,7 @@ export const useFirstDegenOrEnsName = (addresses: string[] = []) => {
 
   return useQuery({
     queryKey: ['firstDegenOrEnsName', ...sortedAddresses],
+    retry: connected,
     queryFn: async () => {
       const degenOrEnsNames = await Promise.all(sortedAddresses.map(async (addr) => fetchDegenOrEnsName(addr)))
       const firstValidName = degenOrEnsNames.find((v) => !!v)
