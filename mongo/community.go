@@ -51,7 +51,8 @@ func (ms *MongoStorage) ListCommunities(limit, offset int64) ([]Community, int64
 	// filter by enabled and communities
 
 	communities := []Community{}
-	total, err := paginatedObjects(ms.communities, bson.M{"disabled": false}, nil, limit, offset, &communities)
+	opts := options.Find().SetSort(bson.D{{Key: "featured", Value: -1}, {Key: "_id", Value: -1}})
+	total, err := paginatedObjects(ms.communities, bson.M{"disabled": false}, opts, limit, offset, &communities)
 	if err != nil {
 		return nil, 0, err
 	}
