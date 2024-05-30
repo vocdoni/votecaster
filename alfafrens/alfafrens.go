@@ -7,46 +7,57 @@ import (
 	"net/http"
 	"strings"
 
+	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 )
 
-// ChannelFids fetches the fids given a channel address.
+// ChannelFids fetches the fids given a channel address using pagination.
 func ChannelFids(channelAddress types.HexBytes) ([]uint64, error) {
 	channel := channelAddress.String()
 	if !strings.HasPrefix(channel, "0x") {
 		channel = "0x" + channel
 	}
-	url := fmt.Sprintf(channelSubscribersURL, channel)
 
-	// Perform the HTTP GET request
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	// Read the response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Parse the JSON response
-	var channelResponse ChannelResponse
-	err = json.Unmarshal(body, &channelResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract the fids and convert to []uint64
 	var fids []uint64
-	for _, member := range channelResponse.Members {
-		// Only add the fid if the member is subscribed and has a fid
-		if member.IsSubscribed && member.FID != 0 {
-			fids = append(fids, uint64(member.FID))
-		}
-	}
+	skip := 0
 
+	for {
+		url := fmt.Sprintf(channelSubscribersURL+"&first=200&skip=%d", channel, skip)
+		log.Debugw("fetching alfafrens channel subscribers", "url", url)
+		// Perform the HTTP GET request
+		resp, err := http.Get(url)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		// Read the response body
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		// Parse the JSON response
+		var channelResponse ChannelResponse
+		err = json.Unmarshal(body, &channelResponse)
+		if err != nil {
+			return nil, err
+		}
+
+		// Extract the fids and convert to []uint64
+		for _, member := range channelResponse.Members {
+			// Only add the fid if the member is subscribed
+			if member.IsSubscribed {
+				fids = append(fids, uint64(member.FID))
+			}
+		}
+
+		// Check if there are more pages
+		if !channelResponse.HasMore {
+			break
+		}
+		skip += len(channelResponse.Members)
+	}
 	return fids, nil
 }
 

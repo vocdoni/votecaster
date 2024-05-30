@@ -23,6 +23,9 @@ type ChannelResponse struct {
 	Owner                         types.HexBytes `json:"owner"`
 	CurrentStaked                 *types.BigInt  `json:"currentStaked"`
 	Members                       []Member       `json:"members"`
+	Title                         string         `json:"title"`
+	Bio                           string         `json:"bio"`
+	HasMore                       bool           `json:"hasMore"`
 }
 
 // Member represents a single member in the members list

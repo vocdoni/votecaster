@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	testChannelAddress = "8ee30662780088d2d2bfd0ced68b80bd7d629865"
-	testFid            = uint64(237855)
+	testChannelAddress = "946ca533da30bc5632ee594d8157fd2bb3d29356"
+	testFid            = uint64(239694)
 )
 
 func TestChannelFids(t *testing.T) {
@@ -19,7 +19,7 @@ func TestChannelFids(t *testing.T) {
 
 	fids, err := ChannelFids(channel)
 	q.Assert(err, qt.IsNil)
-	t.Logf("FIDs: %v", fids)
+	t.Logf("FIDs: %d", len(fids))
 }
 
 func TestChannelByFid(t *testing.T) {
