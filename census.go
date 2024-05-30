@@ -864,7 +864,6 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64) ([]byte, error) {
 		for _, p := range participants {
 			censusInfo.Usernames = append(censusInfo.Usernames, p.Username)
 		}
-		censusInfo.FromTotalAddresses = uint32(len(censusInfo.Usernames))
 		uniqueParticipantsMap := make(map[string]*big.Int)
 		totalWeight := new(big.Int).SetUint64(0)
 		for _, p := range participants {
@@ -879,13 +878,14 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64) ([]byte, error) {
 		if err := v.db.AddParticipantsToCensus(
 			censusID,
 			uniqueParticipantsMap,
-			censusInfo.FromTotalAddresses,
+			uint32(len(users)),
 			totalWeight,
 			censusInfo.Url,
 		); err != nil {
 			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
 		}
 
+		censusInfo.FromTotalAddresses = uint32(len(users))
 		v.backgroundQueue.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from user followers",
 			"fid", userFID,

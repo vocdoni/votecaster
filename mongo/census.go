@@ -31,7 +31,7 @@ func (ms *MongoStorage) AddCensus(censusID types.HexBytes, userFID uint64) error
 
 // AddParticipantsToCensus updates a census document with participants and their associated values.
 func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, participants map[string]*big.Int,
-	fromTotalAddresses uint32, totalWeight *big.Int, censusURI string,
+	fromTotalParticipants uint32, totalWeight *big.Int, censusURI string,
 ) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
@@ -46,7 +46,7 @@ func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, partici
 	update := bson.M{
 		"$set": bson.M{
 			"participants":       participantsString,
-			"fromTotalAddresses": fromTotalAddresses,
+			"fromTotalAddresses": fromTotalParticipants,
 			"totalWeight":        totalWeight.String(),
 			"url":                censusURI,
 		},
