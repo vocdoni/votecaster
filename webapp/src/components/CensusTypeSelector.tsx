@@ -121,8 +121,8 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
           <Stack direction='column' flexWrap='wrap'>
             {complete && <FormHelperText my={2}>Or set a custom census:</FormHelperText>}
             {complete && <Radio value='farcaster'>🌐 All farcaster users</Radio>}
-            <Radio value='channel'>⛩ Channel gated</Radio>
-            <Radio value='followers'>❤️ My followers and me</Radio>
+            <Radio value='channel'>⛩ Farcaster channel gated</Radio>
+            <Radio value='followers'>❤️ My Farcaster followers and me</Radio>
             {complete && <Radio value='alfafrens'>💙 My alfafrens channel subscribers</Radio>}
             {complete && <Radio value='custom'>🦄 Token based via CSV</Radio>}
             <Radio value='nft'>
