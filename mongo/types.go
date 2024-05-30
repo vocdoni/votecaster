@@ -199,7 +199,7 @@ type UserAccessProfileCollection struct {
 type UserRanking struct {
 	FID         uint64 `json:"fid" bson:"fid"`
 	Username    string `json:"username" bson:"username"`
-	Displayname string `json:"displayname" bson:"displayname"`
+	Displayname string `json:"displayName" bson:"displayname"`
 	Count       uint64 `json:"count" bson:"count"`
 }
 

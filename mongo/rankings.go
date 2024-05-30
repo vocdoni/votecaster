@@ -19,7 +19,7 @@ func (ms *MongoStorage) UsersByElectionNumber() ([]UserRanking, error) {
 	limit := int64(10)
 	opts := options.FindOptions{Limit: &limit}
 	opts.SetSort(bson.M{"electionCount": -1})
-	opts.SetProjection(bson.M{"_id": true, "username": true, "electionCount": true})
+	opts.SetProjection(bson.M{"_id": true, "username": true, "displayname": true, "electionCount": true})
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cur, err := ms.users.Find(ctx, bson.M{}, &opts)
@@ -53,7 +53,7 @@ func (ms *MongoStorage) UsersByVoteNumber() ([]UserRanking, error) {
 	limit := int64(10)
 	opts := options.FindOptions{Limit: &limit}
 	opts.SetSort(bson.M{"castedVotes": -1})
-	opts.SetProjection(bson.M{"_id": true, "username": true, "castedVotes": true})
+	opts.SetProjection(bson.M{"_id": true, "username": true, "displayname": true, "castedVotes": true})
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cur, err := ms.users.Find(ctx, bson.M{}, &opts)
