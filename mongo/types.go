@@ -29,7 +29,7 @@ type User struct {
 	ElectionCount  uint64    `json:"electionCount" bson:"electionCount"`
 	CastedVotes    uint64    `json:"castedVotes" bson:"castedVotes"`
 	Username       string    `json:"username" bson:"username"`
-	Displayname    string    `json:"displayname" bson:"displayname"`
+	Displayname    string    `json:"displayName" bson:"displayname"`
 	CustodyAddress string    `json:"custodyAddress" bson:"custodyAddress"`
 	Addresses      []string  `json:"addresses" bson:"addresses"`
 	Signers        []string  `json:"signers" bson:"signers"`
