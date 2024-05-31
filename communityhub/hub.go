@@ -440,7 +440,6 @@ func (l *CommunityHub) addCommunity(hcommunity *HubCommunity) error {
 		if err == mongo.ErrClientDisconnected {
 			return ErrClosedDB
 		}
-		if err == mongo.Err
 		return errors.Join(ErrAddCommunity, err)
 	}
 	return nil
