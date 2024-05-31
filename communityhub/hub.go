@@ -415,6 +415,18 @@ func (l *CommunityHub) SetResults(communityID uint64, electionID []byte, results
 // Community struct. If something goes wrong creating the community, it returns
 // an error.
 func (l *CommunityHub) addCommunity(hcommunity *HubCommunity) error {
+	// if community already exists in the database, update it
+	current, err := l.db.Community(hcommunity.ID)
+	if err != nil {
+		if err == mongo.ErrClientDisconnected {
+			return ErrClosedDB
+		}
+		return errors.Join(ErrAddCommunity, err)
+	}
+	if current != nil {
+		return l.updateCommunity(hcommunity)
+	}
+	// if community does not exist in the database, create it in the database
 	dbCommunity, err := HubToDB(hcommunity)
 	if err != nil {
 		return err
@@ -428,6 +440,7 @@ func (l *CommunityHub) addCommunity(hcommunity *HubCommunity) error {
 		if err == mongo.ErrClientDisconnected {
 			return ErrClosedDB
 		}
+		if err == mongo.Err
 		return errors.Join(ErrAddCommunity, err)
 	}
 	return nil
