@@ -115,7 +115,11 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 		}
 	}
 	// create the election description
-	req.ElectionDescription.UsersCount = uint32(len(census.Usernames))
+	uniqueUsernames := map[string]bool{}
+	for _, u := range census.Usernames {
+		uniqueUsernames[u] = true
+	}
+	req.ElectionDescription.UsersCount = uint32(len(uniqueUsernames))
 	req.ElectionDescription.UsersCountInitial = uint32(census.FromTotalAddresses)
 	// create the election and save it in the database
 	electionID, err := v.createAndSaveElectionAndProfile(&req.ElectionDescription, census,
