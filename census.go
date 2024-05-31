@@ -792,8 +792,11 @@ func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint6
 				uniqueParticipantsMap[p.Username] = new(big.Int).SetUint64(1)
 			}
 		}
-		for username := range uniqueParticipantsMap {
-			censusInfo.Usernames = append(censusInfo.Usernames, username)
+		// only return the username list if it's less than the maxUsersNamesToReturn
+		if len(uniqueParticipantsMap) < maxUsersNamesToReturn {
+			for username := range uniqueParticipantsMap {
+				censusInfo.Usernames = append(censusInfo.Usernames, username)
+			}
 		}
 		censusInfo.FromTotalAddresses = uint32(len(users))
 		v.backgroundQueue.Store(censusID.String(), *censusInfo)
@@ -861,9 +864,6 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64) ([]byte, error) {
 			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
-		for _, p := range participants {
-			censusInfo.Usernames = append(censusInfo.Usernames, p.Username)
-		}
 		uniqueParticipantsMap := make(map[string]*big.Int)
 		totalWeight := new(big.Int).SetUint64(0)
 		for _, p := range participants {
@@ -873,6 +873,12 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64) ([]byte, error) {
 			}
 			uniqueParticipantsMap[p.Username] = p.Weight
 			totalWeight.Add(totalWeight, p.Weight)
+		}
+		// only return the username list if it's less than the maxUsersNamesToReturn
+		if len(uniqueParticipantsMap) < maxUsersNamesToReturn {
+			for u := range uniqueParticipantsMap {
+				censusInfo.Usernames = append(censusInfo.Usernames, u)
+			}
 		}
 		// store the census info in the database
 		if err := v.db.AddParticipantsToCensus(

@@ -116,7 +116,17 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	}
 	// create the election description
 	req.ElectionDescription.UsersCount = uint32(len(census.Usernames))
+
+	// if no username list is provided, set the users count to the total number
+	// this happens in the case of all farcaster users poll and my followers
+	if req.ElectionDescription.UsersCount == 0 {
+		req.ElectionDescription.UsersCount = uint32(census.FromTotalAddresses)
+	}
+
+	// set from total addresses, this information provides the initial number of
+	// potential voters in the election, but not all of them might have farcaster account
 	req.ElectionDescription.UsersCountInitial = uint32(census.FromTotalAddresses)
+
 	// create the election and save it in the database
 	electionID, err := v.createAndSaveElectionAndProfile(&req.ElectionDescription, census,
 		req.Profile, false, req.NotifyUsers, req.NotificationText, ElectionSourceWebApp,
