@@ -10,16 +10,16 @@ import { CommunityHub__factory, ICommunityHub } from '~typechain'
 import { walletClientToSigner } from '~util/rainbow'
 import { cleanChannel } from '~util/strings'
 import { censusTypeToEnum, ContractCensusType } from '~util/types'
+import { ChannelsFormValues, ChannelsSelector } from '../../Census/ChannelsSelector'
 import { CensusSelector } from './CensusSelector'
-import { Channels } from './Channels'
 import { Confirm } from './Confirm'
 import CommunityDone from './Done'
 import { GroupChat } from './GroupChat'
 import { CommunityMetaFormValues, Meta } from './Meta'
 
 export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusType' | 'channel'> &
-  CommunityMetaFormValues & {
-    channels: { label: string; value: string }[]
+  CommunityMetaFormValues &
+  ChannelsFormValues & {
     enableNotifications: boolean
   }
 
@@ -114,7 +114,7 @@ export const CommunitiesCreateForm = () => {
                   contractAddress,
                 } as ICommunityHub.TokenStruct
               }) ?? ([] as ICommunityHub.TokenStruct[]), // tokens
-          channel: data.channel ? cleanChannel(data.channel) : '', // channel
+          channel: data.channel ? cleanChannel(data.channel as string) : '', // channel
         }
 
         const guardians = data.admins.map((admin) => BigInt(admin.value))
@@ -213,7 +213,7 @@ export const CommunitiesCreateForm = () => {
                     <Text fontSize='sm' color={'purple.500'}>
                       Social information
                     </Text>
-                    <Channels />
+                    <ChannelsSelector />
                     <GroupChat />
                   </VStack>
                 </Box>

@@ -235,7 +235,7 @@ const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
             break
           }
           case 'alfafrens': {
-            call = bfetch(`${appUrl}/census/alfafrens`, {method: 'POST'})
+            call = bfetch(`${appUrl}/census/alfafrens`, { method: 'POST' })
             break
           }
           case 'farcaster':

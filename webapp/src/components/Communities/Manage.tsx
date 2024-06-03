@@ -25,9 +25,9 @@ import { FaBell, FaEyeSlash } from 'react-icons/fa6'
 import { useAuth } from '~components/Auth/useAuth'
 import { appUrl } from '~constants'
 import { community2CommunityForm } from '~util/mappings'
+import { ChannelsSelector } from '../Census/ChannelsSelector'
 import { CommunityFormValues } from './Form'
 import { CensusSelector } from './Form/CensusSelector'
-import { Channels } from './Form/Channels'
 import { GroupChat } from './Form/GroupChat'
 import { Meta } from './Form/Meta'
 
@@ -108,7 +108,7 @@ export const ManageCommunity = ({ community, refetch, onClose, ...props }: Manag
               <Meta />
               <CensusSelector />
               <GroupChat />
-              <Channels />
+              <ChannelsSelector />
               <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>
                 <VStack alignItems={'start'}>
                   <HStack gap={2} alignItems={'center'}>

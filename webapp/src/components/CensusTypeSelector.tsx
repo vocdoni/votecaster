@@ -29,17 +29,16 @@ import { useEffect } from 'react'
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { MdArrowDropDown } from 'react-icons/md'
-import { appUrl } from '~constants'
 import { fetchAirstackBlockchains } from '~queries/census'
 import { fetchCommunitiesByAdmin } from '~queries/communities'
-import { cleanChannel, ucfirst } from '~util/strings'
+import { ucfirst } from '~util/strings'
 import Airstack from '../assets/airstack.svg?react'
 import { useAuth } from './Auth/useAuth'
+import ChannelSelector, { ChannelFormValues } from './Census/ChannelSelector'
 
-export type CensusFormValues = {
+export type CensusFormValues = ChannelFormValues & {
   censusType: CensusType
   addresses?: Address[]
-  channel?: string
   community?: Community
   csv?: File | undefined
 }
@@ -198,29 +197,7 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
       {censusType === 'channel' && (
         <FormControl isRequired isInvalid={!!errors.channel} {...props}>
           <FormLabel htmlFor='channel'>Channel slug (URL identifier)</FormLabel>
-          <Input
-            id='channel'
-            placeholder='Enter channel i.e. degen'
-            {...register('channel', {
-              required,
-              validate: async (val) => {
-                if (!val) {
-                  return false
-                }
-
-                val = cleanChannel(val)
-                try {
-                  const res = await bfetch(`${appUrl}/census/channel-gated/${val}/exists`)
-                  if (res.status === 200) {
-                    return true
-                  }
-                } catch (e) {
-                  return 'Invalid channel specified'
-                }
-                return 'Invalid channel specified'
-              },
-            })}
-          />
+          <Controller name='channel' render={({ field }) => <ChannelSelector {...field} />} />
           <FormErrorMessage>{errors.channel?.message?.toString()}</FormErrorMessage>
         </FormControl>
       )}

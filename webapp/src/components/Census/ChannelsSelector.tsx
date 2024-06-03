@@ -1,34 +1,16 @@
-import { Box, FormControl, FormErrorMessage, FormLabel, Heading, Image, Text } from '@chakra-ui/react'
-import { AsyncSelect, chakraComponents as components, GroupBase, OptionProps } from 'chakra-react-select'
+import { FormControl, FormErrorMessage, FormLabel, Heading, Text } from '@chakra-ui/react'
+import { AsyncSelect } from 'chakra-react-select'
 import { useState } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { useAuth } from '~components/Auth/useAuth'
 import { fetchChannelQuery } from '~queries/channels'
-
-// CustomOption Component
-const CustomOption = (props: OptionProps<any, false, GroupBase<any>>) => {
-  return (
-    <components.Option {...props}>
-      <Box display='flex' alignItems='center'>
-        <Image
-          src={props.data.image} // Image URL from the option data
-          borderRadius='full' // Makes the image circular
-          boxSize='20px' // Sets the size of the image
-          objectFit='cover' // Ensures the image covers the area properly
-          mr='8px' // Right margin for spacing
-          alt={props.data.label} // Alt text for accessibility
-        />
-        <Text>{props.data.label}</Text>
-      </Box>
-    </components.Option>
-  )
-}
+import { ChannelSelectOption } from './ChannelSelectOption'
 
 export type ChannelsFormValues = {
   channels: { label: string; value: string; image: string }[]
 }
 
-export const Channels = () => {
+export const ChannelsSelector = () => {
   const {
     formState: { errors },
     setError,
@@ -49,18 +31,18 @@ export const Channels = () => {
           <AsyncSelect
             id='channels'
             size='sm'
-            // @ts-expect-error bad typing definition (allows false or undefined but not true, which is false)
+            // @ts-expect-error bad typing definition (allows false or undefined but not true, which is... false)
             isMulti
             isLoading={loading}
             noOptionsMessage={() => 'No channels found'}
             placeholder='Search and add channels'
             {...field}
-            components={{ Option: CustomOption }}
+            components={{ Option: ChannelSelectOption }}
             loadOptions={async (inputValue) => {
               try {
                 clearErrors('channels')
                 setLoading(true)
-                return (await fetchChannelQuery(bfetch)(inputValue)).map((channel) => ({
+                return (await fetchChannelQuery(bfetch, inputValue)()).map((channel) => ({
                   label: channel.name,
                   image: channel.image,
                   value: channel.id,

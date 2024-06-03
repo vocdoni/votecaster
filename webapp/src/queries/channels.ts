@@ -7,7 +7,7 @@ export const fetchChannel = (bfetch: FetchFunction) => async (channelId: string)
   return channel
 }
 
-export const fetchChannelQuery = (bfetch: FetchFunction) => async (inputValue: string) => {
+export const fetchChannelQuery = (bfetch: FetchFunction, inputValue: string) => async () => {
   const response = await bfetch(`${appUrl}/channels?q=${encodeURIComponent(inputValue)}`)
   const { channels } = (await response.json()) as { channels: Channel[] }
 
