@@ -196,7 +196,7 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
       )}
       {censusType === 'channel' && (
         <FormControl isRequired isInvalid={!!errors.channel} {...props}>
-          <FormLabel htmlFor='channel'>Channel slug (URL identifier)</FormLabel>
+          <FormLabel htmlFor='channel'>Farcaster channel</FormLabel>
           <Controller name='channel' render={({ field }) => <ChannelSelector {...field} />} />
           <FormErrorMessage>{errors.channel?.message?.toString()}</FormErrorMessage>
         </FormControl>

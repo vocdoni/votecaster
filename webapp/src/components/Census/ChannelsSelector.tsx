@@ -34,7 +34,7 @@ export const ChannelsSelector = () => {
             // @ts-expect-error bad typing definition (allows false or undefined but not true, which is... false)
             isMulti
             isLoading={loading}
-            noOptionsMessage={() => 'No channels found'}
+            noOptionsMessage={({ inputValue }) => (inputValue ? 'No channels found' : 'Start typing to search')}
             placeholder='Search and add channels'
             {...field}
             components={{ Option: ChannelSelectOption }}
