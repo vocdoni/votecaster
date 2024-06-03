@@ -1,5 +1,9 @@
 <p align="center" width="100%">
-    <img src="https://developer.vocdoni.io/img/vocdoni_logotype_full_white.svg" />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://developer.vocdoni.io/img/vocdoni_logotype_full_blank.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="https://developer.vocdoni.io/img/vocdoni_logotype_full_white.svg" />
+      <img alt="Star History Chart" src="https://developer.vocdoni.io/img/vocdoni_logotype_full_white.svg" />
+  </picture>
 </p>
 
 <p align="center" width="100%">
@@ -41,21 +45,21 @@
 
 # vote-frame
 
-This repository contains a Farcaster frame for voting with the Vocdoni protocol. It is designed to enable integrated polling on Farcaster, leveraging Vocdoni's decentralized, verifiable, and censorship-resistant infrastructure. 
+This repository contains a Farcaster frame for voting with the Vocdoni protocol. It is designed to enable integrated polling on Farcaster, leveraging Vocdoni's decentralized, verifiable, and censorship-resistant infrastructure.
 
 This frame is deployed at https://farcaster.vote/app
 
 This repository contains the Go code necessary for constructing the server node. It features a web frontend that facilitates the creation of polls and oversees the communication with the Farcaster client, adhering to the frame specification.
 
-The operation of the server polling node is centered around processing the signed message packet that originates from the Farcaster user upon engaging the vote button. This process involves extracting the public key from the signed message and packaging the signature into a Vocdoni vote transaction. 
+The operation of the server polling node is centered around processing the signed message packet that originates from the Farcaster user upon engaging the vote button. This process involves extracting the public key from the signed message and packaging the signature into a Vocdoni vote transaction.
 
-Following the submission of the transaction, the Vocdoni blockchain undertakes the verification process to ensure: 
+Following the submission of the transaction, the Vocdoni blockchain undertakes the verification process to ensure:
 
 1. The public key is recognized as a valid Farcaster public key and is listed in the census.
 2. The signature correctly corresponds to the public key.
 3. The selected button accurately reflects the voting choice.
 
-To assure the presence of a user's public key within the Farcaster protocol, the system employs the Vocdoni census3, 
+To assure the presence of a user's public key within the Farcaster protocol, the system employs the Vocdoni census3,
 a service which persistently scans the Optimism network for Farcaster registrations. [Census3 GitHub Repository](https://github.com/vocdoni/census3)
 
 ### Table of Contents
@@ -94,7 +98,7 @@ go run . --mongoURL=mongodb://root:vocdoni@127.0.0.1:27017 --logLevel=debug --ne
 
 ### Authentication
 
-The Authentication API provides a set of endpoints for managing user authentication via Warpcast. 
+The Authentication API provides a set of endpoints for managing user authentication via Warpcast.
 This includes creating authentication links, verifying authentication status, and checking authentication tokens.
 
 The authentication token must be set as a Bearer HTTP header `authorization: Bearer <token>`
@@ -170,7 +174,7 @@ curl -X GET "http://localhost:8888/auth/123e4567"
 
 #### 3. Check Authentication Token
 
-Every time a user access the web application it is expected to check this endpoint. 
+Every time a user access the web application it is expected to check this endpoint.
 This action will update the expiration date.
 
 - **Endpoint:** `/auth/check`
@@ -206,9 +210,9 @@ curl -X GET "http://example.com/auth/check" -H "authorization: Bearer {your_auth
 This frame is live at https://farcaster.vote/app
 
 
-## Contributing 
+## Contributing
 
-While we welcome contributions from the community, we do not track all of our issues on Github and we may not have the resources to onboard developers and review complex pull requests. That being said, there are multiple ways you can get involved with the project. 
+While we welcome contributions from the community, we do not track all of our issues on Github and we may not have the resources to onboard developers and review complex pull requests. That being said, there are multiple ways you can get involved with the project.
 
 Please review our [development guidelines](https://developer.vocdoni.io/development-guidelines).
 
