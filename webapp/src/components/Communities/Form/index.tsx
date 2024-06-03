@@ -88,14 +88,15 @@ export const CommunitiesCreateForm = () => {
             if (!data.channel) throw Error('Channel is not set')
             break
           case ContractCensusType.FOLLOWERS:
-            // to include the reference of the user in the contract, we need to 
-            // add the fid to the channel field in the census metadata with type 
-            // follower. The prefix fid: is used to identify the field as a 
+            // to include the reference of the user in the contract, we need to
+            // add the fid to the channel field in the census metadata with type
+            // follower. The prefix fid: is used to identify the field as a
             // farcaster id. It could be used in the future to add more types of
             // followers like alfafrens.
             data.channel = `fid:${profile?.fid}`
             break
-          case ContractCensusType.ERC20, ContractCensusType.NFT:
+          case ContractCensusType.ERC20:
+          case ContractCensusType.NFT:
             if (data.addresses?.length === 0) throw Error('Tokens is not set')
             break
           default:
@@ -115,8 +116,6 @@ export const CommunitiesCreateForm = () => {
               }) ?? ([] as ICommunityHub.TokenStruct[]), // tokens
           channel: data.channel ? cleanChannel(data.channel) : '', // channel
         }
-
-        console.log(census)
 
         const guardians = data.admins.map((admin) => BigInt(admin.value))
         const createElectionPermission = 0

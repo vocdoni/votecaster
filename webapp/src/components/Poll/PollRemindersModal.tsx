@@ -228,7 +228,6 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
                     selectable={true}
                     findable={true}
                     onSelectionChange={(selected) => {
-                      console.log(selected)
                       const profiles: Profile[] = []
                       selected.forEach(([username]) => {
                         const profile = reminders?.remindableVoters.find((profile) => profile.username === username)
