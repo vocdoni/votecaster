@@ -21,6 +21,7 @@ import {
   Select,
   Spinner,
   Stack,
+  Text,
   UnorderedList,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
@@ -35,6 +36,7 @@ import { ucfirst } from '~util/strings'
 import Airstack from '../assets/airstack.svg?react'
 import { useAuth } from './Auth/useAuth'
 import ChannelSelector, { ChannelFormValues } from './Census/ChannelSelector'
+import { CreateFarcasterCommunityButton } from './Layout/DegenButton'
 
 export type CensusFormValues = ChannelFormValues & {
   censusType: CensusType
@@ -49,7 +51,7 @@ export type CensusTypeSelectorProps = FormControlProps & {
 }
 
 const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelectorProps) => {
-  const { bfetch, profile } = useAuth()
+  const { bfetch, profile, isAuthenticated } = useAuth()
 
   const {
     control,
@@ -71,9 +73,9 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
     queryFn: fetchAirstackBlockchains(bfetch),
   })
   const { data: communities, isLoading: cloading } = useQuery({
-    queryKey: ['communities', 'byAdmin'],
+    queryKey: ['communities', 'byAdmin', profile?.fid],
     queryFn: fetchCommunitiesByAdmin(bfetch, profile!, { offset: 0, limit: 20 }),
-    enabled: !!profile && !!complete,
+    enabled: isAuthenticated && !!complete,
   })
 
   const censusType = watch('censusType')
@@ -94,6 +96,7 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
   // set community id if received
   useEffect(() => {
     if (communityId && !cloading) {
+      setValue('censusType', 'community')
       setValue(
         'community',
         communities?.communities.find((c) => c.id === parseInt(communityId))
@@ -111,15 +114,9 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
       <FormControl {...props} isRequired>
         <FormLabel>Census/voters</FormLabel>
         <RadioGroup onChange={(val: CensusType) => setValue('censusType', val)} value={censusType} id='census-type'>
-          {complete && (
-            <>
-              <FormHelperText mb={2}>Use a community census:</FormHelperText>
-              <Radio value='community'>🏘️ Community based</Radio>
-            </>
-          )}
           <Stack direction='column' flexWrap='wrap'>
-            {complete && <FormHelperText my={2}>Or set a custom census:</FormHelperText>}
             {complete && <Radio value='farcaster'>🌐 All farcaster users</Radio>}
+            {complete && <Radio value='community'>🏘️ Community based</Radio>}
             <Radio value='channel'>⛩ Farcaster channel gated</Radio>
             <Radio value='followers'>❤️ My Farcaster followers and me</Radio>
             {complete && <Radio value='alfafrens'>💙 My alfafrens channel subscribers</Radio>}
@@ -133,26 +130,32 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
           </Stack>
         </RadioGroup>
       </FormControl>
-      {censusType === 'community' && (
-        <FormControl isRequired>
-          <FormLabel>Select a community</FormLabel>
-          <Controller
-            name='community'
-            control={control}
-            render={({ field }) => (
-              <RSelect
-                placeholder='Choose a community'
-                isLoading={cloading}
-                options={communities?.communities.filter((c) => !c.disabled) || []}
-                getOptionLabel={(option: Community) => option.name}
-                getOptionValue={(option: Community) => option.id.toString()}
-                components={communitySelector}
-                {...field}
-              />
-            )}
-          />
-        </FormControl>
-      )}
+      {censusType === 'community' &&
+        (communities && communities?.communities.length ? (
+          <FormControl isRequired>
+            <FormLabel>Select a community</FormLabel>
+            <Controller
+              name='community'
+              control={control}
+              render={({ field }) => (
+                <RSelect
+                  placeholder='Choose a community'
+                  isLoading={cloading}
+                  options={communities?.communities.filter((c) => !c.disabled) || []}
+                  getOptionLabel={(option: Community) => option.name}
+                  getOptionValue={(option: Community) => option.id.toString()}
+                  components={communitySelector}
+                  {...field}
+                />
+              )}
+            />
+          </FormControl>
+        ) : (
+          <Flex alignItems='center' direction='column' w='full'>
+            <Text>You don't have a community yet, want to create one?</Text>
+            <CreateFarcasterCommunityButton />
+          </Flex>
+        ))}
       {['erc20', 'nft'].includes(censusType) &&
         addressFields.map((field, index) => (
           <FormControl key={field.id} {...props}>

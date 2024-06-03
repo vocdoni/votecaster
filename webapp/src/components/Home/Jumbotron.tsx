@@ -1,7 +1,7 @@
-import { Box, Button, Heading, Image, Link, Text, VStack } from '@chakra-ui/react'
+import { Box, Button, Heading, Link, Text, VStack } from '@chakra-ui/react'
 import { MdHowToVote } from 'react-icons/md'
 import { Link as RouterLink } from 'react-router-dom'
-import hat from '/degen-hat.png'
+import { CreateFarcasterCommunityButton } from '~components/Layout/DegenButton'
 
 export const Jumbotron = () => (
   <Box boxShadow='md' bg='white' borderRadius='md' p={20} textAlign='center' w='full'>
@@ -12,14 +12,7 @@ export const Jumbotron = () => (
       <Text fontWeight='500' fontSize='xl' color='gray.600'>
         Get started today.
       </Text>
-      <RouterLink to='/communities/new'>
-        <Button display='flex' gap={2} fontWeight='500'>
-          <Box width='1.2rem' height='1.2rem' lineHeight='1'>
-            <Image src={hat} />
-          </Box>{' '}
-          Create your Farcaster community
-        </Button>
-      </RouterLink>
+      <CreateFarcasterCommunityButton />
       <Text fontStyle='italic' color='gray.400'>
         Experience the farcaster-native governance with your community deployed on Degenchain
         <br />

@@ -77,7 +77,7 @@ const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
   const methods = useForm<FormValues>({
     defaultValues: {
       choices: [{ choice: '' }, { choice: '' }],
-      censusType: 'community',
+      censusType: 'farcaster',
     },
   })
   const {
