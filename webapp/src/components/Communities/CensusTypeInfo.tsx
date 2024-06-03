@@ -19,14 +19,18 @@ const CensusTypeDetail = ({ community }: { community: Community }) => {
     case 'erc20':
     case 'nft':
       return community.censusAddresses.map(({ address, blockchain }, index) => (
-        <Link
-          isExternal
-          href={`${(explorers as { [key: string]: string })[blockchain]}/address/${address}`}
-          key={index}
-          variant='primary'
-        >
-          {shortHex(address)}
-        </Link>
+        <>
+          <Link
+            isExternal
+            href={`${(explorers as { [key: string]: string })[blockchain]}/address/${address}`}
+            key={index}
+            variant='primary'
+          >
+            {shortHex(address)}
+          </Link>
+          {index < community.censusAddresses.length - 2 && ', '}
+          {index === community.censusAddresses.length - 2 && ' & '}
+        </>
       ))
     case 'channel':
       return (
@@ -36,11 +40,7 @@ const CensusTypeDetail = ({ community }: { community: Community }) => {
       )
     case 'followers':
       return (
-        <Link
-          isExternal
-          href={`https://warpcast.com/${community.userRef.username}`}
-          variant='primary'
-        >
+        <Link isExternal href={`https://warpcast.com/${community.userRef.username}`} variant='primary'>
           {community.userRef.displayName}
         </Link>
       )
