@@ -1,31 +1,27 @@
 import { Box } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
 import { Check } from '~components/Check'
 import { CommunitiesList } from '~components/Communities'
 import { Pagination } from '~components/Pagination'
 import { fetchCommunities } from '~queries/communities'
+import { pageToOffset } from '~util/mappings'
 
 const AllCommunitiesList = () => {
   const { bfetch } = useAuth()
-  const [offset, setOffset] = useState<number>(0)
-  const [total, setTotal] = useState<number>(0)
+  const { page }: { page?: string } = useParams()
+  const p = Number(page || 1)
   const { data, error, isLoading } = useQuery({
-    queryKey: ['communities', offset],
-    queryFn: fetchCommunities(bfetch, { offset }),
+    queryKey: ['communities', p],
+    queryFn: fetchCommunities(bfetch, { offset: pageToOffset(p) }),
   })
-
-  useEffect(() => {
-    if (!data?.pagination.total) return
-    setTotal(data.pagination.total)
-  }, [data?.pagination.total])
 
   return (
     <Box w='full'>
       {(error || isLoading) && <Check error={error} isLoading={isLoading} />}
       <CommunitiesList data={data?.communities || []} />
-      <Pagination total={total} offset={offset} setOffset={setOffset} />
+      <Pagination total={data?.pagination.total || 0} page={p} path='/communities/page?/:page?' />
     </Box>
   )
 }

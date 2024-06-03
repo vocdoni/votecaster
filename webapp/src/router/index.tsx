@@ -65,40 +65,6 @@ export const Router = () => {
           ),
         },
         {
-          element: (
-            <SuspenseLoader>
-              <CommunitiesLayout />
-            </SuspenseLoader>
-          ),
-          children: [
-            {
-              path: '/communities',
-              element: (
-                <SuspenseLoader>
-                  <AllCommunitiesList />
-                </SuspenseLoader>
-              ),
-            },
-            {
-              element: (
-                <SuspenseLoader>
-                  <ProtectedRoute />
-                </SuspenseLoader>
-              ),
-              children: [
-                {
-                  path: '/communities/mine',
-                  element: (
-                    <SuspenseLoader>
-                      <MyCommunitiesList />
-                    </SuspenseLoader>
-                  ),
-                },
-              ],
-            },
-          ],
-        },
-        {
           path: '/communities/:id',
           element: (
             <SuspenseLoader>
@@ -153,6 +119,40 @@ export const Router = () => {
                   <CommunitiesNew />
                 </SuspenseLoader>
               ),
+            },
+          ],
+        },
+        {
+          element: (
+            <SuspenseLoader>
+              <CommunitiesLayout />
+            </SuspenseLoader>
+          ),
+          children: [
+            {
+              path: '/communities/page?/:page?',
+              element: (
+                <SuspenseLoader>
+                  <AllCommunitiesList />
+                </SuspenseLoader>
+              ),
+            },
+            {
+              element: (
+                <SuspenseLoader>
+                  <ProtectedRoute />
+                </SuspenseLoader>
+              ),
+              children: [
+                {
+                  path: '/communities/mine/:page?',
+                  element: (
+                    <SuspenseLoader>
+                      <MyCommunitiesList />
+                    </SuspenseLoader>
+                  ),
+                },
+              ],
             },
           ],
         },

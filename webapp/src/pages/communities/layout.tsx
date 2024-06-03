@@ -45,12 +45,12 @@ const CommunitiesSelector = () => {
   return (
     <HStack m={4} align='center' gap={4}>
       <RouterLink to='/communities/mine'>
-        <Button size='sm' leftIcon={<FaRegStar />} variant={pathname === '/communities/mine' ? 'solid' : 'ghost'}>
+        <Button size='sm' leftIcon={<FaRegStar />} variant={/\/communities\/mine/.test(pathname) ? 'solid' : 'ghost'}>
           My communities
         </Button>
       </RouterLink>
       <RouterLink to='/communities'>
-        <Button size='sm' leftIcon={<FaUsers />} variant={pathname !== '/communities/mine' ? 'solid' : 'ghost'}>
+        <Button size='sm' leftIcon={<FaUsers />} variant={!/\/communities\/mine/.test(pathname) ? 'solid' : 'ghost'}>
           All communities
         </Button>
       </RouterLink>

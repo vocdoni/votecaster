@@ -1,3 +1,4 @@
+import { paginationItemsPerPage } from '~constants'
 import { IResult } from '~typechain/src/CommunityHub'
 
 export const community2CommunityForm = (data: Community) => ({
@@ -34,3 +35,6 @@ export const contractDataToObject = (data?: IResult.ResultStructOutput): Partial
     totalWeight: data.participants.reduce((acc, p) => acc + parseInt(p.toString()), 0),
   }
 }
+
+export const pageToOffset = (page: number) => (page - 1) * paginationItemsPerPage
+export const offsetToPage = (offset: number) => Math.floor(offset / paginationItemsPerPage) + 1
