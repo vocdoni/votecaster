@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom'
+import { merge } from 'ts-deepmerge'
 import { Check } from '~components/Check'
 import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { PollView } from '~components/Poll'
@@ -22,10 +23,13 @@ const CommunityPoll = () => {
   } as PollInfo
 
   if (connected && contractQuery.data?.date) {
-    results = {
-      ...results,
-      ...contractDataToObject(contractQuery.data),
-    }
+    results = merge.withOptions(
+      {
+        mergeArrays: false,
+      },
+      results,
+      contractDataToObject(contractQuery.data)
+    ) as PollInfo
   }
 
   return <PollView loading={false} onChain={!!contractQuery.data} poll={results} />

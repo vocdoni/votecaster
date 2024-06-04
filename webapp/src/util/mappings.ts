@@ -25,14 +25,14 @@ export const contractDataToObject = (data?: IResult.ResultStructOutput): Partial
     endTime: date,
     lastVoteTime: date,
     createdTime: date,
-    censusParticipantsCount: 0,
     question: data.question,
     options: data.options,
     participants: data.participants.map((p) => parseInt(p.toString())),
     tally: data.tally.map((t) => t.map((v) => parseInt(v.toString()))),
-    turnout: Number(data.turnout),
+    // see https://github.com/vocdoni/vote-frame/issues/134
+    // turnout: Number(data.turnout),
     voteCount: data.participants.length,
-    totalWeight: data.participants.reduce((acc, p) => acc + parseInt(p.toString()), 0),
+    totalWeight: Number(data.totalVotingPower),
   }
 }
 
