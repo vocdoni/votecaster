@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
@@ -64,8 +65,8 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to get election: %w", err))
 	}
-
-	if len(election.Metadata.Questions) == 0 {
+	metadata := helpers.UnpackMetadata(election.Metadata)
+	if len(metadata.Questions) == 0 {
 		return errorImageResponse(ctx, fmt.Errorf("election has no questions"))
 	}
 

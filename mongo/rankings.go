@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/vocdoni/vote-frame/helpers"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.vocdoni.io/dvote/log"
@@ -121,7 +122,8 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 				log.Warn(err)
 			} else {
 				if electionInfo != nil && electionInfo.Metadata != nil {
-					title = electionInfo.Metadata.Title["default"]
+					metadata := helpers.UnpackMetadata(electionInfo.Metadata)
+					title = metadata.Title["default"]
 				}
 			}
 		}
@@ -221,7 +223,8 @@ func (ms *MongoStorage) LastCreatedElections(count int) ([]*Election, error) {
 				log.Warn(err)
 			} else {
 				if electionInfo != nil && electionInfo.Metadata != nil {
-					election.Question = electionInfo.Metadata.Title["default"]
+					metadata := helpers.UnpackMetadata(electionInfo.Metadata)
+					election.Question = metadata.Title["default"]
 				}
 			}
 		}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/vocdoni/vote-frame/helpers"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.vocdoni.io/dvote/log"
@@ -85,11 +86,12 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 				log.Warnf("failed to get election: %v", err)
 				continue
 			}
-			if e == nil || e.Metadata == nil || e.Metadata.Title == nil {
+			metadata := helpers.UnpackMetadata(e.Metadata)
+			if e == nil || e.Metadata == nil || metadata.Title == nil {
 				log.Warnw("missing election question, from vocdoni API", "electionID", election.ElectionID)
 				continue
 			}
-			question = e.Metadata.Title["default"]
+			question = metadata.Title["default"]
 		}
 
 		elections = append(elections, ElectionRanking{
@@ -151,7 +153,7 @@ func (ms *MongoStorage) addElection(election *Election) error {
 	if _, err := ms.elections.InsertOne(ctx, election); err != nil {
 		return fmt.Errorf("cannot insert election: %w", err)
 	}
-	// Populate the election participants as remindable voters only if the 
+	// Populate the election participants as remindable voters only if the
 	// election is a community election
 	if election.Community != nil {
 		return ms.populateRemindableVoters(types.HexStringToHexBytes(election.ElectionID))
