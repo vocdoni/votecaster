@@ -131,17 +131,18 @@ func InfoImage(infoLines []string) (string, error) {
 
 // QuestionImage creates an image representing a question with choices.
 func QuestionImage(election *api.Election) (string, error) {
-	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
-		return "", fmt.Errorf("election has no questions")
+	if election == nil || election.Metadata == nil {
+		return "", fmt.Errorf("election has no metadata")
 	}
+	metadata := helpers.UnpackMetadata(election.Metadata)
 	// Check if the image is already in the cache
 	if id := electionImageCacheKey(election, imageTypeQuestion); id != "" {
 		return id, nil
 	}
 
-	title := election.Metadata.Questions[0].Title["default"]
+	title := metadata.Questions[0].Title["default"]
 	var choices []string
-	for _, option := range election.Metadata.Questions[0].Choices {
+	for _, option := range metadata.Questions[0].Choices {
 		choices = append(choices, option.Title["default"])
 	}
 
@@ -168,9 +169,10 @@ func QuestionImage(election *api.Election) (string, error) {
 // The totalWeightStr is the total weight of the census, if empty Turnout is not calculated.
 // The electiondb is the election data from the database, if nil the participation is not calculated.
 func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeightStr string) (string, error) {
-	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
-		return "", fmt.Errorf("election has no questions")
+	if election == nil || election.Metadata == nil {
+		return "", fmt.Errorf("election has no metadata")
 	}
+	metadata := helpers.UnpackMetadata(election.Metadata)
 	// Check if the image is already in the cache
 	if id := electionImageCacheKey(election, imageTypeResults); id != "" {
 		return id, nil
@@ -186,7 +188,7 @@ func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeigh
 		weightTurnout = helpers.CalculateTurnout(totalWeightStr, electiondb.CastedWeight)
 	}
 
-	title := election.Metadata.Questions[0].Title["default"]
+	title := metadata.Questions[0].Title["default"]
 	choices, results := helpers.ExtractResults(election, 0)
 
 	requestData := ImageRequest{

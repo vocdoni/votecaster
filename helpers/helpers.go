@@ -11,8 +11,9 @@ func ExtractResults(election *api.Election, censusTokenDecimals uint32) (choices
 	if election == nil || election.Metadata == nil || election.Results == nil {
 		return nil, nil // Return nil if the main structures are nil
 	}
+	metadata := UnpackMetadata(election.Metadata)
 
-	apiQuestions := election.Metadata.Questions
+	apiQuestions := metadata.Questions
 	apiResults := election.Results
 	if len(apiQuestions) == 0 || len(apiQuestions[0].Choices) == 0 ||
 		len(apiResults) == 0 || len(apiResults[0]) < len(apiQuestions[0].Choices) {
@@ -98,4 +99,20 @@ func TruncateDecimals(num *big.Int, numberOfDecimals uint32) *big.Int {
 	result := new(big.Int).Div(num, divisor)
 
 	return result
+}
+
+// UnpackMetadata is a helper function to unpack the metadata of an election
+// to the api.ElectionDescription type.
+func UnpackMetadata(metadata any) *api.ElectionDescription {
+	desc, ok := metadata.(*api.ElectionDescription)
+	if !ok {
+		desc = &api.ElectionDescription{
+			Title: map[string]string{"default": "unknown"},
+			Questions: []api.Question{{
+				Choices: []api.ChoiceMetadata{},
+			}},
+		}
+	}
+
+	return desc
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/farcasterapi"
+	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
 	"github.com/vocdoni/vote-frame/shortener"
@@ -132,13 +133,13 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return fmt.Errorf("failed to get election: %w", err)
 	}
-
-	if len(election.Metadata.Questions) == 0 {
+	metadata := helpers.UnpackMetadata(election.Metadata)
+	if len(metadata.Questions) == 0 {
 		return fmt.Errorf("election has no questions")
 	}
 
 	response := strings.ReplaceAll(frame(frameMain), "{processID}", election.ElectionID.String())
-	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+	response = strings.ReplaceAll(response, "{title}", metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{image}", landingPNGfile(election))
 
 	ctx.SetResponseContentType("text/html; charset=utf-8")
@@ -175,6 +176,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			return fmt.Errorf("failed to fetch election: %w", err)
 		}
+		metadata := helpers.UnpackMetadata(election.Metadata)
 		censusUserCount := election.Census.MaxCensusSize
 		text = append(text, fmt.Sprintf("\nStarted at %s UTC", election.StartDate.Format("2006-01-02 15:04:05")))
 		if !election.FinalResults {
@@ -190,7 +192,7 @@ func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		} else {
 			text = append(text, fmt.Sprintf("Census size %d", censusUserCount))
 		}
-		title = election.Metadata.Title["default"]
+		title = metadata.Title["default"]
 	} else {
 		// election found in the database, so we use the information from the database
 		text = append(text, fmt.Sprintf("\nStarted at %s UTC", dbElection.CreatedTime.Format("2006-01-02 15:04:05")))

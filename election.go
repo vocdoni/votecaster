@@ -166,17 +166,18 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	if err != nil {
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
+	metadata := helpers.UnpackMetadata(election.Metadata)
 	png, err := imageframe.QuestionImage(election)
 	if err != nil {
 		return fmt.Errorf("failed to generate image: %v", err)
 	}
 	// send the response
 	response := strings.ReplaceAll(frame(frameVote), "{image}", imageLink(png))
-	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+	response = strings.ReplaceAll(response, "{title}", metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
 	response = strings.ReplaceAll(response, "{state}", ctx.URLParam("electionID"))
 
-	r := election.Metadata.Questions[0].Choices
+	r := metadata.Questions[0].Choices
 	for i := 0; i < 4; i++ {
 		if len(r) > i {
 			opt := ""
@@ -575,8 +576,12 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 	usersCount, usersCountInitial uint32,
 	communityID *uint64,
 ) error {
-	if election == nil || election.Metadata == nil || len(election.Metadata.Questions) == 0 {
+	if election == nil || election.Metadata == nil {
 		return fmt.Errorf("invalid election")
+	}
+	metadata := helpers.UnpackMetadata(election.Metadata)
+	if len(metadata.Questions) == 0 {
+		return fmt.Errorf("invalid election metadata")
 	}
 	var community *mongo.ElectionCommunity
 	if communityID != nil {
@@ -595,7 +600,7 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 		election.ElectionID,
 		profile.FID,
 		source,
-		election.Metadata.Title["default"],
+		metadata.Title["default"],
 		usersCount,
 		usersCountInitial,
 		election.EndDate,

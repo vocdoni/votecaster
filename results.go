@@ -63,6 +63,7 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to fetch election: %w", err))
 	}
+	metadata := helpers.UnpackMetadata(election.Metadata)
 	if election.Results == nil || len(election.Results) == 0 {
 		return errorImageResponse(ctx, fmt.Errorf("election results not ready"))
 	}
@@ -99,7 +100,7 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 
 	// if not final results, create the dynamic PNG image with the results
 	response := strings.ReplaceAll(frame(frameResults), "{image}", resultsPNGfile(election, electiondb, totalWeightStr))
-	response = strings.ReplaceAll(response, "{title}", election.Metadata.Title["default"])
+	response = strings.ReplaceAll(response, "{title}", metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)
