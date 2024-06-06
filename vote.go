@@ -167,23 +167,26 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 // vote creates a vote transaction, including the frame signature packet and sends it to the vochain.
 // It returns the nullifier of the vote (which is the unique identifier of the vote), the voterID and an error.
 func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, cli *apiclient.HTTPclient) (types.HexBytes, types.HexBytes, uint64, *big.Int, error) {
-	// fetch the public key from the signature and generate the census proof
-	actionMessage, message, pubKey, err := VerifyFrameSignature(packet)
+	messageBytes, err := hex.DecodeString(packet.TrustedData.MessageBytes)
 	if err != nil {
-		return nil, nil, 0, nil, ErrFrameSignature
+		return nil, nil, 0, nil, fmt.Errorf("failed to decode message bytes: %w", err)
+	}
+	actionMessage, pubKey, fid, err := farcasterproof.VerifyFrameSignature(messageBytes)
+	if err != nil {
+		return nil, nil, 0, nil, fmt.Errorf("failed to verify frame signature: %w", err)
 	}
 
 	// compute the voterID, based on the public key
-	voterID := state.NewVoterID(state.VoterIDTypeEd25519, pubKey)
+	voterID := state.NewFarcasterVoterID(pubKey, fid)
 	log.Infow("received vote request", "electionID", electionID, "voterID", fmt.Sprintf("%x", voterID.Address()))
 
 	// compute the nullifier for the vote (a hash of the voterID and the electionID)
-	nullifier := farcasterproof.GenerateNullifier(message.Data.Fid, electionID)
+	nullifier := farcasterproof.GenerateNullifier(fid, electionID)
 
 	// check if the voter is elegible to vote (in the census)
 	proof, err := cli.CensusGenProof(root, voterID.Address())
 	if err != nil {
-		return nil, voterID.Address(), message.Data.Fid, nil, ErrNotInCensus
+		return nil, voterID.Address(), fid, nil, ErrNotInCensus
 	}
 
 	// check if the voter already voted
@@ -192,7 +195,7 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 		return nullifier, voterID.Address(), 0, proof.LeafWeight, fmt.Errorf("failed to verify vote: %w", err)
 	}
 	if code == http.StatusOK {
-		return nullifier, voterID.Address(), message.Data.Fid, proof.LeafWeight, ErrAlreadyVoted
+		return nullifier, voterID.Address(), fid, proof.LeafWeight, ErrAlreadyVoted
 	}
 
 	// build the vote package
@@ -213,10 +216,12 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 
 	log.Debugw("received",
 		"msg", packet.TrustedData.MessageBytes,
-		"fid", message.Data.Fid,
+		"fid", fid,
 		"pubkey", fmt.Sprintf("%x", pubKey),
 		"button", actionMessage.ButtonIndex,
-		"url", actionMessage.Url)
+		"url", actionMessage.Url,
+		"state", actionMessage.State,
+	)
 
 	// build the proof for the vote transaction
 	frameSignedMessage, err := hex.DecodeString(packet.TrustedData.MessageBytes)
@@ -255,5 +260,5 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 	}
 
 	log.Infow("vote transaction sent", "txHash", fmt.Sprintf("%x", txHash), "nullifier", fmt.Sprintf("%x", nullifier))
-	return nullifier, voterID.Address(), message.Data.Fid, proof.LeafWeight, nil
+	return nullifier, voterID.Address(), fid, proof.LeafWeight, nil
 }

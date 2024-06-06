@@ -15,6 +15,7 @@ import (
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
+	"go.vocdoni.io/dvote/vochain/transaction/proofs/farcasterproof"
 )
 
 func (v *vocdoniHandler) notificationsHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -30,10 +31,13 @@ func (v *vocdoniHandler) notificationsResponseHandler(msg *apirest.APIdata, ctx 
 	if err := json.Unmarshal(msg.Data, packet); err != nil {
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
 	}
-
-	actionMessage, m, _, err := VerifyFrameSignature(packet)
+	messageBytes, err := hex.DecodeString(packet.TrustedData.MessageBytes)
 	if err != nil {
-		return ErrFrameSignature
+		return fmt.Errorf("failed to decode message bytes: %w", err)
+	}
+	actionMessage, _, fid, err := farcasterproof.VerifyFrameSignature(messageBytes)
+	if err != nil {
+		return fmt.Errorf("failed to verify frame signature: %w", err)
 	}
 
 	if actionMessage.ButtonIndex == 3 {
@@ -47,10 +51,10 @@ func (v *vocdoniHandler) notificationsResponseHandler(msg *apirest.APIdata, ctx 
 	allowNotifications := actionMessage.ButtonIndex == 1
 
 	var png string
-	if err := v.db.SetNotificationsAcceptedForUser(m.Data.Fid, allowNotifications); err != nil {
+	if err := v.db.SetNotificationsAcceptedForUser(fid, allowNotifications); err != nil {
 		return fmt.Errorf("failed to update notifications: %w", err)
 	}
-	log.Infow("notifications updated", "fid", m.Data.Fid, "allow", allowNotifications)
+	log.Infow("notifications updated", "fid", fid, "allow", allowNotifications)
 	if allowNotifications {
 		png = imageframe.NotificationsAcceptedImage()
 	} else {
@@ -67,10 +71,13 @@ func (v *vocdoniHandler) notificationsFilterByUserHandler(msg *apirest.APIdata, 
 	if err := json.Unmarshal(msg.Data, packet); err != nil {
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
 	}
-
-	actionMessage, m, _, err := VerifyFrameSignature(packet)
+	messageBytes, err := hex.DecodeString(packet.TrustedData.MessageBytes)
 	if err != nil {
-		return ErrFrameSignature
+		return fmt.Errorf("failed to decode message bytes: %w", err)
+	}
+	actionMessage, _, fid, err := farcasterproof.VerifyFrameSignature(messageBytes)
+	if err != nil {
+		return fmt.Errorf("failed to verify frame signature: %w", err)
 	}
 
 	setErrorResponse := func(err error) []byte {
@@ -94,17 +101,17 @@ func (v *vocdoniHandler) notificationsFilterByUserHandler(msg *apirest.APIdata, 
 	allowNotifications := actionMessage.ButtonIndex == 1
 
 	if !allowNotifications {
-		if err := v.db.AddNotificationMutedUser(m.Data.Fid, user.UserID); err != nil {
+		if err := v.db.AddNotificationMutedUser(fid, user.UserID); err != nil {
 			return ctx.Send(setErrorResponse(err), http.StatusOK)
 		}
 	} else {
-		if err := v.db.DelNotificationMutedUser(m.Data.Fid, user.UserID); err != nil {
+		if err := v.db.DelNotificationMutedUser(fid, user.UserID); err != nil {
 			return ctx.Send(setErrorResponse(err), http.StatusOK)
 		}
 	}
 
 	var png string
-	log.Infow("notifications updated by user", "fid", m.Data.Fid, "filtered user", user.Username, "allow", allowNotifications)
+	log.Infow("notifications updated by user", "fid", fid, "filtered user", user.Username, "allow", allowNotifications)
 	if allowNotifications {
 		png = imageframe.NotificationsAcceptedImage()
 	} else {
