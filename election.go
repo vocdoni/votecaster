@@ -691,7 +691,7 @@ func (v *vocdoniHandler) remindersHandler(msg *apirest.APIdata, ctx *httprouter.
 	if election.Community == nil || election.Community.ID == 0 {
 		return fmt.Errorf("election is not a community election")
 	}
-	if !v.db.IsCommunityAdmin(auth.UserID, election.Community.ID) {
+	if !v.db.IsCommunityAdmin(auth.UserID, election.Community.ID) && auth.UserID != v.adminFID {
 		return ctx.Send([]byte("user is not an admin of the community"), http.StatusForbidden)
 	}
 	// get the remindable users and the number of alredy reminded users from the
@@ -785,7 +785,7 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 	if election.Community == nil || election.Community.ID == 0 {
 		return fmt.Errorf("election is not a community election")
 	}
-	if !v.db.IsCommunityAdmin(auth.UserID, election.Community.ID) {
+	if !v.db.IsCommunityAdmin(auth.UserID, election.Community.ID) && auth.UserID != v.adminFID {
 		return ctx.Send([]byte("user is not an admin of the community"), http.StatusForbidden)
 	}
 	// decode the reminders request from the body, there are two types of

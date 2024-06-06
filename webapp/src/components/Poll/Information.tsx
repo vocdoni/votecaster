@@ -1,6 +1,6 @@
 import { HStack, Link, Text, VStack } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
-import { vocdoniExplorer } from '~constants'
+import { vocdoniExplorer, adminFID } from '~constants'
 import { fetchCommunity } from '~queries/communities'
 import { humanDate } from '~util/strings'
 import { useAuth } from '../Auth/useAuth'
@@ -19,7 +19,7 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
 
   const isAdmin = () => {
     if (!profile || !community) return false;
-    return community.admins.some((admin) => admin.fid === profile.fid)
+    return community.admins.some((admin) => admin.fid === profile.fid) || profile.fid === adminFID
   }
 
   if (!poll) return

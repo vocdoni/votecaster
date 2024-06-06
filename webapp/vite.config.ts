@@ -33,6 +33,7 @@ const viteconfig: UserConfigFn = ({ mode }) => {
       'import.meta.env.VOCDONI_COMMUNITYHUBADDRESS': JSON.stringify(
         process.env.VOCDONI_COMMUNITYHUBADDRESS || '0xC6d3ae00a9c2322dE48B63053e989E7E2e6C2cc9'
       ),
+      'import.meta.env.VOCDONI_ADMINFID': parseInt(process.env.ADMINFID || '7548') 
     },
     plugins: [
       tsconfigPaths(),

@@ -17,3 +17,5 @@ export const explorers = {
 }
 
 export const degenNameResolverContractAddress = '0x4087fb91A1fBdef05761C02714335D232a2Bf3a1'
+
+export const adminFID = import.meta.env.VOCDONI_ADMINFID

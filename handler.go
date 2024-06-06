@@ -45,6 +45,7 @@ type vocdoniHandler struct {
 
 	backgroundQueue  sync.Map
 	addAuthTokenFunc func(uint64, string)
+	adminFID         uint64
 }
 
 func NewVocdoniHandler(
@@ -58,6 +59,7 @@ func NewVocdoniHandler(
 	token *uuid.UUID,
 	airstack *airstack.Airstack,
 	comhub *communityhub.CommunityHub,
+	adminFID uint64,
 ) (*vocdoniHandler, error) {
 	// Get the vocdoni account
 	if accountPrivKey == "" {
@@ -95,6 +97,7 @@ func NewVocdoniHandler(
 		fcapi:         fcapi,
 		airstack:      airstack,
 		comhub:        comhub,
+		adminFID:      adminFID,
 		electionLRU: func() *lru.Cache[string, *api.Election] {
 			lru, err := lru.New[string, *api.Election](100)
 			if err != nil {

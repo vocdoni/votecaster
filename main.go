@@ -58,6 +58,7 @@ func main() {
 	flag.String("mongoURL", "", "The URL of the MongoDB server")
 	flag.String("mongoDB", "voteframe", "The name of the MongoDB database")
 	flag.String("adminToken", "", "The admin token to use for the API (if not set, it will be generated)")
+	flag.Uint64("adminFID", 7548, "The FID of the admin farcaster account with superuser powers")
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
 	flag.String("web3",
@@ -111,6 +112,7 @@ func main() {
 	dataDir := viper.GetString("dataDir")
 	apiEndpoint := viper.GetString("apiEndpoint")
 	apiToken := viper.GetString("apiToken")
+	adminFID := viper.GetUint64("adminFID")
 	vocdoniPrivKey := viper.GetString("vocdoniPrivKey")
 	censusFromFile := viper.GetString("censusFromFile")
 	logLevel := viper.GetString("logLevel")
@@ -193,6 +195,7 @@ func main() {
 		"web3endpoint", web3endpoint,
 		"indexer", indexer,
 		"apiToken", apiToken,
+		"adminFID", adminFID,
 		"airstackAPIEndpoint", airstackEndpoint,
 		"airstackAPIKey", airstackKey,
 		"airstackBlockchains", airstackBlockchains,
@@ -319,7 +322,7 @@ func main() {
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)
 	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo,
-		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, comHub)
+		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, comHub, adminFID)
 	if err != nil {
 		log.Fatal(err)
 	}
