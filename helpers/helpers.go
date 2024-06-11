@@ -1,9 +1,11 @@
 package helpers
 
 import (
+	"encoding/json"
 	"math/big"
 
 	"go.vocdoni.io/dvote/api"
+	"go.vocdoni.io/dvote/log"
 )
 
 // ExtractResults extracts the choices and results from an election. It returns nil if there is an issue processing the data.
@@ -104,15 +106,24 @@ func TruncateDecimals(num *big.Int, numberOfDecimals uint32) *big.Int {
 // UnpackMetadata is a helper function to unpack the metadata of an election
 // to the api.ElectionDescription type.
 func UnpackMetadata(metadata any) *api.ElectionDescription {
-	desc, ok := metadata.(*api.ElectionDescription)
-	if !ok {
-		desc = &api.ElectionDescription{
-			Title: map[string]string{"default": "unknown"},
-			Questions: []api.Question{{
-				Choices: []api.ChoiceMetadata{},
-			}},
-		}
+	emptyDesc := api.ElectionDescription{
+		Title: map[string]string{"default": "unknown"},
+		Questions: []api.Question{{
+			Choices: []api.ChoiceMetadata{},
+		}},
 	}
-
+	// Note that we need to marshal and then unmarsla because the metadata object can be of any type.
+	// We expect to find the ElectionDescription object inside the metadata, but it could be anything else.
+	// So the safer approach is to marshal and unmarshal it.
+	data, err := json.Marshal(metadata)
+	if err != nil {
+		log.Warnw("failed to marshal metadata", "error", err)
+		return &emptyDesc
+	}
+	desc := &api.ElectionDescription{}
+	if err := json.Unmarshal(data, desc); err != nil {
+		log.Warnw("failed to unmarshal metadata", "error", err)
+		return &emptyDesc
+	}
 	return desc
 }
