@@ -121,7 +121,7 @@ func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipan
 ) (*CensusInfo, error) {
 	censusList := api.CensusParticipants{}
 	for _, p := range participants {
-		voterID := state.NewVoterID(state.VoterIDTypeEd25519, p.PubKey)
+		voterID := state.NewFarcasterVoterID(p.PubKey, p.FID)
 		censusList.Participants = append(censusList.Participants, api.CensusParticipant{
 			Key:    voterID.Address(),
 			Weight: (*types.BigInt)(p.Weight),
