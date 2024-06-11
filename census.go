@@ -126,6 +126,7 @@ func CreateCensus(cli *apiclient.HTTPclient, participants []*FarcasterParticipan
 			Key:    voterID.Address(),
 			Weight: (*types.BigInt)(p.Weight),
 		})
+		log.Debugw("participant added to census", "username", p.Username, "weight", p.Weight, "fid", p.FID, "pubkey", fmt.Sprintf("%x", p.PubKey), "key", fmt.Sprintf("%x", voterID.Address()))
 	}
 	if len(censusList.Participants) == 0 {
 		return nil, ErrNoValidParticipants

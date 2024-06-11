@@ -23,6 +23,7 @@ const (
 	farcasterV2APIrecentUsers   = "https://api.warpcast.com/v2/recent-users?filter=off&limit=%d"
 	Throttle                    = 200 * time.Millisecond
 	updatedUsersByIteration     = 200
+	runners                     = 10
 	protocolEthereum            = "ethereum"
 	userAgent                   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
 )
@@ -248,7 +249,7 @@ func (d *FarcasterDiscover) Run(ctx context.Context, indexNewUsers bool) {
 	go d.runPendingProfiles(ctx)
 	go d.runExistingProfilesUpdate(ctx)
 	if indexNewUsers {
-		go d.runDiscoverProfilesFromRandomStart(ctx, 10)
+		go d.runDiscoverProfilesFromRandomStart(ctx, runners)
 	}
 }
 

@@ -178,7 +178,8 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 
 	// compute the voterID, based on the public key
 	voterID := state.NewFarcasterVoterID(pubKey, fid)
-	log.Infow("received vote request", "electionID", electionID, "voterID", fmt.Sprintf("%x", voterID.Address()))
+	log.Infow("received vote request", "electionID", electionID, "voterID", fmt.Sprintf("%x", voterID.Address()),
+		"fid", fid, "pubkey", fmt.Sprintf("%x", pubKey), "button", actionMessage.ButtonIndex, "url", string(actionMessage.Url), "state", string(actionMessage.State))
 
 	// compute the nullifier for the vote (a hash of the voterID and the electionID)
 	nullifier := farcasterproof.GenerateNullifier(fid, electionID)
