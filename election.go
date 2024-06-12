@@ -24,6 +24,7 @@ import (
 	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/types"
 	"go.vocdoni.io/dvote/util"
+	"go.vocdoni.io/dvote/vochain/transaction/proofs/farcasterproof"
 )
 
 const (
@@ -171,11 +172,20 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	if err != nil {
 		return fmt.Errorf("failed to generate image: %v", err)
 	}
+
+	// create the frame state with the electionID, required to verify the vote
+	state, err := json.Marshal(&farcasterproof.FarcasterState{
+		ProcessID: electionIDbytes,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal farcaster state: %w", err)
+	}
+
 	// send the response
 	response := strings.ReplaceAll(frame(frameVote), "{image}", imageLink(png))
 	response = strings.ReplaceAll(response, "{title}", metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", ctx.URLParam("electionID"))
-	response = strings.ReplaceAll(response, "{state}", ctx.URLParam("electionID"))
+	response = strings.ReplaceAll(response, "{state}", string(state))
 
 	r := metadata.Questions[0].Choices
 	for i := 0; i < 4; i++ {
