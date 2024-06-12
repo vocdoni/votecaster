@@ -1103,6 +1103,7 @@ func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, progress chan in
 					PubKey:   signerBytes,
 					Weight:   big.NewInt(1),
 					Username: user.Username,
+					FID:      fid,
 				}
 			}
 			// update the progress if the progress channel is provided
