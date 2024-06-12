@@ -83,7 +83,7 @@ var frameVote = header + `
     <meta property="fc:frame:button:2" content="{option1}" />
     <meta property="fc:frame:button:3" content="{option2}" />
     <meta property="fc:frame:button:4" content="{option3}" />
-    <meta property="fc:frame:state" content="{state}" />
+    <meta property="fc:frame:state" content='{state}' />
 ` + body
 
 var frameAfterVote = header + `
