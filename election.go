@@ -160,13 +160,27 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 		return nil
 	}
 
-	log.Infow("received show election request", "electionID", ctx.URLParam("electionID"))
-
-	// create a PNG image with the election description
+	// get the election from the cache or the API
 	election, err := v.election(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
+
+	// unpack the frame data from the message body
+	packet := &FrameSignaturePacket{}
+	if err := json.Unmarshal(msg.Data, packet); err != nil {
+		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
+	}
+
+	// check if the user is eligible to vote and extract the vote data
+	voteData, err := extractVoteDataAndCheckIfEligible(packet, electionID, election.Census.CensusRoot, v.cli)
+	// handle the error (if any)
+	if response, err := handleVoteError(err, voteData, electionIDbytes); err != nil {
+		ctx.SetResponseContentType("text/html; charset=utf-8")
+		return ctx.Send([]byte(response), http.StatusOK)
+	}
+
+	// get the election metadata (question, title, etc.)
 	metadata := helpers.UnpackMetadata(election.Metadata)
 	png, err := imageframe.QuestionImage(election)
 	if err != nil {
