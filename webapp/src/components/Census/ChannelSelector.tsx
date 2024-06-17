@@ -1,5 +1,5 @@
 import { AsyncSelect } from 'chakra-react-select'
-import { useState } from 'react'
+import { forwardRef, useState } from 'react'
 import { ControllerRenderProps, FieldValues, useFormContext } from 'react-hook-form'
 import { useAuth } from '~components/Auth/useAuth'
 import { fetchChannelQuery } from '~queries/channels'
@@ -9,7 +9,7 @@ export type ChannelFormValues = {
   channel?: string
 }
 
-const ChannelSelector = (props: ControllerRenderProps<FieldValues, 'channel'>) => {
+const ChannelSelector = forwardRef((props: ControllerRenderProps<FieldValues, 'channel'>, ref: React.Ref<any>) => {
   const { bfetch } = useAuth()
   const { clearErrors, setError } = useFormContext<ChannelFormValues>()
   const [loading, setLoading] = useState<boolean>(false)
@@ -49,8 +49,9 @@ const ChannelSelector = (props: ControllerRenderProps<FieldValues, 'channel'>) =
           setLoading(false)
         }
       }}
+      ref={ref}
     />
   )
-}
+})
 
 export default ChannelSelector

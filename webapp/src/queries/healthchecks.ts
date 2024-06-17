@@ -1,9 +1,8 @@
 import { degen } from 'wagmi/chains'
-import { degenChainRpc } from '~constants'
 
 export const degenHealth = async (): Promise<boolean> => {
   try {
-    const response = await fetch(degenChainRpc, {
+    const response = await fetch(degen.rpcUrls.default.http[0], {
       method: 'POST',
       body: JSON.stringify({
         method: 'eth_blockNumber',

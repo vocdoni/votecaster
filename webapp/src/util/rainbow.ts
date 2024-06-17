@@ -1,12 +1,21 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { BrowserProvider } from 'ethers'
 import { UseWalletClientReturnType } from 'wagmi'
-import { degen, localhost } from 'wagmi/chains'
+import { base, baseSepolia, Chain, degen, localhost } from 'wagmi/chains'
+
+const sepolia: Chain = {
+  ...baseSepolia,
+  rpcUrls: {
+    default: {
+      http: ['https://base-sepolia-rpc.publicnode.com'],
+    },
+  },
+}
 
 export const config = getDefaultConfig({
   appName: 'farcaster.vote',
   projectId: '735ab19f8bdb36d6ab32328218ded4ac',
-  chains: [degen, localhost],
+  chains: [degen, base, sepolia, localhost],
 })
 
 export const walletClientToSigner = async (walletClient: UseWalletClientReturnType['data']) => {

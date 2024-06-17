@@ -3,6 +3,8 @@ import { useFormContext } from 'react-hook-form'
 import { FaExternalLinkAlt } from 'react-icons/fa'
 import { MdHowToVote } from 'react-icons/md'
 import { Link as RouterLink } from 'react-router-dom'
+import { useAccount } from 'wagmi'
+import { chainExplorer } from '~util/chain'
 import { CommunityMetaFormValues } from './Meta'
 
 type DoneProps = {
@@ -12,6 +14,7 @@ type DoneProps = {
 
 const CommunityDone = ({ tx, id }: DoneProps) => {
   const { watch } = useFormContext<CommunityMetaFormValues>()
+  const { chain } = useAccount()
   const src = watch('src')
 
   return (
@@ -26,9 +29,9 @@ const CommunityDone = ({ tx, id }: DoneProps) => {
             )}
             <Heading mb={10} size='lg'>
               Your community is now live on
-              <Link href={`https://explorer.degen.tips/tx/${tx}`} isExternal>
+              <Link href={`${chainExplorer(chain)}/tx/${tx}`} isExternal>
                 {' '}
-                🎩 Degenchain!
+                {chain?.name}
                 <Icon as={FaExternalLinkAlt} w={4} />
               </Link>
             </Heading>

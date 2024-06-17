@@ -10,6 +10,40 @@ if (['dev', 'stg'].includes(env)) {
   explorer = `https://${env}.explorer.vote`
 }
 
+type ContractAddresses = {
+  degen: string
+  base: string
+  [key: string]: string
+}
+
+const alias = (str: string) => {
+  if (str === 'basesep') {
+    return 'baseSepolia'
+  }
+  return str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+}
+
+const parseEnvVars = (envVar: string): ContractAddresses => {
+  const result: { [key: string]: string } = {}
+  const pairs = envVar.split(',')
+
+  pairs.forEach((pair) => {
+    const [chain, value] = pair.split(':')
+    if (!chain || !value) {
+      throw new Error(`Invalid format for pair: ${pair}`)
+    }
+    result[alias(chain)] = value
+  })
+
+  // Ensure 'degen' and 'base' are present
+  if (!result.degen || !(result.base || result.baseSepolia)) {
+    throw new Error('Both "degen" and "base" contract addresses must be provided')
+  }
+
+  // Return the result as ContractAddresses type
+  return result as ContractAddresses
+}
+
 // https://vitejs.dev/config/
 const viteconfig: UserConfigFn = ({ mode }) => {
   // load env variables from .env files
@@ -28,11 +62,11 @@ const viteconfig: UserConfigFn = ({ mode }) => {
       'import.meta.env.VOCDONI_ENVIRONMENT': JSON.stringify(env),
       'import.meta.env.VOCDONI_EXPLORER': JSON.stringify(explorer),
       'import.meta.env.MAINTENANCE': JSON.stringify(process.env.MAINTENANCE || false),
-      'import.meta.env.VOCDONI_DEGENCHAINRPC': JSON.stringify(
-        process.env.VOCDONI_DEGENCHAINRPC || 'https://rpc.degen.tips'
-      ),
-      'import.meta.env.VOCDONI_COMMUNITYHUBADDRESS': JSON.stringify(
-        process.env.VOCDONI_COMMUNITYHUBADDRESS || '0xC6d3ae00a9c2322dE48B63053e989E7E2e6C2cc9'
+      'import.meta.env.COMMUNITY_HUB_ADDRESSES': JSON.stringify(
+        parseEnvVars(
+          process.env.VOCDONI_COMMUNITY_HUB_ADDRESSES ||
+            'degen:0x1Be05fD83B43D3d5Eb930Ab44f326Fe69d63bd63,basesep:0xdB5a0d05788A7D94026286951301545082C2A088'
+        )
       ),
       'import.meta.env.VOCDONI_ADMINFID': parseInt(process.env.ADMINFID || '7548'),
     },

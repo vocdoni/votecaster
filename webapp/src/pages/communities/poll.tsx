@@ -9,12 +9,14 @@ import { contractDataToObject } from '~util/mappings'
 const CommunityPoll = () => {
   const { pid: electionId, id: communityId } = useParams()
   const { connected } = useDegenHealthcheck()
-  const contractQuery = useContractPollInfo(communityId, electionId)
+  const { data } = useContractPollInfo(communityId, electionId)
   const apiQuery = useApiPollInfo(electionId)
 
   if (apiQuery.isLoading || apiQuery.error) {
     return <Check isLoading={apiQuery.isLoading} error={apiQuery.error} />
   }
+
+  console.log('data from new contract call:', data)
 
   // Merge contract and API data
   let results = {
@@ -22,17 +24,17 @@ const CommunityPoll = () => {
     ...apiQuery.data,
   } as PollInfo
 
-  if (connected && contractQuery.data?.date) {
+  if (connected && data?.date) {
     results = merge.withOptions(
       {
         mergeArrays: false,
       },
       results,
-      contractDataToObject(contractQuery.data)
+      contractDataToObject(data)
     ) as PollInfo
   }
 
-  return <PollView loading={false} onChain={!!contractQuery.data} poll={results} />
+  return <PollView loading={false} onChain={!!data} poll={results} />
 }
 
 export default CommunityPoll

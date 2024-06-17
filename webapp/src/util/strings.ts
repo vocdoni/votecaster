@@ -25,3 +25,5 @@ export const hashString = async (str: string) => {
 }
 
 export const shortHex = (hex: string) => hex.substring(0, 6) + '...' + hex.substring(hex.length - 4)
+
+export const camelize = (str: string) => str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
