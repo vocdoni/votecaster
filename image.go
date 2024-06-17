@@ -61,6 +61,10 @@ func (v *vocdoniHandler) preview(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
+	pngResults := v.db.FinalResultsPNG(electionID)
+	if pngResults != nil {
+		return imageResponse(ctx, pngResults)
+	}
 	election, err := v.election(electionID)
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to get election: %w", err))
