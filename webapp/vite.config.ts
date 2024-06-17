@@ -27,13 +27,14 @@ const viteconfig: UserConfigFn = ({ mode }) => {
       'import.meta.env.APP_URL': JSON.stringify(process.env.APP_URL || 'https://dev.farcaster.vote'),
       'import.meta.env.VOCDONI_ENVIRONMENT': JSON.stringify(env),
       'import.meta.env.VOCDONI_EXPLORER': JSON.stringify(explorer),
+      'import.meta.env.MAINTENANCE': JSON.stringify(process.env.MAINTENANCE || false),
       'import.meta.env.VOCDONI_DEGENCHAINRPC': JSON.stringify(
         process.env.VOCDONI_DEGENCHAINRPC || 'https://rpc.degen.tips'
       ),
       'import.meta.env.VOCDONI_COMMUNITYHUBADDRESS': JSON.stringify(
         process.env.VOCDONI_COMMUNITYHUBADDRESS || '0xC6d3ae00a9c2322dE48B63053e989E7E2e6C2cc9'
       ),
-      'import.meta.env.VOCDONI_ADMINFID': parseInt(process.env.ADMINFID || '7548') 
+      'import.meta.env.VOCDONI_ADMINFID': parseInt(process.env.ADMINFID || '7548'),
     },
     plugins: [
       tsconfigPaths(),
