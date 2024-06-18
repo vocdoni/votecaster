@@ -19,7 +19,7 @@ export const TopTenPolls = (props: BoxProps) => {
 
   if (!data || !data.length) return null
 
-  return <TopPolls polls={data} title='Top 10 polls (by votes)' {...props} />
+  return <TopPolls polls={data} title='Top 10 polls (by votes) for the last 60 days' {...props} />
 }
 
 export type LatestPollsSimplifiedProps = BoxProps & {
