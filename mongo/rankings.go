@@ -2,11 +2,9 @@ package mongo
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"time"
 
-	"github.com/vocdoni/vote-frame/helpers"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.vocdoni.io/dvote/log"
@@ -107,41 +105,21 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 		if election.CastedVotes == 0 {
 			continue
 		}
-		eID, err := hex.DecodeString(election.ElectionID)
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-
-		title := election.Question
-		if title == "" {
-			// if election question is not stored in the database, try to get it from the API
-			// THIS CODE CAN BE REMOVE AT SOME POINT, WHEN DB IS POPULATED
-			electionInfo, err := ms.election(eID)
-			if err != nil {
-				log.Warn(err)
-			} else {
-				if electionInfo != nil && electionInfo.Metadata != nil {
-					metadata := helpers.UnpackMetadata(electionInfo.Metadata)
-					title = metadata.Title["default"]
-				}
-			}
-		}
-
-		username := ""
+		var username, displayname string
 		user, err := ms.userData(election.UserID)
 		if err != nil {
 			log.Warn(err)
 		} else {
 			username = user.Username
+			displayname = user.Displayname
 		}
 
 		ranking = append(ranking, ElectionRanking{
 			ElectionID:           election.ElectionID,
 			VoteCount:            election.CastedVotes,
 			CreatedByFID:         election.UserID,
-			CreatedByDisplayname: user.Displayname,
-			Title:                title,
+			CreatedByDisplayname: displayname,
+			Title:                election.Question,
 			CreatedByUsername:    username,
 		})
 
@@ -209,26 +187,6 @@ func (ms *MongoStorage) LastCreatedElections(count int) ([]*Election, error) {
 		if err := cursor.Decode(&election); err != nil {
 			return nil, fmt.Errorf("failed to decode election: %w", err)
 		}
-
-		// if election question is not stored in the database, try to get it from the API
-		// THIS CODE CAN BE REMOVE AT SOME POINT, WHEN DB IS POPULATED
-		if election.Question == "" {
-			eID, err := hex.DecodeString(election.ElectionID)
-			if err != nil {
-				log.Warn(err)
-				continue
-			}
-			electionInfo, err := ms.election(eID)
-			if err != nil {
-				log.Warn(err)
-			} else {
-				if electionInfo != nil && electionInfo.Metadata != nil {
-					metadata := helpers.UnpackMetadata(electionInfo.Metadata)
-					election.Question = metadata.Title["default"]
-				}
-			}
-		}
-
 		elections = append(elections, &election)
 	}
 
