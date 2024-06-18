@@ -110,7 +110,7 @@ func NewVocdoniHandler(
 
 	// Add the election callback to the mongo database to fetch the election information
 	db.AddElectionCallback(vh.election)
-	go vh.finalizeElectionsAtBackround(ctx)
+	go finalizeElectionsAtBackround(ctx, vh)
 	return vh, ensureAccountExist(cli)
 }
 

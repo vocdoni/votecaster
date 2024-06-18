@@ -678,6 +678,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Start the background routine to get missing election questions
+	// TODO: at some point this function could be removed
+	go populateElectionsQuestionAtBackground(mainCtx, db)
+
 	// if a bot FID is provided, start the bot background process
 	if botFid > 0 {
 		var botAPI farcasterapi.API

@@ -86,8 +86,12 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 				log.Warnf("failed to get election: %v", err)
 				continue
 			}
+			if e == nil {
+				log.Warn("missing election, from vocdoni API", "electionID", election.ElectionID)
+				continue
+			}
 			metadata := helpers.UnpackMetadata(e.Metadata)
-			if e == nil || e.Metadata == nil || metadata.Title == nil {
+			if metadata == nil || metadata.Title == nil {
 				log.Warnw("missing election question, from vocdoni API", "electionID", election.ElectionID)
 				continue
 			}
@@ -137,6 +141,7 @@ func (ms *MongoStorage) ElectionsByCommunity(communityID uint64) ([]*Election, e
 	return elections, nil
 }
 
+// LatestElections returns the latest elections, sorted by CreatedTime in descending order.
 func (ms *MongoStorage) LatestElections(limit, offset int64) ([]*Election, int64, error) {
 	opts := options.Find().SetSort(bson.D{{Key: "createdTime", Value: -1}})
 	elections := []*Election{}
@@ -178,7 +183,6 @@ func (ms *MongoStorage) getElection(electionID types.HexBytes) (*Election, error
 	result := ms.elections.FindOne(ctx, bson.M{"_id": electionID.String()})
 	var election Election
 	if err := result.Decode(&election); err != nil {
-		log.Warn(err)
 		return nil, ErrElectionUnknown
 	}
 	return &election, nil
@@ -199,5 +203,27 @@ func (ms *MongoStorage) updateElection(election *Election) error {
 	if err != nil {
 		return fmt.Errorf("cannot update election: %w", err)
 	}
+	return nil
+}
+
+func (ms *MongoStorage) SetElectionQuestion(electionID types.HexBytes, question string) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	update := bson.M{
+		"$set": bson.M{
+			"question": question,
+		},
+	}
+
+	_, err := ms.elections.UpdateOne(ctx, bson.M{"_id": electionID.String()}, update)
+	if err != nil {
+		return fmt.Errorf("cannot update election question: %w", err)
+	}
+
+	log.Infow("updated election question", "electionID", electionID.String(), "question", question)
 	return nil
 }
