@@ -7,7 +7,7 @@ export const Layout = () => (
   <Box maxW={1920} margin='0 auto'>
     <ScrollRestoration />
     <Navbar />
-    {import.meta.env.MAINTENANCE && (
+    {import.meta.env.MAINTENANCE === 'true' && (
       <Alert status='warning'>
         <AlertIcon />
         App is under maintenance, some features may not work as expected.
