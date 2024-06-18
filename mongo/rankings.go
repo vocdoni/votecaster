@@ -78,7 +78,7 @@ func (ms *MongoStorage) UsersByVoteNumber() ([]UserRanking, error) {
 	return ranking, nil
 }
 
-// ElectionsByVoteNumber returns the list elections ordered by the number of votes casted.
+// ElectionsByVoteNumber returns the list of elections ordered by the number of votes casted within the last 60 days.
 func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
@@ -86,44 +86,55 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 	limit := int64(10)
 	opts := options.FindOptions{Limit: &limit}
 	opts.SetSort(bson.M{"castedVotes": -1})
-	opts.SetProjection(bson.M{"_id": true, "castedVotes": true, "userId": true})
+	opts.SetProjection(bson.M{"_id": true, "castedVotes": true, "userId": true, "question": true})
+
+	// Calculate the date 60 days ago
+	timeLimit := time.Now().AddDate(0, 0, -60)
+
+	// Create the filter for elections within the last 60 days
+	filter := bson.M{
+		"createdTime": bson.M{"$gte": timeLimit},
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	cur, err := ms.elections.Find(ctx, bson.M{}, &opts)
+	cur, err := ms.elections.Find(ctx, filter, &opts)
 	if err != nil {
 		return nil, err
 	}
-	ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel2()
+	defer cur.Close(ctx)
+
 	var ranking []ElectionRanking
-	for cur.Next(ctx2) {
-		election := Election{}
-		err := cur.Decode(&election)
-		if err != nil {
+	for cur.Next(ctx) {
+		var election Election
+		if err := cur.Decode(&election); err != nil {
 			log.Warn(err)
+			continue
 		}
 		if election.CastedVotes == 0 {
 			continue
 		}
-		var username, displayname string
+
 		user, err := ms.userData(election.UserID)
 		if err != nil {
 			log.Warn(err)
-		} else {
-			username = user.Username
-			displayname = user.Displayname
+			continue
 		}
 
 		ranking = append(ranking, ElectionRanking{
 			ElectionID:           election.ElectionID,
 			VoteCount:            election.CastedVotes,
 			CreatedByFID:         election.UserID,
-			CreatedByDisplayname: displayname,
+			CreatedByDisplayname: user.Displayname,
 			Title:                election.Question,
-			CreatedByUsername:    username,
+			CreatedByUsername:    user.Username,
 		})
-
 	}
+
+	if err := cur.Err(); err != nil {
+		return nil, err
+	}
+
 	return ranking, nil
 }
 

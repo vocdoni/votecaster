@@ -218,6 +218,19 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on castedVotes for elections: %w", err)
 	}
 
+	// Create a compound index for 'createdTime' and 'castedVotes'
+	electionCreatedTimeCastedVotesIndexModel := mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "createdTime", Value: 1},
+			{Key: "castedVotes", Value: -1},
+		},
+	}
+
+	_, err = ms.elections.Indexes().CreateOne(ctx, electionCreatedTimeCastedVotesIndexModel)
+	if err != nil {
+		return fmt.Errorf("failed to create index on createdTime and castedVotes for elections: %w", err)
+	}
+
 	// Create index for election author. This index supports the $lookup stage
 	// where the elections collection is joined to the users collection based
 	// on the userId
