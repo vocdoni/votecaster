@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/log"
 )
@@ -126,4 +127,21 @@ func UnpackMetadata(metadata any) *api.ElectionDescription {
 		return &emptyDesc
 	}
 	return desc
+}
+
+// NormalizeAddressString converts an Ethereum address to its normalized form.
+func NormalizeAddressString(address string) string {
+	return common.HexToAddress(address).Hex()
+}
+
+// NormalizeAddressStringSlice converts a slice of Ethereum addresses to their normalized form.
+func NormalizeAddressStringSlice(addresses []string) []string {
+	normalizedAddresses := make([]string, 0, len(addresses))
+	for _, address := range addresses {
+		normalizedAddress := NormalizeAddressString(address)
+		if normalizedAddress != "" {
+			normalizedAddresses = append(normalizedAddresses, normalizedAddress)
+		}
+	}
+	return normalizedAddresses
 }

@@ -3,9 +3,12 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"time"
 
+	"github.com/vocdoni/vote-frame/helpers"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.vocdoni.io/dvote/log"
 )
@@ -161,16 +164,39 @@ func (ms *MongoStorage) UsersWithPendingProfile() ([]uint64, error) {
 	return users, nil
 }
 
+// UserByAddress returns the user that has the given address (case insensitive). If the user is not found, it returns an error.
+// Warning, this is expensive and should be used with caution.
+func (ms *MongoStorage) UserByAddressCaseInsensitive(address string) (*User, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	var userByAddress User
+	if err := ms.users.FindOne(ctx, bson.M{
+		"addresses": bson.M{
+			"$regex":   "^" + regexp.QuoteMeta(address) + "$",
+			"$options": "i",
+		},
+	}).Decode(&userByAddress); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrUserUnknown
+		}
+		return nil, err
+	}
+	return &userByAddress, nil
+}
+
 // UserByAddress returns the user that has the given address. If the user is not found, it returns an error.
 func (ms *MongoStorage) UserByAddress(address string) (*User, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	var userByAddress User
 	if err := ms.users.FindOne(ctx, bson.M{
-		"addresses": bson.M{"$in": []string{address}},
+		"addresses": bson.M{"$in": []string{helpers.NormalizeAddressString(address)}},
 	}).Decode(&userByAddress); err != nil {
 		return nil, ErrUserUnknown
 	}

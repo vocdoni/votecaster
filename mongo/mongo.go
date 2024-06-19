@@ -129,10 +129,13 @@ func (ms *MongoStorage) createIndexes() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	// Index model for the 'addresses' field
+	// Create an index for the 'addresses' field on users
 	addressesIndexModel := mongo.IndexModel{
 		Keys:    bson.D{{Key: "addresses", Value: 1}}, // 1 for ascending order
 		Options: nil,
+	}
+	if _, err := ms.users.Indexes().CreateOne(ctx, addressesIndexModel); err != nil {
+		return fmt.Errorf("failed to create index on addresses for users: %w", err)
 	}
 
 	// Index model for the 'signers' field
@@ -142,7 +145,7 @@ func (ms *MongoStorage) createIndexes() error {
 	}
 
 	// Create both indexes
-	_, err := ms.users.Indexes().CreateMany(ctx, []mongo.IndexModel{addressesIndexModel, signersIndexModel})
+	_, err := ms.users.Indexes().CreateOne(ctx, signersIndexModel)
 	if err != nil {
 		return err
 	}

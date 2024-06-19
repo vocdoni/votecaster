@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vocdoni/vote-frame/helpers"
-	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/log"
@@ -83,66 +81,6 @@ func finalizeElectionsAtBackround(ctx context.Context, v *vocdoniHandler) {
 					}
 				}
 			}
-		}
-	}
-}
-
-// populateElectionsQuestionAtBackground checks for elections without question and populates them.
-// Uses a list of API clients to retrieve the election metadata, extract the question and store it in the database.
-// Once it finish checking all current elections, it stops. It must run in the background.
-func populateElectionsQuestionAtBackground(ctx context.Context, db *mongo.MongoStorage) {
-	batchSize := int64(50) // Define the batch size
-	offset := int64(0)
-
-	apiClients := createApiClientsForElectionRecovery()
-	if len(apiClients) == 0 {
-		log.Error("failed to create any API client, aborting")
-		return
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(30 * time.Second):
-			elections, total, err := db.LatestElections(batchSize, offset)
-			if err != nil {
-				log.Errorw(err, "failed to retrieve latest elections")
-				return
-			}
-			log.Infow("populating elections question", "offset", offset, "total", total)
-			for _, election := range elections {
-				if election.Question == "" {
-					electionIDbytes, err := hex.DecodeString(election.ElectionID)
-					if err != nil {
-						log.Errorw(err, fmt.Sprintf("failed to decode electionID %x", election.ElectionID))
-						continue
-					}
-					apiElection := recoverElectionFromMultipleEndpoints(electionIDbytes, apiClients)
-					if apiElection == nil {
-						log.Warnw("failed to recover election metadata", "electionID", election.ElectionID)
-						continue
-					}
-					// Extract the question from the metadata and store it in the database
-					metadata := helpers.UnpackMetadata(apiElection.Metadata)
-					if metadata != nil && metadata.Title != nil {
-						question := metadata.Title["default"]
-						if err := db.SetElectionQuestion(types.HexBytes(electionIDbytes), question); err != nil {
-							log.Warnw("failed to set election question", "electionID", election.ElectionID, "error", err)
-						}
-					} else {
-						log.Warnw("missing election metadata", "electionID", election.ElectionID)
-					}
-				}
-				time.Sleep(1 * time.Second)
-			}
-
-			if offset+batchSize >= total {
-				log.Info("finished populating elections question")
-				return
-			}
-
-			offset += batchSize
 		}
 	}
 }

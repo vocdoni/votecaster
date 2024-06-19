@@ -1196,6 +1196,10 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 		if weightRecord == "" {
 			weightRecord = "1"
 		}
+		if weightRecord == "0" {
+			log.Warnf("address %s has weight %s", address, weightRecord)
+			continue
+		}
 		weight, ok = new(big.Int).SetString(weightRecord, 10)
 		if !ok {
 			log.Warnf("invalid weight for address %s: %s", address, weightRecord)
@@ -1297,12 +1301,11 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 			// the weight is the sum of the weights of all the addresses of the user
 			weight := new(big.Int).SetUint64(0)
 			for _, addr := range user.Addresses {
-				weightAddress, ok := addressMap[common.HexToAddress(addr).Hex()]
+				weightAddress, ok := addressMap[helpers.NormalizeAddressString(addr)]
 				if ok {
 					weight = weight.Add(weight, weightAddress)
 				}
 			}
-
 			for _, signer := range user.Signers {
 				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
 				if err != nil {
@@ -1327,7 +1330,6 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 
 	// Fetch the remaining users from the farcaster API
 	count := 0
-	log.Debugw("fetching users from farcaster", "count", len(pendingAddresses))
 	for i := 0; i < len(pendingAddresses); i += neynar.MaxAddressesPerRequest {
 		// Fetch the user data from the farcaster API
 		ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -1336,7 +1338,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 		if to > len(pendingAddresses) {
 			to = len(pendingAddresses)
 		}
-		log.Debugw("fetching users from farcaster", "from", i, "to", to)
+		log.Debugw("fetching users from neynar", "from", i, "to", to, "total", len(pendingAddresses))
 		usersData, err := v.fcapi.UserDataByVerificationAddress(ctx2, pendingAddresses[i:to])
 		if err != nil {
 			if errors.Is(err, farcasterapi.ErrNoDataFound) {
@@ -1344,6 +1346,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 			}
 			log.Errorw(err, "error fetching users from Neynar API")
 		}
+		log.Debugw("users found on neynar", "count", len(usersData))
 		for _, userData := range usersData {
 			// Add or update the user on the database
 			dbUser, err := v.db.User(userData.FID)
@@ -1353,31 +1356,36 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 					userData.FID,
 					userData.Username,
 					userData.Displayname,
-					userData.VerificationsAddresses,
+					helpers.NormalizeAddressStringSlice(userData.VerificationsAddresses),
 					userData.Signers,
-					userData.CustodyAddress,
+					helpers.NormalizeAddressString(userData.CustodyAddress),
 					0,
 				); err != nil {
 					return nil, 0, err
 				}
 			} else {
 				log.Debugw("updating user on database", "fid", userData.FID)
-				dbUser.Addresses = userData.VerificationsAddresses
+				dbUser.Addresses = helpers.NormalizeAddressStringSlice(userData.VerificationsAddresses)
 				dbUser.Username = userData.Username
 				dbUser.Signers = userData.Signers
-				dbUser.CustodyAddress = userData.CustodyAddress
+				dbUser.CustodyAddress = helpers.NormalizeAddressString(userData.CustodyAddress)
 				if err := v.db.UpdateUser(dbUser); err != nil {
 					return nil, 0, err
 				}
 			}
+
 			// find the addres on the map to get the weight
 			// the weight is the sum of the weights of all the addresses of the user
 			weight := new(big.Int).SetUint64(0)
 			for _, addr := range userData.VerificationsAddresses {
-				weightAddress, ok := addressMap[common.HexToAddress(addr).Hex()]
+				weightAddress, ok := addressMap[helpers.NormalizeAddressString(addr)]
 				if ok {
 					weight = weight.Add(weight, weightAddress)
 				}
+			}
+			if weight.Cmp(big.NewInt(0)) == 0 {
+				log.Warnw("user has no weight, skiping...", "fid", userData.FID, "address", userData.VerificationsAddresses)
+				continue
 			}
 
 			// Add the user to the participants list (with all the signers)
