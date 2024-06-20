@@ -1197,7 +1197,6 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 			weightRecord = "1"
 		}
 		if weightRecord == "0" {
-			log.Warnf("address %s has weight %s", address, weightRecord)
 			continue
 		}
 		weight, ok = new(big.Int).SetString(weightRecord, 10)
