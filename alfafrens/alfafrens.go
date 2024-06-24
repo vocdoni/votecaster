@@ -87,3 +87,43 @@ func ChannelByFid(fid uint64) (types.HexBytes, error) {
 
 	return user.ChannelAddress, nil
 }
+
+// IsChannelFollower checks if a user is a follower of a channel.
+func IsChannelFollower(channelAddress types.HexBytes, fid uint64) (bool, error) {
+	channel := channelAddress.String()
+	if !strings.HasPrefix(channel, "0x") {
+		channel = "0x" + channel
+	}
+	skip := 0
+	for {
+		url := fmt.Sprintf(channelSubscribersURL+"&first=200&skip=%d", channel, skip)
+		log.Debugw("fetching alfafrens channel subscribers", "url", url)
+		// get page of subscribers
+		resp, err := http.Get(url)
+		if err != nil {
+			return false, err
+		}
+		defer resp.Body.Close()
+		// parse the JSON response
+		var channelResponse ChannelResponse
+		if err := json.NewDecoder(resp.Body).Decode(&channelResponse); err != nil {
+			return false, err
+		}
+		// check if the desired fid is in the page, if so return the
+		// subscription status
+		for _, member := range channelResponse.Members {
+			if uint64(member.FID) == fid {
+				return member.IsSubscribed, nil
+			}
+		}
+		// if it is not in the page, check if there are more pages
+		if !channelResponse.HasMore {
+			break
+		}
+		// if there are more pages, update the skip value with the number of
+		// members in the current page
+		skip += len(channelResponse.Members)
+	}
+	// if the fid is not found in any page, return false
+	return false, nil
+}
