@@ -986,6 +986,7 @@ func (v *vocdoniHandler) checkERC20ContractHandler(msg *apirest.APIdata, ctx *ht
 	// TODO: It should receive CheckCensusSource instance
 	return ctx.Send([]byte("ok"), http.StatusOK)
 }
+
 func (v *vocdoniHandler) checkNFTContractHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	// TODO: It should receive CheckCensusSource instance
 	return ctx.Send([]byte("ok"), http.StatusOK)

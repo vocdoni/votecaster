@@ -41,6 +41,7 @@ type MongoStorage struct {
 	userAccessProfiles *mongo.Collection
 	communities        *mongo.Collection
 	avatars            *mongo.Collection
+	reputations        *mongo.Collection
 }
 
 type Options struct {
@@ -109,6 +110,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.userAccessProfiles = client.Database(database).Collection("userAccessProfiles")
 	ms.communities = client.Database(database).Collection("communities")
 	ms.avatars = client.Database(database).Collection("avatars")
+	ms.reputations = client.Database(database).Collection("reputations")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
 	// else, just createIndexes
@@ -462,7 +464,23 @@ func (ms *MongoStorage) String() string {
 		userAccessProfiles.UserAccessProfiles = append(userAccessProfiles.UserAccessProfiles, uap)
 	}
 
-	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communities, avatars, userAccessProfiles})
+	ctx12, cancel12 := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel12()
+	var reputations UserReputationCollection
+	cur, err = ms.reputations.Find(ctx12, bson.D{{}})
+	if err != nil {
+		log.Warn(err)
+	}
+	for cur.Next(ctx10) {
+		var rep UserReputation
+		err := cur.Decode(&rep)
+		if err != nil {
+			log.Warn(err)
+		}
+		reputations.UserReputations = append(reputations.UserReputations, rep)
+	}
+
+	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communities, avatars, userAccessProfiles, reputations})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -577,6 +595,18 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		_, err := ms.userAccessProfiles.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
 			log.Warnw("Error upserting userAccessProfile", "err", err, "uapID", uap.UserID)
+		}
+	}
+
+	// Upser UserReputations
+	log.Infow("importing reputations", "count", len(collection.UserReputations))
+	for _, rep := range collection.UserReputations {
+		filter := bson.M{"_id": rep.UserID}
+		update := bson.M{"$set": rep}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.userAccessProfiles.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting userReputation", "err", err, "reputationUserID", rep.UserID)
 		}
 	}
 

@@ -27,11 +27,6 @@ func (ms *MongoStorage) UserAccessProfile(userID uint64) (*UserAccessProfile, er
 	return &profile, nil
 }
 
-// SetReputationForUser updates the reputation for a given user ID.
-func (ms *MongoStorage) SetReputationForUser(userID uint64, reputation uint32) error {
-	return ms.updateUserAccessProfile(userID, bson.M{"$set": bson.M{"reputation": reputation}})
-}
-
 // SetAccessLevelForUser updates the access level for a given user ID.
 func (ms *MongoStorage) SetAccessLevelForUser(userID uint64, accessLevel uint32) error {
 	return ms.updateUserAccessProfile(userID, bson.M{"$set": bson.M{"accessLevel": accessLevel}})

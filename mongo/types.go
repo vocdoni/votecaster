@@ -52,6 +52,28 @@ type UserAccessProfile struct {
 	WarpcastAPIKey          string   `json:"warpcastAPIKey" bson:"warpcastAPIKey"`
 }
 
+type UserReputation struct {
+	UserID                         uint64 `json:"userID,omitempty" bson:"_id"`
+	FollowersCount                 uint64 `json:"followersCount" bson:"followersCount"`
+	ElectionsCreated               uint64 `json:"electionsCreated" bson:"electionsCreated"`
+	CastedVotes                    uint64 `json:"castedVotes" bson:"castedVotes"`
+	VotesCastedOnCreatedElections  uint64 `json:"participationAchievement" bson:"participationAchievement"`
+	CommunitiesCount               uint64 `json:"communitiesCount" bson:"communitiesCount"`
+	HasVotecasterNFTPass           bool   `json:"hasVotecasterNFTPass" bson:"hasVotecasterNFTPass"`
+	HasVotecasterLaunchNFT         bool   `json:"hasVotecasterLaunchNFT" bson:"hasVotecasterLaunchNFT"`
+	IsVotecasterAlphafrensFollower bool   `json:"isVotecasterAlphafrensFollower" bson:"isVotecasterAlphafrensFollower"`
+	IsVotecasterFarcasterFollower  bool   `json:"isVotecasterFarcasterFollower" bson:"isVotecasterFarcasterFollower"`
+	IsVocdoniFarcasterFollower     bool   `json:"isVocdoniFarcasterFollower" bson:"isVocdoniFarcasterFollower"`
+	VotecasterAnnouncementRecasted bool   `json:"votecasterAnnouncementRecasted" bson:"votecasterAnnouncementRecasted"`
+	HasKIWI                        bool   `json:"hasKIWI" bson:"hasKIWI"`
+	HasDegenDAONFT                 bool   `json:"hasDegenDAONFT" bson:"hasDegenDAONFT"`
+	Has10kDegenAtLeast             bool   `json:"has10kDegenAtLeast" bson:"has10kDegenAtLeast"`
+	HasTokyoDAONFT                 bool   `json:"hasTokyoDAONFT" bson:"hasTokyoDAONFT"`
+	HasProxy                       bool   `json:"hasProxy" bson:"hasProxy"`
+	Has5ProxyAtLeast               bool   `json:"has5ProxyAtLeast" bson:"has5ProxyAtLeast"`
+	HasNameDegen                   bool   `json:"hasNameDegen" bson:"hasNameDegen"`
+}
+
 // ElectionCommunity represents the community used to create an election.
 type ElectionCommunity struct {
 	ID   string `json:"id" bson:"id"`
@@ -154,6 +176,7 @@ type Collection struct {
 	CommunitiesCollection
 	AvatarsCollection
 	UserAccessProfileCollection
+	UserReputationCollection
 }
 
 // UserCollection is a dataset containing several users (used for dump and import).
@@ -194,6 +217,10 @@ type AvatarsCollection struct {
 // UserAccessProfileCollection is a dataset containing several user access profiles (used for dump and import).
 type UserAccessProfileCollection struct {
 	UserAccessProfiles []UserAccessProfile `json:"userAccessProfiles" bson:"userAccessProfiles"`
+}
+
+type UserReputationCollection struct {
+	UserReputations []UserReputation `json:"userReputations" bson:"userReputations"`
 }
 
 // UserRanking is a user ranking entry.

@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -86,12 +87,12 @@ func (ms *MongoStorage) UpdateAndGetReputationForUser(userID uint64) (uint32, *U
 		return 0, nil, fmt.Errorf("error fetching user: %w", err)
 	}
 	// Fetch the total votes cast on elections created by the user
-	totalVotes, err := ms.totalVotesForUserElections(userID)
+	totalVotes, err := ms.TotalVotesForUserElections(userID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("error fetching total votes for user elections: %w", err)
 	}
 	// Fetch the number of communities where the user is an admin
-	communitiesCount, err := ms.communitiesCountForUser(userID)
+	communitiesCount, err := ms.CommunitiesCountForUser(userID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("error fetching communities count for user: %w", err)
 	}
@@ -116,15 +117,15 @@ func (ms *MongoStorage) UpdateAndGetReputationForUser(userID uint64) (uint32, *U
 // messages by calculating the percentage of the absolute maximum number of
 // messages using the user's reputation.
 func (ms *MongoStorage) MaxDirectMessages(userID uint64, absoluteMax uint32) uint32 {
-	userRep, _, err := ms.UpdateAndGetReputationForUser(userID)
+	userRep, err := ms.UserReputation(userID)
 	if err != nil {
 		return 0
 	}
 	return absoluteMax * userRep / 100
 }
 
-// totalVotesForUserElections calculates the total number of votes casted on elections created by the user.
-func (ms *MongoStorage) totalVotesForUserElections(userID uint64) (uint64, error) {
+// TotalVotesForUserElections calculates the total number of votes casted on elections created by the user.
+func (ms *MongoStorage) TotalVotesForUserElections(userID uint64) (uint64, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -157,9 +158,9 @@ func (ms *MongoStorage) totalVotesForUserElections(userID uint64) (uint64, error
 	return 0, nil
 }
 
-// communitiesCountForUser calculates the number of communities where the
+// CommunitiesCountForUser calculates the number of communities where the
 // user is an admin.
-func (ms *MongoStorage) communitiesCountForUser(userID uint64) (uint64, error) {
+func (ms *MongoStorage) CommunitiesCountForUser(userID uint64) (uint64, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -188,4 +189,59 @@ func (ms *MongoStorage) communitiesCountForUser(userID uint64) (uint64, error) {
 	}
 
 	return 0, nil
+}
+
+// UserReputation retrieves the reputation for a given user ID.
+func (ms *MongoStorage) UserReputation(userID uint64) (uint32, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var profile UserAccessProfile
+	err := ms.userAccessProfiles.FindOne(ctx, bson.M{"_id": userID}).Decode(&profile)
+	if err != nil {
+		return 0, ErrUserUnknown
+	}
+	return profile.Reputation, nil
+}
+
+// SetReputationForUser updates the reputation for a given user ID.
+func (ms *MongoStorage) SetReputationForUser(userID uint64, reputation uint32) error {
+	return ms.updateUserAccessProfile(userID, bson.M{"$set": bson.M{"reputation": reputation}})
+}
+
+func (ms *MongoStorage) DetailedUserReputation(userID uint64) (*UserReputation, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	return ms.userReputation(userID)
+}
+
+func (ms *MongoStorage) SetDetailedReputationForUser(userID uint64, reputation *UserReputation) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+
+	return ms.updateUserReputation(userID, bson.M{"$set": reputation})
+}
+
+func (ms *MongoStorage) userReputation(userID uint64) (*UserReputation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var profile UserReputation
+	if err := ms.reputations.FindOne(ctx, bson.M{"_id": userID}).Decode(&profile); err != nil {
+		return nil, ErrUserUnknown
+	}
+	return &profile, nil
+}
+
+func (ms *MongoStorage) updateUserReputation(userID uint64, update bson.M) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	opts := options.Update().SetUpsert(true)
+	_, err := ms.reputations.UpdateOne(ctx, bson.M{"_id": userID}, update, opts)
+	return err
 }
