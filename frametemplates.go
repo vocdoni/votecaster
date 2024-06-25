@@ -27,6 +27,9 @@ var header = `
     <meta property="og:url" content="https://farcaster.vote" />
     <meta property="og:description" content="Secure and verifiable polls for Farcaster" />
     <meta property="og:image" content="/app/opengraph.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Votecaster presentation image. Votecaster. The Farcaster governance client. Run quick polls. Manage your community. Vote within a Frame." />
     <title>farcaster.vote — Farcaster Polls by Vocdoni</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
