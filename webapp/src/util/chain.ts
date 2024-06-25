@@ -8,9 +8,16 @@ export const allChains: { [key: string]: Chain } = {
   base,
 }
 
-export const chainAlias = (chain: Chain | undefined) => {
+export const chainAlias = (chain: Chain | undefined | string) => {
   if (!chain) {
     return 'degen'
+  }
+
+  if (typeof chain === 'string') {
+    if (chain === 'basesep') {
+      return 'baseSepolia'
+    }
+    return chain
   }
 
   return camelize(chain.name)
@@ -34,7 +41,7 @@ export const chainExplorer = (chain: Chain | undefined) => {
   return chain.blockExplorers?.default.url
 }
 
-export const getContractForChain = (chain: Chain | undefined) => {
+export const getContractForChain = (chain: Chain | undefined | string) => {
   if (!chain) {
     return '0x000000000000000000000000000000000000dead'
   }

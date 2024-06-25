@@ -1,5 +1,5 @@
 import { lazy } from 'react'
-import { createHashRouter, RouterProvider } from 'react-router-dom'
+import { createHashRouter, redirect, RouterProvider } from 'react-router-dom'
 import { Layout } from '~components/Layout'
 import { SuspenseLoader } from './SuspenseLoader'
 
@@ -66,6 +66,18 @@ export const Router = () => {
         },
         {
           path: '/communities/:id',
+          loader: ({ params: { id } }) => {
+            return redirect(`/communities/degen/${id}`)
+          },
+        },
+        {
+          path: '/communities/:id/poll/:pid',
+          loader: ({ params: { id, pid } }) => {
+            return redirect(`/communities/degen/${id}/poll/${pid}`)
+          },
+        },
+        {
+          path: '/communities/:chain/:id',
           element: (
             <SuspenseLoader>
               <Community />
@@ -73,7 +85,7 @@ export const Router = () => {
           ),
         },
         {
-          path: '/communities/:id/poll/:pid',
+          path: '/communities/:chain/:id/poll/:pid',
           element: (
             <SuspenseLoader>
               <CommunityPoll />

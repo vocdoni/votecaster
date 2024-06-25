@@ -5,7 +5,21 @@ export default defineConfig({
   out: 'src/bindings.ts',
   plugins: [
     foundry({
-      project: './communities',
+      project: '../communities',
+      exclude: [
+        'I*',
+        'CommunityHub.t.sol/**',
+        'Counter**',
+        'Mock*',
+        'Script.sol/**',
+        'StdError.sol/**',
+        'StdStorage.sol/**',
+        'StdAssertions.sol/**',
+        'StdInvariant.sol/**',
+        'Test**',
+        'Ownable**',
+        'Vm.sol/**',
+      ],
     }),
   ],
 })

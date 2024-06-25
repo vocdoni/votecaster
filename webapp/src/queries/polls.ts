@@ -4,6 +4,7 @@ import { useAuth } from '~components/Auth/useAuth'
 import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { appUrl } from '~constants'
 import { communityHubAbi } from '~src/bindings'
+import { getContractForChain } from '~util/chain'
 
 export const fetchPollInfo = (bfetch: FetchFunction, electionID: string) => async (): Promise<PollResponse> => {
   const response = await bfetch(`${appUrl}/poll/info/${electionID}`)
@@ -70,17 +71,16 @@ export const useApiPollInfo = (electionId?: string) => {
   })
 }
 
-export const useContractPollInfo = (communityId?: string, electionId?: string) => {
+export const useContractPollInfo = (chainAlias?: string, communityId?: string, electionId?: string) => {
   const { connected } = useDegenHealthcheck()
   return useReadContract({
     abi: communityHubAbi,
+    address: getContractForChain(chainAlias),
     functionName: 'getResult',
     args: [BigInt(communityId!), electionId as `0x${string}`],
     query: {
       retry: connected,
-      enabled: !!communityId && !!electionId,
+      enabled: !!chainAlias && !!communityId && !!electionId,
     },
   })
 }
-
-// const contractData = await contract.getResult(communityId!, toArrayBuffer(electionId!))

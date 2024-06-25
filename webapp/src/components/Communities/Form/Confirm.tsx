@@ -10,7 +10,6 @@ import {
   Progress,
   Select,
   Text,
-  VStack,
 } from '@chakra-ui/react'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { CiWallet } from 'react-icons/ci'
@@ -39,16 +38,7 @@ export const Confirm = ({ price, ...props }: ConfirmProps) => {
     )
   }
 
-  if (!chain) {
-    return (
-      <VStack alignItems='start'>
-        <Text>You're on an unsupported chain, please switch to a valid one</Text>
-        <ChainSwitcher w='full' />
-      </VStack>
-    )
-  }
-
-  if (chain.id === degen.id && !connected) {
+  if (chain && chain.id === degen.id && !connected) {
     return (
       <Alert status='warning'>
         <AlertIcon />
@@ -65,7 +55,7 @@ export const Confirm = ({ price, ...props }: ConfirmProps) => {
         <Select
           w='auto'
           ml={3}
-          value={chain.id}
+          value={chain?.id}
           onChange={(e) => {
             switchChain({ chainId: Number(e.target.value) })
           }}

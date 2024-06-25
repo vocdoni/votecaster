@@ -1,3 +1,3 @@
-[submodule "webapp/communities"]
-	path = webapp/communities
+[submodule "communities"]
+	path = communities
 	url = git@github.com:vocdoni/degen-communities.git
