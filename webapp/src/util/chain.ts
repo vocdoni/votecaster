@@ -33,6 +33,14 @@ export const isSupportedChain = (chain: Chain | undefined) => {
   return typeof import.meta.env.COMMUNITY_HUB_ADDRESSES[chainAlias(chain)] !== 'undefined'
 }
 
+export const getChain = (chain: Chain | string | undefined) => {
+  if (!chain) {
+    return degen
+  }
+
+  return allChains[chainAlias(chain)]
+}
+
 export const chainExplorer = (chain: Chain | undefined) => {
   if (!chain) {
     return explorers.degen

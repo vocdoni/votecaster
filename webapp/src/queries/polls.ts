@@ -4,7 +4,8 @@ import { useAuth } from '~components/Auth/useAuth'
 import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { appUrl } from '~constants'
 import { communityHubAbi } from '~src/bindings'
-import { getContractForChain } from '~util/chain'
+import { getChain, getContractForChain } from '~util/chain'
+import { config } from '~util/rainbow'
 
 export const fetchPollInfo = (bfetch: FetchFunction, electionID: string) => async (): Promise<PollResponse> => {
   const response = await bfetch(`${appUrl}/poll/info/${electionID}`)
@@ -75,9 +76,13 @@ export const useContractPollInfo = (chainAlias?: string, communityId?: string, e
   const { connected } = useDegenHealthcheck()
   return useReadContract({
     abi: communityHubAbi,
+    config: {
+      ...config,
+      chains: [getChain(chainAlias)],
+    },
     address: getContractForChain(chainAlias),
     functionName: 'getResult',
-    args: [BigInt(communityId!), electionId as `0x${string}`],
+    args: [BigInt(communityId!), `0x${electionId}`],
     query: {
       retry: connected,
       enabled: !!chainAlias && !!communityId && !!electionId,
