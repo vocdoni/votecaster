@@ -22,15 +22,23 @@ var header = `
     <link rel="mask-icon" href="/app/safari-pinned-tab.svg" color="#5bbad5" />
     <meta name="msapplication-TileColor" content="#da532c" />
     <meta name="theme-color" content="#ffffff" />
+    <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="farcaster.vote — Farcaster Polls by Vocdoni">
+    <meta property="og:title" content="Votecaster - Farcaster polls">
     <meta property="og:url" content="https://farcaster.vote" />
-    <meta property="og:description" content="Secure and verifiable polls for Farcaster" />
+    <meta property="og:description" content="Run quick polls and participate in Farcaster communities with e2e verifiable voting within a Frame. Built by Vocdoni." />
     <meta property="og:image" content="/app/opengraph.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Votecaster presentation image. Votecaster. The Farcaster governance client. Run quick polls. Manage your community. Vote within a Frame." />
-    <title>farcaster.vote — Farcaster Polls by Vocdoni</title>
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Votecaster - Farcaster polls">
+    <meta name="twitter:description" content="Run quick polls and participate in Farcaster communities with e2e verifiable voting within a Frame. Built by Vocdoni.">
+    <meta name="twitter:image" content="/app/opengraph.png">
+    <meta name="twitter:image:alt" content="Votecaster presentation image. Votecaster. The Farcaster governance client. Run quick polls. Manage your community. Vote within a Frame.">
+
+    <title>Votecaster - Farcaster polls</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..800&display=swap" rel="stylesheet">
