@@ -9,7 +9,7 @@ import { PollRemindersModal } from './PollRemindersModal'
 import { RemainingVotersTableModal } from './RemainingVotersTableModal'
 import { VotersTableModal } from './VotersTableModal'
 
-export const Information = ({ poll }: { poll?: PollInfo }) => {
+export const Information = ({ poll, url }: { poll?: PollInfo, url?: string }) => {
   const { profile, bfetch } = useAuth()
   const {data: community} = useQuery({
     queryKey: ['community', poll?.community?.id],
@@ -43,7 +43,7 @@ export const Information = ({ poll }: { poll?: PollInfo }) => {
             <VotersTableModal poll={poll} />
             <RemainingVotersTableModal poll={poll} />
             <ParticipantsTableModal poll={poll} />
-            {!!poll.community && !poll?.finalized && isAdmin() && <PollRemindersModal poll={poll}/>}
+            {!!poll.community && !poll?.finalized && isAdmin() && <PollRemindersModal poll={poll} frameURL={url} />}
           </HStack>
         </>
       )}

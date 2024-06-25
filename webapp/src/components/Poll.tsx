@@ -109,7 +109,7 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
         <Box bg='white' p={6} boxShadow='md' borderRadius='md'>
           <Heading size='sm'>Information</Heading>
           <Skeleton isLoaded={!loading}>
-            <Information poll={poll} />
+            <Information poll={poll} url={electionURL} />
           </Skeleton>
         </Box>
         <Flex gap={6}>

@@ -6,7 +6,6 @@ import {
   FormLabel,
   HStack,
   Icon,
-  Input,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -34,11 +33,10 @@ import { fetchPollsReminders } from '~queries/polls'
 import { fetchWarpcastAPIEnabled } from '~queries/profile'
 
 type ReminderFormValues = {
-  castURL: string
   message: string
 }
 
-export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
+export const PollRemindersModal = ({ poll, frameURL }: { poll: PollInfo, frameURL?: string }) => {
   const {
     register,
     handleSubmit,
@@ -49,7 +47,6 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
   } = useForm<ReminderFormValues>({
     defaultValues: {
       message: '',
-      castURL: '',
     },
   })
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -79,6 +76,7 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
       return false
     },
   })
+  console.log(frameURL)
 
   const [selectedUsers, setSelectedUsers] = useState<Profile[]>([])
 
@@ -143,13 +141,13 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
         method: 'POST',
         body: JSON.stringify({
           type: 'individual',
-          content: data.message + `\n\n${data.castURL}`,
+          content: data.message + `\n\n${frameURL}`,
           users: users,
         }),
       })
       const { queueId } = (await res.json()) as PollReminderQueue
       setQueueId(queueId)
-      reset({ message: '', castURL: '' }) // Reset the message field
+      reset({ message: '' }) // Reset the message field
       setSuccess('Reminders sent successfully')
     } catch (e) {
       if (e instanceof Error) {
@@ -193,24 +191,6 @@ export const PollRemindersModal = ({ poll }: { poll: PollInfo }) => {
                             onBlur={() => trigger('message')}
                           />
                           <FormErrorMessage>{errors.message?.message?.toString()}</FormErrorMessage>
-                        </FormControl>
-                      </Box>
-                      <Box w={'full'}>
-                        <FormLabel>Cast URL</FormLabel>
-                        <FormControl isInvalid={!!errors.castURL} flexGrow={1} mr={2}>
-                          <Input
-                            size='sm'
-                            placeholder='Paste the URL of a cast that includes the poll frame.'
-                            {...register('castURL', {
-                              required: 'Please enter Warpcast URL',
-                              pattern: {
-                                value: /^(https?:\/\/).+(0x[a-f\d]+)$/,
-                                message: 'Invalid URL format',
-                              },
-                            })}
-                            onBlur={() => trigger('castURL')}
-                          />
-                          <FormErrorMessage>{errors.castURL?.message?.toString()}</FormErrorMessage>
                         </FormControl>
                       </Box>
                     </VStack>
