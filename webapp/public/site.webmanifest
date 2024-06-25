@@ -1,6 +1,6 @@
 {
-    "name": "farcaster.vote - Farcaster Polls by Vocdoni",
-    "short_name": "farcater.vote",
+    "name": "Votecaster - Farcaster polls",
+    "short_name": "Votecaster",
     "icons": [
         {
             "src": "/app/android-chrome-192x192.png",
