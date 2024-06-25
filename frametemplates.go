@@ -15,13 +15,15 @@ var header = `
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="apple-touch-icon" sizes="72x72" href="/app/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/app/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/app/favicon-16x16.png" />
-    <link rel="manifest" href="/app/site.webmanifest" />
-    <link rel="mask-icon" href="/app/safari-pinned-tab.svg" color="#5bbad5" />
-    <meta name="msapplication-TileColor" content="#da532c" />
-    <meta name="theme-color" content="#ffffff" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/app/apple-touch-icon.png?v=1">
+    <link rel="icon" type="image/png" sizes="32x32" href="/app/favicon-32x32.png?v=1">
+    <link rel="icon" type="image/png" sizes="16x16" href="/app/favicon-16x16.png?v=1">
+    <link rel="manifest" href="/app/site.webmanifest?v=1">
+    <link rel="mask-icon" href="/app/safari-pinned-tab.svg?v=1" color="#5bbad5">
+    <link rel="shortcut icon" href="/app/favicon.ico?v=1">
+    <meta name="msapplication-TileColor" content="#603cba">
+    <meta name="msapplication-config" content="/app/browserconfig.xml?v=1">
+    <meta name="theme-color" content="#ffffff">
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Votecaster - Farcaster polls">
