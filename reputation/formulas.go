@@ -21,10 +21,12 @@ const (
 	vocdoniFarcasterFollowerPuntuaction       = 3
 	votecasterAnnouncementRecastedPuntuaction = 5
 	kiwiPuntuaction                           = 3
-	degenDAONFTPuntuaction                    = 15
+	degenDAONFTPuntuaction                    = 7
+	haberdasheryFTPuntuaction                 = 8
 	degenAtLeast10kPuntuaction                = 5
 	tokyoDAONFTPuntuaction                    = 5
 	proxyPuntuaction                          = 5
+	proxyStudioNFTPuntuaction                 = 5
 	proxyAtLeast5Puntuaction                  = 5
 	nameDegenPuntuaction                      = 5
 )
@@ -100,9 +102,11 @@ func activityReputation(rep *ActivityReputation) uint32 {
 //   - VotecasterAnnouncementRecasted: 'votecasterAnnouncementRecastedPuntuaction' points
 //   - KIWI: 'kiwiPuntuaction' points
 //   - DegenDAO NFT: 'degenDAONFTPuntuaction' points
+//   - Haberdashery NFT: 'haberdasheryFTPuntuaction' points
 //   - >=10k Degen: 'degenAtLeast10kPuntuaction' points
 //   - TokyoDAO NFT: 'tokyoDAONFTPuntuaction' points
 //   - Proxy: 'proxyPuntuaction' points
+//   - ProxyStudio NFT: 'proxyStudioNFTPuntuaction' points
 //   - >=5 Proxy: 'proxyAtLeast5Puntuaction' points
 //   - NameDegen: 'nameDegenPuntuaction' points
 //

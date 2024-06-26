@@ -101,9 +101,12 @@ func IsChannelFollower(channelAddress types.HexBytes, fid uint64) (bool, error) 
 		// get page of subscribers
 		resp, err := http.Get(url)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("%w: %w", ErrNetworkIssue, err)
 		}
 		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return false, fmt.Errorf("%w: %w", ErrServerIssue, fmt.Errorf("status code: %d", resp.StatusCode))
+		}
 		// parse the JSON response
 		var channelResponse ChannelResponse
 		if err := json.NewDecoder(resp.Body).Decode(&channelResponse); err != nil {

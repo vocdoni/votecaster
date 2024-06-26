@@ -476,6 +476,7 @@ func (ms *MongoStorage) String() string {
 		err := cur.Decode(&rep)
 		if err != nil {
 			log.Warn(err)
+			continue
 		}
 		reputations.UserReputations = append(reputations.UserReputations, rep)
 	}
@@ -510,7 +511,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		opts := options.Update().SetUpsert(true)
 		_, err := ms.users.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
-			log.Warnw("Error upserting user", "err", err, "user", user.UserID)
+			log.Warnw("error upserting user", "err", err, "user", user.UserID)
 		}
 	}
 
@@ -522,7 +523,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		opts := options.Update().SetUpsert(true)
 		_, err := ms.elections.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
-			log.Warnw("Error upserting election", "err", err, "election", election.ElectionID)
+			log.Warnw("error upserting election", "err", err, "election", election.ElectionID)
 		}
 	}
 
@@ -534,7 +535,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		opts := options.Update().SetUpsert(true)
 		_, err := ms.results.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
-			log.Warnw("Error upserting result", "err", err, "election", result.ElectionID)
+			log.Warnw("error upserting result", "err", err, "election", result.ElectionID)
 		}
 	}
 
@@ -546,7 +547,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		opts := options.Update().SetUpsert(true)
 		_, err := ms.voters.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
-			log.Warnw("Error upserting votersOfElection", "err", err, "election", voter.ElectionID)
+			log.Warnw("error upserting votersOfElection", "err", err, "election", voter.ElectionID)
 		}
 	}
 
@@ -558,7 +559,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		opts := options.Update().SetUpsert(true)
 		_, err := ms.census.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
-			log.Warnw("Error upserting census", "err", err, "census", census.CensusID)
+			log.Warnw("error upserting census", "err", err, "census", census.CensusID)
 		}
 	}
 
@@ -570,7 +571,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		opts := options.Update().SetUpsert(true)
 		_, err := ms.communities.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
-			log.Warnw("Error upserting community", "err", err, "community", community.ID)
+			log.Warnw("error upserting community", "err", err, "community", community.ID)
 		}
 	}
 
@@ -582,7 +583,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		opts := options.Update().SetUpsert(true)
 		_, err := ms.avatars.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
-			log.Warnw("Error upserting avatar", "err", err, "avatarID", avatar.ID)
+			log.Warnw("error upserting avatar", "err", err, "avatarID", avatar.ID)
 		}
 	}
 
@@ -594,7 +595,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		opts := options.Update().SetUpsert(true)
 		_, err := ms.userAccessProfiles.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
-			log.Warnw("Error upserting userAccessProfile", "err", err, "uapID", uap.UserID)
+			log.Warnw("error upserting userAccessProfile", "err", err, "uapID", uap.UserID)
 		}
 	}
 
@@ -606,7 +607,7 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		opts := options.Update().SetUpsert(true)
 		_, err := ms.userAccessProfiles.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
-			log.Warnw("Error upserting userReputation", "err", err, "reputationUserID", rep.UserID)
+			log.Warnw("error upserting userReputation", "err", err, "reputationUserID", rep.UserID)
 		}
 	}
 

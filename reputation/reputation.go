@@ -6,6 +6,9 @@ import (
 	"github.com/vocdoni/vote-frame/mongo"
 )
 
+// Error definitions to be handled by the caller
+var ErrNoReputationInfo = fmt.Errorf("no reputation information found about the user")
+
 // ActivityReputation struct contains the reputation of a user regarding their
 // activity, including the number of followers, the number of elections created,
 // the number of casted votes, the number of votes casted on created elections,
@@ -34,10 +37,12 @@ type Boosters struct {
 	VotecasterAnnouncementRecasted bool `json:"votecasterAnnouncementRecasted"`
 	HasKIWI                        bool `json:"hasKIWI"`
 	HasDegenDAONFT                 bool `json:"hasDegenDAONFT"`
+	HasHaberdasheryNFT             bool `json:"hasHaberdasheryNFT"`
 	Has10kDegenAtLeast             bool `json:"has10kDegenAtLeast"`
 	HasTokyoDAONFT                 bool `json:"hasTokyoDAONFT"`
 	HasProxy                       bool `json:"hasProxy"`
 	Has5ProxyAtLeast               bool `json:"has5ProxyAtLeast"`
+	HasProxyStudioNFT              bool `json:"hasProxyStudioNFT"`
 	HasNameDegen                   bool `json:"hasNameDegen"`
 }
 
@@ -62,7 +67,7 @@ type Calculator struct {
 func (c *Calculator) UserReputation(userID uint64) (*Reputation, error) {
 	dbRep, err := c.DB.DetailedUserReputation(userID)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching user detailed reputation: %w", err)
+		return &Reputation{}, fmt.Errorf("%w: %w", ErrNoReputationInfo, err)
 	}
 	activityRep := &ActivityReputation{
 		FollowersCount:                dbRep.FollowersCount,
@@ -80,10 +85,12 @@ func (c *Calculator) UserReputation(userID uint64) (*Reputation, error) {
 		VotecasterAnnouncementRecasted: dbRep.VotecasterAnnouncementRecasted,
 		HasKIWI:                        dbRep.HasKIWI,
 		HasDegenDAONFT:                 dbRep.HasDegenDAONFT,
+		HasHaberdasheryNFT:             dbRep.HasHaberdasheryNFT,
 		Has10kDegenAtLeast:             dbRep.Has10kDegenAtLeast,
 		HasTokyoDAONFT:                 dbRep.HasTokyoDAONFT,
 		HasProxy:                       dbRep.HasProxy,
 		Has5ProxyAtLeast:               dbRep.Has5ProxyAtLeast,
+		HasProxyStudioNFT:              dbRep.HasProxyStudioNFT,
 		HasNameDegen:                   dbRep.HasNameDegen,
 	}
 	return &Reputation{
