@@ -135,12 +135,19 @@ func (u *Updater) updateUsers() error {
 func (u *Updater) updateUser(user *mongo.User) error {
 	rep, err := u.db.DetailedUserReputation(user.UserID)
 	if err != nil {
+		// if the user is not found, create a new user with blank data
+		if errors.Is(err, mongo.ErrUserUnknown) {
+			return u.db.SetDetailedReputationForUser(user.UserID, &mongo.UserReputation{})
+		}
+		// return the error if it is not a user unknown error
 		return err
 	}
 	// get activiy data
 	activityRep, err := u.userActivityReputation(user)
 	if err != nil {
-		return err
+		// if there is an error fetching the activity data, log the error and
+		// continue updating the no failed activity data
+		log.Error("error getting user activity reputation", "error", err, "user", user.UserID)
 	}
 	// update reputation
 	rep.FollowersCount = activityRep.FollowersCount
@@ -150,8 +157,10 @@ func (u *Updater) updateUser(user *mongo.User) error {
 	rep.CommunitiesCount = activityRep.CommunitiesCount
 	// get boosters data
 	boosters, err := u.userBoosters(user)
+	// if there is an error fetching the boosters data, log the error and
+	// continue updating the no failed boosters data
 	if err != nil {
-		return err
+		log.Error("error getting some boosters", "error", err, "user", user.UserID)
 	}
 	// update reputation
 	rep.HasVotecasterNFTPass = boosters.HasVotecasterNFTPass
@@ -181,12 +190,12 @@ func (u *Updater) userActivityReputation(user *mongo.User) (*ActivityReputation,
 	// Fetch the total votes cast on elections created by the user
 	totalVotes, err := u.db.TotalVotesForUserElections(user.UserID)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching total votes for user elections: %w", err)
+		return &ActivityReputation{}, fmt.Errorf("error fetching total votes for user elections: %w", err)
 	}
 	// Fetch the number of communities where the user is an admin
 	communitiesCount, err := u.db.CommunitiesCountForUser(user.UserID)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching communities count for user: %w", err)
+		return &ActivityReputation{}, fmt.Errorf("error fetching communities count for user: %w", err)
 	}
 	return &ActivityReputation{
 		FollowersCount:                user.Followers,
@@ -204,9 +213,10 @@ func (u *Updater) userActivityReputation(user *mongo.User) (*ActivityReputation,
 // Alphafrens channel, the user follows Votecaster and Vocdoni profiles on
 // Farcaster, the user has recasted the Votecaster Launch cast announcement,
 // the user has KIWI, the user has the DegenDAO NFT, the user has at least 10k
-// Degen, the user has the TokyoDAO NFT, the user has a Proxy, the user has at
-// least 5 Proxies, and the user has the NameDegen NFT. It returns an error if
-// the boosters data cannot be fetched.
+// Degen, the user has Haberdashery NFT, the user has the TokyoDAO NFT, the user
+// has a Proxy, the user has at least 5 Proxies, the user has the ProxyStudio
+// NFT, and the user has the NameDegen NFT. It returns an error if the boosters
+// data cannot be fetched.
 func (u *Updater) userBoosters(user *mongo.User) (*Boosters, error) {
 	// create new boosters struct and slice for errors
 	boosters := &Boosters{}
@@ -257,6 +267,15 @@ func (u *Updater) userBoosters(user *mongo.User) (*Boosters, error) {
 				boosters.HasDegenDAONFT = balance > 0
 			}
 		}
+		// check if user has Haberdashery NFT
+		if !boosters.HasHaberdasheryNFT {
+			balance, err := u.airstack.Client.CheckIfHolder(HaberdasheryNFTAddress, HaberdasheryNFTChainShortName, addr)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("error getting Haberdashery NFT balance for %s: %w", addr, err))
+			} else {
+				boosters.HasHaberdasheryNFT = balance > 0
+			}
+		}
 		// check if user has 10k Degen
 		if !boosters.Has10kDegenAtLeast {
 			balance, err := u.airstack.Client.CheckIfHolder(DegenAddress, DegenChainShortName, addr)
@@ -285,6 +304,15 @@ func (u *Updater) userBoosters(user *mongo.User) (*Boosters, error) {
 				boosters.Has5ProxyAtLeast = balance >= 5
 			}
 		}
+		// check if user has ProxyStudio NFT
+		if !boosters.HasProxyStudioNFT {
+			balance, err := u.airstack.Client.CheckIfHolder(ProxyStudioNFTAddress, ProxyStudioNFTShortName, addr)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("error getting ProxyStudio NFT balance for %s: %w", addr, err))
+			} else {
+				boosters.HasProxyStudioNFT = balance > 0
+			}
+		}
 		// check if user has NameDegen
 		if !boosters.HasNameDegen {
 			balance, err := u.airstack.Client.CheckIfHolder(NameDegenAddress, NameDegenChainShortName, addr)
@@ -295,8 +323,9 @@ func (u *Updater) userBoosters(user *mongo.User) (*Boosters, error) {
 			}
 		}
 	}
+	// if there are errors, return the boosters and the errors
 	if len(errs) > 0 {
-		return nil, errors.Join(errs...)
+		return boosters, errors.Join(errs...)
 	}
 	return boosters, nil
 }

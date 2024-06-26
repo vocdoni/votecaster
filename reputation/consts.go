@@ -2,29 +2,61 @@ package reputation
 
 import "github.com/ethereum/go-ethereum/common"
 
+// Boosters contract addresses
 var (
-	VotecasterNFTPassAddress           = common.HexToAddress("0x0")                                        // VotecasterNFTPass
-	VotecasterLaunchNFTAddress         = common.HexToAddress("0x0")                                        // VotecasterLaunchNFT
-	VotecasterAlphafrensChannelAddress = common.HexToAddress("0x0")                                        // VotecasterAlphafrens
-	KIWIAddress                        = common.HexToAddress("0x66747bdC903d17C586fA09eE5D6b54CC85bBEA45") // KIWI
-	DegenDAONFTAddress                 = common.HexToAddress("0x980Fbdd1cF05080781Dca0AEf7026B0406743389") // DegenDAO
-	DegenAddress                       = common.HexToAddress("0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed") // Degen
-	TokyoDAONFTAddress                 = common.HexToAddress("0x432073397Aead241cf2411e21D8fA949183E7151") // TokyoDAO
-	ProxyAddress                       = common.HexToAddress("0xA051A2Cb19C00eCDffaE94D0Ff98c17758041D16") // Proxy
-	NameDegenAddress                   = common.HexToAddress("0x4087fb91A1fBdef05761C02714335D232a2Bf3a1") // NameDegen
+	// Votecaster NFT Pass contract address
+	// TODO: update
+	VotecasterNFTPassAddress = common.HexToAddress("0x225D58E18218E8d87f365301aB6eEe4CbfAF820b")
+	// Votecaster Launch NFT contract address
+	// TODO: update
+	VotecasterLaunchNFTAddress = common.HexToAddress("0x32B6BB4d1f7298d4a80c2Ece237e4474C0880B69")
+	// Votecaster Alphafrens Channel address
+	VotecasterAlphafrensChannelAddress = common.HexToAddress("0xa630fcc62165a3587c6857d73b556c8a61c8edd3")
+	// $KIWI token contract address
+	KIWIAddress = common.HexToAddress("0x66747bdC903d17C586fA09eE5D6b54CC85bBEA45")
+	// DegenDAO NFT contract address
+	DegenDAONFTAddress = common.HexToAddress("0x980Fbdd1cF05080781Dca0AEf7026B0406743389")
+	// Haberdashery NFT contract address
+	HaberdasheryNFTAddress = common.HexToAddress("0x85E7DF5708902bE39891d59aBEf8E21EDE91E8BF")
+	// Degen token contract address
+	DegenAddress = common.HexToAddress("0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed")
+	// TokyoDAO NFT contract address
+	TokyoDAONFTAddress = common.HexToAddress("0x432073397Aead241cf2411e21D8fA949183E7151")
+	// $PROXY token contract address
+	ProxyAddress = common.HexToAddress("0xA051A2Cb19C00eCDffaE94D0Ff98c17758041D16")
+	// ProxyStudio NFT contract address
+	ProxyStudioNFTAddress = common.HexToAddress("0x7888b1f446c912ddec9bf582629e9ae8845fd8c6")
+	// NameDegen NFT contract address
+	NameDegenAddress = common.HexToAddress("0x4087fb91A1fBdef05761C02714335D232a2Bf3a1")
 )
 
+// Boosters costants (ids, hashesh and network information)
 const (
-	VotecasterNFTPassChainShortName                  = "eth"   // VotecasterNFTPass
-	VotecasterLaunchNFTChainShortName                = "eth"   // VotecasterLaunchNFT
-	VotecasterAlphafrensChannelChainShortName        = "eth"   // VotecasterAlphafrens
-	VotecasterFarcasterFID                    uint64 = 1       // VotecasterFarcaster
-	VocdoniFarcasterFID                       uint64 = 2       // VocdoniFarcaster
-	VotecasterAnnouncementCastHash                   = "0x0"   // VotecasterAnnouncementCast
-	KIWIChainID                               uint64 = 10      // KIWI
-	DegenDAONFTChainShortName                        = "base"  // DegenDAO
-	DegenChainShortName                              = "degen" // Degen
-	TokyoDAONFTChainShortName                        = "base"  // TokyoDAO
-	ProxyChainShortName                              = "degen" // Proxy
-	NameDegenChainShortName                          = "degen" // NameDegen
+	// Votecaster NFT Pass network short name
+	VotecasterNFTPassChainShortName = "base"
+	// Votecaster Launch NFT network short name
+	VotecasterLaunchNFTChainShortName = "base"
+	// Votecaster Farcaster ID
+	// TODO: update
+	VotecasterFarcasterFID uint64 = 376063
+	// Vocdoni Farcaster ID
+	VocdoniFarcasterFID uint64 = 7548
+	// Votecaster Announcement Farcaster Cast Hash
+	VotecasterAnnouncementCastHash = "0xe4528c49"
+	// $KIWI token network ID
+	KIWIChainID uint64 = 10
+	// DegenDAO NFT network short name
+	DegenDAONFTChainShortName = "base"
+	// Haberdashery NFT network short name
+	HaberdasheryNFTChainShortName = "base"
+	// Degen token network short name
+	DegenChainShortName = "degen"
+	// TokyoDAO NFT network short name
+	TokyoDAONFTChainShortName = "base"
+	// $PROXY token network short name
+	ProxyChainShortName = "degen"
+	// ProxyStudio NFT network short name
+	ProxyStudioNFTShortName = "base"
+	// NameDegen NFT network short name
+	NameDegenChainShortName = "degen"
 )

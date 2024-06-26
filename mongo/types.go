@@ -67,10 +67,12 @@ type UserReputation struct {
 	VotecasterAnnouncementRecasted bool   `json:"votecasterAnnouncementRecasted" bson:"votecasterAnnouncementRecasted"`
 	HasKIWI                        bool   `json:"hasKIWI" bson:"hasKIWI"`
 	HasDegenDAONFT                 bool   `json:"hasDegenDAONFT" bson:"hasDegenDAONFT"`
+	HasHaberdasheryNFT             bool   `json:"hasHaberdasheryNFT" bson:"hasHaberdasheryNFT"`
 	Has10kDegenAtLeast             bool   `json:"has10kDegenAtLeast" bson:"has10kDegenAtLeast"`
 	HasTokyoDAONFT                 bool   `json:"hasTokyoDAONFT" bson:"hasTokyoDAONFT"`
 	HasProxy                       bool   `json:"hasProxy" bson:"hasProxy"`
 	Has5ProxyAtLeast               bool   `json:"has5ProxyAtLeast" bson:"has5ProxyAtLeast"`
+	HasProxyStudioNFT              bool   `json:"hasProxyStudioNFT" bson:"hasProxyStudioNFT"`
 	HasNameDegen                   bool   `json:"hasNameDegen" bson:"hasNameDegen"`
 }
 
