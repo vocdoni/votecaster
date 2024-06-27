@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vocdoni/vote-frame/farcasterauth"
+	"github.com/vocdoni/vote-frame/reputation"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
@@ -59,10 +60,10 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 		return fmt.Errorf("could not generate token: %v", err)
 	}
 
-	// Get and update the user's reputation
-	reputation, reputationData, err := v.db.UpdateAndGetReputationForUser(resp.Fid)
+	// calculate the user reputation
+	rep, err := reputation.NewCalculator(v.db).UserReputation(resp.Fid)
 	if err != nil {
-		return fmt.Errorf("could not update reputation: %v", err)
+		return fmt.Errorf("could not get user reputation: %v", err)
 	}
 
 	// Remove unnecessary fields
@@ -73,10 +74,9 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
-		"profile":        resp,
-		"authToken":      token.String(),
-		"reputation":     reputation,
-		"reputationData": reputationData,
+		"profile":    resp,
+		"authToken":  token.String(),
+		"reputation": rep,
 	})
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)
@@ -98,20 +98,19 @@ func (v *vocdoniHandler) authCheckHandler(msg *apirest.APIdata, ctx *httprouter.
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
 	}
 
-	// Get and update the user's reputation
-	reputation, reputationData, err := v.db.UpdateAndGetReputationForUser(auth.UserID)
+	// calculate the user reputation
+	rep, err := reputation.NewCalculator(v.db).UserReputation(auth.UserID)
 	if err != nil {
-		return fmt.Errorf("could not update reputation: %v", err)
+		return fmt.Errorf("could not get user reputation: %v", err)
 	}
 
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
-		"reputation":     reputation,
-		"reputationData": reputationData,
+		"reputation": rep,
 	})
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)
 	}
-	log.Infow("authentication check completed, updated reputation", "fid", auth.UserID, "reputation", reputation)
+	log.Infow("authentication check completed", "fid", auth.UserID, "reputation", rep)
 	return ctx.Send(data, apirest.HTTPstatusOK)
 }

@@ -34,6 +34,25 @@ type hubMessageResponse struct {
 	Messages []*hubMessage `json:"messages"`
 }
 
+type hubReactionBody struct {
+	Type string `json:"type"`
+}
+
+type hubReactionData struct {
+	Type   string           `json:"type"`
+	Author uint64           `json:"fid"`
+	Body   *hubReactionBody `json:"reactionBody"`
+}
+
+type hubReaction struct {
+	Data *hubReactionData `json:"data"`
+	Hash string           `json:"hash"`
+}
+
+type hubReactionsResponse struct {
+	Reactions []*hubReaction `json:"messages"`
+}
+
 type usernameProofs struct {
 	Username       string `json:"name"`
 	CustodyAddress string `json:"owner"`

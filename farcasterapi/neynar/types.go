@@ -78,6 +78,19 @@ type castWebhookData struct {
 	ParentHash   string            `json:"parentHash"`
 	Embeds       []*castEmbed      `json:"embeds"`
 	ParentAuthor *parentCastAuthor `json:"parentAuthor"`
+	Reactions    *castReactionsV2  `json:"reactions"`
+}
+
+type reactionAuthorV2 struct {
+	FID      uint64 `json:"fid"`
+	Username string `json:"username"`
+}
+
+type castReactionsV2 struct {
+	LikesCount   int                 `json:"likes_count"`
+	RecastsCount int                 `json:"recasts_count"`
+	Likes        []*reactionAuthorV2 `json:"likes"`
+	Recasts      []*reactionAuthorV2 `json:"recasts"`
 }
 
 type castsWebhookRequest struct {

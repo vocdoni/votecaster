@@ -1,8 +1,6 @@
 package reputation
 
-import "time"
-
-const usersIteratorTimeout = 2 * time.Minute
+import "go.vocdoni.io/dvote/log"
 
 const (
 	maxFollowersReputation = 10
@@ -34,6 +32,7 @@ const (
 // totalReputation calculates the reputation of a user based on their activity
 // and boosters and returns the mean value of both.
 func totalReputation(ar *ActivityReputation, b *Boosters) uint32 {
+	log.Infow("user reputation", "activity", activityReputation(ar), "boosters", boostersReputation(b))
 	return (activityReputation(ar) + boostersReputation(b)) / 2
 }
 

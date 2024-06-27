@@ -42,7 +42,7 @@ const (
 	// Vocdoni Farcaster ID
 	VocdoniFarcasterFID uint64 = 7548
 	// Votecaster Announcement Farcaster Cast Hash
-	VotecasterAnnouncementCastHash = "0xe4528c49"
+	VotecasterAnnouncementCastHash = "0xe4528c4931127eb32e4c7c473622d4e3a1c6b0a3"
 	// $KIWI token network ID
 	KIWIChainID uint64 = 10
 	// DegenDAO NFT network short name
