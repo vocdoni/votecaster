@@ -34,8 +34,7 @@ type Updater struct {
 	lastUpdate    time.Time
 	maxConcurrent int
 
-	afCh *alfafrens.CachedChannel
-
+	alfafrensFollowers  map[uint64]bool
 	vocdoniFollowers    map[uint64]bool
 	votecasterFollowers map[uint64]bool
 	recasters           map[uint64]bool
@@ -70,7 +69,7 @@ func NewUpdater(ctx context.Context, db *mongo.MongoStorage, fapi farcasterapi.A
 		census3:             c3,
 		lastUpdate:          time.Time{},
 		maxConcurrent:       maxConcurrent,
-		afCh:                alfafrens.NewCachedChannel(VotecasterAlphafrensChannelAddress.Hex()),
+		alfafrensFollowers:  make(map[uint64]bool),
 		vocdoniFollowers:    make(map[uint64]bool),
 		votecasterFollowers: make(map[uint64]bool),
 		recasters:           make(map[uint64]bool),
@@ -94,10 +93,6 @@ func (u *Updater) Start(coolDown time.Duration) error {
 				if time.Since(u.lastUpdate) < coolDown {
 					time.Sleep(time.Second * 30)
 					continue
-				}
-				// update alfafrens channel
-				if err := u.afCh.Update(alfafrens.DefaultUpdateRetries); err != nil {
-					log.Error("error updating alfafrens channel", "error", err)
 				}
 				// update internal followers
 				if err := u.updateFollowersAndRecasters(); err != nil {
@@ -132,6 +127,13 @@ func (u *Updater) updateFollowersAndRecasters() error {
 	defer cancel()
 	u.followersMtx.Lock()
 	defer u.followersMtx.Unlock()
+	// update alfafrens followers
+	alfafrensFollowers, err := alfafrens.ChannelFids(VotecasterAlphafrensChannelAddress.Bytes())
+	if err == nil {
+		for _, fid := range alfafrensFollowers {
+			u.alfafrensFollowers[fid] = true
+		}
+	}
 	// update vocdoni followers
 	vocdoniFollowers, err1 := u.fapi.UserFollowers(internalCtx, VocdoniFarcasterFID)
 	if err1 == nil {
@@ -156,21 +158,25 @@ func (u *Updater) updateFollowersAndRecasters() error {
 			u.recasters[fid] = true
 		}
 	}
-	if err1 != nil || err2 != nil || err3 != nil {
-		return fmt.Errorf("error updating internal followers: %w, %w, %w", err1, err2, err3)
+	if err != nil || err1 != nil || err2 != nil || err3 != nil {
+		return fmt.Errorf("error updating internal followers: %w, %w, %w, %w", err, err1, err2, err3)
 	}
 	return nil
 }
 
-// isFollowerAndRecaster method checks if a given user is a follower of the
-// Vocdoni and Votecaster profiles in Farcaster, and if the user has recasted
-// the Votecaster Launch cast announcement. It returns three boolean values
-// indicating if the user is a follower of Vocdoni, a follower of Votecaster,
-// and a recaster of the Votecaster Launch cast announcement.
-func (u *Updater) isFollowerAndRecaster(userID uint64) (bool, bool, bool) {
+// isFollowerAndRecaster method checks if a given user is a Vocdoni Alfafrens
+// Folllower, is a follower of the Vocdoni and Votecaster profiles in
+// Farcaster, and if the user has recasted the Votecaster Launch cast
+// announcement. It returns four boolean values in if the user is a Folllower
+// of Vocdoni Alfafrens, a follower of Vocdoni, a follower of Votecaster, and a
+// recaster of the Votecaster Launch cast announcement.
+func (u *Updater) isFollowerAndRecaster(userID uint64) (bool, bool, bool, bool) {
 	u.followersMtx.Lock()
 	defer u.followersMtx.Unlock()
-	return u.vocdoniFollowers[userID], u.votecasterFollowers[userID], u.recasters[userID]
+	return u.alfafrensFollowers[userID],
+		u.vocdoniFollowers[userID],
+		u.votecasterFollowers[userID],
+		u.recasters[userID]
 }
 
 // updateUsers method iterates over all users in the database and updates their
@@ -315,11 +321,11 @@ func (u *Updater) userBoosters(user *mongo.User) (*Boosters, error) {
 	// create new boosters struct and slice for errors
 	boosters := &Boosters{}
 	var errs []error
-	// check if user is votecaster alphafrens follower
-	boosters.IsVotecasterAlphafrensFollower = u.afCh.IsSubscribed(user.UserID)
-	// check if user is vocdoni or votecaster farcaster follower, and if the
-	// user has recasted the votecaster launch cast announcement
-	vocdoniFollower, votecasterFollower, announcementRecaster := u.isFollowerAndRecaster(user.UserID)
+	// check if user is votecaster alphafrens follower, is vocdoni or votecaster
+	// farcaster follower, and if the user has recasted the votecaster launch
+	// cast announcement
+	alfafrensFolllower, vocdoniFollower, votecasterFollower, announcementRecaster := u.isFollowerAndRecaster(user.UserID)
+	boosters.IsVotecasterAlphafrensFollower = alfafrensFolllower
 	boosters.IsVocdoniFarcasterFollower = vocdoniFollower
 	boosters.IsVotecasterFarcasterFollower = votecasterFollower
 	boosters.VotecasterAnnouncementRecasted = announcementRecaster
