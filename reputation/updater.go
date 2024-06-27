@@ -6,14 +6,16 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/vocdoni/census3/apiclient"
 	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/alfafrens"
+	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/mongo"
+	"go.vocdoni.io/dvote/log"
 )
 
 // Updater is a struct to update user reputation data in the database
@@ -26,28 +28,53 @@ type Updater struct {
 	waiter sync.WaitGroup
 
 	db            *mongo.MongoStorage
+	fapi          farcasterapi.API
 	airstack      *airstack.Airstack
 	census3       *apiclient.HTTPclient
 	lastUpdate    time.Time
 	maxConcurrent int
+
+	afCh *alfafrens.CachedChannel
+
+	vocdoniFollowers    map[uint64]bool
+	votecasterFollowers map[uint64]bool
+	recasters           map[uint64]bool
+	followersMtx        sync.Mutex
 }
 
 // NewUpdater creates a new Updater instance with the given parameters,
 // including the parent context, the database, the Airstack client, the Census3
 // client, and the maximum number of concurrent updates.
-func NewUpdater(ctx context.Context, db *mongo.MongoStorage,
+func NewUpdater(ctx context.Context, db *mongo.MongoStorage, fapi farcasterapi.API,
 	as *airstack.Airstack, c3 *apiclient.HTTPclient, maxConcurrent int,
-) *Updater {
+) (*Updater, error) {
+	if db == nil {
+		return nil, errors.New("database is required")
+	}
+	if fapi == nil {
+		return nil, errors.New("farcaster api is required")
+	}
+	if as == nil {
+		return nil, errors.New("airstack client is required")
+	}
+	if c3 == nil {
+		return nil, errors.New("census3 client is required")
+	}
 	internalCtx, cancel := context.WithCancel(ctx)
 	return &Updater{
-		ctx:           internalCtx,
-		cancel:        cancel,
-		db:            db,
-		airstack:      as,
-		census3:       c3,
-		lastUpdate:    time.Time{},
-		maxConcurrent: maxConcurrent,
-	}
+		ctx:                 internalCtx,
+		cancel:              cancel,
+		db:                  db,
+		fapi:                fapi,
+		airstack:            as,
+		census3:             c3,
+		lastUpdate:          time.Time{},
+		maxConcurrent:       maxConcurrent,
+		afCh:                alfafrens.NewCachedChannel(VotecasterAlphafrensChannelAddress.Hex()),
+		vocdoniFollowers:    make(map[uint64]bool),
+		votecasterFollowers: make(map[uint64]bool),
+		recasters:           make(map[uint64]bool),
+	}, nil
 }
 
 // Start method starts the updater with the given cooldown time between updates.
@@ -68,6 +95,14 @@ func (u *Updater) Start(coolDown time.Duration) error {
 					time.Sleep(time.Second * 30)
 					continue
 				}
+				// update alfafrens channel
+				if err := u.afCh.Update(alfafrens.DefaultUpdateRetries); err != nil {
+					log.Error("error updating alfafrens channel", "error", err)
+				}
+				// update internal followers
+				if err := u.updateFollowersAndRecasters(); err != nil {
+					log.Error("error updating internal followers", "error", err)
+				}
 				// launch update
 				if err := u.updateUsers(); err != nil {
 					log.Error("error updating users", "error", err)
@@ -87,6 +122,57 @@ func (u *Updater) Stop() {
 	u.waiter.Wait()
 }
 
+// updateFollowersAndRecasters method updates the internal followers of the
+// Vocdoni and Votecaster profiles in Farcaster and warpcast users that have
+// recasted the Votecaster Launch cast announcement. It fetches the followers
+// and recasters data from the Farcaster API and updates the internal followers
+// maps accordingly. It returns an error if the followers data cannot be fetched.
+func (u *Updater) updateFollowersAndRecasters() error {
+	internalCtx, cancel := context.WithTimeout(u.ctx, time.Second*30)
+	defer cancel()
+	u.followersMtx.Lock()
+	defer u.followersMtx.Unlock()
+	// update vocdoni followers
+	vocdoniFollowers, err1 := u.fapi.UserFollowers(internalCtx, VocdoniFarcasterFID)
+	if err1 == nil {
+		for _, fid := range vocdoniFollowers {
+			u.vocdoniFollowers[fid] = true
+		}
+	}
+	// update votecaster followers
+	votecasterFollowers, err2 := u.fapi.UserFollowers(internalCtx, VotecasterFarcasterFID)
+	if err2 == nil {
+		for _, fid := range votecasterFollowers {
+			u.votecasterFollowers[fid] = true
+		}
+	}
+	// update recasters
+	recasters, err3 := u.fapi.RecastsFIDs(internalCtx, &farcasterapi.APIMessage{
+		Author: VocdoniFarcasterFID,
+		Hash:   VotecasterAnnouncementCastHash,
+	})
+	if err3 == nil {
+		for _, fid := range recasters {
+			u.recasters[fid] = true
+		}
+	}
+	if err1 != nil || err2 != nil || err3 != nil {
+		return fmt.Errorf("error updating internal followers: %w, %w, %w", err1, err2, err3)
+	}
+	return nil
+}
+
+// isFollowerAndRecaster method checks if a given user is a follower of the
+// Vocdoni and Votecaster profiles in Farcaster, and if the user has recasted
+// the Votecaster Launch cast announcement. It returns three boolean values
+// indicating if the user is a follower of Vocdoni, a follower of Votecaster,
+// and a recaster of the Votecaster Launch cast announcement.
+func (u *Updater) isFollowerAndRecaster(userID uint64) (bool, bool, bool) {
+	u.followersMtx.Lock()
+	defer u.followersMtx.Unlock()
+	return u.vocdoniFollowers[userID], u.votecasterFollowers[userID], u.recasters[userID]
+}
+
 // updateUsers method iterates over all users in the database and updates their
 // reputation data. It uses a concurrent approach to update multiple users at
 // the same time, limiting the number of concurrent updates to the maximum
@@ -94,7 +180,8 @@ func (u *Updater) Stop() {
 // activity data from the database and the boosters data from the Airstack and
 // the Census3 API.
 func (u *Updater) updateUsers() error {
-	ctx, cancel := context.WithTimeout(u.ctx, usersIteratorTimeout)
+	log.Info("updating users reputation")
+	ctx, cancel := context.WithCancel(u.ctx)
 	defer cancel()
 	// limit the number of concurrent updates and create the channel to receive
 	// the users, creates also the inner waiter to wait for all updates to
@@ -102,11 +189,15 @@ func (u *Updater) updateUsers() error {
 	concurrentUpdates := make(chan struct{}, u.maxConcurrent)
 	usersChan := make(chan *mongo.User)
 	innerWaiter := sync.WaitGroup{}
+	// counters for total and updated users
+	updates := atomic.Int64{}
+	total := atomic.Int64{}
 	// listen for users and update them concurrently
 	innerWaiter.Add(1)
 	go func() {
 		defer innerWaiter.Done()
 		for user := range usersChan {
+			total.Add(1)
 			// get a slot in the concurrent updates channel
 			concurrentUpdates <- struct{}{}
 			go func(user *mongo.User) {
@@ -117,6 +208,8 @@ func (u *Updater) updateUsers() error {
 				// update user reputation
 				if err := u.updateUser(user); err != nil {
 					log.Error("error updating user", "error", err, "user", user.UserID)
+				} else {
+					updates.Add(1)
 				}
 			}(user)
 		}
@@ -126,6 +219,7 @@ func (u *Updater) updateUsers() error {
 		return fmt.Errorf("error iterating users: %w", err)
 	}
 	innerWaiter.Wait()
+	log.Info("users reputation updated", "total", total.Load(), "updated", updates.Load())
 	return nil
 }
 
@@ -222,12 +316,13 @@ func (u *Updater) userBoosters(user *mongo.User) (*Boosters, error) {
 	boosters := &Boosters{}
 	var errs []error
 	// check if user is votecaster alphafrens follower
-	following, err := alfafrens.IsChannelFollower(VotecasterAlphafrensChannelAddress.Bytes(), user.UserID)
-	if err != nil {
-		errs = append(errs, fmt.Errorf("error checking votecaster alphafrens follower for %d: %w", user.UserID, err))
-	} else {
-		boosters.IsVotecasterAlphafrensFollower = following
-	}
+	boosters.IsVotecasterAlphafrensFollower = u.afCh.IsSubscribed(user.UserID)
+	// check if user is vocdoni or votecaster farcaster follower, and if the
+	// user has recasted the votecaster launch cast announcement
+	vocdoniFollower, votecasterFollower, announcementRecaster := u.isFollowerAndRecaster(user.UserID)
+	boosters.IsVocdoniFarcasterFollower = vocdoniFollower
+	boosters.IsVotecasterFarcasterFollower = votecasterFollower
+	boosters.VotecasterAnnouncementRecasted = announcementRecaster
 	// for every user address check every booster only if it is not already set
 	for _, strAddr := range user.Addresses {
 		addr := common.HexToAddress(strAddr)
@@ -254,7 +349,7 @@ func (u *Updater) userBoosters(user *mongo.User) (*Boosters, error) {
 			balance, err := u.census3.TokenHolder(KIWIAddress.Hex(), KIWIChainID, "", strAddr)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("error getting KIWI balance for %s: %w", addr, err))
-			} else {
+			} else if balance != nil {
 				boosters.HasKIWI = balance.Cmp(big.NewInt(0)) > 0
 			}
 		}

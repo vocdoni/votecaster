@@ -42,6 +42,10 @@ type API interface {
 	// Reply replies to a cast of the given fid with the given hash and content,
 	// it returns an error if something goes wrong
 	Reply(ctx context.Context, targetMsg *APIMessage, content string, mentionFids []uint64, embedURLS ...string) error
+	// RecastsFIDs retrieves the fids of the users that recast the message with
+	// the given fid and hash, it returns the fids in a slice of uint64 and an
+	// error if something goes wrong.
+	RecastsFIDs(ctx context.Context, msg *APIMessage) ([]uint64, error)
 	// UserDataByFID retrieves the Userdata of the user with the given fid, if
 	// something goes wrong, it returns an error
 	UserDataByFID(ctx context.Context, fid uint64) (*Userdata, error)

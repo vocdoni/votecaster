@@ -49,23 +49,27 @@ type Boosters struct {
 // Reputation struct contains the reputation of a user, detailed by activity and
 // boosters
 type Reputation struct {
-	*ActivityReputation
-	*Boosters
-	TotalReputation uint32
+	*ActivityReputation `json:"activity"`
+	*Boosters           `json:"boosters"`
+	TotalReputation     uint32 `json:"totalReputation"`
 }
 
 // Calculator struct contains the database connection to calculate the
 // reputation of a user, it uses the detailed reputation of a user from the
 // database to calculate the reputation.
 type Calculator struct {
-	DB *mongo.MongoStorage
+	db *mongo.MongoStorage
+}
+
+func NewCalculator(db *mongo.MongoStorage) *Calculator {
+	return &Calculator{db: db}
 }
 
 // UserReputation returns the reputation of a user based the user ID. It gets
 // the detailed reputation information of the user from the database and
 // calculates the resulting reputation value.
 func (c *Calculator) UserReputation(userID uint64) (*Reputation, error) {
-	dbRep, err := c.DB.DetailedUserReputation(userID)
+	dbRep, err := c.db.DetailedUserReputation(userID)
 	if err != nil {
 		return &Reputation{}, fmt.Errorf("%w: %w", ErrNoReputationInfo, err)
 	}

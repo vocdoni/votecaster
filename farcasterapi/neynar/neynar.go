@@ -221,6 +221,26 @@ func (n *NeynarAPI) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessag
 	return err
 }
 
+func (n *NeynarAPI) RecastsFIDs(ctx context.Context, msg *farcasterapi.APIMessage) ([]uint64, error) {
+	msgResponse := &castResponseV2{}
+	url := fmt.Sprintf(neynarGetCastEndpoint, msg.Hash)
+	body, err := n.neynarReq(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request to get the cast: %w", err)
+	}
+	if err := json.Unmarshal(body, msgResponse); err != nil {
+		return nil, fmt.Errorf("error unmarshalling response body: %w", err)
+	}
+	if msgResponse.Data == nil || msgResponse.Data.Reactions == nil || msgResponse.Data.Reactions.Recasts == nil {
+		return nil, farcasterapi.ErrNoDataFound
+	}
+	var fids []uint64
+	for _, recast := range msgResponse.Data.Reactions.Recasts {
+		fids = append(fids, recast.FID)
+	}
+	return fids, nil
+}
+
 // UserData method returns the username, the custody address and the
 // verification addresses of the user with the given fid.
 func (n *NeynarAPI) UserDataByFID(ctx context.Context, fid uint64) (*farcasterapi.Userdata, error) {
