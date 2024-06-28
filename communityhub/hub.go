@@ -340,7 +340,7 @@ func (l *CommunityHub) SetCommunity(communityID uint64, newData *HubCommunity) (
 		return nil, err
 	}
 	if _, err := l.contract.AdminManageCommunity(transactOpts, bCommunityID, cc.Metadata,
-		cc.Census, cc.Guardians, cc.CreateElectionPermission, cc.Disabled); err != nil {
+		cc.Census, cc.Guardians, cc.CreateElectionPermission, cc.Disabled, cc.Funds); err != nil {
 		return nil, errors.Join(ErrSettingCommunity, err)
 	}
 	return community, nil
