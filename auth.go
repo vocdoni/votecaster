@@ -61,7 +61,7 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 	}
 
 	// calculate the user reputation
-	rep, err := reputation.NewCalculator(v.db).UserReputation(resp.Fid)
+	rep, err := reputation.NewCalculator(v.db).UserReputation(resp.Fid, true)
 	if err != nil {
 		return fmt.Errorf("could not get user reputation: %v", err)
 	}
@@ -99,7 +99,7 @@ func (v *vocdoniHandler) authCheckHandler(msg *apirest.APIdata, ctx *httprouter.
 	}
 
 	// calculate the user reputation
-	rep, err := reputation.NewCalculator(v.db).UserReputation(auth.UserID)
+	rep, err := reputation.NewCalculator(v.db).UserReputation(auth.UserID, true)
 	if err != nil {
 		return fmt.Errorf("could not get user reputation: %v", err)
 	}

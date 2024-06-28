@@ -2,33 +2,6 @@ package reputation
 
 import "go.vocdoni.io/dvote/log"
 
-const (
-	maxFollowersReputation = 10
-	maxElectionsReputation = 10
-	maxVotesReputation     = 25
-	maxCastedReputation    = 45
-	maxCommunityReputation = 10
-	maxReputation          = 100
-)
-
-const (
-	votecasterNFTPassPuntuaction              = 25
-	votecasterLaunchNFTPuntuaction            = 6
-	votecasterAlphafrensFollowerPuntuaction   = 20
-	votecasterFarcasterFollowerPuntuaction    = 3
-	vocdoniFarcasterFollowerPuntuaction       = 3
-	votecasterAnnouncementRecastedPuntuaction = 5
-	kiwiPuntuaction                           = 3
-	degenDAONFTPuntuaction                    = 7
-	haberdasheryFTPuntuaction                 = 8
-	degenAtLeast10kPuntuaction                = 5
-	tokyoDAONFTPuntuaction                    = 5
-	proxyPuntuaction                          = 5
-	proxyStudioNFTPuntuaction                 = 5
-	proxyAtLeast5Puntuaction                  = 5
-	nameDegenPuntuaction                      = 5
-)
-
 // totalReputation calculates the reputation of a user based on their activity
 // and boosters and returns the mean value of both.
 func totalReputation(ar *ActivityReputation, b *Boosters) uint32 {
@@ -104,7 +77,6 @@ func activityReputation(rep *ActivityReputation) uint32 {
 //   - Haberdashery NFT: 'haberdasheryFTPuntuaction' points
 //   - >=10k Degen: 'degenAtLeast10kPuntuaction' points
 //   - TokyoDAO NFT: 'tokyoDAONFTPuntuaction' points
-//   - Proxy: 'proxyPuntuaction' points
 //   - ProxyStudio NFT: 'proxyStudioNFTPuntuaction' points
 //   - >=5 Proxy: 'proxyAtLeast5Puntuaction' points
 //   - NameDegen: 'nameDegenPuntuaction' points
@@ -159,11 +131,6 @@ func boostersReputation(rep *Boosters) uint32 {
 	// (base:0x432073397Aead241cf2411e21D8fA949183E7151)
 	if rep.HasTokyoDAONFT {
 		reputation += tokyoDAONFTPuntuaction
-	}
-	// add proxy puntuaction if user has a proxy
-	// (degen:0xA051A2Cb19C00eCDffaE94D0Ff98c17758041D16)
-	if rep.HasProxy {
-		reputation += proxyPuntuaction
 	}
 	// add 5 proxy at least puntuaction if user has at least 5 proxies
 	// (degen:0xA051A2Cb19C00eCDffaE94D0Ff98c17758041D16)

@@ -46,7 +46,7 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 	}
 
 	// calculate the user reputation
-	rep, err := reputation.NewCalculator(v.db).UserReputation(auth.UserID)
+	rep, err := reputation.NewCalculator(v.db).UserReputation(auth.UserID, true)
 	if err != nil {
 		return fmt.Errorf("could not get user reputation: %v", err)
 	}
@@ -183,7 +183,7 @@ func (v *vocdoniHandler) profilePublicHandler(msg *apirest.APIdata, ctx *httprou
 	}
 
 	// calculate the user reputation
-	rep, err := reputation.NewCalculator(v.db).UserReputation(user.UserID)
+	rep, err := reputation.NewCalculator(v.db).UserReputation(user.UserID, true)
 	if err != nil {
 		return fmt.Errorf("could not get user reputation: %v", err)
 	}

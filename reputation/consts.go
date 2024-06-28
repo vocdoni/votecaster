@@ -2,6 +2,31 @@ package reputation
 
 import "github.com/ethereum/go-ethereum/common"
 
+const (
+	// User activity max reputation values
+	maxFollowersReputation = 10
+	maxElectionsReputation = 10
+	maxVotesReputation     = 25
+	maxCastedReputation    = 45
+	maxCommunityReputation = 10
+	maxReputation          = 100
+	// Boosters puntuaction values
+	votecasterNFTPassPuntuaction              = 25
+	votecasterLaunchNFTPuntuaction            = 6
+	votecasterAlphafrensFollowerPuntuaction   = 15
+	votecasterFarcasterFollowerPuntuaction    = 3
+	vocdoniFarcasterFollowerPuntuaction       = 3
+	votecasterAnnouncementRecastedPuntuaction = 5
+	kiwiPuntuaction                           = 3
+	degenDAONFTPuntuaction                    = 7
+	haberdasheryFTPuntuaction                 = 8
+	degenAtLeast10kPuntuaction                = 5
+	tokyoDAONFTPuntuaction                    = 5
+	proxyStudioNFTPuntuaction                 = 5
+	proxyAtLeast5Puntuaction                  = 5
+	nameDegenPuntuaction                      = 5
+)
+
 // Boosters contract addresses
 var (
 	// Votecaster NFT Pass contract address
@@ -38,7 +63,7 @@ const (
 	VotecasterLaunchNFTChainShortName = "base"
 	// Votecaster Farcaster ID
 	// TODO: update
-	VotecasterFarcasterFID uint64 = 376063
+	VotecasterFarcasterFID uint64 = 521116
 	// Vocdoni Farcaster ID
 	VocdoniFarcasterFID uint64 = 7548
 	// Votecaster Announcement Farcaster Cast Hash
@@ -50,7 +75,7 @@ const (
 	// Haberdashery NFT network short name
 	HaberdasheryNFTChainShortName = "base"
 	// Degen token network short name
-	DegenChainShortName = "degen"
+	DegenChainShortName = "base"
 	// TokyoDAO NFT network short name
 	TokyoDAONFTChainShortName = "base"
 	// $PROXY token network short name
