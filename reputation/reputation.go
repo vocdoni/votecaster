@@ -40,7 +40,6 @@ type Boosters struct {
 	HasHaberdasheryNFT             bool `json:"hasHaberdasheryNFT"`
 	Has10kDegenAtLeast             bool `json:"has10kDegenAtLeast"`
 	HasTokyoDAONFT                 bool `json:"hasTokyoDAONFT"`
-	HasProxy                       bool `json:"hasProxy"`
 	Has5ProxyAtLeast               bool `json:"has5ProxyAtLeast"`
 	HasProxyStudioNFT              bool `json:"hasProxyStudioNFT"`
 	HasNameDegen                   bool `json:"hasNameDegen"`
@@ -58,17 +57,51 @@ type Reputation struct {
 // reputation of a user, it uses the detailed reputation of a user from the
 // database to calculate the reputation.
 type Calculator struct {
-	db *mongo.MongoStorage
+	db  *mongo.MongoStorage
+	upd *Updater
 }
 
+// NewCalculator creates a new instance of the Calculator struct with the
+// database connection to calculate the reputation of a user and a updater
+// instance with just the database connection to update the user activity.
 func NewCalculator(db *mongo.MongoStorage) *Calculator {
-	return &Calculator{db: db}
+	return &Calculator{
+		db:  db,
+		upd: &Updater{db: db},
+	}
 }
 
 // UserReputation returns the reputation of a user based the user ID. It gets
 // the detailed reputation information of the user from the database and
-// calculates the resulting reputation value.
-func (c *Calculator) UserReputation(userID uint64) (*Reputation, error) {
+// calculates the resulting reputation value. If the update flag is set to true,
+// it updates the user activity before calculating the reputation, calling
+// the updateUser method of the updater with the user and the update activity
+// flag set to true. It returns the reputation of the user or an error if the
+// user is not found or if the reputation information is not found.
+func (c *Calculator) UserReputation(userID uint64, update bool) (*Reputation, error) {
+	// get the user from the database
+	user, err := c.db.User(userID)
+	if err != nil {
+		return nil, fmt.Errorf("could not get user: %w", err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf("user not found")
+	}
+	if update {
+		// create an updater instance with just the database connection and update
+		// just the user activity
+		if err := c.upd.updateUser(user, true, false); err != nil {
+			return nil, fmt.Errorf("could not update user: %w", err)
+		}
+	}
+	return c.calcReputation(userID)
+}
+
+// calcReputation calculates the reputation of a user based on the user ID. It
+// gets the detailed reputation information of the user from the database and
+// calculates the resulting reputation value. It returns the reputation of the
+// user or an error if the reputation information is not found.
+func (c *Calculator) calcReputation(userID uint64) (*Reputation, error) {
 	dbRep, err := c.db.DetailedUserReputation(userID)
 	if err != nil {
 		return &Reputation{}, fmt.Errorf("%w: %w", ErrNoReputationInfo, err)
@@ -92,7 +125,6 @@ func (c *Calculator) UserReputation(userID uint64) (*Reputation, error) {
 		HasHaberdasheryNFT:             dbRep.HasHaberdasheryNFT,
 		Has10kDegenAtLeast:             dbRep.Has10kDegenAtLeast,
 		HasTokyoDAONFT:                 dbRep.HasTokyoDAONFT,
-		HasProxy:                       dbRep.HasProxy,
 		Has5ProxyAtLeast:               dbRep.Has5ProxyAtLeast,
 		HasProxyStudioNFT:              dbRep.HasProxyStudioNFT,
 		HasNameDegen:                   dbRep.HasNameDegen,

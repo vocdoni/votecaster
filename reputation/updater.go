@@ -212,7 +212,7 @@ func (u *Updater) updateUsers() error {
 					<-concurrentUpdates
 				}()
 				// update user reputation
-				if err := u.updateUser(user); err != nil {
+				if err := u.updateUser(user, true, true); err != nil {
 					log.Error("error updating user", "error", err, "user", user.UserID)
 				} else {
 					updates.Add(1)
@@ -232,7 +232,10 @@ func (u *Updater) updateUsers() error {
 // updateUser method updates the reputation data of a given user. It fetches the
 // activity data from the database and the boosters data from the Airstack and
 // the Census3 API. It then updates the reputation data in the database.
-func (u *Updater) updateUser(user *mongo.User) error {
+func (u *Updater) updateUser(user *mongo.User, activity, boosters bool) error {
+	if u.db == nil {
+		return fmt.Errorf("database not set")
+	}
 	rep, err := u.db.DetailedUserReputation(user.UserID)
 	if err != nil {
 		// if the user is not found, create a new user with blank data
@@ -242,40 +245,43 @@ func (u *Updater) updateUser(user *mongo.User) error {
 		// return the error if it is not a user unknown error
 		return err
 	}
-	// get activiy data
-	activityRep, err := u.userActivityReputation(user)
-	if err != nil {
-		// if there is an error fetching the activity data, log the error and
-		// continue updating the no failed activity data
-		log.Error("error getting user activity reputation", "error", err, "user", user.UserID)
+	// get activiy data if needed
+	if activity {
+		activityRep, err := u.userActivityReputation(user)
+		if err != nil {
+			// if there is an error fetching the activity data, log the error and
+			// continue updating the no failed activity data
+			log.Error("error getting user activity reputation", "error", err, "user", user.UserID)
+		}
+		// update reputation
+		rep.FollowersCount = activityRep.FollowersCount
+		rep.ElectionsCreated = activityRep.ElectionsCreated
+		rep.CastedVotes = activityRep.CastedVotes
+		rep.VotesCastedOnCreatedElections = activityRep.VotesCastedOnCreatedElections
+		rep.CommunitiesCount = activityRep.CommunitiesCount
 	}
-	// update reputation
-	rep.FollowersCount = activityRep.FollowersCount
-	rep.ElectionsCreated = activityRep.ElectionsCreated
-	rep.CastedVotes = activityRep.CastedVotes
-	rep.VotesCastedOnCreatedElections = activityRep.VotesCastedOnCreatedElections
-	rep.CommunitiesCount = activityRep.CommunitiesCount
-	// get boosters data
-	boosters, err := u.userBoosters(user)
-	// if there is an error fetching the boosters data, log the error and
-	// continue updating the no failed boosters data
-	if err != nil {
-		log.Error("error getting some boosters", "error", err, "user", user.UserID)
+	// get boosters data if needed
+	if boosters {
+		boostersRep, err := u.userBoosters(user)
+		// if there is an error fetching the boosters data, log the error and
+		// continue updating the no failed boosters data
+		if err != nil {
+			log.Error("error getting some boosters", "error", err, "user", user.UserID)
+		}
+		// update reputation
+		rep.HasVotecasterNFTPass = boostersRep.HasVotecasterNFTPass
+		rep.HasVotecasterLaunchNFT = boostersRep.HasVotecasterLaunchNFT
+		rep.IsVotecasterAlphafrensFollower = boostersRep.IsVotecasterAlphafrensFollower
+		rep.IsVotecasterFarcasterFollower = boostersRep.IsVotecasterFarcasterFollower
+		rep.IsVocdoniFarcasterFollower = boostersRep.IsVocdoniFarcasterFollower
+		rep.VotecasterAnnouncementRecasted = boostersRep.VotecasterAnnouncementRecasted
+		rep.HasKIWI = boostersRep.HasKIWI
+		rep.HasDegenDAONFT = boostersRep.HasDegenDAONFT
+		rep.Has10kDegenAtLeast = boostersRep.Has10kDegenAtLeast
+		rep.HasTokyoDAONFT = boostersRep.HasTokyoDAONFT
+		rep.Has5ProxyAtLeast = boostersRep.Has5ProxyAtLeast
+		rep.HasNameDegen = boostersRep.HasNameDegen
 	}
-	// update reputation
-	rep.HasVotecasterNFTPass = boosters.HasVotecasterNFTPass
-	rep.HasVotecasterLaunchNFT = boosters.HasVotecasterLaunchNFT
-	rep.IsVotecasterAlphafrensFollower = boosters.IsVotecasterAlphafrensFollower
-	rep.IsVotecasterFarcasterFollower = boosters.IsVotecasterFarcasterFollower
-	rep.IsVocdoniFarcasterFollower = boosters.IsVocdoniFarcasterFollower
-	rep.VotecasterAnnouncementRecasted = boosters.VotecasterAnnouncementRecasted
-	rep.HasKIWI = boosters.HasKIWI
-	rep.HasDegenDAONFT = boosters.HasDegenDAONFT
-	rep.Has10kDegenAtLeast = boosters.Has10kDegenAtLeast
-	rep.HasTokyoDAONFT = boosters.HasTokyoDAONFT
-	rep.HasProxy = boosters.HasProxy
-	rep.Has5ProxyAtLeast = boosters.Has5ProxyAtLeast
-	rep.HasNameDegen = boosters.HasNameDegen
 	// commit reputation
 	return u.db.SetDetailedReputationForUser(user.UserID, rep)
 }
@@ -396,12 +402,11 @@ func (u *Updater) userBoosters(user *mongo.User) (*Boosters, error) {
 			}
 		}
 		// check if user has Proxy and at least 5 Proxies
-		if !boosters.HasProxy {
+		if !boosters.Has5ProxyAtLeast {
 			balance, err := u.airstack.Client.CheckIfHolder(ProxyAddress, ProxyChainShortName, addr)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("error getting Proxy balance for %s: %w", addr, err))
 			} else {
-				boosters.HasProxy = balance > 0
 				boosters.Has5ProxyAtLeast = balance >= 5
 			}
 		}
