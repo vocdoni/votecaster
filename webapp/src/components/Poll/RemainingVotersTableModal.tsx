@@ -6,11 +6,11 @@ import { useAuth } from '~components/Auth/useAuth'
 import { fetchPollsRemainingVoters } from '~queries/polls'
 import { UsersTableModal } from './UsersTableModal'
 
-export const RemainingVotersTableModal = ({ poll }: { poll: PollInfo }) => {
+export const RemainingVotersTableModal = ({ poll, census }: { poll: PollInfo, census: Census }) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { bfetch } = useAuth()
   const toast = useToast()
-  const { data, error, isLoading } = useQuery({
+  const { data, error: error, isLoading: isLoadingData } = useQuery({
     queryKey: ['remainingVoters', poll.electionId],
     queryFn: fetchPollsRemainingVoters(bfetch, poll.electionId),
     enabled: !!poll.electionId && isOpen,
@@ -43,7 +43,7 @@ export const RemainingVotersTableModal = ({ poll }: { poll: PollInfo }) => {
         <Button
           size='sm'
           onClick={onOpen}
-          isLoading={isLoading}
+          isLoading={isLoadingData}
           rightIcon={<TbUserQuestion />}
           isDisabled={!poll.voteCount}
         >
@@ -54,10 +54,12 @@ export const RemainingVotersTableModal = ({ poll }: { poll: PollInfo }) => {
         isOpen={isOpen}
         onClose={onClose}
         error={error}
-        isLoading={isLoading}
+        isLoading={isLoadingData}
         title='Remaining voters'
         filename='remaining-voters.csv'
-        data={data?.map((username) => [username])}
+        data={
+          data?.map((username) => [username, census?.participants[username]]) as string[][]
+        }
         downloadText='Download remaining voters list'
       />
     </>
