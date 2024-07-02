@@ -12,28 +12,34 @@ interface AuthState {
 }
 
 const baseRep = {
-  reputation: 0,
-  data: {
-    castedVotes: 0,
-    electionsCreated: 0,
+  totalReputation: 0,
+  activity: {
     followersCount: 0,
+    electionsCreated: 0,
+    castedVotes: 0,
     participationAchievement: 0,
     communitiesCount: 0,
+  },
+  boosters: {
+    hasVotecasterNFTPass: false,
+    hasVotecasterLaunchNFT: false,
+    isVotecasterAlphafrensFollower: false,
+    isVotecasterFarcasterFollower: false,
+    isVocdoniFarcasterFollower: false,
+    votecasterAnnouncementRecasted: false,
+    hasKIWI: false,
+    hasDegenDAONFT: false,
+    hasHaberdasheryNFT: false,
+    has10kDegenAtLeast: false,
+    hasTokyoDAONFT: false,
+    hasProxy: false,
+    has5ProxyAtLeast: false,
+    hasProxyStudioNFT: false,
+    hasNameDegen: false,
   },
 }
 
 export type Reputation = typeof baseRep
-export type ReputationResponse = {
-  reputation: number
-  reputationData: (typeof baseRep)['data']
-}
-
-export const reputationResponse2Reputation = (rep: ReputationResponse): Reputation => ({
-  reputation: rep.reputation,
-  data: {
-    ...rep.reputationData,
-  },
-})
 
 type LoginParams = {
   profile: Profile
@@ -68,13 +74,7 @@ export const useAuthProvider = (): AuthState => {
     [bearer]
   )
 
-  const storeReputation = (rep: ReputationResponse) => {
-    const reputation = {
-      reputation: rep.reputation,
-      data: {
-        ...rep.reputationData,
-      },
-    }
+  const storeReputation = (reputation: Reputation) => {
     setReputation(reputation)
     localStorage.setItem('reputation', JSON.stringify(reputation))
   }

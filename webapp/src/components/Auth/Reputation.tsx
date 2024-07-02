@@ -30,8 +30,8 @@ export const ReputationProgress = ({ reputation, ...props }: CircularProgressPro
   if (!reputation) return
 
   return (
-    <CircularProgress value={reputation.reputation} max={100} color='purple.600' thickness='12px' {...props}>
-      <CircularProgressLabel>{reputation.reputation}%</CircularProgressLabel>
+    <CircularProgress value={reputation.totalReputation} max={100} color='purple.600' thickness='12px' {...props}>
+      <CircularProgressLabel>{reputation.totalReputation}%</CircularProgressLabel>
     </CircularProgress>
   )
 }
@@ -62,7 +62,7 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
               <StatLabel fontSize='lg'>
                 <Icon as={ImStatsDots} boxSize={4} /> Votecaster reputation
               </StatLabel>
-              <StatNumber fontSize='2xl'>{reputation.reputation}</StatNumber>
+              <StatNumber fontSize='2xl'>{reputation.totalReputation}</StatNumber>
             </Stat>
             <ReputationProgress reputation={reputation} />
           </Flex>
@@ -83,7 +83,7 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
             <Stat>
               <StatLabel fontSize='x-small'>Manager of</StatLabel>
               <FlexStatNumber>
-                {reputation.data.communitiesCount}
+                {reputation.activity.communitiesCount}
                 {` `}
                 <Icon as={FaUserGroup} boxSize={3} />
               </FlexStatNumber>
@@ -91,7 +91,7 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
             <Stat>
               <StatLabel fontSize='x-small'>Casted votes</StatLabel>
               <FlexStatNumber>
-                {reputation.data.castedVotes}
+                {reputation.activity.castedVotes}
                 {` `}
                 <Icon as={MdOutlineHowToVote} boxSize={3.5} />
               </FlexStatNumber>
@@ -99,7 +99,7 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
             <Stat>
               <StatLabel fontSize='x-small'>Created polls</StatLabel>
               <FlexStatNumber>
-                {reputation.data.electionsCreated}
+                {reputation.activity.electionsCreated}
                 {` `}
                 <Icon as={SlPencil} boxSize={3} />
               </FlexStatNumber>
@@ -107,7 +107,7 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
             <Stat>
               <StatLabel fontSize='x-small'>Followers</StatLabel>
               <FlexStatNumber>
-                {reputation.data.followersCount}
+                {reputation.activity.followersCount}
                 {` `}
                 <Icon as={FaHeart} boxSize={3} />
               </FlexStatNumber>
@@ -115,7 +115,7 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
             <Stat>
               <StatLabel fontSize='x-small'>Participation in created polls</StatLabel>
               <FlexStatNumber>
-                {reputation.data.participationAchievement}
+                {reputation.activity.participationAchievement}
                 {` `}
                 <Icon as={FaRegFaceGrinStars} boxSize={3} />
               </FlexStatNumber>
