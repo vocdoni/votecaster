@@ -1,0 +1,92 @@
+{
+    "degen":{
+        "id": 666666666,
+        "name": "Degen",
+        "nativeCurrency": {
+            "name": "Degen",
+            "symbol": "DEGEN",
+            "decimals": 18
+        },
+        "rpcUrls": {
+            "default": {
+                "http": [
+                    "https://rpc.degen.tips"
+                ],
+                "webSocket": [
+                    "wss://rpc.degen.tips"
+                ]
+            }
+        },
+        "contracts": {
+            "communityHub": {
+                "address": "0x1a7361b9d75486C5c10e7B3Ec77266BA75260bF1"
+            }
+        }
+    },
+    "degen-dev":{
+        "id": 666666666,
+        "name": "Degen",
+        "nativeCurrency": {
+            "name": "Degen",
+            "symbol": "DEGEN",
+            "decimals": 18
+        },
+        "rpcUrls": {
+            "default": {
+                "http": [
+                    "https://rpc.degen.tips"
+                ],
+                "webSocket": [
+                    "wss://rpc.degen.tips"
+                ]
+            }
+        },
+        "contracts": {
+            "communityHub": {
+                "address": "0x1Be05fD83B43D3d5Eb930Ab44f326Fe69d63bd63"
+            }
+        }
+    },
+    "base": {
+        "id": 8453,
+        "name": "Base",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "rpcUrls": {
+            "default": {
+                "http": [
+                    "https://mainnet.base.org/"
+                ]
+            }
+        },
+        "contracts": {
+            "communityHub": {
+                "address": "0xc6a3a66d676b03A637EAd64518E5090ba4D1aaB7"
+            }
+        }
+    },
+    "base-sep": {
+        "id": 84532,
+        "name": "Base Sepolia",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "rpcUrls": {
+            "default": {
+                "http": [
+                    "https://sepolia.base.org"
+                ]
+            }
+        },
+        "contracts": {
+            "communityHub": {
+                "address": "0xdB5a0d05788A7D94026286951301545082C2A088"
+            }
+        }
+    }
+}
