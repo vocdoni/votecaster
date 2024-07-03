@@ -2,6 +2,8 @@ module github.com/vocdoni/vote-frame
 
 go 1.22.0
 
+// replace github.com/vocdoni/census3 => ../census3
+
 require (
 	github.com/Khan/genqlient v0.6.0
 	github.com/ethereum/go-ethereum v1.14.3
@@ -11,13 +13,12 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
-	github.com/vocdoni/census3 v0.1.4-0.20240418065546-c3ac49eec357
+	github.com/vocdoni/census3 v0.1.4-0.20240703080226-f8f110aa971e
 	github.com/zeebo/blake3 v0.2.3
 	go.mongodb.org/mongo-driver v1.14.0
-	go.vocdoni.io/dvote v1.10.2-0.20240604174445-1c49e3077576
-	go.vocdoni.io/proto v1.15.6-0.20240209115732-27836380ccae
+	go.vocdoni.io/dvote v1.10.2-0.20240617105531-77480ae05205
+	go.vocdoni.io/proto v1.15.8
 	google.golang.org/protobuf v1.34.0
-	lukechampine.com/blake3 v1.3.0
 )
 
 require (
@@ -340,5 +341,6 @@ require (
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	lukechampine.com/blake3 v1.3.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
