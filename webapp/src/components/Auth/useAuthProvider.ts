@@ -74,7 +74,7 @@ export const useAuthProvider = (): AuthState => {
     [bearer]
   )
 
-  const storeReputation = (reputation: Reputation) => {
+  const storeReputation = ({ reputation }: { reputation: Reputation }) => {
     setReputation(reputation)
     localStorage.setItem('reputation', JSON.stringify(reputation))
   }
