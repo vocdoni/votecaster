@@ -11,7 +11,7 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
-func (ms *MongoStorage) AddCommunity(id uint64, name, imageUrl, groupChatUrl string,
+func (ms *MongoStorage) AddCommunity(id string, name, imageUrl, groupChatUrl string,
 	census CommunityCensus, channels []string, creator uint64, admins []uint64,
 	notifications, disabled bool,
 ) error {
@@ -38,7 +38,7 @@ func (ms *MongoStorage) UpdateCommunity(community *Community) error {
 	return ms.updateCommunity(community)
 }
 
-func (ms *MongoStorage) Community(id uint64) (*Community, error) {
+func (ms *MongoStorage) Community(id string) (*Community, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 	return ms.community(id)
@@ -85,26 +85,6 @@ func (ms *MongoStorage) ListCommunitiesByAdminFID(fid uint64, limit, offset int6
 	return communities, total, nil
 }
 
-// NextCommunityID returns the next community ID which will be assigned to a new
-// community. It returns the last community ID + 1. If there are no communities
-// in the database, it returns 0. If something goes wrong, it returns an error.
-func (ms *MongoStorage) NextCommunityID() (uint64, error) {
-	ms.keysLock.RLock()
-	defer ms.keysLock.RUnlock()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	opts := options.FindOne().SetSort(bson.M{"_id": -1})
-	// find the last community ID
-	var community Community
-	err := ms.communities.FindOne(ctx, bson.M{}, opts).Decode(&community)
-	if err != nil && !strings.Contains(err.Error(), "no documents in result") {
-		// if there is an error and it is not because there are no documents
-		// in the result, return the error and 0 (invalid ID)
-		return 0, err
-	}
-	return community.ID + 1, nil
-}
-
 // ListCommunitiesByAdminUsername returns the list of communities where the
 // user is an admin by username provided. It queries about the user FID first.
 func (ms *MongoStorage) ListCommunitiesByAdminUsername(username string, limit, offset int64) ([]Community, int64, error) {
@@ -115,9 +95,29 @@ func (ms *MongoStorage) ListCommunitiesByAdminUsername(username string, limit, o
 	return ms.ListCommunitiesByAdminFID(user.UserID, limit, offset)
 }
 
+func (ms *MongoStorage) LastCommunityID(prefix string) (string, error) {
+	// Find documents
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	// Define the filter to match IDs with the specified prefix
+	filter := bson.M{"_id": bson.M{"$regex": fmt.Sprintf("^%s", prefix)}}
+	projection := bson.M{"_id": 1}
+	options := options.FindOne().SetSort(bson.D{{Key: "_id", Value: -1}}).SetProjection(projection)
+
+	var community *Community
+	if err := ms.communities.FindOne(ctx, filter, options).Decode(&community); err != nil {
+		if strings.Contains(err.Error(), "no documents in result") {
+			return "", ErrNoResults
+		}
+		return "", err
+	}
+	return community.ID, nil
+}
+
 // DelCommunity removes the community with the specified ID from the database.
 // If an error occurs, it returns the error.
-func (ms *MongoStorage) DelCommunity(communityID uint64) error {
+func (ms *MongoStorage) DelCommunity(communityID string) error {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -162,7 +162,7 @@ func (ms *MongoStorage) updateCommunity(community *Community) error {
 
 // community method returns the community with the given id. If something goes
 // wrong, it returns an error. If the community does not exist, it returns nil.
-func (ms *MongoStorage) community(id uint64) (*Community, error) {
+func (ms *MongoStorage) community(id string) (*Community, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var community Community
@@ -177,7 +177,7 @@ func (ms *MongoStorage) community(id uint64) (*Community, error) {
 }
 
 // IsCommunityAdmin checks if the user is an admin of the given community by ID.
-func (ms *MongoStorage) IsCommunityAdmin(userID, communityID uint64) bool {
+func (ms *MongoStorage) IsCommunityAdmin(userID uint64, communityID string) bool {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -195,7 +195,7 @@ func (ms *MongoStorage) IsCommunityAdmin(userID, communityID uint64) bool {
 }
 
 // IsCommunityDisabled checks if the community with the given ID is disabled.
-func (ms *MongoStorage) IsCommunityDisabled(communityID uint64) bool {
+func (ms *MongoStorage) IsCommunityDisabled(communityID string) bool {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -209,7 +209,7 @@ func (ms *MongoStorage) IsCommunityDisabled(communityID uint64) bool {
 }
 
 // SetCommunityStatus sets the disabled status of the community with the given ID.
-func (ms *MongoStorage) SetCommunityStatus(communityID uint64, disabled bool) error {
+func (ms *MongoStorage) SetCommunityStatus(communityID string, disabled bool) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -220,7 +220,7 @@ func (ms *MongoStorage) SetCommunityStatus(communityID uint64, disabled bool) er
 
 // CommunityAllowNotifications checks if the community with the given ID has
 // notifications enabled.
-func (ms *MongoStorage) CommunityAllowNotifications(communityID uint64) bool {
+func (ms *MongoStorage) CommunityAllowNotifications(communityID string) bool {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -234,7 +234,7 @@ func (ms *MongoStorage) CommunityAllowNotifications(communityID uint64) bool {
 }
 
 // SetCommunityNotifications sets the disabled status of the community with the given ID.
-func (ms *MongoStorage) SetCommunityNotifications(communityID uint64, enabled bool) error {
+func (ms *MongoStorage) SetCommunityNotifications(communityID string, enabled bool) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
