@@ -6,6 +6,15 @@ var (
 	// ErrMissingDB is returned when no database is provided during CommunituHub
 	// initialization
 	ErrMissingDB = fmt.Errorf("missing db")
+	// ErrMissingContracts is returned when no contracts addresses and chain ids
+	// are provided during CommunityHub initialization
+	ErrMissingContracts = fmt.Errorf("missing contracts addresses and chain id")
+	// ErrNoValidContracts is returned when no valid contracts are provided
+	// during CommunityHub initialization
+	ErrNoValidContracts = fmt.Errorf("no valid contracts provided")
+	// ErrContractNotFound is returned when the contract is not found in the
+	// provided contracts list
+	ErrContractNotFound = fmt.Errorf("contract not found for the provided chain id")
 	// ErrClosedDB is returned when the database is closed
 	ErrClosedDB = fmt.Errorf("db is closed")
 	// ErrWeb3Client is returned when no web3 client is found in the provided
@@ -14,9 +23,11 @@ var (
 	// ErrInitContract is returned when the initialization of the contract fails
 	// during CommunityHub initialization
 	ErrInitContract = fmt.Errorf("failed to initialize contract")
-	// ErrMissingContract is returned when the creation of a auth transactor
-	// with the private key provided fails
+	// ErrCreatingSigner is returned when the signer cannot be created
 	ErrCreatingSigner = fmt.Errorf("failed to create auth transactor signer")
+	// ErrInitializingPrivateKey is returned when the private key cannot be
+	// initialized
+	ErrInitializingPrivateKey = fmt.Errorf("failed to initialize private key")
 	// ErrNoPrivKeyConfigured is returned when no private key is provided during
 	// CommunityHub initialization and then a transaction is attempted to be
 	// sent with a signer
@@ -30,6 +41,9 @@ var (
 	// ErrSettingCommunity is returned when an error occurs while setting
 	// community data in the community hub contract
 	ErrSettingCommunity = fmt.Errorf("error setting community data in the community hub contract")
+	// ErrInvalidCommunityData is returned when invalid community data is
+	// provided
+	ErrInvalidCommunityData = fmt.Errorf("invalid community data provided")
 	// ErrCommunityNotFound is returned when the community is not found in the
 	// contract
 	ErrCommunityNotFound = fmt.Errorf("community not found")
@@ -63,4 +77,10 @@ var (
 	// ErrSendingTx is returned when an error occurs while sending the a
 	// transaction to the community hub contract
 	ErrSendingTx = fmt.Errorf("error estimating gas")
+	// ErrEncodeCommunityID is returned when the community ID cannot be encoded
+	// from the chain short name and the ID
+	ErrEncodeCommunityID = fmt.Errorf("error encoding chain community ID")
+	// ErrDecodeCommunityID is returned when the ID and the chain
+	// short name cannot be decoded from the community ID
+	ErrDecodeCommunityID = fmt.Errorf("error decoding chain community ID")
 )

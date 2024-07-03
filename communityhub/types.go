@@ -73,7 +73,9 @@ type ContractAddress struct {
 
 // HubCommunity represents a community in the CommunityHub package
 type HubCommunity struct {
+	CommunityID    string
 	ID             uint64
+	ChainID        uint64
 	Name           string
 	ImageURL       string
 	GroupChatURL   string
@@ -91,6 +93,7 @@ type HubCommunity struct {
 
 // HubResult represents the result of a poll in the CommunityHub
 type HubResults struct {
+	ElectionID       []byte
 	Question         string
 	Options          []string
 	Date             string
