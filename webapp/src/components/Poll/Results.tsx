@@ -68,7 +68,7 @@ export const ResultsOptions = ({ poll }: { poll: PollInfo }) => {
       <Box key={index} w='full'>
         <Flex justifyContent='space-between' w='full'>
           <Text>{option} {!!tally && <>({percentage.toFixed(2)} %)</>}</Text>
-          {!!tally && <Text>{tally[index]} votes</Text>}
+          {!!tally && <Text>{tally[index]} voting power</Text>}
         </Flex>
         {!!tally && <Progress size='sm' rounded={50} value={percentage} />}
       </Box>

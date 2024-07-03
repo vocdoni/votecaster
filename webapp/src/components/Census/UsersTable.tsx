@@ -23,7 +23,7 @@ export const UsersTable = ({ users, selectable, onSelectionChange, hasWeight, fi
 
   const filteredUsers = users
     .filter(([username]) => username.toLowerCase().includes(filterText.toLowerCase()))
-    .sort((a, b) => hasWeight ? (BigInt(a[1] || '0') > BigInt(b[1] || '0') ? 1 : -1) : 0);
+    .sort((a, b) => hasWeight ? (BigInt(a[1] || '0') < BigInt(b[1] || '0') ? 1 : -1) : 0);
 
   const handleCheckboxChange = (username: string, weight: string, isChecked: boolean) => {
     const data = [username]

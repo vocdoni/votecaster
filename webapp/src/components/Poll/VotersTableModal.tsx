@@ -6,7 +6,7 @@ import { useAuth } from '~components/Auth/useAuth'
 import { fetchPollsVoters } from '~queries/polls'
 import { UsersTableModal } from './UsersTableModal'
 
-export const VotersTableModal = ({ poll }: { poll: PollInfo }) => {
+export const VotersTableModal = ({ poll, census }: { poll: PollInfo, census: Census }) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { bfetch } = useAuth()
   const toast = useToast()
@@ -28,7 +28,7 @@ export const VotersTableModal = ({ poll }: { poll: PollInfo }) => {
 
     toast({
       title: 'Error',
-      description: error?.message || 'Failed to retrieve voters list',
+      description: error?.message  || 'Failed to retrieve voters list',
       status: 'error',
       duration: 5000,
       isClosable: true,
@@ -51,7 +51,7 @@ export const VotersTableModal = ({ poll }: { poll: PollInfo }) => {
         isLoading={isLoading}
         title='Voters'
         filename='voters.csv'
-        data={data?.map((username) => [username])}
+        data={data?.map((username) => [username, census?.participants[username]]) as string[][]}
         downloadText='Download voters list'
       />
     </>

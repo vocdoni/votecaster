@@ -1,59 +1,28 @@
-import { Button, useDisclosure, useToast } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { Button, useDisclosure, } from '@chakra-ui/react'
 import { FaUserGroup } from 'react-icons/fa6'
-import { useAuth } from '~components/Auth/useAuth'
-import { fetchCensus } from '~queries/census'
 import { UsersTableModal } from './UsersTableModal'
 
-export const ParticipantsTableModal = ({ poll }: { poll: PollInfo }) => {
+export const ParticipantsTableModal = ({ poll, census }: { poll: PollInfo, census: Census }) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { bfetch } = useAuth()
-  const toast = useToast()
-
-  const { data, error, isLoading } = useQuery({
-    queryKey: ['census', poll.electionId],
-    queryFn: fetchCensus(bfetch, poll.electionId),
-    enabled: !!poll.electionId && isOpen,
-    refetchOnWindowFocus: false,
-    retry: (count, error: any) => {
-      if (error.status !== 200) {
-        return count < 1
-      }
-      return false
-    },
-  })
-
-  useEffect(() => {
-    if (!error) return
-
-    toast({
-      title: 'Error',
-      description: 'Failed to retrieve census participants list',
-      status: 'error',
-      duration: 5000,
-      isClosable: true,
-    })
-  }, [error])
 
   if (!poll || !poll.electionId) return
 
   return (
     <>
-      <Button size='sm' onClick={onOpen} isLoading={isLoading} rightIcon={<FaUserGroup />} isDisabled={!!error}>
+      <Button size='sm' onClick={onOpen}  rightIcon={<FaUserGroup />}>
         Census
       </Button>
       <UsersTableModal
         isOpen={isOpen}
         onClose={onClose}
         downloadText='Download full census'
-        error={error}
-        isLoading={isLoading}
+        error={null}
+        isLoading={false}
         title='Participants / census'
         filename='participants.csv'
         data={
-          data?.participants &&
-          Object.keys(data.participants).map((username) => [username, data.participants[username]])
+          census?.participants &&
+          Object.keys(census.participants).map((username) => [username, census.participants[username]])
         }
       />
     </>
