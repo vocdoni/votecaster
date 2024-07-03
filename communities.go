@@ -17,6 +17,28 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
+func (v *vocdoniHandler) parseCommunityIDFromURL(ctx *httprouter.HTTPContext) (string, string, uint64, error) {
+	// get community id from the URL
+	strID := ctx.URLParam("communityID")
+	if strID == "" {
+		return "", "", 0, fmt.Errorf("no community ID provided")
+	}
+	id, err := strconv.ParseUint(strID, 10, 64)
+	if err != nil {
+		return "", "", 0, fmt.Errorf("invalid community ID")
+	}
+	// get community chain from the URL
+	chainAlias := ctx.URLParam("chainAlias")
+	if chainAlias == "" {
+		return "", "", 0, fmt.Errorf("no community chain short name provided")
+	}
+	communityID, ok := v.comhub.CommunityIDByChainAlias(id, chainAlias)
+	if !ok {
+		return "", "", 0, fmt.Errorf("invalid community ID")
+	}
+	return communityID, chainAlias, id, nil
+}
+
 // censusChannelOrAddresses gets the census channel or addresses based on the
 // type of the census provided from the database. If the census provided is
 // based on a channel, it gets the channel information from the farcaster API,
@@ -209,17 +231,13 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 }
 
 func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	// get community id from the URL and parse to int
-	communityID := ctx.URLParam("communityID")
-	if communityID == "" {
-		return ctx.Send([]byte("no community ID provided"), http.StatusBadRequest)
-	}
-	id, err := strconv.Atoi(communityID)
+	// get community id from the URL
+	communityID, _, _, err := v.parseCommunityIDFromURL(ctx)
 	if err != nil {
-		return ctx.Send([]byte("invalid community ID"), http.StatusBadRequest)
+		return ctx.Send([]byte(err.Error()), http.StatusBadRequest)
 	}
 	// get the community from the database by its id
-	dbCommunity, err := v.db.Community(uint64(id))
+	dbCommunity, err := v.db.Community(communityID)
 	if err != nil {
 		return ctx.Send([]byte("error getting community"), http.StatusInternalServerError)
 	}
@@ -281,17 +299,13 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 	if err != nil {
 		return fmt.Errorf("cannot get user from auth token: %w", err)
 	}
-	// get community id from the URL and parse to int
-	communityID := ctx.URLParam("communityID")
-	if communityID == "" {
-		return ctx.Send([]byte("no community ID provided"), http.StatusBadRequest)
-	}
-	id, err := strconv.Atoi(communityID)
+	// get community id from the URL
+	communityID, _, id, err := v.parseCommunityIDFromURL(ctx)
 	if err != nil {
-		return ctx.Send([]byte("invalid community ID"), http.StatusBadRequest)
+		return ctx.Send([]byte(err.Error()), http.StatusBadRequest)
 	}
 	// get the community from the database by its id
-	dbCommunity, err := v.db.Community(uint64(id))
+	dbCommunity, err := v.db.Community(communityID)
 	if err != nil {
 		return ctx.Send([]byte("error getting community"), http.StatusInternalServerError)
 	}
@@ -358,7 +372,7 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 		// upload the new avatar if it is base64 encoded
 		if isBase64Image(typedCommunity.LogoURL) {
 			// empty the avatarID to generate a new one based on the data
-			avatarURL, err := v.uploadAvatar("", userFID, uint64(id), typedCommunity.LogoURL)
+			avatarURL, err := v.uploadAvatar("", userFID, communityID, typedCommunity.LogoURL)
 			if err != nil {
 				return fmt.Errorf("cannot upload avatar: %w", err)
 			}
@@ -367,7 +381,9 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 		}
 	}
 	// update the community in the community hub
-	newCommuniy, err := v.comhub.SetCommunity(uint64(id), &communityhub.HubCommunity{
+	if err := v.comhub.UpdateCommunity(&communityhub.HubCommunity{
+		ID:             id,
+		CommunityID:    communityID,
 		Name:           typedCommunity.Name,
 		ImageURL:       typedCommunity.LogoURL,
 		GroupChatURL:   typedCommunity.GroupChatURL,
@@ -378,17 +394,7 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 		Admins:         admins,
 		Notifications:  notification,
 		Disabled:       disabled,
-	})
-	if err != nil {
-		return fmt.Errorf("error updating community: %w", err)
-	}
-	// update the community in the database with the response from the community hub
-	newDBCommuniy, err := communityhub.HubToDB(newCommuniy)
-	if err != nil {
-		return fmt.Errorf("error converting community: %w", err)
-	}
-	newDBCommuniy.ID = uint64(id)
-	if err := v.db.UpdateCommunity(newDBCommuniy); err != nil {
+	}); err != nil {
 		return fmt.Errorf("error updating community: %w", err)
 	}
 	return ctx.Send([]byte("ok"), http.StatusOK)

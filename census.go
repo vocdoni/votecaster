@@ -414,7 +414,7 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 		return fmt.Errorf("cannot get user from auth token: %w", err)
 	}
 	req := struct {
-		CommunityID uint64 `json:"communityID"`
+		CommunityID string `json:"communityID"`
 	}{}
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return err

@@ -61,7 +61,7 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 		return fmt.Errorf("failed to get election: %w", err)
 	}
 	// check if the election is a community election and if the user is an admin
-	if election.Community == nil || election.Community.ID == 0 {
+	if election.Community == nil || election.Community.ID == "" {
 		return fmt.Errorf("election is not a community election")
 	}
 	if !v.db.IsCommunityAdmin(auth.UserID, election.Community.ID) && auth.UserID != v.adminFID {
