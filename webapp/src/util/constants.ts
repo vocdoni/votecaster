@@ -1,7 +1,5 @@
 export const appUrl = import.meta.env.APP_URL
 
-export const degenContractAddress = import.meta.env.COMMUNITY_HUB_ADDRESSES.degen
-
 export const vocdoniEnvironment = import.meta.env.VOCDONI_ENVIRONMENT
 
 export const vocdoniExplorer = import.meta.env.VOCDONI_EXPLORER

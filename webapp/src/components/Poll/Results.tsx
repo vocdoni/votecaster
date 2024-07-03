@@ -11,7 +11,7 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
-import { degenContractAddress } from '~constants'
+import { getContractForChain } from '~util/chain'
 
 export const ResultsSection = ({ poll, onChain, loading }: { poll: PollInfo; loading: boolean; onChain: boolean }) => (
   <VStack spacing={4} alignItems='left'>
@@ -42,7 +42,7 @@ export const Results = ({ poll, onChain }: { poll: PollInfo; onChain: boolean })
               color='gray'
               textAlign={'right'}
               isExternal
-              href={`https://explorer.degen.tips/address/${degenContractAddress}`}
+              href={`https://explorer.degen.tips/address/${getContractForChain('degen-dev')}`}
             >
               View contract
             </Link>
@@ -67,7 +67,9 @@ export const ResultsOptions = ({ poll }: { poll: PollInfo }) => {
     return (
       <Box key={index} w='full'>
         <Flex justifyContent='space-between' w='full'>
-          <Text>{option} {!!tally && <>({percentage.toFixed(2)} %)</>}</Text>
+          <Text>
+            {option} {!!tally && <>({percentage.toFixed(2)} %)</>}
+          </Text>
           {!!tally && <Text>{tally[index]} voting power</Text>}
         </Flex>
         {!!tally && <Progress size='sm' rounded={50} value={percentage} />}

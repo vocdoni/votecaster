@@ -32,8 +32,8 @@ import { SiFarcaster } from 'react-icons/si'
 import { TbExternalLink } from 'react-icons/tb'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
-import { degenContractAddress } from '~constants'
 import { fetchPollsByCommunity } from '~queries/rankings'
+import { getContractForChain } from '~util/chain'
 import { humanDate } from '~util/strings'
 import { CensusTypeInfo } from './CensusTypeInfo'
 import { ManageCommunity } from './Manage'
@@ -93,7 +93,11 @@ export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) =>
             </Text>
             <Text fontSize='smaller' mt='6'>
               Deployed on{' '}
-              <Link isExternal href={`https://explorer.degen.tips/address/${degenContractAddress}`} variant='primary'>
+              <Link
+                isExternal
+                href={`https://explorer.degen.tips/address/${getContractForChain('degen-dev')}`}
+                variant='primary'
+              >
                 🎩 DegenChain
               </Link>
             </Text>

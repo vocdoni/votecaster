@@ -7,7 +7,7 @@ import { base, baseSepolia, degen } from 'viem/chains'
 import { Config, useAccount, useReadContract, useWalletClient, useWatchContractEvent } from 'wagmi'
 import { useAuth } from '~components/Auth/useAuth'
 import { CensusFormValues } from '~components/CensusTypeSelector'
-import { appUrl, degenContractAddress } from '~constants'
+import { appUrl } from '~constants'
 import { communityHubAbi } from '~src/bindings'
 import { getContractForChain } from '~util/chain'
 import { config } from '~util/rainbow'
@@ -38,7 +38,7 @@ export const CommunitiesCreateForm = () => {
 
   useWatchContractEvent({
     abi: communityHubAbi,
-    address: getContractForChain(degen),
+    address: getContractForChain(chain),
     chainId: chain?.id,
     eventName: 'CommunityCreated',
     onLogs: (logs) => {
@@ -115,7 +115,7 @@ export const CommunitiesCreateForm = () => {
           censusType: cencusType,
           tokens:
             data.addresses
-              ?.filter(({ address }) => address !== '')
+              ?.filter(({ address }: Address) => address !== '')
               .map(({ blockchain, address: contractAddress }) => {
                 return {
                   blockchain,
@@ -128,8 +128,8 @@ export const CommunitiesCreateForm = () => {
         const guardians = data.admins.map((admin) => BigInt(admin.value))
         const createElectionPermission = 0
 
-        console.info('Degen contract address', degenContractAddress)
-        console.info('mapped for contract write:', [
+        console.info('Contract address', getContractForChain(chain))
+        console.info('Mapped for contract write:', [
           metadata,
           census,
           guardians,
