@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -25,6 +24,7 @@ import (
 	"github.com/vocdoni/vote-frame/farcasterapi/hub"
 	"github.com/vocdoni/vote-frame/farcasterapi/neynar"
 	"github.com/vocdoni/vote-frame/features"
+	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/mongo"
 	"github.com/vocdoni/vote-frame/notifications"
 	urlapi "go.vocdoni.io/dvote/api"
@@ -66,8 +66,7 @@ func main() {
 		"Web3 RPCs")
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 	// community hub flags
-	flag.String("communityHubAddress", "", "The address of the CommunityHub contract")
-	flag.Uint64("communityHubChainID", 666666666, "The chain ID of the CommunityHub contract (default: DegenChain 666666666)")
+	flag.String("communityHubChainsConfig", "./chains_config.json", "The JSON configuration file for the community hub networks")
 	flag.String("communityHubAdminPrivKey", "", "The private key of a wallet admin of the CommunityHub contract in hex format")
 	// bot flags
 	// DISCLAMER: Currently the bot needs a HUB with write permissions to work.
@@ -129,8 +128,7 @@ func main() {
 	neynarAPIKey := viper.GetString("neynarAPIKey")
 	indexer := viper.GetBool("indexer")
 	// community hub vars
-	communityHubAddress := viper.GetString("communityHubAddress")
-	communityHubChainID := viper.GetUint64("communityHubChainID")
+	communityHubChainsConfigPath := viper.GetString("communityHubChainsConfig")
 	communityHubAdminPrivKey := viper.GetString("communityHubAdminPrivKey")
 
 	// bot vars
@@ -186,8 +184,7 @@ func main() {
 		"mongoDB", mongoDB,
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
-		"communityHubAddress", communityHubAddress,
-		"communityHubChainID", communityHubChainID,
+		"communityHubChainsConfig", communityHubChainsConfigPath,
 		"communityHubAdmin", communityHubAdminPrivKey != "",
 		"botFid", botFid,
 		"botHubEndpoint", botHubEndpoint,
@@ -283,20 +280,21 @@ func main() {
 
 	// Create the community hub service
 	var comHub *communityhub.CommunityHub
-	if communityHubAddress != "" {
-		// try to get a valid web3 client for the community hub chain, if not
-		// available, skip the community hub initialization
-		if _, err := web3pool.Client(communityHubChainID); err != nil {
-			log.Warnw("failed to get web3 client for community hub", "error", err)
+	if communityHubChainsConfigPath != "" {
+		config, err := helpers.LoadChainsConfig(communityHubChainsConfigPath)
+		if err != nil {
+			log.Warnw("failed to load community hub chains config", "error", err)
 		} else {
-			if comHub, err = communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
-				DB:              db,
-				ContractAddress: common.HexToAddress(communityHubAddress),
-				ChainID:         communityHubChainID,
-				PrivKey:         communityHubAdminPrivKey,
-			}); err != nil {
-				log.Fatal(err)
+			comHub, err := communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
+				ChainAliases:      config.ChainAliasesByChainID(),
+				ContractAddresses: config.ContractsAddressesByChainID(),
+				DB:                db,
+				PrivKey:           communityHubAdminPrivKey,
+			})
+			if err != nil {
+				log.Warnw("failed to create community hub", "error", err)
 			}
+
 			comHub.ScanNewCommunities()
 			comHub.SyncCommunities()
 			defer comHub.Stop()
