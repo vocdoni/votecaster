@@ -11,21 +11,52 @@ const (
 	maxCommunityReputation = 10
 	maxReputation          = 100
 	// Boosters puntuaction values
-	votecasterNFTPassPuntuaction              = 25
-	votecasterLaunchNFTPuntuaction            = 6
-	votecasterAlphafrensFollowerPuntuaction   = 15
-	votecasterFarcasterFollowerPuntuaction    = 3
+	votecasterNFTPassPuntuaction              = 10
+	votecasterLaunchNFTPuntuaction            = 18
+	votecasterAlphafrensFollowerPuntuaction   = 12
+	votecasterFarcasterFollowerPuntuaction    = 5
 	vocdoniFarcasterFollowerPuntuaction       = 3
-	votecasterAnnouncementRecastedPuntuaction = 5
-	kiwiPuntuaction                           = 3
-	degenDAONFTPuntuaction                    = 7
-	haberdasheryFTPuntuaction                 = 8
-	degenAtLeast10kPuntuaction                = 5
+	votecasterAnnouncementRecastedPuntuaction = 7
+	kiwiPuntuaction                           = 4
+	degenDAONFTPuntuaction                    = 6
+	haberdasheryNFTPuntuaction                = 6
+	degenAtLeast10kPuntuaction                = 4
 	tokyoDAONFTPuntuaction                    = 5
 	proxyStudioNFTPuntuaction                 = 5
-	proxyAtLeast5Puntuaction                  = 5
+	proxyAtLeast5Puntuaction                  = 4
 	nameDegenPuntuaction                      = 5
+	farcasterOGNFTPuntuaction                 = 6
+	// yield rate
+	voterMultiplier = .3
+	ownerMultiplier = .7
 )
+
+var ActivityPuntuationInfo = ReputationInfo{
+	"maxFollowersReputation": maxFollowersReputation,
+	"maxElectionsReputation": maxElectionsReputation,
+	"maxVotesReputation":     maxVotesReputation,
+	"maxCastedReputation":    maxCastedReputation,
+	"maxCommunityReputation": maxCommunityReputation,
+	"maxReputation":          maxReputation,
+}
+
+var BoostersPuntuationInfo = ReputationInfo{
+	"votecasterNFTPassPuntuaction":              votecasterNFTPassPuntuaction,
+	"votecasterLaunchNFTPuntuaction":            votecasterLaunchNFTPuntuaction,
+	"votecasterAlphafrensFollowerPuntuaction":   votecasterAlphafrensFollowerPuntuaction,
+	"votecasterFarcasterFollowerPuntuaction":    votecasterFarcasterFollowerPuntuaction,
+	"vocdoniFarcasterFollowerPuntuaction":       vocdoniFarcasterFollowerPuntuaction,
+	"votecasterAnnouncementRecastedPuntuaction": votecasterAnnouncementRecastedPuntuaction,
+	"kiwiPuntuaction":                           kiwiPuntuaction,
+	"degenDAONFTPuntuaction":                    degenDAONFTPuntuaction,
+	"haberdasheryNFTPuntuaction":                haberdasheryNFTPuntuaction,
+	"degenAtLeast10kPuntuaction":                degenAtLeast10kPuntuaction,
+	"tokyoDAONFTPuntuaction":                    tokyoDAONFTPuntuaction,
+	"proxyStudioNFTPuntuaction":                 proxyStudioNFTPuntuaction,
+	"proxyAtLeast5Puntuaction":                  proxyAtLeast5Puntuaction,
+	"nameDegenPuntuaction":                      nameDegenPuntuaction,
+	"farcasterOGNFTPuntuaction":                 farcasterOGNFTPuntuaction,
+}
 
 // Boosters contract addresses
 var (
@@ -53,6 +84,8 @@ var (
 	ProxyStudioNFTAddress = common.HexToAddress("0x7888b1f446c912ddec9bf582629e9ae8845fd8c6")
 	// NameDegen NFT contract address
 	NameDegenAddress = common.HexToAddress("0x4087fb91A1fBdef05761C02714335D232a2Bf3a1")
+	// FarCaster OG NFT contract address
+	FarcasterOFNFTAddress = common.HexToAddress("0xe03ef4b9db1a47464de84fb476f9baf493b3e886")
 )
 
 // Boosters costants (ids, hashesh and network information)
@@ -84,4 +117,6 @@ const (
 	ProxyStudioNFTShortName = "base"
 	// NameDegen NFT network short name
 	NameDegenChainShortName = "degen"
+	// FarCaster OG NFT network short name
+	FarcasterOFNFTChainShortName = "zora"
 )

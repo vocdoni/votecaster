@@ -43,14 +43,26 @@ type Boosters struct {
 	Has5ProxyAtLeast               bool `json:"has5ProxyAtLeast"`
 	HasProxyStudioNFT              bool `json:"hasProxyStudioNFT"`
 	HasNameDegen                   bool `json:"hasNameDegen"`
+	HasFarcasterOGNFT              bool `json:"hasFarcasterOGNFT"`
 }
+
+type UserPoints struct {
+	OwnerPoints uint64 `json:"ownerPoints"`
+	VoterPoints uint64 `json:"voterPoints"`
+	TotalPoints uint64 `json:"totalPoints"`
+}
+
+type ReputationInfo map[string]uint64
 
 // Reputation struct contains the reputation of a user, detailed by activity and
 // boosters
 type Reputation struct {
 	*ActivityReputation `json:"activity"`
 	*Boosters           `json:"boosters"`
-	TotalReputation     uint32 `json:"totalReputation"`
+	*UserPoints         `json:"points"`
+	TotalReputation     uint32         `json:"totalReputation"`
+	ActivityInfo        ReputationInfo `json:"activityInfo"`
+	BoostersInfo        ReputationInfo `json:"boostersInfo"`
 }
 
 // Calculator struct contains the database connection to calculate the
@@ -97,6 +109,24 @@ func (c *Calculator) UserReputation(userID uint64, update bool) (*Reputation, er
 	return c.calcReputation(userID)
 }
 
+// pointsOf calculates the points of a user based on the user ID and the
+// reputation of the user. It gets the communities owned by the user and the
+// communities the user is part of as a voter, and calculates the points of
+// the user based on the reputation as owner and voter. It returns the points
+// of the user as owner and voter or an error if the communities are not found.
+func (c *Calculator) pointsOf(userID uint64, reputation uint32) (uint64, uint64, error) {
+	ownerCommunities, _, err := c.db.ListCommunitiesByAdminFID(userID, -1, 0)
+	if err != nil {
+		return 0, 0, fmt.Errorf("could not get owned communities: %w", err)
+	}
+	voterCommunities, err := c.db.CommunitiesByVoter(userID)
+	if err != nil {
+		return 0, 0, fmt.Errorf("could not get voter communities: %w", err)
+	}
+	return sumOfYields(ownerCommunities, reputation, ownerMultiplier),
+		sumOfYields(voterCommunities, reputation, voterMultiplier), nil
+}
+
 // calcReputation calculates the reputation of a user based on the user ID. It
 // gets the detailed reputation information of the user from the database and
 // calculates the resulting reputation value. It returns the reputation of the
@@ -128,10 +158,23 @@ func (c *Calculator) calcReputation(userID uint64) (*Reputation, error) {
 		Has5ProxyAtLeast:               dbRep.Has5ProxyAtLeast,
 		HasProxyStudioNFT:              dbRep.HasProxyStudioNFT,
 		HasNameDegen:                   dbRep.HasNameDegen,
+		HasFarcasterOGNFT:              dbRep.HasFarcasterOGNFT,
+	}
+	totalReputation := totalReputation(activityRep, boosters)
+	ownerPoints, voterPoints, err := c.pointsOf(userID, totalReputation)
+	if err != nil {
+		return nil, fmt.Errorf("could not get user points: %w", err)
 	}
 	return &Reputation{
 		ActivityReputation: activityRep,
 		Boosters:           boosters,
-		TotalReputation:    totalReputation(activityRep, boosters),
+		TotalReputation:    totalReputation,
+		UserPoints: &UserPoints{
+			OwnerPoints: ownerPoints,
+			VoterPoints: voterPoints,
+			TotalPoints: ownerPoints + voterPoints,
+		},
+		ActivityInfo: ActivityPuntuationInfo,
+		BoostersInfo: BoostersPuntuationInfo,
 	}, nil
 }
