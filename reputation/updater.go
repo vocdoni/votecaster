@@ -13,6 +13,7 @@ import (
 	"github.com/vocdoni/census3/apiclient"
 	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/alfafrens"
+	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/log"
@@ -101,6 +102,10 @@ func (u *Updater) Start(coolDown time.Duration) error {
 				// launch update
 				if err := u.updateUsers(); err != nil {
 					log.Error("error updating users", "error", err)
+				}
+				// launch update communities
+				if err := u.updateCommunities(); err != nil {
+					log.Error("error updating communities", "error", err)
 				}
 				// update last update time
 				u.lastUpdate = time.Now()
@@ -229,6 +234,49 @@ func (u *Updater) updateUsers() error {
 	return nil
 }
 
+func (u *Updater) updateCommunities() error {
+	log.Info("updating communities reputation")
+	// limit the number of concurrent updates and create the channel to receive
+	// the communities, creates also the inner waiter to wait for all updates to
+	// finish
+	concurrentUpdates := make(chan struct{}, u.maxConcurrent)
+	innerWaiter := sync.WaitGroup{}
+	communities, total, err := u.db.ListCommunities(-1, 0)
+	if err != nil {
+		return fmt.Errorf("error listing communities: %w", err)
+	}
+	// counters for total and updated communities
+	updates := atomic.Int64{}
+	// listen for communities and update them concurrently
+	innerWaiter.Add(1)
+	go func() {
+		defer innerWaiter.Done()
+		for _, community := range communities {
+			// get a slot in the concurrent updates channel
+			concurrentUpdates <- struct{}{}
+			go func(community *mongo.Community) {
+				// release the slot when the update is done
+				defer func() {
+					<-concurrentUpdates
+				}()
+				participation, censusSize, err := u.communityPoints(community)
+				if err != nil {
+					log.Error("error getting community points", "error", err, "community", community.ID)
+					return
+				}
+				if err := u.db.SetCommunityPoints(community.ID, participation, censusSize); err != nil {
+					log.Error("error updating community reputation", "error", err, "community", community.ID)
+					return
+				}
+				updates.Add(1)
+			}(&community)
+		}
+	}()
+	innerWaiter.Wait()
+	log.Info("communities reputation updated", "total", total, "updated", updates.Load())
+	return nil
+}
+
 // updateUser method updates the reputation data of a given user. It fetches the
 // activity data from the database and the boosters data from the Airstack and
 // the Census3 API. It then updates the reputation data in the database.
@@ -310,6 +358,51 @@ func (u *Updater) userActivityReputation(user *mongo.User) (*ActivityReputation,
 		VotesCastedOnCreatedElections: totalVotes,
 		CommunitiesCount:              communitiesCount,
 	}, nil
+}
+
+func (u *Updater) communityPoints(community *mongo.Community) (float64, uint64, error) {
+	participation, err := u.db.CommunityParticipationMean(community.ID)
+	if err != nil {
+		return 0, 0, fmt.Errorf("error fetching community participation mean: %w", err)
+	}
+	ctx, cancel := context.WithTimeout(u.ctx, time.Second*30)
+	defer cancel()
+	var censusSize uint64
+	switch community.Census.Type {
+	case mongo.TypeCommunityCensusChannel:
+		users, err := u.fapi.ChannelFIDs(ctx, community.Census.Channel, nil)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error fetching channel users: %w", err)
+		}
+		censusSize = uint64(len(users))
+	case mongo.TypeCommunityCensusERC20, mongo.TypeCommunityCensusNFT:
+		singleUsers := map[common.Address]bool{}
+		for _, token := range community.Census.Addresses {
+			holders, err := u.airstack.TokenBalances(common.HexToAddress(token.Address), token.Blockchain)
+			if err != nil {
+				return 0, 0, fmt.Errorf("error fetching token holders: %w", err)
+			}
+			for _, holder := range holders {
+				if _, ok := singleUsers[holder.Address]; !ok {
+					singleUsers[holder.Address] = true
+				}
+			}
+		}
+		censusSize = uint64(len(singleUsers))
+	case mongo.TypeCommunityCensusFollowers:
+		fid, err := communityhub.UserRefToFID(community.Census.Channel)
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid follower census user reference: %w", err)
+		}
+		users, err := u.fapi.UserFollowers(ctx, fid)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error fetching user followers: %w", err)
+		}
+		censusSize = uint64(len(users))
+	default:
+		return 0, 0, fmt.Errorf("invalid census type")
+	}
+	return participation, censusSize, nil
 }
 
 // userBoosters method fetches the boosters data of a given user from the

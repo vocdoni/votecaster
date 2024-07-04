@@ -74,6 +74,7 @@ type UserReputation struct {
 	Has5ProxyAtLeast               bool   `json:"has5ProxyAtLeast" bson:"has5ProxyAtLeast"`
 	HasProxyStudioNFT              bool   `json:"hasProxyStudioNFT" bson:"hasProxyStudioNFT"`
 	HasNameDegen                   bool   `json:"hasNameDegen" bson:"hasNameDegen"`
+	HasFarcasterOGNFT              bool   `json:"hasFarcasterOGNFT" bson:"hasFarcasterOGNFT"`
 }
 
 // ElectionCommunity represents the community used to create an election.
@@ -256,6 +257,8 @@ type Community struct {
 	Notifications bool            `json:"notifications" bson:"notifications"`
 	Disabled      bool            `json:"disabled" bson:"disabled"`
 	Featured      bool            `json:"featured" bson:"featured"`
+	Participation float64         `json:"participation" bson:"participation"`
+	CensusSize    uint64          `json:"censusSize" bson:"censusSize"`
 }
 
 const (
@@ -360,7 +363,10 @@ func paginatedObjects(collection *mongo.Collection, query bson.M, opts *options.
 	if opts == nil {
 		opts = options.Find()
 	}
-	opts = opts.SetLimit(limit).SetSkip(offset)
+	// return all objects if limit is -1 and offset is 0
+	if limit > -1 && offset == 0 {
+		opts = opts.SetLimit(limit).SetSkip(offset)
+	}
 	ctx, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel2()
 	cursor, err := collection.Find(ctx, query, opts)

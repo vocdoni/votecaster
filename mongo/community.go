@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.vocdoni.io/dvote/log"
+	"go.vocdoni.io/dvote/types"
 )
 
 func (ms *MongoStorage) AddCommunity(community *Community) error {
@@ -109,6 +110,81 @@ func (ms *MongoStorage) DelCommunity(communityID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := ms.communities.DeleteOne(ctx, bson.M{"_id": communityID})
+	return err
+}
+
+// CommunityParticipationMean returns the mean of the participation of the every
+// community poll with the given ID. It returns an error if something goes wrong
+// with the database.
+func (ms *MongoStorage) CommunityParticipationMean(communityID uint64) (float64, error) {
+	elections, err := ms.ElectionsByCommunity(communityID)
+	if err != nil {
+		return 0, err
+	}
+	if len(elections) == 0 {
+		return 0, nil
+	}
+	// participation = Σ (sum of votes / sum of voters * 100)
+	var totalParticipation float64
+	for _, election := range elections {
+		totalParticipation += float64(election.CastedVotes) / float64(election.FarcasterUserCount) * 100
+	}
+	// mean participation = total participation / number of elections
+	return totalParticipation / float64(len(elections)), nil
+}
+
+// CommunitiesByVoter returns the list of communities with elections where the
+// user is voter. It returns an error if something goes wrong with the database.
+func (ms *MongoStorage) CommunitiesByVoter(userID uint64) ([]Community, error) {
+	// get elections with a defined community object and then check if the user
+	// id provided is voter for any of those elections, then returns the
+	// communities of the elections where the user is voter
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+	// get elections with a defined community object
+	communityElections, err := ms.electionsWithCommunity()
+	if err != nil {
+		return nil, err
+	}
+	// iterate over the elections getting the voters to check if the user is one
+	// of them, if so, get the community of the election and add it to the list
+	communities := []Community{}
+	alreadyIncluded := map[uint64]bool{}
+	for _, election := range communityElections {
+		// if the community is already included, skip it to avoid duplicates
+		// and unnecessary queries
+		if _, ok := alreadyIncluded[election.Community.ID]; ok {
+			continue
+		}
+		// get the voters of the election and check if the user is one of them
+		voters, err := ms.votersOfElection(types.HexBytes(election.ElectionID))
+		if err != nil {
+			return nil, err
+		}
+		// if the user is not a voter, skip the election
+		if !ms.isUserVoter(voters, userID) {
+			continue
+		}
+		// get the community of the election and add it to the list
+		community, err := ms.community(election.Community.ID)
+		if err != nil {
+			return nil, err
+		}
+		alreadyIncluded[election.Community.ID] = true
+		communities = append(communities, *community)
+	}
+	return communities, nil
+}
+
+// SetCommunityPoints sets the participation and census size of the community
+// with the given ID. It returns an error if something goes wrong with the
+// database.
+func (ms *MongoStorage) SetCommunityPoints(communityID uint64, participation float64, censusSize uint64) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := ms.communities.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"participation": participation, "censusSize": censusSize}})
 	return err
 }
 
