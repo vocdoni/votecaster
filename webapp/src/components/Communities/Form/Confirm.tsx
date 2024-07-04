@@ -69,7 +69,7 @@ export const Confirm = ({ price, ...props }: ConfirmProps) => {
       </Box>
       <Text>
         As soon as it's created, you will be able to create and manage polls secured by the Vocdoni protocol for
-        decentralized, censorship-resistant and gassless voting.
+        decentralized, censorship-resistant and gasless voting.
       </Text>
       {typeof price === 'bigint' && (
         <Box display='flex' justifyContent='space-between' fontWeight='500' w='full'>
