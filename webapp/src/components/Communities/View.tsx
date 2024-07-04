@@ -40,6 +40,7 @@ import { ManageCommunity } from './Manage'
 
 type CommunitiesViewProps = {
   community?: Community
+  chain: string
   refetch: (options?: RefetchOptions | undefined) => Promise<QueryObserverResult<Community, Error>>
 }
 
@@ -60,11 +61,11 @@ const WhiteBox = ({ children }: PropsWithChildren) => (
   </Flex>
 )
 
-export const CommunitiesView = ({ community, refetch }: CommunitiesViewProps) => {
+export const CommunitiesView = ({ community, chain, refetch }: CommunitiesViewProps) => {
   const { bfetch, profile, isAuthenticated } = useAuth()
   const { onOpen: openManageModal, ...modalProps } = useDisclosure()
   const { data: communityPolls } = useQuery<Poll[], Error>({
-    queryKey: ['communityPolls', community?.id],
+    queryKey: ['communityPolls', chain, community?.id],
     queryFn: fetchPollsByCommunity(bfetch, community as Community),
     enabled: !!community,
   })

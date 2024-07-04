@@ -12,10 +12,14 @@ if (['dev', 'stg'].includes(env)) {
   explorer = `https://${env}.explorer.vote`
 }
 
-const getConfiguredChains = (chains: string[]): { [key: string]: Chain } => {
-  const result: { [key: string]: Chain } = {}
+type ChainsFile = typeof chainsDefinition
+type ChainKey = keyof ChainsFile
+type ChainsConfig = Partial<{ [K in ChainKey]: Chain }>
+
+const getConfiguredChains = (chains: ChainKey[]): ChainsConfig => {
+  const result: ChainsConfig = {}
   chains.forEach((chain) => {
-    const chainConfig = (chainsDefinition as { [key: string]: Chain })[chain]
+    const chainConfig = chainsDefinition[chain]
     if (!chainConfig) {
       throw new Error(`Chain ${chain} not found in chains_config.json`)
     }
@@ -31,8 +35,7 @@ const viteconfig: UserConfigFn = ({ mode }) => {
 
   const base = process.env.BASE_URL || '/'
   const outDir = process.env.BUILD_PATH || 'dist'
-  const configuredChains: string[] = JSON.parse(process.env.VOCDONI_CHAINS || 'null') || ['degen-dev', 'base-sep']
-  console.log('configured chains:', getConfiguredChains(configuredChains))
+  const configuredChains: ChainKey[] = JSON.parse(process.env.VOCDONI_CHAINS || 'null') || ['degen-dev', 'base-sep']
 
   const config = defineConfig({
     base,
@@ -43,7 +46,7 @@ const viteconfig: UserConfigFn = ({ mode }) => {
       'import.meta.env.APP_URL': JSON.stringify(process.env.APP_URL || 'https://dev.farcaster.vote'),
       'import.meta.env.VOCDONI_ENVIRONMENT': JSON.stringify(env),
       'import.meta.env.VOCDONI_EXPLORER': JSON.stringify(explorer),
-      'import.meta.env.MAINTENANCE': JSON.stringify(process.env.MAINTENANCE || false),
+      'import.meta.env.MAINTENANCE': process.env.MAINTENANCE === 'true',
       'import.meta.env.VOCDONI_ADMINFID': parseInt(process.env.ADMINFID || '7548'),
       'import.meta.env.chains': JSON.stringify(getConfiguredChains(configuredChains)),
     },
@@ -61,7 +64,7 @@ const viteconfig: UserConfigFn = ({ mode }) => {
       }),
     ],
   })
-  console.log(config)
+  console.info(config)
   return config
 }
 

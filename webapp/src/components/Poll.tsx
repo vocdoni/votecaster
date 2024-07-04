@@ -23,7 +23,6 @@ import { Link as RouterLink } from 'react-router-dom'
 import { appUrl } from '~constants'
 import { fetchShortURL } from '~queries/polls'
 import { useAuth } from './Auth/useAuth'
-import { useDegenHealthcheck } from './Healthcheck/use-healthcheck'
 import { Information } from './Poll/Information'
 import { ResultsSection } from './Poll/Results'
 import { ParticipantTurnout, VotingPower } from './Poll/Turnout'
@@ -36,7 +35,7 @@ export type PollViewProps = {
 
 export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
   const { bfetch } = useAuth()
-  const { connected } = useDegenHealthcheck()
+  // const { connected } = useDegenHealthcheck()
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${poll.electionId}`)
   const { setValue, onCopy, hasCopied } = useClipboard(electionURL)
 
@@ -126,7 +125,7 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
             </Box>
           )}
         </Flex>
-        {!connected && (
+        {false /* !connected */ && (
           <Alert status='warning'>
             <AlertIcon />
             <AlertDescription>

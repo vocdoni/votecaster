@@ -6,7 +6,7 @@ import { CommunitiesView } from '~components/Communities/View'
 import { fetchCommunity } from '~queries/communities'
 
 const Community = () => {
-  const { id } = useParams()
+  const { id, chain } = useParams()
   const { bfetch } = useAuth()
   const {
     data: community,
@@ -14,7 +14,7 @@ const Community = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['community', id],
+    queryKey: ['community', chain, id],
     queryFn: fetchCommunity(bfetch, id as string),
     enabled: !!id,
   })
@@ -23,7 +23,7 @@ const Community = () => {
     return <Check isLoading={isLoading} error={error} />
   }
 
-  return <CommunitiesView community={community} refetch={refetch} />
+  return <CommunitiesView chain={chain as string} community={community} refetch={refetch} />
 }
 
 export default Community

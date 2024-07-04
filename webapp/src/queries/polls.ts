@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useReadContract } from 'wagmi'
 import { useAuth } from '~components/Auth/useAuth'
-import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { appUrl } from '~constants'
 import { communityHubAbi } from '~src/bindings'
 import { getChain, getContractForChain } from '~util/chain'
@@ -54,7 +53,7 @@ export const fetchShortURL = (bfetch: FetchFunction) => async (url: string) => {
   return result
 }
 
-export const useApiPollInfo = (electionId?: string) => {
+export const useApiPollInfo = (electionId: string) => {
   const { bfetch } = useAuth()
 
   return useQuery<PollResponse, Error, PollInfo>({
@@ -72,8 +71,8 @@ export const useApiPollInfo = (electionId?: string) => {
   })
 }
 
-export const useContractPollInfo = (chainAlias?: string, communityId?: string, electionId?: string) => {
-  const { connected } = useDegenHealthcheck()
+export const useContractPollInfo = (chainAlias: ChainKey, communityId: string, electionId: string) => {
+  // const { connected } = useDegenHealthcheck()
   return useReadContract({
     abi: communityHubAbi,
     config: {
@@ -84,7 +83,7 @@ export const useContractPollInfo = (chainAlias?: string, communityId?: string, e
     functionName: 'getResult',
     args: [BigInt(communityId!), `0x${electionId}`],
     query: {
-      retry: connected,
+      retry: true /* connected */,
       enabled: !!chainAlias && !!communityId && !!electionId,
     },
   })

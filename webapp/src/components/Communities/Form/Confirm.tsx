@@ -17,7 +17,7 @@ import { GiTopHat } from 'react-icons/gi'
 import { MdOutlineRocketLaunch } from 'react-icons/md'
 import { useAccount, useBalance, useSwitchChain } from 'wagmi'
 import { degen } from 'wagmi/chains'
-import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
+import { useHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { chainAlias, isSupportedChain, supportedChains } from '~util/chain'
 
 type ConfirmProps = {
@@ -25,10 +25,11 @@ type ConfirmProps = {
 } & ButtonProps
 
 export const Confirm = ({ price, ...props }: ConfirmProps) => {
-  const { connected } = useDegenHealthcheck()
+  const health = useHealthcheck()
   const { chain, isConnected } = useAccount()
   const { openConnectModal } = useConnectModal()
   const { switchChain } = useSwitchChain()
+  const alias = chainAlias(chain)
 
   if (!isConnected) {
     return (
@@ -38,11 +39,13 @@ export const Confirm = ({ price, ...props }: ConfirmProps) => {
     )
   }
 
-  if (chain && chain.id === degen.id && !connected) {
+  if (chain && alias && !health[alias]) {
     return (
       <Alert status='warning'>
         <AlertIcon />
-        <AlertDescription>Degenchain is currently down. Please try again later, or switch to base.</AlertDescription>
+        <AlertDescription>
+          {chain.name} is currently down. Please try again later, or switch to a different supported chain.
+        </AlertDescription>
       </Alert>
     )
   }

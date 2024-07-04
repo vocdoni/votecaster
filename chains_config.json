@@ -21,6 +21,12 @@
             "communityHub": {
                 "address": "0x1a7361b9d75486C5c10e7B3Ec77266BA75260bF1"
             }
+        },
+        "blockExplorers": {
+            "default": {
+                "name": "Degen Explorer",
+                "url": "https://explorer.degen.tips"
+            }
         }
     },
     "degen-dev":{
@@ -45,6 +51,12 @@
             "communityHub": {
                 "address": "0x1Be05fD83B43D3d5Eb930Ab44f326Fe69d63bd63"
             }
+        },
+        "blockExplorers": {
+            "default": {
+                "name": "Degen Explorer",
+                "url": "https://explorer.degen.tips"
+            }
         }
     },
     "base": {
@@ -66,6 +78,13 @@
             "communityHub": {
                 "address": "0xc6a3a66d676b03A637EAd64518E5090ba4D1aaB7"
             }
+        },
+        "blockExplorers": {
+            "default": {
+                "name": "Base Network Explorer",
+                "url": "https://basescan.org/"
+
+            }
         }
     },
     "base-sep": {
@@ -86,6 +105,13 @@
         "contracts": {
             "communityHub": {
                 "address": "0xdB5a0d05788A7D94026286951301545082C2A088"
+            }
+        },
+        "blockExplorers": {
+            "default": {
+                "name": "Base Sepolia Network Explorer",
+                "url": "https://sepolia.basescan.org/"
+
             }
         }
     }

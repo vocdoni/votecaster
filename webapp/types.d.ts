@@ -1,4 +1,5 @@
-import { ReputationResponse } from '~components/Auth/useAuthProvider'
+import type { ReputationResponse } from '~components/Auth/useAuthProvider'
+import chainsDefinition from '../chains_config.json'
 
 declare global {
   type FetchFunction = (input: RequestInfo, init?: RequestInit) => Promise<Response>
@@ -19,6 +20,16 @@ declare global {
     createdBy: number
     totalWeight: number
     url: string
+  }
+
+  type ChainsFile = typeof chainsDefinition
+  type ChainKey = keyof ChainsFile
+  type ChainsConfig = Partial<{ [K in ChainKey]: Chain }>
+
+  type CommunityPollParams = {
+    chainAlias: ChainKey
+    communityId: string
+    electionId: string
   }
 
   type Pagination = {
@@ -106,6 +117,14 @@ declare global {
     createdByFID: number
     createdByUsername: string
     createdByDisplayname: string
+  }
+
+  type RecursivePartial<T> = {
+    [P in keyof T]?: T[P] extends (infer U)[]
+      ? RecursivePartial<U>[]
+      : T[P] extends object | undefined
+        ? RecursivePartial<T[P]>
+        : T[P]
   }
 
   type UserRanking = {
