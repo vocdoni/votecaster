@@ -159,6 +159,9 @@ func (ms *MongoStorage) CommunitiesByVoter(userID uint64) ([]Community, error) {
 		// get the voters of the election and check if the user is one of them
 		voters, err := ms.votersOfElection(types.HexBytes(election.ElectionID))
 		if err != nil {
+			if err == ErrElectionUnknown {
+				continue
+			}
 			return nil, err
 		}
 		// if the user is not a voter, skip the election
