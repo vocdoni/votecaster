@@ -97,15 +97,15 @@ func (u *Updater) Start(coolDown time.Duration) error {
 				}
 				// update internal followers
 				if err := u.updateFollowersAndRecasters(); err != nil {
-					log.Error("error updating internal followers", "error", err)
-				}
-				// launch update
-				if err := u.updateUsers(); err != nil {
-					log.Error("error updating users", "error", err)
+					log.Warnw("error updating internal followers", "error", err)
 				}
 				// launch update communities
 				if err := u.updateCommunities(); err != nil {
-					log.Error("error updating communities", "error", err)
+					log.Warnw("error updating communities", "error", err)
+				}
+				// launch update
+				if err := u.updateUsers(); err != nil {
+					log.Warnw("error updating users", "error", err)
 				}
 				// update last update time
 				u.lastUpdate = time.Now()
@@ -218,7 +218,7 @@ func (u *Updater) updateUsers() error {
 				}()
 				// update user reputation
 				if err := u.updateUser(user, true, true); err != nil {
-					log.Error("error updating user", "error", err, "user", user.UserID)
+					log.Errorf("error updating user %d: %v", user.UserID, err)
 				} else {
 					updates.Add(1)
 				}
@@ -230,7 +230,7 @@ func (u *Updater) updateUsers() error {
 		return fmt.Errorf("error iterating users: %w", err)
 	}
 	innerWaiter.Wait()
-	log.Info("users reputation updated", "total", total.Load(), "updated", updates.Load())
+	log.Infow("users reputation updated", "total", total.Load(), "updated", updates.Load())
 	return nil
 }
 
@@ -261,11 +261,11 @@ func (u *Updater) updateCommunities() error {
 				}()
 				participation, censusSize, err := u.communityPoints(community)
 				if err != nil {
-					log.Error("error getting community points", "error", err, "community", community.ID)
+					log.Errorf("error getting community %d points: %v", community.ID, err)
 					return
 				}
 				if err := u.db.SetCommunityPoints(community.ID, participation, censusSize); err != nil {
-					log.Error("error updating community reputation", "error", err, "community", community.ID)
+					log.Errorf("error updating community %d reputation: %v", community.ID, err)
 					return
 				}
 				updates.Add(1)
@@ -273,7 +273,7 @@ func (u *Updater) updateCommunities() error {
 		}
 	}()
 	innerWaiter.Wait()
-	log.Info("communities reputation updated", "total", total, "updated", updates.Load())
+	log.Infow("communities reputation updated", "total", total, "updated", updates.Load())
 	return nil
 }
 
@@ -299,7 +299,7 @@ func (u *Updater) updateUser(user *mongo.User, activity, boosters bool) error {
 		if err != nil {
 			// if there is an error fetching the activity data, log the error and
 			// continue updating the no failed activity data
-			log.Error("error getting user activity reputation", "error", err, "user", user.UserID)
+			log.Warnw("error getting user activity reputation", "error", err, "user", user.UserID)
 		}
 		// update reputation
 		rep.FollowersCount = activityRep.FollowersCount
@@ -314,7 +314,7 @@ func (u *Updater) updateUser(user *mongo.User, activity, boosters bool) error {
 		// if there is an error fetching the boosters data, log the error and
 		// continue updating the no failed boosters data
 		if err != nil {
-			log.Error("error getting some boosters", "error", err, "user", user.UserID)
+			log.Warnw("error getting some boosters", "error", err, "user", user.UserID)
 		}
 		// update reputation
 		rep.HasVotecasterNFTPass = boostersRep.HasVotecasterNFTPass
