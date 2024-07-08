@@ -140,7 +140,7 @@ func (ms *MongoStorage) CommunitiesByVoter(userID uint64) ([]Community, error) {
 	// id provided is voter for any of those elections, then returns the
 	// communities of the elections where the user is voter
 	ms.keysLock.RLock()
-	defer ms.keysLock.Unlock()
+	defer ms.keysLock.RUnlock()
 	// get elections with a defined community object
 	communityElections, err := ms.electionsWithCommunity()
 	if err != nil {
