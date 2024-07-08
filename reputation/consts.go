@@ -3,6 +3,12 @@ package reputation
 import "github.com/ethereum/go-ethereum/common"
 
 const (
+	// user activity ponderation values
+	followersDividerPonderation = 2000
+	electionsDividerPonderation = 10
+	votesDividerPonderation     = 4
+	castedDividerPonderation    = 20
+	communitiesMultiplierPonderation = 2
 	// User activity max reputation values
 	maxFollowersReputation = 10
 	maxElectionsReputation = 10
@@ -27,8 +33,12 @@ const (
 	nameDegenPuntuaction                      = 5
 	farcasterOGNFTPuntuaction                 = 6
 	// yield rate
-	voterMultiplier = .3
-	ownerMultiplier = .7
+	yieldParamA       = 2
+	yieldParamB       = .2
+	daoMultiplier     = 4
+	channelMultiplier = 2
+	voterMultiplier   = .3
+	ownerMultiplier   = .7
 )
 
 var ActivityPuntuationInfo = ReputationInfo{

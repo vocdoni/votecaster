@@ -15,8 +15,24 @@ func totalReputation(ar *ActivityReputation, b *Boosters) uint32 {
 }
 
 // activityReputation calculates the reputation of a user based on their
-// activity, it returns a value between 0 and 100. The reputation is calculated
-// based on the following activities:
+// ponderated activity reputation values. If the reputation exceeds 100, it is
+// capped at 100.
+func activityReputation(rep *ActivityReputation) uint32 {
+	ponderated := ponderateActivityReputation(rep)
+	reputation := uint32(ponderated.FollowersCount +
+		ponderated.ElectionsCreated +
+		ponderated.CastedVotes +
+		ponderated.VotesCastedOnCreatedElections +
+		ponderated.CommunitiesCount)
+	if reputation > maxReputation {
+		reputation = maxReputation
+	}
+	return reputation
+}
+
+// ponderateActivityReputation calculates the ponderated reputation values of a
+// user activity. The reputation is calculated based on the following
+// activities:
 //   - FollowersCount: number of followers/2000 points (up to
 //     'maxFollowersReputation' points)
 //   - ElectionsCreated: number of elections/10 points (up to
@@ -27,45 +43,24 @@ func totalReputation(ar *ActivityReputation, b *Boosters) uint32 {
 //     elections/20 points (up to 'maxCastedReputation' points)
 //   - CommunitiesCount: number of communities*2 points (up to
 //     'maxCommunityReputation' points)
-//
-// If the reputation exceeds 100, it is capped at 100.
-func activityReputation(rep *ActivityReputation) uint32 {
-	reputation := 0.0
-	// Calculate FollowersCount score (up to 10 points, max 20000 followers)
-	if followersRep := float64(rep.FollowersCount) / 2000; followersRep <= maxFollowersReputation {
-		reputation += followersRep
-	} else {
-		reputation += maxFollowersReputation
+func ponderateActivityReputation(ar *ActivityReputation) *ActivityReputation {
+	p := &ActivityReputation{}
+	if p.FollowersCount = ar.FollowersCount / followersDividerPonderation; p.FollowersCount > maxFollowersReputation {
+		p.FollowersCount = maxFollowersReputation
 	}
-	// Calculate ElectionsCreated score (up to 10 points, max 100 elections)
-	if electionsRep := float64(rep.ElectionsCreated) / 10; electionsRep <= maxElectionsReputation {
-		reputation += electionsRep
-	} else {
-		reputation += maxElectionsReputation
+	if p.ElectionsCreated = ar.ElectionsCreated / electionsDividerPonderation; p.ElectionsCreated > maxElectionsReputation {
+		p.ElectionsCreated = maxElectionsReputation
 	}
-	// Calculate CastedVotes score (up to 30 points, max 120 votes)
-	if votesRep := float64(rep.CastedVotes) / 4; votesRep <= maxVotesReputation {
-		reputation += votesRep
-	} else {
-		reputation += maxVotesReputation
+	if p.CastedVotes = ar.CastedVotes / votesDividerPonderation; p.CastedVotes > maxVotesReputation {
+		p.CastedVotes = maxVotesReputation
 	}
-	// Calculate VotesCastedOnCreatedElections score (up to 50 points, max 1000 votes)
-	if castedRep := float64(rep.VotesCastedOnCreatedElections) / 20; castedRep <= maxCastedReputation {
-		reputation += castedRep
-	} else {
-		reputation += maxCastedReputation
+	if p.VotesCastedOnCreatedElections = ar.VotesCastedOnCreatedElections / castedDividerPonderation; p.VotesCastedOnCreatedElections > maxCastedReputation {
+		p.VotesCastedOnCreatedElections = maxCastedReputation
 	}
-	// Calculate CommunitiesCount score (up to 10 points, max 5 communities)
-	if comRep := float64(rep.CommunitiesCount) * 2; comRep <= maxCommunityReputation {
-		reputation += comRep
-	} else {
-		reputation += maxCommunityReputation
+	if p.CommunitiesCount = ar.CommunitiesCount * communitiesMultiplierPonderation; p.CommunitiesCount > maxCommunityReputation {
+		p.CommunitiesCount = maxCommunityReputation
 	}
-	// Ensure the reputation does not exceed 100
-	if reputation > maxReputation {
-		reputation = maxReputation
-	}
-	return uint32(reputation)
+	return p
 }
 
 // boostersReputation calculates the reputation of a user based on their boosters,
@@ -165,15 +160,15 @@ func boostersReputation(rep *Boosters) uint32 {
 	return reputation
 }
 
-// Y = (2 * participationRate + 0.2 * log(censusSize)) * ownerRep
-// if DAO => Y = Y * 4
-// if Channel => Y = Y * 2
+// Y = (A * participationRate + B * log(censusSize)) * ownerRep
+// if DAO => Y = Y * daoMultiplier
+// if Channel => Y = Y * channelMultiplier
 func communityYieldRate(participationRate, censusSize, ownerRep float64, dao, channel bool) float64 {
-	y := (2*participationRate + 0.2*math.Log(censusSize)) * ownerRep
+	y := (yieldParamA*participationRate + yieldParamB*math.Log(censusSize)) * ownerRep
 	if dao {
-		y *= 4
+		y *= daoMultiplier
 	} else if channel {
-		y *= 2
+		y *= channelMultiplier
 	}
 	return y
 }

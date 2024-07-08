@@ -46,12 +46,22 @@ type Boosters struct {
 	HasFarcasterOGNFT              bool `json:"hasFarcasterOGNFT"`
 }
 
+// User points struct includes the earned points of a user as owner and voter,
+// and the total points of the user. The owner points are calculated based on
+// the sum of points of the communities owned by the user based on the
+// reputation of the user as owner and the yields of their communities. The
+// voter points are calculated based on the sum of points of the communities
+// the user is part of as a voter based on the reputation of the user as voter
+// and the yields of the communities.
 type UserPoints struct {
 	OwnerPoints uint64 `json:"ownerPoints"`
 	VoterPoints uint64 `json:"voterPoints"`
 	TotalPoints uint64 `json:"totalPoints"`
 }
 
+// ReputationInfo is a helper struct to store and return the maximum reputation
+// values of a kind of reputation, the activity reputation or the boosters
+// reputation.
 type ReputationInfo map[string]uint64
 
 // Reputation struct contains the reputation of a user, detailed by activity and
@@ -166,7 +176,7 @@ func (c *Calculator) calcReputation(userID uint64) (*Reputation, error) {
 		return nil, fmt.Errorf("could not get user points: %w", err)
 	}
 	return &Reputation{
-		ActivityReputation: activityRep,
+		ActivityReputation: ponderateActivityReputation(activityRep),
 		Boosters:           boosters,
 		TotalReputation:    totalReputation,
 		UserPoints: &UserPoints{
