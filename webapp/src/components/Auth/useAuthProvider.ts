@@ -5,8 +5,14 @@ import { userToProfile } from '~util/mappings'
 export type AuthState = ReturnType<typeof useAuthProvider>
 
 const baseRep = {
-  totalReputation: 0,
   activity: {
+    followersCount: 0,
+    electionsCreated: 0,
+    castedVotes: 0,
+    participationAchievement: 0,
+    communitiesCount: 0,
+  },
+  activityCounts: {
     followersCount: 0,
     electionsCreated: 0,
     castedVotes: 0,
@@ -25,10 +31,41 @@ const baseRep = {
     hasHaberdasheryNFT: false,
     has10kDegenAtLeast: false,
     hasTokyoDAONFT: false,
-    hasProxy: false,
     has5ProxyAtLeast: false,
     hasProxyStudioNFT: false,
     hasNameDegen: false,
+    hasFarcasterOGNFT: false,
+  },
+  points: {
+    ownerPoints: 0,
+    voterPoints: 0,
+    totalPoints: 0,
+  },
+  totalReputation: 0,
+  activityInfo: {
+    maxCastedReputation: 0,
+    maxCommunityReputation: 0,
+    maxElectionsReputation: 0,
+    maxFollowersReputation: 0,
+    maxReputation: 0,
+    maxVotesReputation: 0,
+  },
+  boostersInfo: {
+    degenAtLeast10kPuntuaction: 0,
+    degenDAONFTPuntuaction: 0,
+    farcasterOGNFTPuntuaction: 0,
+    haberdasheryNFTPuntuaction: 0,
+    kiwiPuntuaction: 0,
+    nameDegenPuntuaction: 0,
+    proxyAtLeast5Puntuaction: 0,
+    proxyStudioNFTPuntuaction: 0,
+    tokyoDAONFTPuntuaction: 0,
+    vocdoniFarcasterFollowerPuntuaction: 0,
+    votecasterAlphafrensFollowerPuntuaction: 0,
+    votecasterAnnouncementRecastedPuntuaction: 0,
+    votecasterFarcasterFollowerPuntuaction: 0,
+    votecasterLaunchNFTPuntuaction: 0,
+    votecasterNFTPassPuntuaction: 0,
   },
 }
 
