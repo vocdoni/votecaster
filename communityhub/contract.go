@@ -25,6 +25,7 @@ import (
 // results of a community.
 type HubContract struct {
 	ChainID     uint64
+	ChainAlias  string
 	Address     common.Address
 	privKey     *ecdsa.PrivateKey
 	privAddress common.Address
@@ -37,14 +38,11 @@ type HubContract struct {
 // contract address, web3 pool, and private key provided. If something goes
 // wrong initializing the web3 client, the contract, or the private key, it
 // returns an error.
-func LoadContract(chainID uint64, addr common.Address, w3p *c3web3.Web3Pool, pk string) (*HubContract, error) {
+func LoadContract(chainID uint64, chainAlias string, addr common.Address, w3p *c3web3.Web3Pool, pk string) (*HubContract, error) {
 	hc := &HubContract{
-		ChainID: chainID,
-		Address: addr,
-	}
-	networkInfo := w3p.NetworkInfoByChainID(chainID)
-	if networkInfo == nil {
-		return nil, fmt.Errorf("%w: network not available", ErrWeb3Client)
+		ChainID:    chainID,
+		Address:    addr,
+		ChainAlias: chainAlias,
 	}
 	// initialize the web3 client for the chain
 	var err error
@@ -73,7 +71,11 @@ func (hc *HubContract) NextID() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return nextID.Uint64(), nil
+	iNextID := nextID.Uint64()
+	if iNextID == 0 {
+		return 1, nil
+	}
+	return iNextID, nil
 }
 
 // Community method gets the community data using the community ID from the
@@ -83,13 +85,20 @@ func (hc *HubContract) Community(communityID string) (*HubCommunity, error) {
 	if hc.contract == nil {
 		return nil, ErrInitContract
 	}
-	_, strID, ok := DecodePrefix(communityID)
-	if !ok {
+	chainAlias, strID, ok := DecodePrefix(communityID)
+	if !ok || chainAlias != hc.ChainAlias {
 		return nil, ErrDecodeCommunityID
 	}
 	id, err := strconv.ParseUint(strID, 10, 64)
 	if err != nil {
 		return nil, err
+	}
+	nextID, err := hc.NextID()
+	if err != nil {
+		return nil, err
+	}
+	if id > nextID {
+		return nil, ErrCommunityNotFound
 	}
 	// convert the community ID to a *big.Int
 	bCommunityID := new(big.Int).SetUint64(id)
@@ -97,6 +106,9 @@ func (hc *HubContract) Community(communityID string) (*HubCommunity, error) {
 	cc, err := hc.contract.GetCommunity(nil, bCommunityID)
 	if err != nil {
 		return nil, errors.Join(ErrGettingCommunity, err)
+	}
+	if cc.Metadata.Name == "" && big.NewInt(0).Cmp(cc.Funds) == 0 {
+		return nil, ErrCommunityNotFound
 	}
 	// convert the contract community to a HubCommunity
 	community, err := ContractToHub(id, hc.ChainID, communityID, cc)

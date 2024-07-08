@@ -61,8 +61,8 @@ func main() {
 	flag.Uint64("adminFID", 7548, "The FID of the admin farcaster account with superuser powers")
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
-	flag.String("web3",
-		"https://rpc.degen.tips,https://eth.llamarpc.com,https://rpc.ankr.com/eth,https://ethereum-rpc.publicnode.com,https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
+	flag.StringSlice("web3",
+		[]string{"https://rpc.degen.tips", "https://eth.llamarpc.com", "https://rpc.ankr.com/eth", "https://ethereum-rpc.publicnode.com", "https://mainnet.optimism.io", "https://optimism.llamarpc.com", "https://optimism-mainnet.public.blastapi.io", "https://rpc.ankr.com/optimism"},
 		"Web3 RPCs")
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 	// community hub flags
@@ -123,8 +123,7 @@ func main() {
 	adminToken := viper.GetString("adminToken")
 	pollSize := viper.GetInt("pollSize")
 	pprofPort := viper.GetInt("pprofPort")
-	web3endpointStr := viper.GetString("web3")
-	web3endpoint := strings.Split(web3endpointStr, ",")
+	web3endpoint := viper.GetStringSlice("web3")
 	neynarAPIKey := viper.GetString("neynarAPIKey")
 	indexer := viper.GetBool("indexer")
 	// community hub vars
@@ -267,7 +266,19 @@ func main() {
 			log.Warnw("failed to add web3 endpoint", "endpoint", endpoint, "error", err)
 		}
 	}
-	log.Infow("web3 pool initialized", "endpoints", web3pool.String())
+
+	// Load chains config
+	chainsConfs, err := helpers.LoadChainsConfig(communityHubChainsConfigPath)
+	if err != nil {
+		log.Fatalf("failed to load community hub chains config: %w", err)
+	}
+	for _, conf := range chainsConfs {
+		for _, endpoint := range conf.Endpoints {
+			if err := web3pool.AddEndpoint(endpoint); err != nil {
+				log.Warnw("failed to add web3 endpoint", "endpoint", endpoint, "error", err)
+			}
+		}
+	}
 
 	// Create the Farcaster API client
 	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3pool)
@@ -280,25 +291,20 @@ func main() {
 
 	// Create the community hub service
 	var comHub *communityhub.CommunityHub
-	if communityHubChainsConfigPath != "" {
-		config, err := helpers.LoadChainsConfig(communityHubChainsConfigPath)
+	if communityHubChainsConfigPath != "" && chainsConfs != nil {
+		log.Infow("chain info loaded", "info", chainsConfs)
+		comHub, err := communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
+			ChainAliases:      chainsConfs.ChainChainIDByAlias(),
+			ContractAddresses: chainsConfs.ContractsAddressesByChainAlias(),
+			DB:                db,
+			PrivKey:           communityHubAdminPrivKey,
+		})
 		if err != nil {
-			log.Warnw("failed to load community hub chains config", "error", err)
-		} else {
-			comHub, err := communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
-				ChainAliases:      config.ChainAliasesByChainID(),
-				ContractAddresses: config.ContractsAddressesByChainID(),
-				DB:                db,
-				PrivKey:           communityHubAdminPrivKey,
-			})
-			if err != nil {
-				log.Warnw("failed to create community hub", "error", err)
-			}
-
-			comHub.ScanNewCommunities()
-			comHub.SyncCommunities()
-			defer comHub.Stop()
+			log.Warnw("failed to create community hub", "error", err)
 		}
+		comHub.ScanNewCommunities()
+		comHub.SyncCommunities()
+		defer comHub.Stop()
 	}
 
 	// Create Airstack artifact

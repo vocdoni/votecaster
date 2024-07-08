@@ -19,7 +19,7 @@ type ChainConfig struct {
 }
 
 // ChainsConfig is a slice of ChainConfig.
-type ChainsConfig []ChainConfig
+type ChainsConfig []*ChainConfig
 
 // chainsConfigFile is a representation of the chains_file.json file format to
 // load the chains configuration.
@@ -41,7 +41,7 @@ type chainsConfigFile map[string]struct {
 // path. It returns a ChainsConfig struct with the configuration loaded from the
 // file. If something goes wrong loading the file or parsing the JSON, it returns
 // an error.
-func LoadChainsConfig(path string) (*ChainsConfig, error) {
+func LoadChainsConfig(path string) (ChainsConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func LoadChainsConfig(path string) (*ChainsConfig, error) {
 		for _, rpcs := range info.RPCs {
 			endpoints = append(endpoints, rpcs.HTTP...)
 		}
-		config := ChainConfig{
+		config := &ChainConfig{
 			ChainID:    info.ID,
 			ChainAlias: alias,
 			Name:       info.Name,
@@ -67,25 +67,25 @@ func LoadChainsConfig(path string) (*ChainsConfig, error) {
 		}
 		configs = append(configs, config)
 	}
-	return &configs, nil
+	return configs, nil
 }
 
 // ContractsAddressesByChainID returns a map with the chain ID as the key and
 // the CommunityHub contract address as the value.
-func (c *ChainsConfig) ContractsAddressesByChainID() map[uint64]common.Address {
-	contracts := map[uint64]common.Address{}
-	for _, config := range *c {
-		contracts[config.ChainID] = common.HexToAddress(config.CommunityHubAddress)
+func (c ChainsConfig) ContractsAddressesByChainAlias() map[string]common.Address {
+	contracts := map[string]common.Address{}
+	for _, config := range c {
+		contracts[config.ChainAlias] = common.HexToAddress(config.CommunityHubAddress)
 	}
 	return contracts
 }
 
 // ChainAliasesByChainID returns a map with the chain ID as the key and the
 // chain alias as the value.
-func (c *ChainsConfig) ChainAliasesByChainID() map[uint64]string {
-	aliases := map[uint64]string{}
-	for _, config := range *c {
-		aliases[config.ChainID] = config.ChainAlias
+func (c ChainsConfig) ChainChainIDByAlias() map[string]uint64 {
+	aliases := map[string]uint64{}
+	for _, config := range c {
+		aliases[config.ChainAlias] = config.ChainID
 	}
 	return aliases
 }

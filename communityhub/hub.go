@@ -17,15 +17,15 @@ import (
 
 // DefaultScannerCooldown is the default time that the scanner sleeps between
 // scan iterations
-const DefaultScannerCooldown = time.Second * 5
+const DefaultScannerCooldown = time.Second * 20
 
 // CommunityHubConfig struct defines the configuration for the CommunityHub.
 // It includes the contract address, the chain ID where the contract is
 // deployed, a database instance, and the scanner cooldown (by default 10s
 // (DefaultScannerCooldown)).
 type CommunityHubConfig struct {
-	ChainAliases      map[uint64]string
-	ContractAddresses map[uint64]common.Address
+	ChainAliases      map[string]uint64
+	ContractAddresses map[string]common.Address
 	DB                *dbmongo.MongoStorage
 	PrivKey           string
 	DiscoverCooldown  time.Duration
@@ -45,9 +45,8 @@ type CommunityHub struct {
 	discoverCooldown time.Duration
 	syncCooldown     time.Duration
 
-	ChainAliases      map[uint64]string
-	ContractAddresses map[uint64]common.Address
-	contracts         map[uint64]*HubContract
+	ChainAliases map[string]uint64
+	contracts    map[string]*HubContract
 }
 
 // NewCommunityHub function initializes a new CommunityHub instance. It returns
@@ -75,14 +74,13 @@ func NewCommunityHub(
 	// initialize the context and the listener
 	ctx, cancel := context.WithCancel(goblalCtx)
 	communityHub := &CommunityHub{
-		db:                conf.DB,
-		ctx:               ctx,
-		cancel:            cancel,
-		waiter:            sync.WaitGroup{},
-		w3pool:            w3p,
-		ChainAliases:      conf.ChainAliases,
-		ContractAddresses: conf.ContractAddresses,
-		contracts:         map[uint64]*HubContract{},
+		db:           conf.DB,
+		ctx:          ctx,
+		cancel:       cancel,
+		waiter:       sync.WaitGroup{},
+		w3pool:       w3p,
+		ChainAliases: conf.ChainAliases,
+		contracts:    map[string]*HubContract{},
 	}
 	// set the scanner cooldowns from the configuration if they are defined, or
 	// use the default one
@@ -94,15 +92,21 @@ func NewCommunityHub(
 	}
 	// initialize contracts
 	failed := 0
-	for chainID, addr := range conf.ContractAddresses {
+	for chainAlias, addr := range conf.ContractAddresses {
+		chainID, ok := communityHub.ChainIDFromAlias(chainAlias)
+		if !ok {
+			log.Warnw("failed to get chain ID from alias", "alias", chainAlias)
+			failed++
+			continue
+		}
 		// load contract and add it to the contracts map
-		contract, err := LoadContract(chainID, addr, communityHub.w3pool, conf.PrivKey)
+		contract, err := LoadContract(chainID, chainAlias, addr, communityHub.w3pool, conf.PrivKey)
 		if err != nil {
 			log.Warnw("failed to load contract", "error", err)
 			failed++
 			continue
 		}
-		communityHub.contracts[chainID] = contract
+		communityHub.contracts[chainAlias] = contract
 	}
 	if failed == len(conf.ContractAddresses) {
 		return nil, ErrNoValidContracts
@@ -122,26 +126,27 @@ func (l *CommunityHub) ScanNewCommunities() {
 	go func() {
 		defer l.waiter.Done()
 		for {
-			select {
-			case <-l.ctx.Done():
-				return
-			default:
-				time.Sleep(l.discoverCooldown)
-				for _, contract := range l.contracts {
+			for _, contract := range l.contracts {
+				select {
+				case <-l.ctx.Done():
+					return
+				default:
 					nextID, err := contract.NextID()
 					if err != nil {
 						log.Warnw("failed to get next community ID", "error", err)
 						continue
 					}
 					// get the community from the contract
-					communityID, ok := l.CommunityIDByChainID(nextID, contract.ChainID)
+					communityID, ok := l.CommunityIDByChainAlias(nextID, contract.ChainAlias)
 					if !ok {
-						log.Warnw("failed to get community ID by chain ID", "chainID", contract.ChainID)
+						log.Warnw("failed to get community ID by chain alias", "chainAlias", contract.ChainAlias, "ID", nextID)
 						continue
 					}
 					onchainCommunity, err := contract.Community(communityID)
 					if err != nil {
-						log.Warnw("failed to get community data", "error", err)
+						if err != ErrCommunityNotFound {
+							log.Warnw("failed to get community data", "error", err)
+						}
 						continue
 					}
 					if err := l.validateData(onchainCommunity); err != nil {
@@ -155,6 +160,7 @@ func (l *CommunityHub) ScanNewCommunities() {
 					}
 				}
 			}
+			time.Sleep(l.discoverCooldown)
 		}
 	}()
 }
@@ -165,68 +171,66 @@ func (l *CommunityHub) ScanNewCommunities() {
 // to the last one (next - 1) in the contract updating the community data in
 // the database. If something goes wrong it logs an error and continues with
 // the next iteration. It sleeps between iterations the sync cooldown time.
-func (l *CommunityHub) SyncCommunities() {
-	l.waiter.Add(1)
+func (ch *CommunityHub) SyncCommunities() {
+	ch.waiter.Add(1)
 	go func() {
-		defer l.waiter.Done()
+		defer ch.waiter.Done()
 		for {
-			select {
-			case <-l.ctx.Done():
-				return
-			default:
-				time.Sleep(l.syncCooldown)
-				// iterate over all the community contracts and sync them,
-				// getting the info of the communities stored in the database
-				// from the contract and updating them in the database
-				for chainID, contract := range l.contracts {
-					chainAlias, ok := l.ChainAliases[chainID]
-					if !ok {
-						log.Warnw("failed to get chain alias", "chainID", chainID)
-						continue
-					}
-					lastInsertedID, err := l.db.LastCommunityID(chainAlias)
-					if err != nil {
-						if err == dbmongo.ErrNoResults {
+			// iterate over all the community contracts and sync them,
+			// getting the info of the communities stored in the database
+			// from the contract and updating them in the database
+			for _, contract := range ch.contracts {
+				nextID, err := contract.NextID()
+				if err != nil {
+					log.Warnw("failed to get next community ID", "error", err)
+					continue
+				}
+				// iterate from 1 to the last inserted ID in the database
+				// getting community data from the contract and updating it
+				// in the database
+				for id := uint64(1); id < nextID; id++ {
+					select {
+					case <-ch.ctx.Done():
+						return
+					default:
+						// get the community from the contract
+						communityID, ok := ch.CommunityIDByChainAlias(id, contract.ChainAlias)
+						if !ok {
+							log.Warnw("failed to get community ID by chain alias", "chainAlias", contract.ChainAlias)
 							continue
 						}
-						log.Warnw("failed to get last community ID", "error", err)
-						continue
-					}
-					_, lastID, ok := l.ChainIDAndIDFromCommunityID(lastInsertedID)
-					if !ok {
-						log.Warnw("failed to get chain ID and ID from community ID", "communityID", lastInsertedID)
-						continue
-					}
-					// iterate from 1 to the last inserted ID in the database
-					// getting community data from the contract and updating it
-					// in the database
-					for id := uint64(1); id <= lastID; id++ {
-						onchainCommunity, err := contract.Community(lastInsertedID)
+						onchainCommunity, err := contract.Community(communityID)
 						if err != nil {
-							log.Warnw("failed to get community data", "error", err)
+							log.Warnw("failed to get community data", "error", err, "communityID", communityID)
 							continue
 						}
 						// get the community from the database
-						dbCommunity, err := l.communityFromDB(lastInsertedID)
+						dbCommunity, err := ch.communityFromDB(communityID)
 						if err != nil {
-							log.Warnw("failed to get community from database", "error", err)
+							if err != ErrCommunityNotFound {
+								log.Warnw("failed to get community from database", "error", err)
+							}
+							if err := ch.addCommunityToDB(onchainCommunity); err != nil {
+								log.Warnw("failed to add community to database", "error", err)
+							}
 							continue
 						}
 						// join the community data from the contract with the
 						// community data from the database
-						community, err := l.joinCommunityData(dbCommunity, onchainCommunity)
+						community, err := ch.joinCommunityData(dbCommunity, onchainCommunity)
 						if err != nil {
 							log.Warnw("failed to join community data", "error", err)
 							continue
 						}
 						// update the community in the database
-						if err := l.updateCommunityToDB(community); err != nil {
+						if err := ch.updateCommunityToDB(community); err != nil {
 							log.Warnw("failed to update community in database", "error", err)
 							continue
 						}
 					}
 				}
 			}
+			time.Sleep(ch.syncCooldown)
 		}
 	}()
 }
@@ -242,11 +246,11 @@ func (l *CommunityHub) Stop() {
 // It decodes the chain ID from the community ID and gets the contract from the
 // contracts map. If the contract is not found, it returns an error.
 func (ch *CommunityHub) CommunityContract(communityID string) (*HubContract, error) {
-	chainID, _, ok := ch.ChainIDAndIDFromCommunityID(communityID)
+	chainAlias, _, ok := DecodePrefix(communityID)
 	if !ok {
 		return nil, ErrDecodeCommunityID
 	}
-	contract, ok := ch.contracts[chainID]
+	contract, ok := ch.contracts[chainAlias]
 	if !ok {
 		return nil, ErrContractNotFound
 	}
@@ -258,7 +262,11 @@ func (ch *CommunityHub) CommunityContract(communityID string) (*HubContract, err
 // in the contract and the database. If something goes wrong updating the
 // community in the contract or the database, it returns an error.
 func (ch *CommunityHub) UpdateCommunity(newData *HubCommunity) error {
-	contract, ok := ch.contracts[newData.ChainID]
+	chainAlias, ok := ch.ChainAliasFromID(newData.ChainID)
+	if !ok {
+		return ErrDecodeCommunityID
+	}
+	contract, ok := ch.contracts[chainAlias]
 	if !ok {
 		return ErrContractNotFound
 	}
@@ -280,8 +288,8 @@ func (ch *CommunityHub) UpdateCommunity(newData *HubCommunity) error {
 // ID of the community. It gets the chain alias from the chain ID and creates
 // the community ID using the chain alias and the ID. If the chain alias is not
 // found, it returns an empty string and false.
-func (h *CommunityHub) CommunityIDByChainID(id, chainID uint64) (string, bool) {
-	chainAlias, ok := h.ChainAliases[chainID]
+func (ch *CommunityHub) CommunityIDByChainID(id, chainID uint64) (string, bool) {
+	chainAlias, ok := ch.ChainAliasFromID(chainID)
 	if !ok {
 		return "", false
 	}
@@ -293,12 +301,10 @@ func (h *CommunityHub) CommunityIDByChainID(id, chainID uint64) (string, bool) {
 // the community ID using the chain alias and the ID. If the chain alias is not
 // found, it returns an empty string and false.
 func (h *CommunityHub) CommunityIDByChainAlias(id uint64, chainAlias string) (string, bool) {
-	for _, alias := range h.ChainAliases {
-		if alias == chainAlias {
-			return fmt.Sprintf(chainPrefixFormat, chainAlias, fmt.Sprint(id)), true
-		}
+	if _, ok := h.ChainIDFromAlias(chainAlias); !ok {
+		return "", false
 	}
-	return "", false
+	return fmt.Sprintf(chainPrefixFormat, chainAlias, fmt.Sprint(id)), true
 }
 
 // ChainIDAndIDFromCommunityID method gets the chain ID and the ID of the
@@ -318,19 +324,27 @@ func (h *CommunityHub) ChainIDAndIDFromCommunityID(communityID string) (uint64, 
 	if err != nil {
 		return 0, 0, false
 	}
-	return id, chainID, true
+	return chainID, id, true
 }
 
 // ChainIDFromAlias method gets the chain ID by the chain alias. It iterates
 // over the chain aliases map and returns the chain ID if the chain alias is
 // found. If the chain alias is not found, it returns 0 and false.
-func (h *CommunityHub) ChainIDFromAlias(alias string) (uint64, bool) {
-	for chainID, a := range h.ChainAliases {
-		if a == alias {
-			return chainID, true
+func (ch *CommunityHub) ChainIDFromAlias(alias string) (uint64, bool) {
+	chainID, ok := ch.ChainAliases[alias]
+	return chainID, ok
+}
+
+// ChainAliasFromID method returns the chain alias by the chain ID. It iterates
+// over the chain aliases map and returns the chain alias if the chain ID is
+// found.
+func (ch *CommunityHub) ChainAliasFromID(chainID uint64) (string, bool) {
+	for alias, id := range ch.ChainAliases {
+		if id == chainID {
+			return alias, true
 		}
 	}
-	return 0, false
+	return "", false
 }
 
 // validateData method validates the data of a community. It checks that the
@@ -340,14 +354,6 @@ func (h *CommunityHub) ChainIDFromAlias(alias string) (uint64, bool) {
 func (ch *CommunityHub) validateData(data *HubCommunity) error {
 	if data.ChainID == 0 {
 		return fmt.Errorf("%w: no chain id", ErrInvalidCommunityData)
-	}
-	if data.ID == 0 {
-		return fmt.Errorf("%w: invalid community id", ErrInvalidCommunityData)
-	}
-	var ok bool
-	data.CommunityID, ok = ch.CommunityIDByChainID(data.ID, data.ChainID)
-	if !ok {
-		return fmt.Errorf("%w: invalid community id", ErrInvalidCommunityData)
 	}
 	if data.Name == "" {
 		return fmt.Errorf("%w: invalid community name", ErrInvalidCommunityData)
@@ -394,6 +400,9 @@ func (ch *CommunityHub) joinCommunityData(data, newData *HubCommunity) (*HubComm
 	if err := ch.validateData(data); err != nil {
 		return nil, err
 	}
+	if data.CommunityID != newData.CommunityID {
+		return nil, ErrCommunityIDMismatch
+	}
 	// if old data is provided and valid, update the fields that are different
 	// and valid if the new data
 	if newData.Name != "" && data.Name != newData.Name {
@@ -418,6 +427,7 @@ func (ch *CommunityHub) joinCommunityData(data, newData *HubCommunity) (*HubComm
 	if len(newData.Admins) > 0 {
 		// check if the creator is still an admin
 		if newData.Admins[0] != data.Admins[0] {
+			log.Warnw("creator is not an admin", "admins", data.Admins, "newAdmins", newData.Admins)
 			return nil, ErrNoAdminCreator
 		}
 		data.Admins = newData.Admins
@@ -474,10 +484,7 @@ func (l *CommunityHub) addCommunityToDB(hcommunity *HubCommunity) error {
 		return err
 	}
 	// create community in the database including the first admin as the creator
-	if err := l.db.AddCommunity(dbc.ID, dbc.Name, dbc.ImageURL, dbc.GroupChatURL,
-		dbc.Census, dbc.Channels, dbc.Admins[0], dbc.Admins, dbc.Notifications,
-		dbc.Disabled,
-	); err != nil {
+	if err := l.db.AddCommunity(dbc); err != nil {
 		if err == mongo.ErrClientDisconnected {
 			return ErrClosedDB
 		}
