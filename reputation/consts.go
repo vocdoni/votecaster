@@ -4,10 +4,10 @@ import "github.com/ethereum/go-ethereum/common"
 
 const (
 	// user activity ponderation values
-	followersDividerPonderation = 2000
-	electionsDividerPonderation = 10
-	votesDividerPonderation     = 4
-	castedDividerPonderation    = 20
+	followersDividerPonderation      = 2000
+	electionsDividerPonderation      = 10
+	votesDividerPonderation          = 4
+	castedDividerPonderation         = 20
 	communitiesMultiplierPonderation = 2
 	// User activity max reputation values
 	maxFollowersReputation = 10
@@ -105,11 +105,11 @@ const (
 	// Votecaster Launch NFT network short name
 	VotecasterLaunchNFTChainShortName = "base"
 	// Votecaster Farcaster ID
-	// TODO: update
-	VotecasterFarcasterFID uint64 = 521116
+	VotecasterFarcasterFID uint64 = 527170
 	// Vocdoni Farcaster ID
 	VocdoniFarcasterFID uint64 = 7548
 	// Votecaster Announcement Farcaster Cast Hash
+	// TODO: update
 	VotecasterAnnouncementCastHash = "0xe4528c4931127eb32e4c7c473622d4e3a1c6b0a3"
 	// $KIWI token network ID
 	KIWIChainID uint64 = 10

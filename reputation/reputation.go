@@ -67,12 +67,13 @@ type ReputationInfo map[string]uint64
 // Reputation struct contains the reputation of a user, detailed by activity and
 // boosters
 type Reputation struct {
-	*ActivityReputation `json:"activity"`
-	*Boosters           `json:"boosters"`
-	*UserPoints         `json:"points"`
-	TotalReputation     uint32         `json:"totalReputation"`
-	ActivityInfo        ReputationInfo `json:"activityInfo"`
-	BoostersInfo        ReputationInfo `json:"boostersInfo"`
+	*Boosters          `json:"boosters"`
+	*UserPoints        `json:"points"`
+	ActivityReputation *ActivityReputation `json:"activity"`
+	ActivityCounts     *ActivityReputation `json:"activityCounts"`
+	TotalReputation    uint32              `json:"totalReputation"`
+	ActivityInfo       ReputationInfo      `json:"activityInfo"`
+	BoostersInfo       ReputationInfo      `json:"boostersInfo"`
 }
 
 // Calculator struct contains the database connection to calculate the
@@ -177,6 +178,7 @@ func (c *Calculator) calcReputation(userID uint64) (*Reputation, error) {
 	}
 	return &Reputation{
 		ActivityReputation: ponderateActivityReputation(activityRep),
+		ActivityCounts:     activityRep,
 		Boosters:           boosters,
 		TotalReputation:    totalReputation,
 		UserPoints: &UserPoints{
