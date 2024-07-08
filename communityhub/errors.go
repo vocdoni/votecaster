@@ -38,6 +38,9 @@ var (
 	// ErrGettingCommunity is returned when an error occurs while getting
 	// community data from the community hub contract
 	ErrGettingCommunity = fmt.Errorf("error getting community data from the community hub contract")
+	// ErrCommunityIDMismatch is returned when the community ID does not match
+	// the expected community ID
+	ErrCommunityIDMismatch = fmt.Errorf("community ID mismatch")
 	// ErrSettingCommunity is returned when an error occurs while setting
 	// community data in the community hub contract
 	ErrSettingCommunity = fmt.Errorf("error setting community data in the community hub contract")

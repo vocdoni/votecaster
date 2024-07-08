@@ -11,25 +11,10 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
-func (ms *MongoStorage) AddCommunity(id string, name, imageUrl, groupChatUrl string,
-	census CommunityCensus, channels []string, creator uint64, admins []uint64,
-	notifications, disabled bool,
-) error {
+func (ms *MongoStorage) AddCommunity(community *Community) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
-	community := Community{
-		ID:            id,
-		Name:          name,
-		Channels:      channels,
-		Census:        census,
-		ImageURL:      imageUrl,
-		GroupChatURL:  groupChatUrl,
-		Creator:       creator,
-		Admins:        admins,
-		Notifications: notifications,
-		Disabled:      disabled,
-	}
-	return ms.addCommunity(&community)
+	return ms.addCommunity(community)
 }
 
 func (ms *MongoStorage) UpdateCommunity(community *Community) error {

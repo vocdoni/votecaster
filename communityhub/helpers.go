@@ -184,6 +184,7 @@ func HubToDB(hcommunity *HubCommunity) (*dbmongo.Community, error) {
 		GroupChatURL: hcommunity.GroupChatURL,
 		Census:       dbCensus,
 		Channels:     hcommunity.Channels,
+		Creator:      hcommunity.Admins[0],
 		Admins:       hcommunity.Admins,
 	}
 	// set the notifications and disabled fields if they are not nil
@@ -206,6 +207,13 @@ func DBToHub(dbCommunity *dbmongo.Community, id, chainID uint64) (*HubCommunity,
 			})
 		}
 	}
+	admins := []uint64{dbCommunity.Creator}
+	for _, admin := range dbCommunity.Admins {
+		if admin == dbCommunity.Creator {
+			continue
+		}
+		admins = append(admins, admin)
+	}
 	return &HubCommunity{
 		CommunityID:    dbCommunity.ID,
 		ID:             id,
@@ -217,7 +225,7 @@ func DBToHub(dbCommunity *dbmongo.Community, id, chainID uint64) (*HubCommunity,
 		CensusAddesses: censusAddresses,
 		CensusChannel:  dbCommunity.Census.Channel,
 		Channels:       dbCommunity.Channels,
-		Admins:         dbCommunity.Admins,
+		Admins:         admins,
 		Notifications:  &dbCommunity.Notifications,
 		Disabled:       &dbCommunity.Disabled,
 	}, nil
