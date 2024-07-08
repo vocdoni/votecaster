@@ -81,13 +81,19 @@ func (ms *MongoStorage) SetReputationForUser(userID uint64, reputation uint32) e
 	return ms.updateUserAccessProfile(userID, bson.M{"$set": bson.M{"reputation": reputation}})
 }
 
+// DetailedUserReputation method return the reputation of a user based on the
+// user ID. It returns the detailed reputation information and values from the
+// database.
 func (ms *MongoStorage) DetailedUserReputation(userID uint64) (*UserReputation, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
-
 	return ms.userReputation(userID)
 }
 
+// SetDetailedReputationForUser method updates the detailed reputation for a
+// given user ID. It overwrites the previous reputation values with the provided
+// values, if some values are not provided, they will keep the previous values
+// if they exist.
 func (ms *MongoStorage) SetDetailedReputationForUser(userID uint64, reputation *UserReputation) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
