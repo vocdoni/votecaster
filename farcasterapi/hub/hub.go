@@ -527,7 +527,7 @@ func (h *Hub) ChannelExists(ctx context.Context, channelID string) (bool, error)
 }
 
 // ListChannels method is not supported by the Hub API. It returns an error.
-func (h *Hub) FindChannel(ctx context.Context, query string) ([]*farcasterapi.Channel, error) {
+func (h *Hub) FindChannel(ctx context.Context, query string, adminFid uint64) ([]*farcasterapi.Channel, error) {
 	return nil, fmt.Errorf("hub api does not support channels yet")
 }
 

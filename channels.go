@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/vocdoni/vote-frame/farcasterapi"
@@ -37,11 +38,23 @@ func (v *vocdoniHandler) channelHandler(msg *apirest.APIdata, ctx *httprouter.HT
 }
 
 func (v *vocdoniHandler) findChannelHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	adminFid := uint64(0)
+	if _, ok := ctx.Request.URL.Query()["imAdmin"]; ok {
+		token := msg.AuthToken
+		if token == "" {
+			return fmt.Errorf("missing auth token header")
+		}
+		auth, err := v.db.UpdateActivityAndGetData(token)
+		if err != nil {
+			return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
+		}
+		adminFid = auth.UserID
+	}
 	query := ctx.Request.URL.Query().Get("q")
 	if query == "" {
 		return ctx.Send([]byte("query parameter not provided"), http.StatusBadRequest)
 	}
-	channels, err := v.fcapi.FindChannel(ctx.Request.Context(), query)
+	channels, err := v.fcapi.FindChannel(ctx.Request.Context(), query, adminFid)
 	if err != nil {
 		log.Errorw(err, "failed to list channels")
 		return ctx.Send([]byte("error getting list of channels"), http.StatusInternalServerError)
