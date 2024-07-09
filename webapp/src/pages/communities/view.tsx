@@ -23,7 +23,7 @@ const Community = () => {
     return <Check isLoading={isLoading} error={error} />
   }
 
-  return <CommunitiesView chain={chain as string} community={community} refetch={refetch} />
+  return <CommunitiesView chain={chain as ChainKey} community={community} refetch={refetch} />
 }
 
 export default Community

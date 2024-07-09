@@ -31,7 +31,7 @@ const Poll = () => {
     return <Check error={new Error('No results found')} isLoading={false} />
   }
 
-  return <PollView onChain={false} loading={isLoading} poll={data as PollInfo} />
+  return <PollView loading={isLoading} poll={data as PollInfo} />
 }
 
 export default Poll

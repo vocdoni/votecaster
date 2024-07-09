@@ -14,8 +14,8 @@ export const CommunityCard = ({ name, id, pfpUrl, admins, disabled, ...props }: 
   const { profile } = useAuth()
   const adminsFid = admins?.map((admin) => admin.fid) ?? []
   const isAdmin = profile && adminsFid.includes(profile.fid)
-  const chain = chainFromId(id as CommunityID)
-  const nid = numberFromId(id as CommunityID)
+  const chain = chainFromId(id)
+  const nid = numberFromId(id)
 
   return (
     <Link

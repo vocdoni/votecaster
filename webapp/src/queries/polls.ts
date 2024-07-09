@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useReadContract } from 'wagmi'
 import { useAuth } from '~components/Auth/useAuth'
+import { useHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { appUrl } from '~constants'
 import { communityHubAbi } from '~src/bindings'
 import { getChain, getContractForChain } from '~util/chain'
@@ -53,7 +54,7 @@ export const fetchShortURL = (bfetch: FetchFunction) => async (url: string) => {
   return result
 }
 
-export const useApiPollInfo = (electionId: CommunityID) => {
+export const useApiPollInfo = (electionId: string) => {
   const { bfetch } = useAuth()
 
   return useQuery<PollResponse, Error, PollInfo>({
@@ -72,10 +73,10 @@ export const useApiPollInfo = (electionId: CommunityID) => {
 }
 
 export const useContractPollInfo = (chainAlias: ChainKey, communityId: number, electionId: string) => {
-  console.log('received:', chainAlias, communityId, electionId)
-  // const { connected } = useDegenHealthcheck()
+  const health = useHealthcheck()
   return useReadContract({
     abi: communityHubAbi,
+    chainId: getChain(chainAlias).id,
     config: {
       ...config,
       chains: [getChain(chainAlias)],
@@ -84,7 +85,13 @@ export const useContractPollInfo = (chainAlias: ChainKey, communityId: number, e
     functionName: 'getResult',
     args: [BigInt(communityId!), `0x${electionId}`],
     query: {
-      retry: true /* connected */,
+      retry: (failureCount, error) => {
+        const retry = (health[chainAlias] as boolean) && failureCount < 2
+        if (retry) {
+          console.warn('Retrying contract call', chainAlias, communityId, electionId, failureCount, error)
+        }
+        return retry
+      },
       enabled: !!chainAlias && !!communityId && !!electionId,
     },
   })

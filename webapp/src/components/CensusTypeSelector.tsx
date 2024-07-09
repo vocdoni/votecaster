@@ -26,7 +26,7 @@ import {
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { chakraComponents, GroupBase, OptionProps, Select as RSelect } from 'chakra-react-select'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { MdArrowDropDown } from 'react-icons/md'
@@ -52,7 +52,6 @@ export type CensusTypeSelectorProps = FormControlProps & {
 
 const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelectorProps) => {
   const { bfetch, profile, isAuthenticated } = useAuth()
-
   const {
     control,
     formState: { errors },
@@ -72,11 +71,16 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
     queryKey: ['blockchains'],
     queryFn: fetchAirstackBlockchains(bfetch),
   })
-  const { data: communities, isLoading: cloading } = useQuery({
+  const {
+    data: communities,
+    isLoading: cloading,
+    isSuccess,
+  } = useQuery({
     queryKey: ['communities', 'byAdmin', profile?.fid],
     queryFn: fetchCommunitiesByAdmin(bfetch, profile!, { offset: 0, limit: 20 }),
     enabled: isAuthenticated && !!complete,
   })
+  const [initCommunity, setInitCommunity] = useState<Community | undefined>(undefined)
 
   const censusType = watch('censusType')
   const addresses = watch('addresses')
@@ -93,16 +97,17 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
     }
   }, [censusType, addresses])
 
-  // set community id if received
+  // set community id if received (1st step)
   useEffect(() => {
-    if (communityId && !cloading) {
-      setValue('censusType', 'community')
-      setValue(
-        'community',
-        communities?.communities.find((c) => c.id === parseInt(communityId))
-      )
-    }
-  }, [communityId, cloading])
+    if (!communityId || cloading || !isSuccess) return
+
+    setInitCommunity(communities?.communities.find((c) => c.id === communityId))
+  }, [communityId, cloading, communities, isSuccess])
+  // yeah we need to do it in two steps, or use a timeout which would have been a worse solution
+  useEffect(() => {
+    setValue('censusType', 'community')
+    setValue('community', initCommunity)
+  }, [initCommunity])
 
   const required = {
     value: true,

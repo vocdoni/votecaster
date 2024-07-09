@@ -51,7 +51,7 @@ type ElectionRequest = {
   notifyUsers: boolean
   notificationText?: string
   census?: CensusResponse
-  community?: number
+  community?: CommunityID
 }
 
 interface CID {
@@ -70,7 +70,7 @@ interface CensusResponseWithUsernames extends CensusResponse {
 }
 
 type FormProps = FlexProps & {
-  communityId?: string
+  communityId?: CommunityID
 }
 
 const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
@@ -245,6 +245,7 @@ const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
         }
 
         if (data.censusType !== 'farcaster') {
+          // @ts-expect-error false positive since we know `call` is defined for all census type but farcaster
           const res = await call
           const { censusId } = (await res.json()) as CID
           const census = (await checkCensus(censusId, setStatus)) as CensusResponseWithUsernames

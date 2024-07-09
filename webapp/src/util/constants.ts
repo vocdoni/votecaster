@@ -1,4 +1,4 @@
-export const appUrl = import.meta.env.APP_URL
+export const appUrl = import.meta.env.APP_URL || ''
 
 export const vocdoniEnvironment = import.meta.env.VOCDONI_ENVIRONMENT
 

@@ -33,14 +33,14 @@ import { TbExternalLink } from 'react-icons/tb'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
 import { fetchPollsByCommunity } from '~queries/rankings'
-import { getContractForChain } from '~util/chain'
+import { getChain, getContractForChain } from '~util/chain'
 import { humanDate } from '~util/strings'
 import { CensusTypeInfo } from './CensusTypeInfo'
 import { ManageCommunity } from './Manage'
 
 type CommunitiesViewProps = {
   community?: Community
-  chain: string
+  chain: ChainKey
   refetch: (options?: RefetchOptions | undefined) => Promise<QueryObserverResult<Community, Error>>
 }
 
@@ -54,21 +54,22 @@ const WhiteBox = ({ children }: PropsWithChildren) => (
     borderRadius='md'
     flexWrap='wrap'
     h='100%'
-    maxW={'100vw'}
-    overflowX={'auto'}
+    maxW='100vw'
+    overflowX='auto'
   >
     {children}
   </Flex>
 )
 
-export const CommunitiesView = ({ community, chain, refetch }: CommunitiesViewProps) => {
+export const CommunitiesView = ({ community, chain: chainAlias, refetch }: CommunitiesViewProps) => {
   const { bfetch, profile, isAuthenticated } = useAuth()
   const { onOpen: openManageModal, ...modalProps } = useDisclosure()
   const { data: communityPolls } = useQuery<Poll[], Error>({
-    queryKey: ['communityPolls', chain, community?.id],
+    queryKey: ['communityPolls', chainAlias, community?.id],
     queryFn: fetchPollsByCommunity(bfetch, community as Community),
     enabled: !!community,
   })
+  const chain = getChain(chainAlias)
   const navigate = useNavigate() // Hook to control navigation
   const imAdmin = useMemo(
     () => isAuthenticated && community?.admins.some((admin) => admin.fid == profile?.fid),
@@ -96,10 +97,10 @@ export const CommunitiesView = ({ community, chain, refetch }: CommunitiesViewPr
               Deployed on{' '}
               <Link
                 isExternal
-                href={`https://explorer.degen.tips/address/${getContractForChain('degen-dev')}`}
+                href={`${chain.blockExplorers?.default.url}/address/${getContractForChain(chainAlias)}`}
                 variant='primary'
               >
-                🎩 DegenChain
+                {chain.name}
               </Link>
             </Text>
             {!!imAdmin && (

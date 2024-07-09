@@ -82,7 +82,7 @@
         "blockExplorers": {
             "default": {
                 "name": "Base Network Explorer",
-                "url": "https://basescan.org/"
+                "url": "https://basescan.org"
 
             }
         }
@@ -110,7 +110,7 @@
         "blockExplorers": {
             "default": {
                 "name": "Base Sepolia Network Explorer",
-                "url": "https://sepolia.basescan.org/"
+                "url": "https://sepolia.basescan.org"
 
             }
         }

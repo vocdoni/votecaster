@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
 import { decodeEventLog } from 'viem'
 import { base, baseSepolia, degen } from 'viem/chains'
-import { Config, useAccount, useReadContract, useWalletClient, useWatchContractEvent } from 'wagmi'
+import { Config, useAccount, useReadContract, useWalletClient } from 'wagmi'
 import { useAuth } from '~components/Auth/useAuth'
 import { CensusFormValues } from '~components/CensusTypeSelector'
 import { appUrl } from '~constants'
 import { communityHubAbi } from '~src/bindings'
-import { getContractForChain } from '~util/chain'
+import { chainAlias, getContractForChain } from '~util/chain'
 import { config } from '~util/rainbow'
 import { cleanChannel } from '~util/strings'
 import { censusTypeToEnum, ContractCensusType } from '~util/types'
@@ -35,17 +35,6 @@ export const CommunitiesCreateForm = () => {
   const [cid, setCid] = useState<string | null>(null)
   const { data: walletClient } = useWalletClient()
   const { address, chain } = useAccount()
-
-  useWatchContractEvent({
-    abi: communityHubAbi,
-    address: getContractForChain(chain),
-    chainId: chain?.id,
-    eventName: 'CommunityCreated',
-    onLogs: (logs) => {
-      console.log('logs received:', logs)
-    },
-    enabled: !!chain?.id,
-  })
 
   const {
     data: price,
@@ -177,9 +166,10 @@ export const CommunitiesCreateForm = () => {
           throw new Error('Could not retrieve community id from transaction logs')
         }
 
+        const alias = chainAlias(chain) as ChainKey
         // upload image
         const avatar = {
-          communityID: Number(communityId),
+          communityID: `${alias}:${communityId}`,
           id: data.hash,
           data: data.src,
         }

@@ -8,8 +8,7 @@ import { contractDataToObject } from '~util/mappings'
 const CommunityPoll = () => {
   const { chain, community, poll } = useParams<CommunityPollParams>()
   const { data, isLoading, error } = useContractPollInfo(chain as ChainKey, Number(community), poll as string)
-
-  const api = useApiPollInfo(`${chain as ChainKey}:${Number(community)}`)
+  const api = useApiPollInfo(poll as string)
 
   // Merge contract and API data
   let results = {
@@ -30,7 +29,7 @@ const CommunityPoll = () => {
   return (
     <>
       <Check isLoading={api.isLoading || isLoading} error={api.error || error} />
-      <PollView loading={api.isLoading && isLoading} onChain={!!data} poll={results} />
+      <PollView loading={api.isLoading && isLoading} poll={results} />
     </>
   )
 }

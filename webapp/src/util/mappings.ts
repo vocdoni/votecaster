@@ -42,10 +42,16 @@ export const contractDataToObject = (data?: DataType): Partial<PollInfo> => {
 export const pageToOffset = (page: number) => (page - 1) * paginationItemsPerPage
 export const offsetToPage = (offset: number) => Math.floor(offset / paginationItemsPerPage) + 1
 
-export const numberFromId = (id: CommunityID) => {
+export const numberFromId = (id?: CommunityID) => {
+  if (!id) return 0
+
   const split = id.split(':')
   if (split.length === 1) return 0
 
   return parseInt(split[1], 10)
 }
-export const chainFromId = (id: CommunityID) => id.split(':')[0]
+export const chainFromId = (id?: CommunityID) => {
+  if (!id) return Object.keys(import.meta.env.chains)[0] as ChainKey
+
+  return id.split(':')[0] as ChainKey
+}
