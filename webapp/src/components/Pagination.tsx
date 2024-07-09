@@ -1,4 +1,5 @@
 import { Button, ButtonGroup } from '@chakra-ui/react'
+import { useEffect, useState } from 'react'
 import { FaAngleLeft, FaAngleRight } from 'react-icons/fa6'
 import { generatePath, Link } from 'react-router-dom'
 import { paginationItemsPerPage } from '~constants'
@@ -11,9 +12,16 @@ export type PaginationProps = {
 }
 
 export const Pagination = ({ path, page, total }: PaginationProps) => {
-  const pages = Math.ceil(total / paginationItemsPerPage)
+  const [actualTotal, setActualTotal] = useState<number>(total)
   const offset = pageToOffset(page)
 
+  // store total in state to ensure we always have something to make calculations with
+  useEffect(() => {
+    if (!total) return
+    setActualTotal(total)
+  }, [total])
+
+  const pages = Math.ceil(actualTotal / paginationItemsPerPage)
   if (pages <= 1) return null
 
   return (
