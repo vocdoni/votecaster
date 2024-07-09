@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 
@@ -59,36 +58,66 @@ func main() {
 }
 
 func migrateID(ctx context.Context, db *mongo.Database) error {
-	collection := db.Collection("elections")
 	// Define a context with a timeout to ensure the migration doesn't run indefinitely
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()
 
 	// Fetch all documents from the elections collection
-	cursor, err := collection.Find(ctx, bson.M{})
+	electionsCollection := db.Collection("elections")
+	electionsCursor, err := electionsCollection.Find(ctx, bson.M{})
 	if err != nil {
 		return err
 	}
-	defer cursor.Close(ctx)
+	defer electionsCursor.Close(ctx)
 
-	for cursor.Next(ctx) {
+	for electionsCursor.Next(ctx) {
 		var doc bson.M
-		if err = cursor.Decode(&doc); err != nil {
+		if err = electionsCursor.Decode(&doc); err != nil {
 			return err
 		}
 		// Check if the 'community' sub-object and its 'id' attribute exist
 		if community, ok := doc["community"].(bson.M); ok {
 			if oldID, ok := community["id"].(int32); ok {
-				newID := "degen:" + strconv.Itoa(int(oldID))
+				newID := fmt.Sprintf("degen:%d", oldID)
 				// Update the document with the new id value
 				filter := bson.M{"_id": doc["_id"]}
 				update := bson.M{"$set": bson.M{"community.id": newID}}
-				_, err := collection.UpdateOne(ctx, filter, update)
+				_, err := electionsCollection.UpdateOne(ctx, filter, update)
 				if err != nil {
 					return err
 				}
 			}
 		}
 	}
-	return cursor.Err()
+	if err := electionsCursor.Err(); err != nil {
+		return err
+	}
+
+	// Fetch all documents from the avatars collection
+	avatarsCollection := db.Collection("avatars")
+	avatarsCursor, err := avatarsCollection.Find(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	defer avatarsCursor.Close(ctx)
+
+	for avatarsCursor.Next(ctx) {
+		var doc bson.M
+		if err = electionsCursor.Decode(&doc); err != nil {
+			return err
+		}
+		// Check if the 'community' sub-object and its 'id' attribute exist
+		if oldID, ok := doc["communityId"].(uint64); ok {
+			newID := fmt.Sprintf("degen:%d", oldID)
+			// Update the document with the new id value
+			filter := bson.M{"_id": doc["_id"]}
+			update := bson.M{"$set": bson.M{"communityId": newID}}
+			_, err := avatarsCollection.UpdateOne(ctx, filter, update)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return avatarsCursor.Err()
+
 }
