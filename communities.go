@@ -300,7 +300,7 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 		return fmt.Errorf("cannot get user from auth token: %w", err)
 	}
 	// get community id from the URL
-	communityID, _, id, err := v.parseCommunityIDFromURL(ctx)
+	communityID, _, contractID, err := v.parseCommunityIDFromURL(ctx)
 	if err != nil {
 		return ctx.Send([]byte(err.Error()), http.StatusBadRequest)
 	}
@@ -382,8 +382,8 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 	}
 	// update the community in the community hub
 	if err := v.comhub.UpdateCommunity(&communityhub.HubCommunity{
-		ID:             id,
 		CommunityID:    communityID,
+		ContractID:     contractID,
 		Name:           typedCommunity.Name,
 		ImageURL:       typedCommunity.LogoURL,
 		GroupChatURL:   typedCommunity.GroupChatURL,

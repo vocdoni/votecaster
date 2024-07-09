@@ -66,7 +66,7 @@ func LoadContract(chainID uint64, chainAlias string, addr common.Address, w3p *c
 // NextID method gets the next community ID from the contract and returns it as
 // a uint64. If something goes wrong getting the next community ID from the
 // contract, it returns an error.
-func (hc *HubContract) NextID() (uint64, error) {
+func (hc *HubContract) NextContractID() (uint64, error) {
 	nextID, err := hc.contract.GetNextCommunityId(nil)
 	if err != nil {
 		return 0, err
@@ -93,7 +93,7 @@ func (hc *HubContract) Community(communityID string) (*HubCommunity, error) {
 	if err != nil {
 		return nil, err
 	}
-	nextID, err := hc.NextID()
+	nextID, err := hc.NextContractID()
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (hc *HubContract) SetCommunity(community *HubCommunity) error {
 		return err
 	}
 	// convert the community ID to a *big.Int
-	bCommunityID := new(big.Int).SetUint64(community.ID)
+	bCommunityID := new(big.Int).SetUint64(community.ContractID)
 	// get auth opts and set the community data in the contract
 	transactOpts, err := hc.authTransactOpts()
 	if err != nil {
@@ -192,7 +192,7 @@ func (hc *HubContract) SetResults(community *HubCommunity, results *HubResults) 
 		return err
 	}
 	// convert the community ID to a *big.Int
-	bCommunityID := new(big.Int).SetUint64(community.ID)
+	bCommunityID := new(big.Int).SetUint64(community.ContractID)
 	// convert the election ID to a [32]byte
 	bElectionID := [32]byte{}
 	copy(bElectionID[:], results.ElectionID)

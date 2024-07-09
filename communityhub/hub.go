@@ -131,7 +131,7 @@ func (l *CommunityHub) ScanNewCommunities() {
 				case <-l.ctx.Done():
 					return
 				default:
-					nextID, err := contract.NextID()
+					nextID, err := contract.NextContractID()
 					if err != nil {
 						log.Warnw("failed to get next community ID", "error", err)
 						continue
@@ -180,7 +180,7 @@ func (ch *CommunityHub) SyncCommunities() {
 			// getting the info of the communities stored in the database
 			// from the contract and updating them in the database
 			for _, contract := range ch.contracts {
-				nextID, err := contract.NextID()
+				nextID, err := contract.NextContractID()
 				if err != nil {
 					log.Warnw("failed to get next community ID", "error", err)
 					continue
