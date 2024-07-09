@@ -34,7 +34,7 @@ func UserRefToFID(userRef string) (uint64, error) {
 
 // ContractToHub converts a contract community struct (ICommunityHubCommunity)
 // to a internal community struct (HubCommunity)
-func ContractToHub(id, chainID uint64, communityID string, cc comhub.ICommunityHubCommunity) (*HubCommunity, error) {
+func ContractToHub(contractID, chainID uint64, communityID string, cc comhub.ICommunityHubCommunity) (*HubCommunity, error) {
 	// decode admins
 	admins := []uint64{}
 	for _, bAdmin := range cc.Guardians {
@@ -43,7 +43,7 @@ func ContractToHub(id, chainID uint64, communityID string, cc comhub.ICommunityH
 	// initialize the resulting community struct
 	community := &HubCommunity{
 		CommunityID:   communityID,
-		ID:            id,
+		ContractID:    contractID,
 		ChainID:       chainID,
 		Name:          cc.Metadata.Name,
 		ImageURL:      cc.Metadata.ImageURI,
@@ -197,7 +197,13 @@ func HubToDB(hcommunity *HubCommunity) (*dbmongo.Community, error) {
 	return dbCommunity, nil
 }
 
-func DBToHub(dbCommunity *dbmongo.Community, id, chainID uint64) (*HubCommunity, error) {
+// DBToHub converts a db community struct (*dbmongo.Community) to a internal
+// community struct (HubCommunity) to be used in the CommunityHub package. It
+// decodes the census addresses according to the census type, and if the census
+// type is a channel, it sets the channel. If the census type is an erc20 or nft,
+// it decodes every census network address to get the contract address and
+// blockchain. It returns an error if the census type is unknown.
+func DBToHub(dbCommunity *dbmongo.Community, contractID, chainID uint64) (*HubCommunity, error) {
 	censusAddresses := []*ContractAddress{}
 	if ct := CensusType(dbCommunity.Census.Type); ct == CensusTypeERC20 || ct == CensusTypeNFT {
 		for _, addr := range dbCommunity.Census.Addresses {
@@ -216,7 +222,7 @@ func DBToHub(dbCommunity *dbmongo.Community, id, chainID uint64) (*HubCommunity,
 	}
 	return &HubCommunity{
 		CommunityID:    dbCommunity.ID,
-		ID:             id,
+		ContractID:     contractID,
 		ChainID:        chainID,
 		Name:           dbCommunity.Name,
 		ImageURL:       dbCommunity.ImageURL,
