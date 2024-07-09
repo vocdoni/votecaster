@@ -15,7 +15,7 @@ const Community = () => {
     refetch,
   } = useQuery({
     queryKey: ['community', chain, id],
-    queryFn: fetchCommunity(bfetch, id as string),
+    queryFn: fetchCommunity(bfetch, `${chain}:${id}` as string),
     enabled: !!id,
   })
 

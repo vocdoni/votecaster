@@ -7,7 +7,7 @@ export const CommunitiesList = ({ data }: { data: Community[] }) => (
       data.map((community: Community, k: number) => (
         <CommunityCard
           name={community.name}
-          slug={community.id.toString()}
+          id={community.id}
           key={k}
           pfpUrl={community.logoURL}
           admins={community.admins}

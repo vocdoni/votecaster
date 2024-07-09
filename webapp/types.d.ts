@@ -27,9 +27,9 @@ declare global {
   type ChainsConfig = Partial<{ [K in ChainKey]: Chain }>
 
   type CommunityPollParams = {
-    chainAlias: ChainKey
-    communityId: string
-    electionId: string
+    chain: ChainKey
+    community: string
+    poll: string
   }
 
   type Pagination = {
@@ -149,8 +149,10 @@ declare global {
     url: string
   }
 
+  type CommunityID = `${ChainKey}:${number}`
+
   type Community = {
-    id: number
+    id: CommunityID
     name: string
     logoURL: string
     admins: Profile[]

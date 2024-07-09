@@ -85,7 +85,7 @@ export const Router = () => {
           ),
         },
         {
-          path: '/communities/:chain/:id/poll/:pid',
+          path: '/communities/:chain/:community/poll/:poll',
           element: (
             <SuspenseLoader>
               <CommunityPoll />

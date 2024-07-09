@@ -53,7 +53,7 @@ export const fetchShortURL = (bfetch: FetchFunction) => async (url: string) => {
   return result
 }
 
-export const useApiPollInfo = (electionId: string) => {
+export const useApiPollInfo = (electionId: CommunityID) => {
   const { bfetch } = useAuth()
 
   return useQuery<PollResponse, Error, PollInfo>({
@@ -71,7 +71,8 @@ export const useApiPollInfo = (electionId: string) => {
   })
 }
 
-export const useContractPollInfo = (chainAlias: ChainKey, communityId: string, electionId: string) => {
+export const useContractPollInfo = (chainAlias: ChainKey, communityId: number, electionId: string) => {
+  console.log('received:', chainAlias, communityId, electionId)
   // const { connected } = useDegenHealthcheck()
   return useReadContract({
     abi: communityHubAbi,

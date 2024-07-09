@@ -6,17 +6,14 @@ import { useApiPollInfo, useContractPollInfo } from '~queries/polls'
 import { contractDataToObject } from '~util/mappings'
 
 const CommunityPoll = () => {
-  const { electionId, communityId, chainAlias } = useParams<CommunityPollParams>()
-  const { data, isLoading, error } = useContractPollInfo(
-    chainAlias as ChainKey,
-    communityId as string,
-    electionId as string
-  )
-  const api = useApiPollInfo(electionId as string)
+  const { chain, community, poll } = useParams<CommunityPollParams>()
+  const { data, isLoading, error } = useContractPollInfo(chain as ChainKey, Number(community), poll as string)
+
+  const api = useApiPollInfo(`${chain as ChainKey}:${Number(community)}`)
 
   // Merge contract and API data
   let results = {
-    electionId,
+    poll,
     ...api.data,
   } as PollInfo
 

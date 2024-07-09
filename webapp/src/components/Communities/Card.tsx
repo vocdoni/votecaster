@@ -1,23 +1,26 @@
 import { Avatar, Badge, Flex, HStack, Link, LinkProps, Text, VStack } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
+import { chainFromId, numberFromId } from '~util/mappings'
 
 type CommunityCardProps = LinkProps & {
   name: string
-  slug?: string
+  id?: CommunityID
   pfpUrl: string
   admins?: Profile[]
   disabled?: boolean
 }
-export const CommunityCard = ({ name, slug, pfpUrl, admins, disabled, ...props }: CommunityCardProps) => {
+export const CommunityCard = ({ name, id, pfpUrl, admins, disabled, ...props }: CommunityCardProps) => {
   const { profile } = useAuth()
   const adminsFid = admins?.map((admin) => admin.fid) ?? []
   const isAdmin = profile && adminsFid.includes(profile.fid)
+  const chain = chainFromId(id as CommunityID)
+  const nid = numberFromId(id as CommunityID)
 
   return (
     <Link
       as={RouterLink}
-      to={slug ? `/communities/${slug}` : undefined}
+      to={id ? `/communities/${chain}/${nid}` : undefined}
       w='full'
       border='1px solid'
       borderColor='gray.200'
