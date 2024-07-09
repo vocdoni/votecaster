@@ -111,7 +111,7 @@ func (ms *MongoStorage) ElectionsByUser(userFID uint64, count int64) ([]Election
 }
 
 // ElectionsByCommunity returns all the elections created by the community with the ID.
-func (ms *MongoStorage) ElectionsByCommunity(communityID uint64) ([]*Election, error) {
+func (ms *MongoStorage) ElectionsByCommunity(communityID string) ([]*Election, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 

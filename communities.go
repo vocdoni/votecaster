@@ -23,6 +23,10 @@ func (v *vocdoniHandler) parseCommunityIDFromURL(ctx *httprouter.HTTPContext) (s
 	if strID == "" {
 		return "", "", 0, fmt.Errorf("no community ID provided")
 	}
+	// check if the community ID is prefixed and decode it
+	if _, prefixedID, ok := communityhub.DecodePrefix(strID); ok {
+		strID = prefixedID
+	}
 	id, err := strconv.ParseUint(strID, 10, 64)
 	if err != nil {
 		return "", "", 0, fmt.Errorf("invalid community ID")
@@ -300,9 +304,13 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 		return fmt.Errorf("cannot get user from auth token: %w", err)
 	}
 	// get community id from the URL
-	communityID, _, contractID, err := v.parseCommunityIDFromURL(ctx)
+	communityID, chainAlias, contractID, err := v.parseCommunityIDFromURL(ctx)
 	if err != nil {
 		return ctx.Send([]byte(err.Error()), http.StatusBadRequest)
+	}
+	chainID, ok := v.comhub.ChainIDFromAlias(chainAlias)
+	if !ok {
+		return ctx.Send([]byte("invalid community chain alias provided"), http.StatusBadRequest)
 	}
 	// get the community from the database by its id
 	dbCommunity, err := v.db.Community(communityID)
@@ -384,6 +392,7 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 	if err := v.comhub.UpdateCommunity(&communityhub.HubCommunity{
 		CommunityID:    communityID,
 		ContractID:     contractID,
+		ChainID:        chainID,
 		Name:           typedCommunity.Name,
 		ImageURL:       typedCommunity.LogoURL,
 		GroupChatURL:   typedCommunity.GroupChatURL,

@@ -71,6 +71,10 @@ func NewCommunityHub(
 	if len(conf.ContractAddresses) == 0 {
 		return nil, ErrMissingContracts
 	}
+	// check if the chain aliases are defined in the provided configuration
+	if len(conf.ChainAliases) == 0 {
+		return nil, ErrMissingContracts
+	}
 	// initialize the context and the listener
 	ctx, cancel := context.WithCancel(goblalCtx)
 	communityHub := &CommunityHub{

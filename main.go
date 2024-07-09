@@ -279,6 +279,7 @@ func main() {
 			}
 		}
 	}
+	log.Infow("chain info loaded", "info", chainsConfs)
 
 	// Create the Farcaster API client
 	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3pool)
@@ -292,8 +293,7 @@ func main() {
 	// Create the community hub service
 	var comHub *communityhub.CommunityHub
 	if communityHubChainsConfigPath != "" && chainsConfs != nil {
-		log.Infow("chain info loaded", "info", chainsConfs)
-		comHub, err := communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
+		comHub, err = communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
 			ChainAliases:      chainsConfs.ChainChainIDByAlias(),
 			ContractAddresses: chainsConfs.ContractsAddressesByChainAlias(),
 			DB:                db,
@@ -305,6 +305,7 @@ func main() {
 		comHub.ScanNewCommunities()
 		comHub.SyncCommunities()
 		defer comHub.Stop()
+		log.Info("community hub service started")
 	}
 
 	// Create Airstack artifact
@@ -452,7 +453,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/rankings/pollsByCommunity/{communityID}", http.MethodGet, "public", handler.electionsByCommunityHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/rankings/pollsByCommunity/{chainAlias}:{communityID}", http.MethodGet, "public", handler.electionsByCommunityHandler); err != nil {
 		log.Fatal(err)
 	}
 
@@ -670,11 +671,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodGet, "public", handler.communityHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}", http.MethodGet, "public", handler.communityHandler); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := uAPI.Endpoint.RegisterMethod("/communities/{communityID}", http.MethodPut, "private", handler.communitySettingsHandler); err != nil {
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}", http.MethodPut, "private", handler.communitySettingsHandler); err != nil {
 		log.Fatal(err)
 	}
 

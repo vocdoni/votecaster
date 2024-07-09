@@ -9,6 +9,9 @@ var (
 	// ErrMissingContracts is returned when no contracts addresses and chain ids
 	// are provided during CommunityHub initialization
 	ErrMissingContracts = fmt.Errorf("missing contracts addresses and chain id")
+	// ErrMissingChainAliases is returned when no chain aliases are provided
+	// during CommunityHub initialization
+	ErrMissingChainAliases = fmt.Errorf("missing chain aliases by chain id")
 	// ErrNoValidContracts is returned when no valid contracts are provided
 	// during CommunityHub initialization
 	ErrNoValidContracts = fmt.Errorf("no valid contracts provided")
