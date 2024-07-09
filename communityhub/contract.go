@@ -140,8 +140,12 @@ func (hc *HubContract) SetCommunity(community *HubCommunity) error {
 	if err != nil {
 		return err
 	}
+	funds := big.NewInt(0)
+	if currentData, err := hc.Community(community.CommunityID); err == nil {
+		funds = currentData.funds
+	}
 	if _, err := hc.contract.AdminManageCommunity(transactOpts, bCommunityID, cc.Metadata,
-		cc.Census, cc.Guardians, cc.CreateElectionPermission, cc.Disabled); err != nil {
+		cc.Census, cc.Guardians, cc.CreateElectionPermission, cc.Disabled, funds); err != nil {
 		return errors.Join(ErrSettingCommunity, err)
 	}
 	return nil

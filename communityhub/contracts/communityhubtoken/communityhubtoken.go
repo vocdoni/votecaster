@@ -76,7 +76,7 @@ type IResultResult struct {
 
 // CommunityHubTokenMetaData contains all meta data concerning the CommunityHubToken contract.
 var CommunityHubTokenMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"expected\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"actual\",\"type\":\"uint256\"}],\"name\":\"AmountMismatch\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"guardian\",\"type\":\"uint256\"}],\"name\":\"GuardianNotFound\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidCreateElectionPermission\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"OwnableInvalidOwner\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"OwnableUnauthorizedAccount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ZeroAmount\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"}],\"name\":\"AdminCommunityManaged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"},{\"internalType\":\"string\",\"name\":\"channel\",\"type\":\"string\"}],\"indexed\":false,\"internalType\":\"structICommunityHub.Census\",\"name\":\"census\",\"type\":\"tuple\"}],\"name\":\"CensusSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"}],\"name\":\"CommunityCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"}],\"name\":\"CommunityDeposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"}],\"name\":\"CommunityDisabled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"}],\"name\":\"CommunityEnabled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"name\":\"CreateCommunityPriceSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"createElectionPermission\",\"type\":\"uint8\"}],\"name\":\"CreateElectionPermissionSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"guardian\",\"type\":\"uint256\"}],\"name\":\"GuardianAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"guardian\",\"type\":\"uint256\"}],\"name\":\"GuardianRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"groupChatURL\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"indexed\":false,\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"metadata\",\"type\":\"tuple\"}],\"name\":\"MetadataSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"notifiableElections\",\"type\":\"bool\"}],\"name\":\"NotifiableElectionsSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"name\":\"PricePerElectionSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"communityId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"electionId\",\"type\":\"bytes32\"}],\"name\":\"ResultsSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"Withdrawal\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_guardian\",\"type\":\"uint256\"}],\"name\":\"addGuardian\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"groupChatURL\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"_metadata\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"},{\"internalType\":\"string\",\"name\":\"channel\",\"type\":\"string\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"_census\",\"type\":\"tuple\"},{\"internalType\":\"uint256[]\",\"name\":\"_guardians\",\"type\":\"uint256[]\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"_createElectionPermission\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"_disabled\",\"type\":\"bool\"}],\"name\":\"adminManageCommunity\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_price\",\"type\":\"uint256\"}],\"name\":\"adminSetCommunityPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_price\",\"type\":\"uint256\"}],\"name\":\"adminSetPricePerElection\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"groupChatURL\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"_metadata\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"},{\"internalType\":\"string\",\"name\":\"channel\",\"type\":\"string\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"_census\",\"type\":\"tuple\"},{\"internalType\":\"uint256[]\",\"name\":\"_guardians\",\"type\":\"uint256[]\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"_createElectionPermission\",\"type\":\"uint8\"}],\"name\":\"createCommunity\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"}],\"name\":\"getCommunity\",\"outputs\":[{\"components\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"groupChatURL\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"metadata\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"},{\"internalType\":\"string\",\"name\":\"channel\",\"type\":\"string\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"census\",\"type\":\"tuple\"},{\"internalType\":\"uint256[]\",\"name\":\"guardians\",\"type\":\"uint256[]\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"createElectionPermission\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"disabled\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"funds\",\"type\":\"uint256\"}],\"internalType\":\"structICommunityHub.Community\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getCreateCommunityPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getNextCommunityId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getPricePerElection\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_electionId\",\"type\":\"bytes32\"}],\"name\":\"getResult\",\"outputs\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"question\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"options\",\"type\":\"string[]\"},{\"internalType\":\"string\",\"name\":\"date\",\"type\":\"string\"},{\"internalType\":\"uint256[][]\",\"name\":\"tally\",\"type\":\"uint256[][]\"},{\"internalType\":\"uint256\",\"name\":\"turnout\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"totalVotingPower\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"participants\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32\",\"name\":\"censusRoot\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"censusURI\",\"type\":\"string\"}],\"internalType\":\"structIResult.Result\",\"name\":\"result\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_guardian\",\"type\":\"uint256\"}],\"name\":\"removeGuardian\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"enumICommunityHub.CensusType\",\"name\":\"censusType\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"blockchain\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"internalType\":\"structICommunityHub.Token[]\",\"name\":\"tokens\",\"type\":\"tuple[]\"},{\"internalType\":\"string\",\"name\":\"channel\",\"type\":\"string\"}],\"internalType\":\"structICommunityHub.Census\",\"name\":\"_census\",\"type\":\"tuple\"}],\"name\":\"setCensus\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"enumICommunityHub.CreateElectionPermission\",\"name\":\"_createElectionPermission\",\"type\":\"uint8\"}],\"name\":\"setCreateElectionPermission\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"imageURI\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"groupChatURL\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"channels\",\"type\":\"string[]\"},{\"internalType\":\"bool\",\"name\":\"notifications\",\"type\":\"bool\"}],\"internalType\":\"structICommunityHub.CommunityMetadata\",\"name\":\"_metadata\",\"type\":\"tuple\"}],\"name\":\"setMetadata\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"_notifiableElections\",\"type\":\"bool\"}],\"name\":\"setNotifiableElections\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_communityId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_electionId\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"question\",\"type\":\"string\"},{\"internalType\":\"string[]\",\"name\":\"options\",\"type\":\"string[]\"},{\"internalType\":\"string\",\"name\":\"date\",\"type\":\"string\"},{\"internalType\":\"uint256[][]\",\"name\":\"tally\",\"type\":\"uint256[][]\"},{\"internalType\":\"uint256\",\"name\":\"turnout\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"totalVotingPower\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"participants\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32\",\"name\":\"censusRoot\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"censusURI\",\"type\":\"string\"}],\"internalType\":\"structIResult.Result\",\"name\":\"_result\",\"type\":\"tuple\"}],\"name\":\"setResult\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]",
+	ABI: "[{\"type\":\"receive\",\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"UPGRADE_INTERFACE_VERSION\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"addGuardian\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_guardian\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"adminManageCommunity\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_metadata\",\"type\":\"tuple\",\"internalType\":\"structICommunityHub.CommunityMetadata\",\"components\":[{\"name\":\"name\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"imageURI\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"groupChatURL\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"channels\",\"type\":\"string[]\",\"internalType\":\"string[]\"},{\"name\":\"notifications\",\"type\":\"bool\",\"internalType\":\"bool\"}]},{\"name\":\"_census\",\"type\":\"tuple\",\"internalType\":\"structICommunityHub.Census\",\"components\":[{\"name\":\"censusType\",\"type\":\"uint8\",\"internalType\":\"enumICommunityHub.CensusType\"},{\"name\":\"tokens\",\"type\":\"tuple[]\",\"internalType\":\"structICommunityHub.Token[]\",\"components\":[{\"name\":\"blockchain\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"contractAddress\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"name\":\"channel\",\"type\":\"string\",\"internalType\":\"string\"}]},{\"name\":\"_guardians\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"_createElectionPermission\",\"type\":\"uint8\",\"internalType\":\"enumICommunityHub.CreateElectionPermission\"},{\"name\":\"_disabled\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"_funds\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"adminSetCommunityPrice\",\"inputs\":[{\"name\":\"_price\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"adminSetPricePerElection\",\"inputs\":[{\"name\":\"_price\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"createCommunity\",\"inputs\":[{\"name\":\"_metadata\",\"type\":\"tuple\",\"internalType\":\"structICommunityHub.CommunityMetadata\",\"components\":[{\"name\":\"name\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"imageURI\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"groupChatURL\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"channels\",\"type\":\"string[]\",\"internalType\":\"string[]\"},{\"name\":\"notifications\",\"type\":\"bool\",\"internalType\":\"bool\"}]},{\"name\":\"_census\",\"type\":\"tuple\",\"internalType\":\"structICommunityHub.Census\",\"components\":[{\"name\":\"censusType\",\"type\":\"uint8\",\"internalType\":\"enumICommunityHub.CensusType\"},{\"name\":\"tokens\",\"type\":\"tuple[]\",\"internalType\":\"structICommunityHub.Token[]\",\"components\":[{\"name\":\"blockchain\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"contractAddress\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"name\":\"channel\",\"type\":\"string\",\"internalType\":\"string\"}]},{\"name\":\"_guardians\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"_createElectionPermission\",\"type\":\"uint8\",\"internalType\":\"enumICommunityHub.CreateElectionPermission\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"deposit\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"getCommunity\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structICommunityHub.Community\",\"components\":[{\"name\":\"metadata\",\"type\":\"tuple\",\"internalType\":\"structICommunityHub.CommunityMetadata\",\"components\":[{\"name\":\"name\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"imageURI\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"groupChatURL\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"channels\",\"type\":\"string[]\",\"internalType\":\"string[]\"},{\"name\":\"notifications\",\"type\":\"bool\",\"internalType\":\"bool\"}]},{\"name\":\"census\",\"type\":\"tuple\",\"internalType\":\"structICommunityHub.Census\",\"components\":[{\"name\":\"censusType\",\"type\":\"uint8\",\"internalType\":\"enumICommunityHub.CensusType\"},{\"name\":\"tokens\",\"type\":\"tuple[]\",\"internalType\":\"structICommunityHub.Token[]\",\"components\":[{\"name\":\"blockchain\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"contractAddress\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"name\":\"channel\",\"type\":\"string\",\"internalType\":\"string\"}]},{\"name\":\"guardians\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"createElectionPermission\",\"type\":\"uint8\",\"internalType\":\"enumICommunityHub.CreateElectionPermission\"},{\"name\":\"disabled\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"funds\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getCreateCommunityPrice\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getNextCommunityId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getPricePerElection\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getResult\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_electionId\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"result\",\"type\":\"tuple\",\"internalType\":\"structIResult.Result\",\"components\":[{\"name\":\"question\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"options\",\"type\":\"string[]\",\"internalType\":\"string[]\"},{\"name\":\"date\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"tally\",\"type\":\"uint256[][]\",\"internalType\":\"uint256[][]\"},{\"name\":\"turnout\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"totalVotingPower\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"participants\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"censusRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"censusURI\",\"type\":\"string\",\"internalType\":\"string\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"initialize\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"owner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"proxiableUUID\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"removeGuardian\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_guardian\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"renounceOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setCensus\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_census\",\"type\":\"tuple\",\"internalType\":\"structICommunityHub.Census\",\"components\":[{\"name\":\"censusType\",\"type\":\"uint8\",\"internalType\":\"enumICommunityHub.CensusType\"},{\"name\":\"tokens\",\"type\":\"tuple[]\",\"internalType\":\"structICommunityHub.Token[]\",\"components\":[{\"name\":\"blockchain\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"contractAddress\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"name\":\"channel\",\"type\":\"string\",\"internalType\":\"string\"}]}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setCreateElectionPermission\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_createElectionPermission\",\"type\":\"uint8\",\"internalType\":\"enumICommunityHub.CreateElectionPermission\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setMetadata\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_metadata\",\"type\":\"tuple\",\"internalType\":\"structICommunityHub.CommunityMetadata\",\"components\":[{\"name\":\"name\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"imageURI\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"groupChatURL\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"channels\",\"type\":\"string[]\",\"internalType\":\"string[]\"},{\"name\":\"notifications\",\"type\":\"bool\",\"internalType\":\"bool\"}]}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setNotifiableElections\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_notifiableElections\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setResult\",\"inputs\":[{\"name\":\"_communityId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_electionId\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"_result\",\"type\":\"tuple\",\"internalType\":\"structIResult.Result\",\"components\":[{\"name\":\"question\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"options\",\"type\":\"string[]\",\"internalType\":\"string[]\"},{\"name\":\"date\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"tally\",\"type\":\"uint256[][]\",\"internalType\":\"uint256[][]\"},{\"name\":\"turnout\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"totalVotingPower\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"participants\",\"type\":\"uint256[]\",\"internalType\":\"uint256[]\"},{\"name\":\"censusRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"censusURI\",\"type\":\"string\",\"internalType\":\"string\"}]}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"transferOwnership\",\"inputs\":[{\"name\":\"newOwner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"upgradeToAndCall\",\"inputs\":[{\"name\":\"newImplementation\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"data\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"withdraw\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"event\",\"name\":\"AdminCommunityManaged\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CensusSet\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"census\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structICommunityHub.Census\",\"components\":[{\"name\":\"censusType\",\"type\":\"uint8\",\"internalType\":\"enumICommunityHub.CensusType\"},{\"name\":\"tokens\",\"type\":\"tuple[]\",\"internalType\":\"structICommunityHub.Token[]\",\"components\":[{\"name\":\"blockchain\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"contractAddress\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"name\":\"channel\",\"type\":\"string\",\"internalType\":\"string\"}]}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CommunityCreated\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"creator\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CommunityDeposit\",\"inputs\":[{\"name\":\"sender\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CommunityDisabled\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CommunityEnabled\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CreateCommunityPriceSet\",\"inputs\":[{\"name\":\"price\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CreateElectionPermissionSet\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"createElectionPermission\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"enumICommunityHub.CreateElectionPermission\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Deposit\",\"inputs\":[{\"name\":\"sender\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"GuardianAdded\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"guardian\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"GuardianRemoved\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"guardian\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint64\",\"indexed\":false,\"internalType\":\"uint64\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"MetadataSet\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"metadata\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structICommunityHub.CommunityMetadata\",\"components\":[{\"name\":\"name\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"imageURI\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"groupChatURL\",\"type\":\"string\",\"internalType\":\"string\"},{\"name\":\"channels\",\"type\":\"string[]\",\"internalType\":\"string[]\"},{\"name\":\"notifications\",\"type\":\"bool\",\"internalType\":\"bool\"}]}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"NotifiableElectionsSet\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"notifiableElections\",\"type\":\"bool\",\"indexed\":false,\"internalType\":\"bool\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"PricePerElectionSet\",\"inputs\":[{\"name\":\"price\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"ResultsSet\",\"inputs\":[{\"name\":\"communityId\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"electionId\",\"type\":\"bytes32\",\"indexed\":false,\"internalType\":\"bytes32\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Upgraded\",\"inputs\":[{\"name\":\"implementation\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Withdrawal\",\"inputs\":[{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"AddressEmptyCode\",\"inputs\":[{\"name\":\"target\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"AmountMismatch\",\"inputs\":[{\"name\":\"expected\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"actual\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"type\":\"error\",\"name\":\"ERC1967InvalidImplementation\",\"inputs\":[{\"name\":\"implementation\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"ERC1967NonPayable\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"FailedInnerCall\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"GuardianNotFound\",\"inputs\":[{\"name\":\"guardian\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"type\":\"error\",\"name\":\"InvalidCreateElectionPermission\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InvalidInitialization\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotInitializing\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"OwnableInvalidOwner\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"OwnableUnauthorizedAccount\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"UUPSUnauthorizedCallContext\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"UUPSUnsupportedProxiableUUID\",\"inputs\":[{\"name\":\"slot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]},{\"type\":\"error\",\"name\":\"ZeroAmount\",\"inputs\":[]}]",
 }
 
 // CommunityHubTokenABI is the input ABI used to generate the binding from.
@@ -223,6 +223,37 @@ func (_CommunityHubToken *CommunityHubTokenTransactorRaw) Transfer(opts *bind.Tr
 // Transact invokes the (paid) contract method with params as input values.
 func (_CommunityHubToken *CommunityHubTokenTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.contract.Transact(opts, method, params...)
+}
+
+// UPGRADEINTERFACEVERSION is a free data retrieval call binding the contract method 0xad3cb1cc.
+//
+// Solidity: function UPGRADE_INTERFACE_VERSION() view returns(string)
+func (_CommunityHubToken *CommunityHubTokenCaller) UPGRADEINTERFACEVERSION(opts *bind.CallOpts) (string, error) {
+	var out []interface{}
+	err := _CommunityHubToken.contract.Call(opts, &out, "UPGRADE_INTERFACE_VERSION")
+
+	if err != nil {
+		return *new(string), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(string)).(*string)
+
+	return out0, err
+
+}
+
+// UPGRADEINTERFACEVERSION is a free data retrieval call binding the contract method 0xad3cb1cc.
+//
+// Solidity: function UPGRADE_INTERFACE_VERSION() view returns(string)
+func (_CommunityHubToken *CommunityHubTokenSession) UPGRADEINTERFACEVERSION() (string, error) {
+	return _CommunityHubToken.Contract.UPGRADEINTERFACEVERSION(&_CommunityHubToken.CallOpts)
+}
+
+// UPGRADEINTERFACEVERSION is a free data retrieval call binding the contract method 0xad3cb1cc.
+//
+// Solidity: function UPGRADE_INTERFACE_VERSION() view returns(string)
+func (_CommunityHubToken *CommunityHubTokenCallerSession) UPGRADEINTERFACEVERSION() (string, error) {
+	return _CommunityHubToken.Contract.UPGRADEINTERFACEVERSION(&_CommunityHubToken.CallOpts)
 }
 
 // GetCommunity is a free data retrieval call binding the contract method 0x370603f8.
@@ -411,6 +442,37 @@ func (_CommunityHubToken *CommunityHubTokenCallerSession) Owner() (common.Addres
 	return _CommunityHubToken.Contract.Owner(&_CommunityHubToken.CallOpts)
 }
 
+// ProxiableUUID is a free data retrieval call binding the contract method 0x52d1902d.
+//
+// Solidity: function proxiableUUID() view returns(bytes32)
+func (_CommunityHubToken *CommunityHubTokenCaller) ProxiableUUID(opts *bind.CallOpts) ([32]byte, error) {
+	var out []interface{}
+	err := _CommunityHubToken.contract.Call(opts, &out, "proxiableUUID")
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// ProxiableUUID is a free data retrieval call binding the contract method 0x52d1902d.
+//
+// Solidity: function proxiableUUID() view returns(bytes32)
+func (_CommunityHubToken *CommunityHubTokenSession) ProxiableUUID() ([32]byte, error) {
+	return _CommunityHubToken.Contract.ProxiableUUID(&_CommunityHubToken.CallOpts)
+}
+
+// ProxiableUUID is a free data retrieval call binding the contract method 0x52d1902d.
+//
+// Solidity: function proxiableUUID() view returns(bytes32)
+func (_CommunityHubToken *CommunityHubTokenCallerSession) ProxiableUUID() ([32]byte, error) {
+	return _CommunityHubToken.Contract.ProxiableUUID(&_CommunityHubToken.CallOpts)
+}
+
 // AddGuardian is a paid mutator transaction binding the contract method 0xc8b785f3.
 //
 // Solidity: function addGuardian(uint256 _communityId, uint256 _guardian) returns()
@@ -432,25 +494,25 @@ func (_CommunityHubToken *CommunityHubTokenTransactorSession) AddGuardian(_commu
 	return _CommunityHubToken.Contract.AddGuardian(&_CommunityHubToken.TransactOpts, _communityId, _guardian)
 }
 
-// AdminManageCommunity is a paid mutator transaction binding the contract method 0x040cdd0a.
+// AdminManageCommunity is a paid mutator transaction binding the contract method 0x691ac0ef.
 //
-// Solidity: function adminManageCommunity(uint256 _communityId, (string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, uint8 _createElectionPermission, bool _disabled) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactor) AdminManageCommunity(opts *bind.TransactOpts, _communityId *big.Int, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _createElectionPermission uint8, _disabled bool) (*types.Transaction, error) {
-	return _CommunityHubToken.contract.Transact(opts, "adminManageCommunity", _communityId, _metadata, _census, _guardians, _createElectionPermission, _disabled)
+// Solidity: function adminManageCommunity(uint256 _communityId, (string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, uint8 _createElectionPermission, bool _disabled, uint256 _funds) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) AdminManageCommunity(opts *bind.TransactOpts, _communityId *big.Int, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _createElectionPermission uint8, _disabled bool, _funds *big.Int) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "adminManageCommunity", _communityId, _metadata, _census, _guardians, _createElectionPermission, _disabled, _funds)
 }
 
-// AdminManageCommunity is a paid mutator transaction binding the contract method 0x040cdd0a.
+// AdminManageCommunity is a paid mutator transaction binding the contract method 0x691ac0ef.
 //
-// Solidity: function adminManageCommunity(uint256 _communityId, (string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, uint8 _createElectionPermission, bool _disabled) returns()
-func (_CommunityHubToken *CommunityHubTokenSession) AdminManageCommunity(_communityId *big.Int, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _createElectionPermission uint8, _disabled bool) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.AdminManageCommunity(&_CommunityHubToken.TransactOpts, _communityId, _metadata, _census, _guardians, _createElectionPermission, _disabled)
+// Solidity: function adminManageCommunity(uint256 _communityId, (string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, uint8 _createElectionPermission, bool _disabled, uint256 _funds) returns()
+func (_CommunityHubToken *CommunityHubTokenSession) AdminManageCommunity(_communityId *big.Int, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _createElectionPermission uint8, _disabled bool, _funds *big.Int) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.AdminManageCommunity(&_CommunityHubToken.TransactOpts, _communityId, _metadata, _census, _guardians, _createElectionPermission, _disabled, _funds)
 }
 
-// AdminManageCommunity is a paid mutator transaction binding the contract method 0x040cdd0a.
+// AdminManageCommunity is a paid mutator transaction binding the contract method 0x691ac0ef.
 //
-// Solidity: function adminManageCommunity(uint256 _communityId, (string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, uint8 _createElectionPermission, bool _disabled) returns()
-func (_CommunityHubToken *CommunityHubTokenTransactorSession) AdminManageCommunity(_communityId *big.Int, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _createElectionPermission uint8, _disabled bool) (*types.Transaction, error) {
-	return _CommunityHubToken.Contract.AdminManageCommunity(&_CommunityHubToken.TransactOpts, _communityId, _metadata, _census, _guardians, _createElectionPermission, _disabled)
+// Solidity: function adminManageCommunity(uint256 _communityId, (string,string,string,string[],bool) _metadata, (uint8,(string,address)[],string) _census, uint256[] _guardians, uint8 _createElectionPermission, bool _disabled, uint256 _funds) returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) AdminManageCommunity(_communityId *big.Int, _metadata ICommunityHubCommunityMetadata, _census ICommunityHubCensus, _guardians []*big.Int, _createElectionPermission uint8, _disabled bool, _funds *big.Int) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.AdminManageCommunity(&_CommunityHubToken.TransactOpts, _communityId, _metadata, _census, _guardians, _createElectionPermission, _disabled, _funds)
 }
 
 // AdminSetCommunityPrice is a paid mutator transaction binding the contract method 0x873ceb2e.
@@ -535,6 +597,27 @@ func (_CommunityHubToken *CommunityHubTokenSession) Deposit(_communityId *big.In
 // Solidity: function deposit(uint256 _communityId) payable returns()
 func (_CommunityHubToken *CommunityHubTokenTransactorSession) Deposit(_communityId *big.Int) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.Deposit(&_CommunityHubToken.TransactOpts, _communityId)
+}
+
+// Initialize is a paid mutator transaction binding the contract method 0x8129fc1c.
+//
+// Solidity: function initialize() returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) Initialize(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "initialize")
+}
+
+// Initialize is a paid mutator transaction binding the contract method 0x8129fc1c.
+//
+// Solidity: function initialize() returns()
+func (_CommunityHubToken *CommunityHubTokenSession) Initialize() (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.Initialize(&_CommunityHubToken.TransactOpts)
+}
+
+// Initialize is a paid mutator transaction binding the contract method 0x8129fc1c.
+//
+// Solidity: function initialize() returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) Initialize() (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.Initialize(&_CommunityHubToken.TransactOpts)
 }
 
 // RemoveGuardian is a paid mutator transaction binding the contract method 0xaba675b0.
@@ -703,6 +786,27 @@ func (_CommunityHubToken *CommunityHubTokenSession) TransferOwnership(newOwner c
 // Solidity: function transferOwnership(address newOwner) returns()
 func (_CommunityHubToken *CommunityHubTokenTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
 	return _CommunityHubToken.Contract.TransferOwnership(&_CommunityHubToken.TransactOpts, newOwner)
+}
+
+// UpgradeToAndCall is a paid mutator transaction binding the contract method 0x4f1ef286.
+//
+// Solidity: function upgradeToAndCall(address newImplementation, bytes data) payable returns()
+func (_CommunityHubToken *CommunityHubTokenTransactor) UpgradeToAndCall(opts *bind.TransactOpts, newImplementation common.Address, data []byte) (*types.Transaction, error) {
+	return _CommunityHubToken.contract.Transact(opts, "upgradeToAndCall", newImplementation, data)
+}
+
+// UpgradeToAndCall is a paid mutator transaction binding the contract method 0x4f1ef286.
+//
+// Solidity: function upgradeToAndCall(address newImplementation, bytes data) payable returns()
+func (_CommunityHubToken *CommunityHubTokenSession) UpgradeToAndCall(newImplementation common.Address, data []byte) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.UpgradeToAndCall(&_CommunityHubToken.TransactOpts, newImplementation, data)
+}
+
+// UpgradeToAndCall is a paid mutator transaction binding the contract method 0x4f1ef286.
+//
+// Solidity: function upgradeToAndCall(address newImplementation, bytes data) payable returns()
+func (_CommunityHubToken *CommunityHubTokenTransactorSession) UpgradeToAndCall(newImplementation common.Address, data []byte) (*types.Transaction, error) {
+	return _CommunityHubToken.Contract.UpgradeToAndCall(&_CommunityHubToken.TransactOpts, newImplementation, data)
 }
 
 // Withdraw is a paid mutator transaction binding the contract method 0x3ccfd60b.
@@ -2229,6 +2333,140 @@ func (_CommunityHubToken *CommunityHubTokenFilterer) ParseGuardianRemoved(log ty
 	return event, nil
 }
 
+// CommunityHubTokenInitializedIterator is returned from FilterInitialized and is used to iterate over the raw logs and unpacked data for Initialized events raised by the CommunityHubToken contract.
+type CommunityHubTokenInitializedIterator struct {
+	Event *CommunityHubTokenInitialized // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *CommunityHubTokenInitializedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(CommunityHubTokenInitialized)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(CommunityHubTokenInitialized)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *CommunityHubTokenInitializedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *CommunityHubTokenInitializedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// CommunityHubTokenInitialized represents a Initialized event raised by the CommunityHubToken contract.
+type CommunityHubTokenInitialized struct {
+	Version uint64
+	Raw     types.Log // Blockchain specific contextual infos
+}
+
+// FilterInitialized is a free log retrieval operation binding the contract event 0xc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2.
+//
+// Solidity: event Initialized(uint64 version)
+func (_CommunityHubToken *CommunityHubTokenFilterer) FilterInitialized(opts *bind.FilterOpts) (*CommunityHubTokenInitializedIterator, error) {
+
+	logs, sub, err := _CommunityHubToken.contract.FilterLogs(opts, "Initialized")
+	if err != nil {
+		return nil, err
+	}
+	return &CommunityHubTokenInitializedIterator{contract: _CommunityHubToken.contract, event: "Initialized", logs: logs, sub: sub}, nil
+}
+
+// WatchInitialized is a free log subscription operation binding the contract event 0xc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2.
+//
+// Solidity: event Initialized(uint64 version)
+func (_CommunityHubToken *CommunityHubTokenFilterer) WatchInitialized(opts *bind.WatchOpts, sink chan<- *CommunityHubTokenInitialized) (event.Subscription, error) {
+
+	logs, sub, err := _CommunityHubToken.contract.WatchLogs(opts, "Initialized")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(CommunityHubTokenInitialized)
+				if err := _CommunityHubToken.contract.UnpackLog(event, "Initialized", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseInitialized is a log parse operation binding the contract event 0xc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2.
+//
+// Solidity: event Initialized(uint64 version)
+func (_CommunityHubToken *CommunityHubTokenFilterer) ParseInitialized(log types.Log) (*CommunityHubTokenInitialized, error) {
+	event := new(CommunityHubTokenInitialized)
+	if err := _CommunityHubToken.contract.UnpackLog(event, "Initialized", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
 // CommunityHubTokenMetadataSetIterator is returned from FilterMetadataSet and is used to iterate over the raw logs and unpacked data for MetadataSet events raised by the CommunityHubToken contract.
 type CommunityHubTokenMetadataSetIterator struct {
 	Event *CommunityHubTokenMetadataSet // Event containing the contract specifics and raw log
@@ -2915,6 +3153,150 @@ func (_CommunityHubToken *CommunityHubTokenFilterer) WatchResultsSet(opts *bind.
 func (_CommunityHubToken *CommunityHubTokenFilterer) ParseResultsSet(log types.Log) (*CommunityHubTokenResultsSet, error) {
 	event := new(CommunityHubTokenResultsSet)
 	if err := _CommunityHubToken.contract.UnpackLog(event, "ResultsSet", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// CommunityHubTokenUpgradedIterator is returned from FilterUpgraded and is used to iterate over the raw logs and unpacked data for Upgraded events raised by the CommunityHubToken contract.
+type CommunityHubTokenUpgradedIterator struct {
+	Event *CommunityHubTokenUpgraded // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *CommunityHubTokenUpgradedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(CommunityHubTokenUpgraded)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(CommunityHubTokenUpgraded)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *CommunityHubTokenUpgradedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *CommunityHubTokenUpgradedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// CommunityHubTokenUpgraded represents a Upgraded event raised by the CommunityHubToken contract.
+type CommunityHubTokenUpgraded struct {
+	Implementation common.Address
+	Raw            types.Log // Blockchain specific contextual infos
+}
+
+// FilterUpgraded is a free log retrieval operation binding the contract event 0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b.
+//
+// Solidity: event Upgraded(address indexed implementation)
+func (_CommunityHubToken *CommunityHubTokenFilterer) FilterUpgraded(opts *bind.FilterOpts, implementation []common.Address) (*CommunityHubTokenUpgradedIterator, error) {
+
+	var implementationRule []interface{}
+	for _, implementationItem := range implementation {
+		implementationRule = append(implementationRule, implementationItem)
+	}
+
+	logs, sub, err := _CommunityHubToken.contract.FilterLogs(opts, "Upgraded", implementationRule)
+	if err != nil {
+		return nil, err
+	}
+	return &CommunityHubTokenUpgradedIterator{contract: _CommunityHubToken.contract, event: "Upgraded", logs: logs, sub: sub}, nil
+}
+
+// WatchUpgraded is a free log subscription operation binding the contract event 0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b.
+//
+// Solidity: event Upgraded(address indexed implementation)
+func (_CommunityHubToken *CommunityHubTokenFilterer) WatchUpgraded(opts *bind.WatchOpts, sink chan<- *CommunityHubTokenUpgraded, implementation []common.Address) (event.Subscription, error) {
+
+	var implementationRule []interface{}
+	for _, implementationItem := range implementation {
+		implementationRule = append(implementationRule, implementationItem)
+	}
+
+	logs, sub, err := _CommunityHubToken.contract.WatchLogs(opts, "Upgraded", implementationRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(CommunityHubTokenUpgraded)
+				if err := _CommunityHubToken.contract.UnpackLog(event, "Upgraded", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseUpgraded is a log parse operation binding the contract event 0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b.
+//
+// Solidity: event Upgraded(address indexed implementation)
+func (_CommunityHubToken *CommunityHubTokenFilterer) ParseUpgraded(log types.Log) (*CommunityHubTokenUpgraded, error) {
+	event := new(CommunityHubTokenUpgraded)
+	if err := _CommunityHubToken.contract.UnpackLog(event, "Upgraded", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

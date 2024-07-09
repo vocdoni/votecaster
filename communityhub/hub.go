@@ -184,6 +184,7 @@ func (ch *CommunityHub) SyncCommunities() {
 			// getting the info of the communities stored in the database
 			// from the contract and updating them in the database
 			for _, contract := range ch.contracts {
+				log.Infow("syncing communities", "chainAlias", contract.ChainAlias, "contract", contract.Address.String())
 				nextID, err := contract.NextContractID()
 				if err != nil {
 					log.Warnw("failed to get next community ID", "error", err)
@@ -203,6 +204,7 @@ func (ch *CommunityHub) SyncCommunities() {
 							log.Warnw("failed to get community ID by chain alias", "chainAlias", contract.ChainAlias)
 							continue
 						}
+						log.Infow("syncing community", "communityID", communityID)
 						onchainCommunity, err := contract.Community(communityID)
 						if err != nil {
 							log.Warnw("failed to get community data", "error", err, "communityID", communityID)
@@ -266,7 +268,7 @@ func (ch *CommunityHub) CommunityContract(communityID string) (*HubContract, err
 // in the contract and the database. If something goes wrong updating the
 // community in the contract or the database, it returns an error.
 func (ch *CommunityHub) UpdateCommunity(newData *HubCommunity) error {
-	chainAlias, ok := ch.ChainAliasFromID(newData.ChainID)
+	chainAlias, _, ok := ch.ChainAliasAndContractIDFromCommunityID(newData.CommunityID)
 	if !ok {
 		return ErrDecodeCommunityID
 	}
@@ -311,21 +313,36 @@ func (h *CommunityHub) CommunityIDByChainAlias(id uint64, chainAlias string) (st
 	return fmt.Sprintf(chainPrefixFormat, chainAlias, fmt.Sprint(id)), true
 }
 
+// ChainAliasAndContractIDFromCommunityID method gets the chain alias and the
+// ID of the community by the community ID. It decodes the chain alias and the
+// ID from the community ID. If the community ID is not valid, it returns an
+// empty string, 0, and false.
+func (hc *CommunityHub) ChainAliasAndContractIDFromCommunityID(communityID string) (string, uint64, bool) {
+	chainAlias, strID, ok := DecodePrefix(communityID)
+	if !ok {
+		return "", 0, false
+	}
+	if _, ok := hc.ChainAliases[chainAlias]; !ok {
+		return "", 0, false
+	}
+	id, err := strconv.ParseUint(strID, 10, 64)
+	if err != nil {
+		return "", 0, false
+	}
+	return chainAlias, id, true
+}
+
 // ChainIDAndIDFromCommunityID method gets the chain ID and the ID of the
 // community by the community ID. It decodes the chain alias and the ID from
 // the community ID and gets the chain ID from the chain alias. If the chain
 // alias is not found, it returns 0, 0, and false.
 func (h *CommunityHub) ChainIDAndIDFromCommunityID(communityID string) (uint64, uint64, bool) {
-	chainAlias, strID, ok := DecodePrefix(communityID)
+	chainAlias, id, ok := h.ChainAliasAndContractIDFromCommunityID(communityID)
 	if !ok {
 		return 0, 0, false
 	}
 	chainID, ok := h.ChainIDFromAlias(chainAlias)
 	if !ok {
-		return 0, 0, false
-	}
-	id, err := strconv.ParseUint(strID, 10, 64)
-	if err != nil {
 		return 0, 0, false
 	}
 	return chainID, id, true
