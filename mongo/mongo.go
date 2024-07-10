@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/vocdoni/vote-frame/mongo/migrations"
+	migrate "github.com/xakep666/mongo-migrate"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -121,7 +123,11 @@ func New(url, database string) (*MongoStorage, error) {
 			return nil, err
 		}
 	}
-
+	// run migrations
+	migrate.SetDatabase(client.Database(database))
+	if err := migrate.Up(ctx, migrate.AllAvailable); err != nil {
+		log.Errorw(err, "error running migrations")
+	}
 	return ms, nil
 }
 
