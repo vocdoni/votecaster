@@ -203,7 +203,7 @@ export const CommunitiesCreateForm = () => {
           <>
             <Heading size='md'>Create community</Heading>
             <Text color='gray.400' mb={4}>
-              Create your Farcaster.vote community to start managing proposals, creating polls, notify users, etc.
+              Create your Votecaster community to start managing proposals, creating polls, notify users, etc.
             </Text>
             <Box
               as='form'

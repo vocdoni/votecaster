@@ -54,7 +54,7 @@ export const Features = (props: BoxProps) => (
       <Feature
         title='E2E verifiable polls'
         description={[
-          'Farcaster.vote leverages the decentralized Vocdoni Protocol to ensure that all voting is end-to-end verifiable, transparent, and secure!',
+          'Votecaster leverages the decentralized Vocdoni Protocol to ensure that all voting is end-to-end verifiable, transparent, and secure!',
           'Coming soon: Onchain voting on Degenchain.',
         ]}
       />

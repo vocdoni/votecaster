@@ -60,7 +60,7 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
           <Flex justifyContent='space-around' alignItems='center'>
             <Stat>
               <StatLabel fontSize='lg'>
-                <Icon as={ImStatsDots} boxSize={4} /> Farcaster.vote reputation
+                <Icon as={ImStatsDots} boxSize={4} /> Votecaster reputation
               </StatLabel>
               <StatNumber fontSize='2xl'>{reputation.reputation}</StatNumber>
             </Stat>

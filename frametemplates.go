@@ -57,7 +57,7 @@ var body = `
     <div style="margin: 0 auto; max-width: 100%; width: 600px;">
       <p><img src="{image}" alt="{title} poll image" style="max-width: 100%" /> </p>
       <h1>{title}</h1>
-      <p>Create your own secure and decentralized polls with <a href="{server}">farcaster.vote</a>.</p>
+      <p>Create your own secure and decentralized polls with <a href="{server}">Votecaster</a>.</p>
     </div>
   </body>
 </html>`

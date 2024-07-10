@@ -58,7 +58,7 @@ export const Navbar = () => {
         <HStack spacing={8} alignItems={'center'}>
           <Heading fontSize='2xl'>
             <Link to='/'>
-              <Avatar src={logo} aria-label='farcaster.vote logo' size='sm' verticalAlign='middle' /> farcaster.vote
+              <Avatar src={logo} aria-label='votecaster logo' size='sm' verticalAlign='middle' /> Votecaster
             </Link>
           </Heading>
           <HStack as={'nav'} spacing={4} display={{ base: 'none', lg: 'flex' }}>

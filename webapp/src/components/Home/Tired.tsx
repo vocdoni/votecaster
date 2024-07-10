@@ -17,8 +17,8 @@ export const Tired = () => (
     <Heading as='h2'>Tired of the clunky Web3 governance?</Heading>
     <Text>Until today the Web3 governance experience have been fragmented, centralized and opaque.</Text>
     <Text>
-      Farcaster.vote changes that by integrating governance into the Farcaster social feed through Frames, while
-      ensuring transparency, end-to-end verifiability, and flexibility, thanks to the use of the Vocdoni Protocol.
+      Votecaster changes that by integrating governance into the Farcaster social feed through Frames, while ensuring
+      transparency, end-to-end verifiability, and flexibility, thanks to the use of the Vocdoni Protocol.
     </Text>
     <Text fontWeight='bold'>
       Running a quick poll to engage with the entire Farcaster community only takes 1 minute!

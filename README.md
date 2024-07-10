@@ -47,7 +47,7 @@
 
 This repository contains a Farcaster frame for voting with the Vocdoni protocol. It is designed to enable integrated polling on Farcaster, leveraging Vocdoni's decentralized, verifiable, and censorship-resistant infrastructure.
 
-This frame is deployed at https://farcaster.vote/app
+This frame is deployed at https://votecaster.io
 
 This repository contains the Go code necessary for constructing the server node. It features a web frontend that facilitates the creation of polls and oversees the communication with the Farcaster client, adhering to the frame specification.
 
@@ -207,7 +207,7 @@ curl -X GET "http://example.com/auth/check" -H "authorization: Bearer {your_auth
 
 ## Preview
 
-This frame is live at https://farcaster.vote/app
+This frame is live at https://votecaster.io
 
 
 ## Contributing

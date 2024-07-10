@@ -51,10 +51,10 @@ export const Credits = (props: FlexProps) => {
     <Flex {...props}>
       <Flex gap={4} flexDir='column' maxW={600}>
         <Heading as='h1' size='md' textAlign='center'>
-          Why Farcaster.vote?
+          Why Votecaster?
         </Heading>
         <Text>
-          <strong>Farcaster.vote</strong> introduces{' '}
+          <strong>Votecaster</strong> introduces{' '}
           <strong>the first verifiable & decentralized polls within Farcaster Frames</strong>!
         </Text>
         <Text>
@@ -63,7 +63,7 @@ export const Credits = (props: FlexProps) => {
           leaving room for vote tampering and censorship.
         </Text>
         <Text>
-          This is where Farcaster.vote comes to play, <strong>combining Farcaster</strong>'s social network and identity
+          This is where Votecaster comes to play, <strong>combining Farcaster</strong>'s social network and identity
           system{` `}
           <strong>with the Vocdoni Protocol for tamper-proof and censorship-resistant digital voting</strong>,
           positioning Farcaster as the go-to platform for digital communities!
