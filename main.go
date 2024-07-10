@@ -69,7 +69,7 @@ func main() {
 		"Web3 RPCs")
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 	// census3 flags
-	flag.String("census3APIEndpoint", "https://census3-dev.vocdoni.net/api", "The Census3 API endpoint to use")
+	flag.String("census3APIEndpoint", "https://census3-stg.vocdoni.net/api", "The Census3 API endpoint to use")
 	// community hub flags
 	flag.String("chains", "base-sep,degen-dev", "The chains to use for the community hub")
 	flag.String("communityHubChainsConfig", "./chains_config.json", "The JSON configuration file for the community hub networks")

@@ -113,7 +113,7 @@ func (c *Calculator) UserReputation(userID uint64, update bool) (*Reputation, er
 	if update {
 		// create an updater instance with just the database connection and update
 		// just the user activity
-		if err := c.upd.updateUser(user, true, false); err != nil {
+		if err := c.upd.updateUser(user); err != nil {
 			return nil, fmt.Errorf("could not update user: %w", err)
 		}
 	}
