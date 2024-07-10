@@ -1,5 +1,6 @@
 import { Box, Button, Flex, Heading, HStack, Link, Text, VStack } from '@chakra-ui/react'
 import { FaRegStar, FaUsers } from 'react-icons/fa6'
+import { MdOutlineGroupAdd } from 'react-icons/md'
 import { Outlet, Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
 
@@ -30,7 +31,7 @@ const CommunitiesLayout = () => (
         Create your own community and start managing its governance
       </Text>
       <Link as={RouterLink} to='/communities/new'>
-        <Button>Create a community on 🎩 Degenchain</Button>
+        <Button leftIcon={<MdOutlineGroupAdd />}>Create a community</Button>
       </Link>
     </Box>
   </VStack>

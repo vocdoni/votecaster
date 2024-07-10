@@ -1,23 +1,27 @@
-import { Avatar, Badge, Flex, HStack, Link, LinkProps, Text, VStack } from '@chakra-ui/react'
+import { Avatar, Badge, Box, Flex, HStack, Link, LinkProps, Text, VStack } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
+import { getChain } from '~util/chain'
+import { chainFromId, numberFromId } from '~util/mappings'
 
 type CommunityCardProps = LinkProps & {
   name: string
-  slug?: string
+  id?: CommunityID
   pfpUrl: string
   admins?: Profile[]
   disabled?: boolean
 }
-export const CommunityCard = ({ name, slug, pfpUrl, admins, disabled, ...props }: CommunityCardProps) => {
+export const CommunityCard = ({ name, id, pfpUrl, admins, disabled, ...props }: CommunityCardProps) => {
   const { profile } = useAuth()
   const adminsFid = admins?.map((admin) => admin.fid) ?? []
   const isAdmin = profile && adminsFid.includes(profile.fid)
+  const alias = chainFromId(id)
+  const nid = numberFromId(id)
 
   return (
     <Link
       as={RouterLink}
-      to={slug ? `/communities/${slug}` : undefined}
+      to={id ? `/communities/${alias}/${nid}` : undefined}
       w='full'
       border='1px solid'
       borderColor='gray.200'
@@ -30,7 +34,7 @@ export const CommunityCard = ({ name, slug, pfpUrl, admins, disabled, ...props }
       {...props}
     >
       <HStack>
-        <Avatar src={pfpUrl} filter={disabled ? 'grayscale(1)' : ''} />
+        <CommunityLogo disabled={disabled} pfpUrl={pfpUrl} alias={alias} />
         <Flex
           mx={2}
           w={'full'}
@@ -50,5 +54,20 @@ export const CommunityCard = ({ name, slug, pfpUrl, admins, disabled, ...props }
         </Flex>
       </HStack>
     </Link>
+  )
+}
+
+type CommunityLogoProps = Omit<CommunityCardProps, 'name' | 'admins' | 'id'> & {
+  alias: ChainKey
+}
+
+export const CommunityLogo = ({ alias, pfpUrl, disabled }: CommunityLogoProps) => {
+  const chain = getChain(alias)
+
+  return (
+    <Box pos='relative'>
+      <Avatar src={pfpUrl} filter={disabled ? 'grayscale(1)' : ''} />
+      <Avatar pos='absolute' bottom={0} right={0} src={chain.logo} width={4} height={4} />
+    </Box>
   )
 }

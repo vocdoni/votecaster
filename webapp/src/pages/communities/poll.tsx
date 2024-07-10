@@ -1,38 +1,37 @@
 import { useParams } from 'react-router-dom'
 import { merge } from 'ts-deepmerge'
 import { Check } from '~components/Check'
-import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { PollView } from '~components/Poll'
 import { useApiPollInfo, useContractPollInfo } from '~queries/polls'
 import { contractDataToObject } from '~util/mappings'
 
 const CommunityPoll = () => {
-  const { pid: electionId, id: communityId } = useParams()
-  const { connected } = useDegenHealthcheck()
-  const contractQuery = useContractPollInfo(communityId, electionId)
-  const apiQuery = useApiPollInfo(electionId)
-
-  if (apiQuery.isLoading || apiQuery.error) {
-    return <Check isLoading={apiQuery.isLoading} error={apiQuery.error} />
-  }
+  const { chain, community, poll } = useParams<CommunityPollParams>()
+  const { data, isLoading, error } = useContractPollInfo(chain as ChainKey, Number(community), poll as string)
+  const api = useApiPollInfo(poll as string)
 
   // Merge contract and API data
   let results = {
-    electionId,
-    ...apiQuery.data,
+    poll,
+    ...api.data,
   } as PollInfo
 
-  if (connected && contractQuery.data?.date) {
+  if (data?.date) {
     results = merge.withOptions(
       {
         mergeArrays: false,
       },
       results,
-      contractDataToObject(contractQuery.data)
+      contractDataToObject(data)
     ) as PollInfo
   }
 
-  return <PollView loading={false} onChain={!!contractQuery.data} poll={results} />
+  return (
+    <>
+      <Check isLoading={api.isLoading || isLoading} error={api.error || error} />
+      <PollView loading={api.isLoading && isLoading} poll={results} />
+    </>
+  )
 }
 
 export default CommunityPoll

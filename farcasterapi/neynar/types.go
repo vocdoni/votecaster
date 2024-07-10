@@ -100,12 +100,13 @@ type userBio struct {
 }
 
 type warpcastChannel struct {
-	ImageURL    string `json:"image_url"`
-	Followers   int    `json:"follower_count"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	ID          string `json:"id"`
-	URL         string `json:"url"`
+	ImageURL    string      `json:"image_url"`
+	Followers   int         `json:"follower_count"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	ID          string      `json:"id"`
+	URL         string      `json:"url"`
+	Lead        *userdataV2 `json:"lead"`
 }
 
 type warpcastChannelResult struct {

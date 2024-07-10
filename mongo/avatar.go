@@ -20,7 +20,7 @@ func (ms *MongoStorage) Avatar(avatarID string) (*Avatar, error) {
 // SetAvatar sets the avatar image data for the given avatarID. If the
 // avatar does not exist, it will be created with the given data, otherwise it
 // will be updated.
-func (ms *MongoStorage) SetAvatar(avatarID string, data []byte, userID, communityID uint64, contentType string) error {
+func (ms *MongoStorage) SetAvatar(avatarID string, data []byte, userID uint64, communityID, contentType string) error {
 	avatar := &Avatar{
 		ID:          avatarID,
 		Data:        data,

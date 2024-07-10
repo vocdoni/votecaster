@@ -73,7 +73,14 @@ type ContractAddress struct {
 
 // HubCommunity represents a community in the CommunityHub package
 type HubCommunity struct {
-	ID             uint64
+	// CommunityID is the unique identifier of the community in any chain
+	CommunityID string
+	// ContractID is the unique identifier of the community in the CommunityHub
+	// contract in a certain chain
+	ContractID uint64
+	// ChainID is the unique identifier of the chain where the CommunityHub
+	// contract is deployed for this particular community
+	ChainID        uint64
 	Name           string
 	ImageURL       string
 	GroupChatURL   string
@@ -91,6 +98,7 @@ type HubCommunity struct {
 
 // HubResult represents the result of a poll in the CommunityHub
 type HubResults struct {
+	ElectionID       []byte
 	Question         string
 	Options          []string
 	Date             string

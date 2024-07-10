@@ -457,11 +457,10 @@ func (n *NeynarAPI) ChannelExists(ctx context.Context, channelID string) (bool, 
 
 // FindChannel method returns the list of channels that match the query provided.
 // If something goes wrong, it returns an error.
-func (n *NeynarAPI) FindChannel(ctx context.Context, query string) ([]*farcasterapi.Channel, error) {
+func (n *NeynarAPI) FindChannel(ctx context.Context, query string, adminFid uint64) ([]*farcasterapi.Channel, error) {
 	channels := []*farcasterapi.Channel{}
 	// create request with the channel id provided
 	url := fmt.Sprintf(neynarSuggestChannels, query)
-	log.Info(url)
 	body, err := n.neynarReq(ctx, url, http.MethodGet, nil, defaultRequestTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
@@ -474,14 +473,18 @@ func (n *NeynarAPI) FindChannel(ctx context.Context, query string) ([]*farcaster
 		return nil, farcasterapi.ErrNoDataFound
 	}
 	for _, ch := range channelsResponse.Channels {
-		channels = append(channels, &farcasterapi.Channel{
-			ID:          ch.ID,
-			Name:        ch.Name,
-			Description: ch.Description,
-			Followers:   ch.Followers,
-			Image:       ch.ImageURL,
-			URL:         ch.URL,
-		})
+		// only include the channel if no adminFid is provided or the user is
+		// the admin of the channel
+		if adminFid == 0 || ch.Lead.Fid == adminFid {
+			channels = append(channels, &farcasterapi.Channel{
+				ID:          ch.ID,
+				Name:        ch.Name,
+				Description: ch.Description,
+				Followers:   ch.Followers,
+				Image:       ch.ImageURL,
+				URL:         ch.URL,
+			})
+		}
 	}
 	return channels, nil
 }

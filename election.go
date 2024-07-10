@@ -504,7 +504,7 @@ func ensureAccountExist(cli *apiclient.HTTPclient) error {
 		return fmt.Errorf("failed to get faucet package: %w", err)
 	}
 	accountMetadata := &api.AccountMetadata{
-		Name:        map[string]string{"default": "Farcaster frame proxy " + cli.MyAddress().Hex()},
+		Name:        map[string]string{"default": "Farcaster frame proxy"},
 		Description: map[string]string{"default": "Farcaster frame proxy account"},
 		Version:     "1.0",
 	}
@@ -526,7 +526,7 @@ func ensureAccountExist(cli *apiclient.HTTPclient) error {
 // and saved in the database.
 func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescription,
 	census *CensusInfo, profile *FarcasterProfile, wait bool, notify bool,
-	customText string, source string, communityID *uint64,
+	customText string, source string, communityID *string,
 ) (types.HexBytes, error) {
 	// use the request census or use the one hardcoded for all farcaster users
 	if census == nil {
@@ -596,7 +596,7 @@ func (v *vocdoniHandler) saveElectionAndProfile(
 	profile *FarcasterProfile,
 	source string,
 	usersCount, usersCountInitial uint32,
-	communityID *uint64,
+	communityID *string,
 ) error {
 	if election == nil || election.Metadata == nil {
 		return fmt.Errorf("invalid election")
@@ -676,7 +676,7 @@ func (v *vocdoniHandler) remindersHandler(msg *apirest.APIdata, ctx *httprouter.
 		return fmt.Errorf("failed to get election: %w", err)
 	}
 	// check if the election is a community election and if the user is an admin
-	if election.Community == nil || election.Community.ID == 0 {
+	if election.Community == nil || election.Community.ID == "" {
 		return fmt.Errorf("election is not a community election")
 	}
 	if !v.db.IsCommunityAdmin(auth.UserID, election.Community.ID) && auth.UserID != v.adminFID {

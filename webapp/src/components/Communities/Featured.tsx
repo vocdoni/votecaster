@@ -18,12 +18,7 @@ export const FeaturedCommunities = () => {
       {(isLoading || error) && <Check isLoading={isLoading} error={error} />}
       <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} w='full' gap={{ base: 4, lg: 20 }}>
         {data?.communities.map((community) => (
-          <CommunityCard
-            name={community.name}
-            slug={community.id.toString()}
-            pfpUrl={community.logoURL}
-            key={community.id}
-          />
+          <CommunityCard name={community.name} id={community.id} pfpUrl={community.logoURL} key={community.id} />
         ))}
       </SimpleGrid>
     </VStack>

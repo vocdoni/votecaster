@@ -1,13 +1,16 @@
 import { Alert, AlertDescription, AlertIcon, Box, Flex, Heading, Text, VStack } from '@chakra-ui/react'
-import { JsonRpcSigner } from 'ethers'
+import { waitForTransactionReceipt, writeContract } from '@wagmi/core'
 import { useCallback, useEffect, useState } from 'react'
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form'
-import { useAccount, useBalance, useWalletClient } from 'wagmi'
+import { decodeEventLog } from 'viem'
+import { base, baseSepolia, degen } from 'viem/chains'
+import { Config, useAccount, useReadContract, useWalletClient } from 'wagmi'
 import { useAuth } from '~components/Auth/useAuth'
 import { CensusFormValues } from '~components/CensusTypeSelector'
-import { appUrl, degenContractAddress } from '~constants'
-import { CommunityHub__factory, ICommunityHub } from '~typechain'
-import { walletClientToSigner } from '~util/rainbow'
+import { appUrl } from '~constants'
+import { communityHubAbi } from '~src/bindings'
+import { chainAlias, getContractForChain } from '~util/chain'
+import { config } from '~util/rainbow'
 import { cleanChannel } from '~util/strings'
 import { censusTypeToEnum, ContractCensusType } from '~util/types'
 import { ChannelsFormValues, ChannelsSelector } from '../../Census/ChannelsSelector'
@@ -26,55 +29,49 @@ export type CommunityFormValues = Pick<CensusFormValues, 'addresses' | 'censusTy
 export const CommunitiesCreateForm = () => {
   const { profile, bfetch } = useAuth()
   const methods = useForm<CommunityFormValues>()
-  const [isPending, setIsPending] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tx, setTx] = useState<string | null>(null)
   const [cid, setCid] = useState<string | null>(null)
   const { data: walletClient } = useWalletClient()
-  const { address, chainId } = useAccount()
-  const [isLoadingPrice, setIsLoadingPrice] = useState(false)
-  const [price, setPrice] = useState<bigint | null>()
+  const { address, chain } = useAccount()
 
-  const { data: balanceResult, isLoading: isBalanceLoading, error: balanceError } = useBalance({ address })
-  const [userBalance, setUserBalance] = useState<string | null>(null)
+  const {
+    data: price,
+    error: priceError,
+    isLoading: isLoadingPrice,
+  } = useReadContract({
+    abi: communityHubAbi,
+    address: getContractForChain(chain),
+    chainId: chain?.id,
+    functionName: 'getCreateCommunityPrice',
+    query: {
+      enabled: typeof chain?.name !== 'undefined',
+    },
+  })
 
+  // propagate price error
   useEffect(() => {
-    if (!walletClient || !address) {
-      return
-    }
-    ;(async () => {
-      try {
-        setIsLoadingPrice(true)
-        let signer: JsonRpcSigner | undefined
-        if (walletClient && address && walletClient.account.address === address) {
-          signer = await walletClientToSigner(walletClient)
-        }
-        if (!signer) throw Error("Can't get the signer")
+    if (!priceError?.message) return
 
-        if (!isBalanceLoading) {
-          setUserBalance(balanceResult ? (Number(balanceResult.value) / 10 ** balanceResult.decimals).toString() : '0')
-        }
-        const communityHubContract = CommunityHub__factory.connect(degenContractAddress, signer)
+    setError(priceError.message.toString())
+  }, [priceError])
 
-        const price = await communityHubContract.getCreateCommunityPrice()
-
-        setPrice(price)
-      } catch (e) {
-        console.error('could not create community:', e)
-      } finally {
-        setIsLoadingPrice(false)
-      }
-    })()
-  }, [walletClient, chainId, address, isBalanceLoading, balanceResult, balanceError])
+  // clear error on chain change
+  useEffect(() => {
+    setError(null)
+  }, [chain])
 
   const onSubmit: SubmitHandler<CommunityFormValues> = useCallback(
     async (data) => {
-      if (isPending) return
+      if (loading) return
+      setLoading(true)
       setError(null)
       try {
-        if (!price) throw Error('Price is not calculated yet')
-        setIsPending(true)
-        const metadata: ICommunityHub.CommunityMetadataStruct = {
+        if (typeof price !== 'bigint') {
+          throw Error('Price is not calculated yet')
+        }
+        const metadata = {
           name: data.name, // name
           imageURI: `${appUrl}/images/avatar/${data.hash}.jpg`, // logo uri
           groupChatURL: data.groupChat ?? '', // groupChatURL
@@ -103,25 +100,25 @@ export const CommunitiesCreateForm = () => {
             throw Error('Census type is not allowed')
         }
 
-        const census: ICommunityHub.CensusStruct = {
+        const census = {
           censusType: cencusType,
           tokens:
             data.addresses
-              ?.filter(({ address }) => address !== '')
+              ?.filter(({ address }: Address) => address !== '')
               .map(({ blockchain, address: contractAddress }) => {
                 return {
                   blockchain,
-                  contractAddress,
-                } as ICommunityHub.TokenStruct
-              }) ?? ([] as ICommunityHub.TokenStruct[]), // tokens
+                  contractAddress: contractAddress as `0x${string}`,
+                }
+              }) ?? [], // tokens
           channel: data.channel ? cleanChannel(data.channel as string) : '', // channel
         }
 
         const guardians = data.admins.map((admin) => BigInt(admin.value))
         const createElectionPermission = 0
 
-        console.info('Degen contract address', degenContractAddress)
-        console.info('mapped for contract write:', [
+        console.info('Contract address', getContractForChain(chain))
+        console.info('Mapped for contract write:', [
           metadata,
           census,
           guardians,
@@ -129,31 +126,50 @@ export const CommunitiesCreateForm = () => {
           'price: ' + price,
         ])
 
-        let signer: JsonRpcSigner | undefined
-        if (walletClient && address && walletClient.account.address === address) {
-          signer = await walletClientToSigner(walletClient)
-        }
-        if (!signer) throw Error("Can't get the signer")
-
-        const communityHubContract = CommunityHub__factory.connect(degenContractAddress, signer)
-
-        const tx = await communityHubContract.createCommunity(metadata, census, guardians, createElectionPermission, {
+        const hash = await writeContract(config as Config, {
+          abi: communityHubAbi,
+          address: getContractForChain(chain),
+          chainId: chain?.id as typeof degen.id | typeof baseSepolia.id | typeof base.id,
+          functionName: 'createCommunity',
+          args: [metadata, census, guardians, createElectionPermission],
           value: price,
         })
 
-        const receipt = await tx.wait()
-        if (!receipt) {
-          throw Error('Cannot get receipt')
+        const receipt = await waitForTransactionReceipt(config as Config, {
+          hash,
+        })
+
+        console.info('transaction hash & receipt:', hash, receipt)
+
+        // Decode logs to find communityId
+        const communityId: bigint | undefined = (() => {
+          for (const log of receipt.logs) {
+            try {
+              const decodedLog = decodeEventLog({
+                abi: communityHubAbi,
+                eventName: 'CommunityCreated',
+                data: log.data,
+                topics: log.topics,
+              })
+              if (decodedLog) {
+                const { communityId } = decodedLog.args
+                setCid(communityId.toString())
+                return communityId
+              }
+            } catch (e) {
+              console.error('Error decoding log:', e)
+            }
+          }
+        })()
+
+        if (!communityId) {
+          throw new Error('Could not retrieve community id from transaction logs')
         }
 
-        const communityHubInterface = CommunityHub__factory.createInterface()
-        // get just created community id
-        const { communityID } = communityHubInterface.decodeEventLog('CommunityCreated', tx.data) as unknown as {
-          communityID: string
-        }
+        const alias = chainAlias(chain) as ChainKey
         // upload image
         const avatar = {
-          communityID,
+          communityID: `${alias}:${communityId}`,
           id: data.hash,
           data: data.src,
         }
@@ -163,8 +179,7 @@ export const CommunitiesCreateForm = () => {
           body: JSON.stringify(avatar),
         })
 
-        setTx(tx.hash)
-        setCid(communityID)
+        setTx(hash)
       } catch (e) {
         console.error('could not create community:', e)
         if ('shortMessage' in (e as { shortMessage: string })) {
@@ -173,10 +188,10 @@ export const CommunitiesCreateForm = () => {
           setError('Could not create community: ' + e.message)
         }
       } finally {
-        setIsPending(false)
+        setLoading(false)
       }
     },
-    [walletClient, address, isPending, price, profile]
+    [walletClient, address, loading, price, profile]
   )
 
   return (
@@ -204,7 +219,7 @@ export const CommunitiesCreateForm = () => {
                     Required information
                   </Text>
                   <Meta />
-                  <CensusSelector />
+                  <CensusSelector admin />
                 </VStack>
               </Box>
               <Flex direction={'column'} gap={4}>
@@ -218,11 +233,7 @@ export const CommunitiesCreateForm = () => {
                   </VStack>
                 </Box>
                 <Box bg='white' p={4} boxShadow='md' borderRadius='md'>
-                  <Confirm
-                    isLoading={isPending || isLoadingPrice || isBalanceLoading}
-                    price={price}
-                    balance={userBalance as string}
-                  />
+                  <Confirm isLoading={loading || isLoadingPrice} price={price} />
                   {error && (
                     <Alert status='error' mt={3}>
                       <AlertIcon />

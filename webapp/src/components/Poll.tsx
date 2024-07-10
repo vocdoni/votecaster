@@ -1,7 +1,4 @@
 import {
-  Alert,
-  AlertDescription,
-  AlertIcon,
   Box,
   Button,
   Flex,
@@ -22,21 +19,20 @@ import { IoMdArrowBack } from 'react-icons/io'
 import { Link as RouterLink } from 'react-router-dom'
 import { appUrl } from '~constants'
 import { fetchShortURL } from '~queries/polls'
+import { chainFromId } from '~util/mappings'
 import { useAuth } from './Auth/useAuth'
-import { useDegenHealthcheck } from './Healthcheck/use-healthcheck'
+import { ChainStatus } from './Healthcheck/ChainStatus'
 import { Information } from './Poll/Information'
 import { ResultsSection } from './Poll/Results'
 import { ParticipantTurnout, VotingPower } from './Poll/Turnout'
 
 export type PollViewProps = {
-  onChain: boolean
   poll: PollInfo
   loading: boolean
 }
 
-export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
+export const PollView = ({ poll, loading }: PollViewProps) => {
   const { bfetch } = useAuth()
-  const { connected } = useDegenHealthcheck()
   const [electionURL, setElectionURL] = useState<string>(`${appUrl}/${poll.electionId}`)
   const { setValue, onCopy, hasCopied } = useClipboard(electionURL)
 
@@ -64,7 +60,7 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
           <VStack spacing={4} alignItems='left'>
             <Skeleton isLoaded={!loading} display='flex' justifyContent='end'>
               {poll.community && poll.community.id ? (
-                <Back link={`/communities/${poll.community.id}`} text={poll.community.name}></Back>
+                <Back link={`/communities/${poll.community.id.replace(':', '/')}`} text={poll.community.name}></Back>
               ) : (
                 <Back link={`/profile/${poll.createdByUsername}`} text={poll.createdByDisplayname}></Back>
               )}
@@ -80,7 +76,7 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
                     <TagLabel>Ongoing</TagLabel>
                   </Tag>
                 )}
-                {poll?.finalized && onChain && (
+                {poll?.finalized && poll.community && (
                   <Tag colorScheme='cyan'>
                     <TagLeftIcon as={FaCheck}></TagLeftIcon>
                     <TagLabel>Results settled on-chain</TagLabel>
@@ -102,7 +98,7 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
               Copy frame link
             </Button>
           </VStack>
-          <ResultsSection poll={poll} onChain={onChain} loading={loading} />
+          <ResultsSection poll={poll} loading={loading} />
         </VStack>
       </Box>
       <Flex flex={1} direction={'column'} gap={4}>
@@ -126,15 +122,7 @@ export const PollView = ({ poll, loading, onChain }: PollViewProps) => {
             </Box>
           )}
         </Flex>
-        {!connected && (
-          <Alert status='warning'>
-            <AlertIcon />
-            <AlertDescription>
-              Degenchain seems down right now. Because of this, some information might be missing or outdated, and the
-              page may misbehave.
-            </AlertDescription>
-          </Alert>
-        )}
+        {poll.community && <ChainStatus alias={chainFromId(poll.community.id)} />}
       </Flex>
     </Box>
   )

@@ -3,6 +3,8 @@ import { useFormContext } from 'react-hook-form'
 import { FaExternalLinkAlt } from 'react-icons/fa'
 import { MdHowToVote } from 'react-icons/md'
 import { Link as RouterLink } from 'react-router-dom'
+import { useAccount } from 'wagmi'
+import { chainAlias, chainExplorer } from '~util/chain'
 import { CommunityMetaFormValues } from './Meta'
 
 type DoneProps = {
@@ -12,7 +14,9 @@ type DoneProps = {
 
 const CommunityDone = ({ tx, id }: DoneProps) => {
   const { watch } = useFormContext<CommunityMetaFormValues>()
+  const { chain } = useAccount()
   const src = watch('src')
+  const alias = chainAlias(chain)
 
   return (
     <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 500 }}>
@@ -26,9 +30,9 @@ const CommunityDone = ({ tx, id }: DoneProps) => {
             )}
             <Heading mb={10} size='lg'>
               Your community is now live on
-              <Link href={`https://explorer.degen.tips/tx/${tx}`} isExternal>
+              <Link href={`${chainExplorer(chain)}/tx/${tx}`} isExternal>
                 {' '}
-                🎩 Degenchain!
+                {chain?.name}
                 <Icon as={FaExternalLinkAlt} w={4} />
               </Link>
             </Heading>
@@ -37,7 +41,7 @@ const CommunityDone = ({ tx, id }: DoneProps) => {
               <br />
               to engage with your members!
             </Heading>
-            <RouterLink to={`/form/${id}`}>
+            <RouterLink to={`/form/${alias}:${id}`}>
               <Button leftIcon={<MdHowToVote />}>Create your first vote</Button>
             </RouterLink>
           </Flex>

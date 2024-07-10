@@ -3,7 +3,7 @@ import { isAddress } from 'viem'
 import { degen, mainnet } from 'viem/chains'
 import abi from '~abis/nftdegen.json'
 import { useBlockchain } from '~components/Blockchains/BlockchainContext'
-import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
+import { useHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { appUrl, degenNameResolverContractAddress } from '~constants'
 
 export const fetchUserProfile = (bfetch: FetchFunction, username: string) => async (): Promise<UserProfileResponse> => {
@@ -38,7 +38,7 @@ export const fetchWarpcastAPIEnabled = (bfetch: FetchFunction) => async (): Prom
 }
 
 export const useFirstDegenOrEnsName = (addresses: string[] = []) => {
-  const { connected } = useDegenHealthcheck()
+  const { degen: connected } = useHealthcheck()
   const { getContract } = useBlockchain(degen)
   const { client } = useBlockchain(mainnet)
 

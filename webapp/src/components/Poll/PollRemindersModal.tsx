@@ -36,7 +36,7 @@ type ReminderFormValues = {
   message: string
 }
 
-export const PollRemindersModal = ({ poll, frameURL }: { poll: PollInfo, frameURL?: string }) => {
+export const PollRemindersModal = ({ poll, frameURL }: { poll: PollInfo; frameURL?: string }) => {
   const {
     register,
     handleSubmit,
@@ -76,7 +76,6 @@ export const PollRemindersModal = ({ poll, frameURL }: { poll: PollInfo, frameUR
       return false
     },
   })
-  console.log(frameURL)
 
   const [selectedUsers, setSelectedUsers] = useState<Profile[]>([])
 

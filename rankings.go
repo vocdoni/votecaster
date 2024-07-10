@@ -163,15 +163,15 @@ func (v *vocdoniHandler) rankingByReputation(_ *apirest.APIdata, ctx *httprouter
 }
 
 func (v *vocdoniHandler) electionsByCommunityHandler(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	// TODO: we should limit and paginate this call
-	id, err := strconv.ParseUint(ctx.URLParam("communityID"), 10, 64)
+	// get community id from the URL
+	communityID, _, _, err := v.parseCommunityIDFromURL(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to parse community ID: %w", err)
+		return ctx.Send([]byte(err.Error()), http.StatusBadRequest)
 	}
 
-	dbElections, err := v.db.ElectionsByCommunity(id)
+	dbElections, err := v.db.ElectionsByCommunity(communityID)
 	if err != nil {
-		return fmt.Errorf("failed to get elections for community %d: %w", id, err)
+		return fmt.Errorf("failed to get elections for community %s: %w", communityID, err)
 	}
 	var elections []*ElectionInfo
 

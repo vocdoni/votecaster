@@ -6,27 +6,45 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	comhub "github.com/vocdoni/vote-frame/communityhub/contracts/communityhubtoken"
 	dbmongo "github.com/vocdoni/vote-frame/mongo"
 )
 
-// farcasterUserRefPrefix is the prefix used to encode a user reference from
-// farcaster to a user FID.
-const farcasterUserRefPrefix = "fid:"
+const (
+	// farcasterUserRefPrefix is the prefix used to encode a user reference from
+	// farcaster to a user FID.
+	farcasterUserRefPrefix = "fid:"
+	// chainPrefixFormat is the format used to encode a chain prefixed content.
+	chainPrefixFormat = "%s:%s"
+	// chainPrefixSeparator is the separator used to encode a chain prefixed
+	// content.
+	chainPrefixSeparator = ":"
+)
 
-// UserRefToFID converts a user reference to a farcaster user to a user FID. It
-// is used to encode the user reference from farcaster in CensusChannel contract
-// field to support followers censuses from farcaster.
-func UserRefToFID(userRef string) (uint64, error) {
-	if strings.HasPrefix(userRef, farcasterUserRefPrefix) {
-		return strconv.ParseUint(userRef[len(farcasterUserRefPrefix):], 10, 64)
+// EncodeUserChannelFID encodes a user FID to a user reference from farcaster
+// following the format "fid:<fid>" to be stored in the community metadata as
+// the census channel (both, channel and followers census types follow the same
+// creation process so they are interchangeable).
+func EncodeUserChannelFID(fid uint64) string {
+	return fmt.Sprintf("%s%d", farcasterUserRefPrefix, fid)
+}
+
+// DecodeUserChannelFID decodes a user reference from farcaster to a user FID
+// following the format "fid:<fid>" from the community census channel metadata.
+// When a community has a census based on the creator followers, the channel
+// metadata is used to store the user reference. If something goes wrong
+// decoding the user FID, it returns an error.
+func DecodeUserChannelFID(channelFID string) (uint64, error) {
+	if strings.HasPrefix(channelFID, farcasterUserRefPrefix) {
+		return strconv.ParseUint(channelFID[len(farcasterUserRefPrefix):], 10, 64)
 	}
-	return 0, fmt.Errorf("invalid user reference: %s", userRef)
+	return 0, fmt.Errorf("invalid user reference: %s", channelFID)
 }
 
 // ContractToHub converts a contract community struct (ICommunityHubCommunity)
 // to a internal community struct (HubCommunity)
-func ContractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, error) {
+func ContractToHub(contractID, chainID uint64, communityID string, cc comhub.ICommunityHubCommunity) (*HubCommunity, error) {
 	// decode admins
 	admins := []uint64{}
 	for _, bAdmin := range cc.Guardians {
@@ -34,7 +52,9 @@ func ContractToHub(id uint64, cc comhub.ICommunityHubCommunity) (*HubCommunity, 
 	}
 	// initialize the resulting community struct
 	community := &HubCommunity{
-		ID:            id,
+		CommunityID:   communityID,
+		ContractID:    contractID,
+		ChainID:       chainID,
 		Name:          cc.Metadata.Name,
 		ImageURL:      cc.Metadata.ImageURI,
 		GroupChatURL:  cc.Metadata.GroupChatURL,
@@ -168,12 +188,13 @@ func HubToDB(hcommunity *HubCommunity) (*dbmongo.Community, error) {
 	}
 	// create the db community
 	dbCommunity := &dbmongo.Community{
-		ID:           hcommunity.ID,
+		ID:           hcommunity.CommunityID,
 		Name:         hcommunity.Name,
 		ImageURL:     hcommunity.ImageURL,
 		GroupChatURL: hcommunity.GroupChatURL,
 		Census:       dbCensus,
 		Channels:     hcommunity.Channels,
+		Creator:      hcommunity.Admins[0],
 		Admins:       hcommunity.Admins,
 	}
 	// set the notifications and disabled fields if they are not nil
@@ -184,4 +205,64 @@ func HubToDB(hcommunity *HubCommunity) (*dbmongo.Community, error) {
 		dbCommunity.Disabled = *hcommunity.Disabled
 	}
 	return dbCommunity, nil
+}
+
+// DBToHub converts a db community struct (*dbmongo.Community) to a internal
+// community struct (HubCommunity) to be used in the CommunityHub package. It
+// decodes the census addresses according to the census type, and if the census
+// type is a channel, it sets the channel. If the census type is an erc20 or nft,
+// it decodes every census network address to get the contract address and
+// blockchain. It returns an error if the census type is unknown.
+func DBToHub(dbCommunity *dbmongo.Community, contractID, chainID uint64) (*HubCommunity, error) {
+	censusAddresses := []*ContractAddress{}
+	if ct := CensusType(dbCommunity.Census.Type); ct == CensusTypeERC20 || ct == CensusTypeNFT {
+		for _, addr := range dbCommunity.Census.Addresses {
+			censusAddresses = append(censusAddresses, &ContractAddress{
+				Blockchain: addr.Blockchain,
+				Address:    common.HexToAddress(addr.Address),
+			})
+		}
+	}
+	admins := []uint64{dbCommunity.Creator}
+	for _, admin := range dbCommunity.Admins {
+		if admin == dbCommunity.Creator {
+			continue
+		}
+		admins = append(admins, admin)
+	}
+	return &HubCommunity{
+		CommunityID:    dbCommunity.ID,
+		ContractID:     contractID,
+		ChainID:        chainID,
+		Name:           dbCommunity.Name,
+		ImageURL:       dbCommunity.ImageURL,
+		GroupChatURL:   dbCommunity.GroupChatURL,
+		CensusType:     CensusType(dbCommunity.Census.Type),
+		CensusAddesses: censusAddresses,
+		CensusChannel:  dbCommunity.Census.Channel,
+		Channels:       dbCommunity.Channels,
+		Admins:         admins,
+		Notifications:  &dbCommunity.Notifications,
+		Disabled:       &dbCommunity.Disabled,
+	}, nil
+}
+
+// EncodePrefix encodes a content with a prefix following the format
+// "prefix:content".
+func EncodePrefix(prefix, content string) string {
+	return fmt.Sprintf(chainPrefixFormat, prefix, content)
+}
+
+// DecodePrefix decodes a prefixed content following the format "prefix:content"
+// and returns the prefix and the content separately.
+func DecodePrefix(prefixed string) (string, string, bool) {
+	if prefixed == "" {
+		return "", "", false
+	}
+	// split the community ID into the chain short name and the ID
+	parts := strings.Split(prefixed, chainPrefixSeparator)
+	if len(parts) != 2 {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
 }

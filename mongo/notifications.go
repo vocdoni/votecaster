@@ -9,7 +9,7 @@ import (
 )
 
 func (ms *MongoStorage) AddNotifications(nType NotificationType, electionID string,
-	userID, authorID, communityID uint64, username, authorUsername, communityName,
+	userID, authorID uint64, communityID, username, authorUsername, communityName,
 	frameURL, customText string, deadline time.Time,
 ) (int64, error) {
 	// create random id for the notification

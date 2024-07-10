@@ -35,7 +35,7 @@ type ElectionCreateRequest struct {
 	Census           *CensusInfo       `json:"census,omitempty"`
 	NotifyUsers      bool              `json:"notifyUsers"`
 	NotificationText string            `json:"notificationText"`
-	CommunityID      *uint64           `json:"community,omitempty"`
+	CommunityID      *string           `json:"community,omitempty"`
 }
 
 // ElectionDescription defines the parameters for a new election.
@@ -134,7 +134,7 @@ type CensusAddress struct {
 // (FarcasterProfile), the census addresses (CensusAddress) and the channels
 // (Channel)
 type Community struct {
-	ID              uint64           `json:"id"`
+	ID              string           `json:"id"`
 	Name            string           `json:"name"`
 	LogoURL         string           `json:"logoURL"`
 	GroupChatURL    string           `json:"groupChat"`

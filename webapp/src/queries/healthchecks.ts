@@ -1,22 +1,20 @@
-import { degen } from 'wagmi/chains'
-import { degenChainRpc } from '~constants'
-
-export const degenHealth = async (): Promise<boolean> => {
+// healthcheck.ts
+export const chainHealth = async (rpcUrl: string, chainId: number): Promise<boolean> => {
   try {
-    const response = await fetch(degenChainRpc, {
+    const response = await fetch(rpcUrl, {
       method: 'POST',
       body: JSON.stringify({
         method: 'eth_blockNumber',
-        id: degen.id,
+        id: chainId,
         jsonrpc: '2.0',
       }),
     })
     if (!response.ok) {
-      throw new Error('Degen RPC health check failed')
+      throw new Error(`Chain ${chainId} RPC health check failed`)
     }
     return true
   } catch (e) {
-    console.error('Degen RPC health check failed', e)
+    console.error(`Chain ${chainId} RPC health check failed`, e)
     return false
   }
 }

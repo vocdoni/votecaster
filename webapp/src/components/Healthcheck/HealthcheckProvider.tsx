@@ -1,36 +1,35 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import React, { createContext, ReactNode, useEffect } from 'react'
-import { degenHealth } from '~queries/healthchecks'
+import React, { createContext, ReactNode, useCallback, useState } from 'react'
+import HealthChecker from './HealthChecker'
 
-interface IHealthcheckContext {
-  degen: {
-    connected: boolean
-  }
-}
+type IHealthcheckContext = Partial<{
+  [key in ChainKey]: boolean
+}>
 
 export const HealthcheckContext = createContext<IHealthcheckContext | undefined>(undefined)
 
 export const HealthcheckProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const queryClient = useQueryClient()
-
-  const { data: isConnected } = useQuery({
-    queryKey: ['healthcheck', 'degen'],
-    queryFn: degenHealth,
-    refetchInterval: 30000,
-    retry: true,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30 * 1000), // exponential back-off
+  const [statuses, setStatuses] = useState<IHealthcheckContext>(() => {
+    // Initialize all chains as disconnected
+    const initialStatuses: Partial<IHealthcheckContext> = {}
+    for (const key of Object.keys(import.meta.env.chains) as ChainKey[]) {
+      initialStatuses[key] = false
+    }
+    return initialStatuses as IHealthcheckContext
   })
 
-  // ensure we don't overload requests
-  useEffect(() => {
-    return () => {
-      queryClient.invalidateQueries({ queryKey: ['healthcheck', 'degen'] })
-    }
-  }, [queryClient])
+  const updateStatus = useCallback((key: ChainKey, isConnected: boolean) => {
+    setStatuses((prevStatuses) => ({
+      ...prevStatuses,
+      [key]: isConnected,
+    }))
+  }, [])
 
   return (
-    <HealthcheckContext.Provider value={{ degen: { connected: !!isConnected } }}>
+    <HealthcheckContext.Provider value={statuses}>
       {children}
+      {(Object.keys(import.meta.env.chains) as ChainKey[]).map((chainKey) => (
+        <HealthChecker key={chainKey} chainKey={chainKey} updateStatus={updateStatus} />
+      ))}
     </HealthcheckContext.Provider>
   )
 }

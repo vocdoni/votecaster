@@ -16,6 +16,7 @@ var (
 	ErrUserUnknown     = fmt.Errorf("user unknown")
 	ErrAvatarUnknown   = fmt.Errorf("avatar unknown")
 	ErrElectionUnknown = fmt.Errorf("electionID unknown")
+	ErrNoResults       = fmt.Errorf("no results found")
 )
 
 // Users is the list of users.
@@ -53,7 +54,7 @@ type UserAccessProfile struct {
 
 // ElectionCommunity represents the community used to create an election.
 type ElectionCommunity struct {
-	ID   uint64 `json:"id" bson:"id"`
+	ID   string `json:"id" bson:"id"`
 	Name string `json:"name" bson:"name"`
 }
 
@@ -135,7 +136,7 @@ type Notification struct {
 	Username       string           `json:"username" bson:"username"`
 	AuthorID       uint64           `json:"authorId" bson:"authorId"`
 	AuthorUsername string           `json:"authorUsername" bson:"authorUsername"`
-	CommunityID    uint64           `json:"communityId" bson:"communityId"`
+	CommunityID    string           `json:"communityId" bson:"communityId"`
 	CommunityName  string           `json:"communityName" bson:"communityName"`
 	ElectionID     string           `json:"electionId" bson:"electionId"`
 	FrameUrl       string           `json:"frameUrl" bson:"frameUrl"`
@@ -215,7 +216,7 @@ type ElectionRanking struct {
 
 // Community represents a community entry.
 type Community struct {
-	ID            uint64          `json:"id" bson:"_id"`
+	ID            string          `json:"id" bson:"_id"`
 	Name          string          `json:"name" bson:"name"`
 	Channels      []string        `json:"channels" bson:"channels"`
 	Census        CommunityCensus `json:"census" bson:"census"`
@@ -266,7 +267,7 @@ type Avatar struct {
 	Data        []byte    `json:"data" bson:"data"`
 	CreatedAt   time.Time `json:"createdAt" bson:"createdAt"`
 	UserID      uint64    `json:"userId" bson:"userId"`
-	CommunityID uint64    `json:"communityId" bson:"communityId"`
+	CommunityID string    `json:"communityId" bson:"communityId"`
 	ContentType string    `json:"contentType" bson:"contentType"`
 }
 

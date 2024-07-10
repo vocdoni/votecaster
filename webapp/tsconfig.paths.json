@@ -8,8 +8,6 @@
       "~util/*": ["util/*"],
       "~pages/*": ["pages/*"],
       "~queries/*": ["queries/*"],
-      "~typechain": ["typechain/index.ts"],
-      "~typechain/*": ["typechain/*"],
       "~src/*": ["./*"]
     }
   }

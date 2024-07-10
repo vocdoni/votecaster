@@ -1,8 +1,8 @@
 import { Flex, HStack, Icon, Image, Link, Text, VStack } from '@chakra-ui/react'
 import { FaDiscord, FaGithub, FaXTwitter } from 'react-icons/fa6'
 import { SiFarcaster } from 'react-icons/si'
-import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
-import { explorers } from '~constants'
+import { useHealthcheck } from '~components/Healthcheck/use-healthcheck'
+import { getChain } from '~util/chain'
 import logo from '/poweredby.svg'
 
 export const Footer = () => (
@@ -31,16 +31,29 @@ export const Footer = () => (
 )
 
 export const Healthchecks = () => {
-  const { connected } = useDegenHealthcheck()
+  const health = useHealthcheck()
 
   return (
     <>
-      <Link isExternal display='flex' flexDir='row' alignItems='center' gap={1} href={explorers.degen}>
-        Degenchain RPC status:{' '}
-        <Text fontSize='xx-small' fontStyle='normal'>
-          {connected ? '🟢' : '🔴'}
-        </Text>
-      </Link>
+      {(Object.keys(import.meta.env.chains) as ChainKey[]).map((chainKey) => {
+        const chain = getChain(chainKey)
+        return (
+          <Link
+            isExternal
+            display='flex'
+            flexDir='row'
+            alignItems='center'
+            gap={1}
+            href={chain.blockExplorers?.default.url}
+            key={chainKey}
+          >
+            {chain.name} RPC status:{' '}
+            <Text fontSize='xx-small' fontStyle='normal'>
+              {health[chainKey] ? '🟢' : '🔴'}
+            </Text>
+          </Link>
+        )
+      })}
     </>
   )
 }

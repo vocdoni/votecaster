@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -174,7 +175,9 @@ func (d *FarcasterDiscover) updateUser(fid uint64) error {
 		Followers:      uint64(profile.Result.User.FollowerCount),
 		LastUpdated:    time.Now(),
 	}); err != nil {
-		log.Warnw("failed to update user profile", "error", err)
+		if !strings.Contains(err.Error(), "client is disconnected") {
+			log.Warnw("failed to update user profile", "error", err)
+		}
 	}
 	return nil
 }
@@ -263,6 +266,9 @@ func (d *FarcasterDiscover) runExistingProfilesUpdate(ctx context.Context) {
 		default:
 			users, err := d.db.UserIDs(startID, updatedUsersByIteration)
 			if err != nil {
+				if strings.Contains(err.Error(), "client is disconnected") {
+					return
+				}
 				log.Warnw("failed to get users with pending profile", "error", err)
 				continue
 			}
@@ -294,6 +300,9 @@ func (d *FarcasterDiscover) runPendingProfiles(ctx context.Context) {
 		default:
 			users, err := d.db.UsersWithPendingProfile()
 			if err != nil {
+				if strings.Contains(err.Error(), "client is disconnected") {
+					return
+				}
 				log.Warnw("failed to get users with pending profile", "error", err)
 				continue
 			}

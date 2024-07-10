@@ -7,8 +7,8 @@ export const fetchChannel = (bfetch: FetchFunction) => async (channelId: string)
   return channel
 }
 
-export const fetchChannelQuery = (bfetch: FetchFunction, inputValue: string) => async () => {
-  const response = await bfetch(`${appUrl}/channels?q=${encodeURIComponent(inputValue)}`)
+export const fetchChannelQuery = (bfetch: FetchFunction, inputValue: string, admin?: boolean) => async () => {
+  const response = await bfetch(`${appUrl}/channels?q=${encodeURIComponent(inputValue)}${admin ? '&imAdmin' : ''}`)
   const { channels } = (await response.json()) as { channels: Channel[] }
 
   return channels

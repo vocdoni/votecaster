@@ -157,9 +157,13 @@ func (v *vocdoniHandler) settleResultsIntoCommunityHub(electiondb *mongo.Electio
 
 	log.Debugw("settling results into community hub", "electionID", electiondb.ElectionID, "communityID", electiondb.Community.ID)
 
-	// send the final results to the community hub if electiondb is not nil
-	// check if community exists in the smart contract
-	comm, err := v.comhub.Community(electiondb.Community.ID)
+	// load the community hub contract for the community
+	contract, err := v.comhub.CommunityContract(electiondb.Community.ID)
+	if err != nil || contract == nil {
+		return fmt.Errorf("failed to fetch community contract: %w", err)
+	}
+	// load the community from the community hub contract
+	comm, err := contract.Community(electiondb.Community.ID)
 	if err != nil || comm == nil {
 		return fmt.Errorf("failed to fetch community from the community hub: %w", err)
 	}
@@ -212,7 +216,7 @@ func (v *vocdoniHandler) settleResultsIntoCommunityHub(electiondb *mongo.Electio
 		"electionID", electiondb.ElectionID,
 		"communityID", electiondb.Community.ID,
 		"hubResults", hubResults)
-	if err := v.comhub.SetResults(electiondb.Community.ID, electionID, hubResults); err != nil {
+	if err := contract.SetResults(comm, hubResults); err != nil {
 		return fmt.Errorf("failed to set results on the community hub: %w", err)
 	}
 	return nil

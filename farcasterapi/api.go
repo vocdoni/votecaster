@@ -69,7 +69,7 @@ type API interface {
 	ChannelExists(ctx context.Context, channelID string) (bool, error)
 	// FindChannel method returns the channels that matches with the handle (or
 	// the part of it) provided. If something goes wrong, it returns an error.
-	FindChannel(ctx context.Context, query string) ([]*Channel, error)
+	FindChannel(ctx context.Context, query string, adminFid uint64) ([]*Channel, error)
 	// DirectMessage method sends a direct message to the user with the given
 	// fid. If something goes wrong, it returns an error.
 	DirectMessage(ctx context.Context, content string, to uint64) error

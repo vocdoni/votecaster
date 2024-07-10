@@ -28,7 +28,7 @@ Now copy the URL, paste the Frame into a cast and share it with others!
 func (b *Bot) PollMessageHandler(ctx context.Context, msg *farcasterapi.APIMessage, maxDuration time.Duration) (*farcasterapi.Userdata, *poll.Poll, bool, error) {
 	// when a new cast is received, check if it is a mention and if
 	// it is not, continue to the next cast
-	if !msg.IsMention {
+	if msg == nil || !msg.IsMention {
 		return nil, nil, false, nil
 	}
 	// try to parse the message as a poll, if it fails continue to
@@ -51,7 +51,7 @@ func (b *Bot) PollMessageHandler(ctx context.Context, msg *farcasterapi.APIMessa
 func (b *Bot) MuteRequestHandler(ctx context.Context, msg *farcasterapi.APIMessage) (*farcasterapi.Userdata, *farcasterapi.APIMessage, bool, error) {
 	// when a new cast is received, check if it is a mention and if
 	// it is not, continue to the next cast
-	if !msg.IsMention {
+	if msg == nil || !msg.IsMention {
 		return nil, nil, false, nil
 	}
 	if msg.Parent == nil {

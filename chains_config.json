@@ -21,7 +21,14 @@
             "communityHub": {
                 "address": "0x1a7361b9d75486C5c10e7B3Ec77266BA75260bF1"
             }
-        }
+        },
+        "blockExplorers": {
+            "default": {
+                "name": "Degen Explorer",
+                "url": "https://explorer.degen.tips"
+            }
+        },
+        "logo": "https://raw.githubusercontent.com/trustwallet/assets/9558bf5571bc72d7f8d170fa6670d5a797f2d91d/blockchains/base/assets/0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed/logo.png"
     },
     "degen-dev":{
         "id": 666666666,
@@ -45,7 +52,14 @@
             "communityHub": {
                 "address": "0x1Be05fD83B43D3d5Eb930Ab44f326Fe69d63bd63"
             }
-        }
+        },
+        "blockExplorers": {
+            "default": {
+                "name": "Degen Explorer",
+                "url": "https://explorer.degen.tips"
+            }
+        },
+        "logo": "https://raw.githubusercontent.com/trustwallet/assets/9558bf5571bc72d7f8d170fa6670d5a797f2d91d/blockchains/base/assets/0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed/logo.png"
     },
     "base": {
         "id": 8453,
@@ -66,7 +80,15 @@
             "communityHub": {
                 "address": "0xc6a3a66d676b03A637EAd64518E5090ba4D1aaB7"
             }
-        }
+        },
+        "blockExplorers": {
+            "default": {
+                "name": "Base Network Explorer",
+                "url": "https://basescan.org"
+
+            }
+        },
+        "logo": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png"
     },
     "base-sep": {
         "id": 84532,
@@ -87,6 +109,14 @@
             "communityHub": {
                 "address": "0xdB5a0d05788A7D94026286951301545082C2A088"
             }
-        }
+        },
+        "blockExplorers": {
+            "default": {
+                "name": "Base Sepolia Network Explorer",
+                "url": "https://sepolia.basescan.org"
+
+            }
+        },
+        "logo": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png"
     }
 }

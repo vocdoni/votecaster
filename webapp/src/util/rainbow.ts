@@ -1,12 +1,11 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit'
+import { Chain, getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { BrowserProvider } from 'ethers'
 import { UseWalletClientReturnType } from 'wagmi'
-import { degen, localhost } from 'wagmi/chains'
 
 export const config = getDefaultConfig({
   appName: 'farcaster.vote',
   projectId: '735ab19f8bdb36d6ab32328218ded4ac',
-  chains: [degen, localhost],
+  chains: Object.values(import.meta.env.chains) as unknown as [Chain, ...Chain[]],
 })
 
 export const walletClientToSigner = async (walletClient: UseWalletClientReturnType['data']) => {

@@ -8,6 +8,7 @@ import {
   Heading,
   Link,
   Progress,
+  Select,
   Text,
 } from '@chakra-ui/react'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
@@ -16,21 +17,35 @@ import { GiTopHat } from 'react-icons/gi'
 import { MdOutlineRocketLaunch } from 'react-icons/md'
 import { useAccount, useBalance, useSwitchChain } from 'wagmi'
 import { degen } from 'wagmi/chains'
-import { useDegenHealthcheck } from '~components/Healthcheck/use-healthcheck'
+import { useHealthcheck } from '~components/Healthcheck/use-healthcheck'
+import { chainAlias, isSupportedChain, supportedChains } from '~util/chain'
 
 type ConfirmProps = {
   price: bigint | null | undefined
-  balance: string
 } & ButtonProps
 
 export const Confirm = ({ price, ...props }: ConfirmProps) => {
-  const { connected } = useDegenHealthcheck()
+  const health = useHealthcheck()
+  const { chain, isConnected } = useAccount()
+  const { openConnectModal } = useConnectModal()
+  const { switchChain } = useSwitchChain()
+  const alias = chainAlias(chain)
 
-  if (!connected) {
+  if (!isConnected) {
+    return (
+      <Button onClick={openConnectModal} leftIcon={<CiWallet />} w='full' {...props}>
+        Connect wallet first
+      </Button>
+    )
+  }
+
+  if (chain && alias && !health[alias]) {
     return (
       <Alert status='warning'>
         <AlertIcon />
-        <AlertDescription>Degenchain is currently down. Please try again later.</AlertDescription>
+        <AlertDescription>
+          {chain.name} is currently down. Please try again later, or switch to a different supported chain.
+        </AlertDescription>
       </Alert>
     )
   }
@@ -38,19 +53,48 @@ export const Confirm = ({ price, ...props }: ConfirmProps) => {
   return (
     <Box display='flex' gap={4} flexDir='column'>
       <Heading size='sm'>Create your community</Heading>
-      <Text>Your community will be deployed on the Degenchain.</Text>
+      <Box display='flex' flexDir='row' alignItems='center'>
+        <Text>Your community will be deployed on</Text>
+        <Select
+          w='auto'
+          ml={3}
+          value={chain?.id}
+          onChange={(e) => {
+            switchChain({ chainId: Number(e.target.value) })
+          }}
+        >
+          {supportedChains.map((chain) => (
+            <option key={chain.id} value={chain.id}>
+              {chain.name}
+            </option>
+          ))}
+        </Select>
+      </Box>
       <Text>
         As soon as it's created, you will be able to create and manage polls secured by the Vocdoni protocol for
-        decentralized, censorship-resistant and gassless voting.
+        decentralized, censorship-resistant and gasless voting.
       </Text>
-      {!!price && (
+      {typeof price === 'bigint' && (
         <Box display='flex' justifyContent='space-between' fontWeight='500' w='full'>
           <Text>Cost</Text>
-          <Text>{(Number(price) / 10 ** 18).toString()} $DEGEN</Text>
+          <Text>
+            {(Number(price) / 10 ** Number(chain?.nativeCurrency.decimals)).toString()} ${chain?.nativeCurrency.symbol}
+          </Text>
         </Box>
       )}
       <ConfirmDegenTransactionButton price={price} {...props} />
     </Box>
+  )
+}
+
+const ChainSwitcher = (props: ButtonProps) => {
+  const { switchChain } = useSwitchChain()
+  const first = supportedChains[0]
+
+  return (
+    <Button onClick={() => switchChain({ chainId: first.id })} leftIcon={<GiTopHat />} {...props}>
+      Switch to {first.name}
+    </Button>
   )
 }
 
@@ -59,25 +103,11 @@ type ConfirmDegenTransactionButtonProps = {
 } & ButtonProps
 
 export const ConfirmDegenTransactionButton = ({ price, ...props }: ConfirmDegenTransactionButtonProps) => {
-  const { switchChain } = useSwitchChain()
-  const { address, chainId, isConnected } = useAccount()
-  const { openConnectModal } = useConnectModal()
-  const { data, isLoading, error } = useBalance({ address, chainId: degen.id })
+  const { address, chainId, chain } = useAccount()
+  const { data, isLoading, error } = useBalance({ address, chainId })
 
-  if (!isConnected) {
-    return (
-      <Button onClick={openConnectModal} leftIcon={<CiWallet />} {...props}>
-        Connect wallet first
-      </Button>
-    )
-  }
-
-  if (chainId !== degen.id) {
-    return (
-      <Button onClick={() => switchChain({ chainId: degen.id })} leftIcon={<GiTopHat />} {...props}>
-        Switch to Degenchain
-      </Button>
-    )
+  if (!chain || !isSupportedChain(chain)) {
+    return <ChainSwitcher {...props} />
   }
 
   if (isLoading) {
@@ -92,8 +122,8 @@ export const ConfirmDegenTransactionButton = ({ price, ...props }: ConfirmDegenT
     )
   }
 
-  if (!price || !data) {
-    return
+  if (typeof price !== 'bigint' || !data) {
+    return <Progress isIndeterminate size='xs' colorScheme='purple' />
   }
 
   if (data.value < price) {
@@ -103,20 +133,28 @@ export const ConfirmDegenTransactionButton = ({ price, ...props }: ConfirmDegenT
           <AlertIcon />
           Seems that your wallet account does not have enough founds to deploy the community.
         </Alert>
-        <Text fontSize={'xs'} color={'gray'}>
-          You can get some $DEGEN with the{' '}
-          <Link fontStyle={'italic'} isExternal href='https://bridge.degen.tips/'>
-            Degen Chain Bridge
-          </Link>{' '}
-          🎩
-        </Text>
+        {chainId === degen.id && (
+          <Text fontSize={'xs'} color={'gray'}>
+            You can get some $DEGEN with the{' '}
+            <Link fontStyle={'italic'} isExternal href='https://bridge.degen.tips/'>
+              Degen Chain Bridge
+            </Link>{' '}
+            🎩
+          </Text>
+        )}
       </>
     )
   }
 
   return (
-    <Button mt={4} type='submit' rightIcon={<GiTopHat />} leftIcon={<MdOutlineRocketLaunch />} {...props}>
-      Deploy your community on Degenchain
+    <Button
+      mt={4}
+      type='submit'
+      rightIcon={chainAlias(chain) === 'degen' ? <GiTopHat /> : undefined}
+      leftIcon={<MdOutlineRocketLaunch />}
+      {...props}
+    >
+      Deploy your community on {chain.name}
     </Button>
   )
 }

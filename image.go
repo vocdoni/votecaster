@@ -117,7 +117,7 @@ func (v *vocdoniHandler) updloadAvatarHandler(msg *apirest.APIdata, ctx *httprou
 	}
 	req := struct {
 		AvatarID    string `json:"id"`
-		CommunityID uint64 `json:"communityID"`
+		CommunityID string `json:"communityID"`
 		Data        string `json:"data"`
 	}{}
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
@@ -165,7 +165,7 @@ func imageLink(imageKey string) string {
 // If the avatarID is empty, it calculates the avatarID from the data. It returns
 // the URL of the uploaded avatar image. It stores the avatar in the database.
 // If an error occurs, it returns an empty string and the error.
-func (v *vocdoniHandler) uploadAvatar(avatarID string, userFID, communityID uint64, data string) (string, error) {
+func (v *vocdoniHandler) uploadAvatar(avatarID string, userFID uint64, communityID, data string) (string, error) {
 	if !isBase64Image(data) {
 		return "", fmt.Errorf("image is not base64 encoded")
 	}
