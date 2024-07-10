@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -17,7 +16,6 @@ import (
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	c3client "github.com/vocdoni/census3/apiclient"
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/communityhub"
@@ -64,14 +62,13 @@ func main() {
 	flag.Uint64("adminFID", 7548, "The FID of the admin farcaster account with superuser powers")
 	flag.Int("pollSize", 0, "The maximum votes allowed per poll (the more votes, the more expensive) (0 for default)")
 	flag.Int("pprofPort", 0, "The port to use for the pprof http endpoints")
-	flag.String("web3",
-		"https://rpc.degen.tips,https://eth.llamarpc.com,https://rpc.ankr.com/eth,https://ethereum-rpc.publicnode.com,https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
+	flag.StringSlice("web3",
+		[]string{"https://rpc.degen.tips", "https://eth.llamarpc.com", "https://rpc.ankr.com/eth", "https://ethereum-rpc.publicnode.com", "https://mainnet.optimism.io", "https://optimism.llamarpc.com", "https://optimism-mainnet.public.blastapi.io", "https://rpc.ankr.com/optimism"},
 		"Web3 RPCs")
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 	// census3 flags
 	flag.String("census3APIEndpoint", "https://census3-stg.vocdoni.net/api", "The Census3 API endpoint to use")
 	// community hub flags
-	flag.String("chains", "base-sep,degen-dev", "The chains to use for the community hub")
 	flag.String("communityHubChainsConfig", "./chains_config.json", "The JSON configuration file for the community hub networks")
 	flag.String("communityHubAdminPrivKey", "", "The private key of a wallet admin of the CommunityHub contract in hex format")
 	// bot flags
@@ -131,15 +128,12 @@ func main() {
 	adminToken := viper.GetString("adminToken")
 	pollSize := viper.GetInt("pollSize")
 	pprofPort := viper.GetInt("pprofPort")
-	web3endpointStr := viper.GetString("web3")
-	web3endpoint := strings.Split(web3endpointStr, ",")
+	web3endpoint := viper.GetStringSlice("web3")
 	neynarAPIKey := viper.GetString("neynarAPIKey")
 	indexer := viper.GetBool("indexer")
 	// census3 vars
 	census3APIEndpoint := viper.GetString("census3APIEndpoint")
 	// community hub vars
-	// flag.String("chains", "base-sep,degen-dev", "The chains to use for the community hub")
-	availableChains := strings.Split(viper.GetString("chains"), ",")
 	communityHubChainsConfigPath := viper.GetString("communityHubChainsConfig")
 	communityHubAdminPrivKey := viper.GetString("communityHubAdminPrivKey")
 
@@ -199,7 +193,6 @@ func main() {
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
 		"communityHubChainsConfig", communityHubChainsConfigPath,
-		"census3APIEndpoint", census3APIEndpoint,
 		"communityHubAdmin", communityHubAdminPrivKey != "",
 		"botFid", botFid,
 		"botHubEndpoint", botHubEndpoint,
@@ -284,7 +277,7 @@ func main() {
 	}
 
 	// Load chains config
-	chainsConfs, err := helpers.LoadChainsConfig(communityHubChainsConfigPath, availableChains)
+	chainsConfs, err := helpers.LoadChainsConfig(communityHubChainsConfigPath)
 	if err != nil {
 		log.Fatalf("failed to load community hub chains config: %w", err)
 	}
@@ -296,16 +289,6 @@ func main() {
 		}
 	}
 	log.Infow("chain info loaded", "info", chainsConfs)
-
-	// create census3 client
-	c3url, err := url.Parse(census3APIEndpoint)
-	if err != nil {
-		log.Fatal(err)
-	}
-	census3Client, err := c3client.NewHTTPclient(c3url, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Create the Farcaster API client
 	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3pool)
