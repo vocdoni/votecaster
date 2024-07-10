@@ -56,5 +56,6 @@ COPY --from=builder /src/farcastervote ./
 COPY --from=builder /src/farcaster_census.json ./
 COPY --from=builder /src/images images
 COPY --from=web /app/dist webapp
+COPY chains_config.json /app/
 
 ENTRYPOINT ["/app/farcastervote"]
