@@ -1,3 +1,4 @@
+import { Chain } from 'viem'
 import type { ReputationResponse } from '~components/Auth/useAuthProvider'
 import chainsDefinition from '../chains_config.json'
 
@@ -22,9 +23,13 @@ declare global {
     url: string
   }
 
+  type ConfChain = Chain & {
+    logo: string
+  }
+
   type ChainsFile = typeof chainsDefinition
   type ChainKey = keyof ChainsFile
-  type ChainsConfig = Partial<{ [K in ChainKey]: Chain }>
+  type ChainsConfig = Partial<{ [K in ChainKey]: ConfChain }>
 
   type CommunityPollParams = {
     chain: ChainKey

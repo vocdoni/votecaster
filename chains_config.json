@@ -27,7 +27,8 @@
                 "name": "Degen Explorer",
                 "url": "https://explorer.degen.tips"
             }
-        }
+        },
+        "logo": "https://raw.githubusercontent.com/trustwallet/assets/9558bf5571bc72d7f8d170fa6670d5a797f2d91d/blockchains/base/assets/0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed/logo.png"
     },
     "degen-dev":{
         "id": 666666666,
@@ -57,7 +58,8 @@
                 "name": "Degen Explorer",
                 "url": "https://explorer.degen.tips"
             }
-        }
+        },
+        "logo": "https://raw.githubusercontent.com/trustwallet/assets/9558bf5571bc72d7f8d170fa6670d5a797f2d91d/blockchains/base/assets/0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed/logo.png"
     },
     "base": {
         "id": 8453,
@@ -85,7 +87,8 @@
                 "url": "https://basescan.org"
 
             }
-        }
+        },
+        "logo": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png"
     },
     "base-sep": {
         "id": 84532,
@@ -113,6 +116,7 @@
                 "url": "https://sepolia.basescan.org"
 
             }
-        }
+        },
+        "logo": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png"
     }
 }

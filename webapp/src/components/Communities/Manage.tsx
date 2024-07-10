@@ -106,7 +106,7 @@ export const ManageCommunity = ({ community, refetch, onClose, ...props }: Manag
                 </Alert>
               )}
               <Meta />
-              <CensusSelector />
+              <CensusSelector admin />
               <GroupChat />
               <ChannelsSelector />
               <Flex w={'100%'} justifyContent={'space-between'} alignItems={'center'} gap={6}>

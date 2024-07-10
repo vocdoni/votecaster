@@ -15,7 +15,7 @@ export const chainAlias = (chain: Chain | ChainKey | undefined): ChainKey | fals
     if (chain.name === key) {
       return key
     }
-    if (import.meta.env.chains[key] && chain.id === import.meta.env.chains[key].id) {
+    if (import.meta.env.chains[key] && chain.id === (import.meta.env.chains[key] as ConfChain).id) {
       return key
     }
   }
@@ -38,15 +38,15 @@ export const isSupportedChain = (chain: Chain | undefined) => {
   return typeof import.meta.env.chains[alias] !== 'undefined'
 }
 
-export const getChain = (chain: Chain | undefined | ChainKey): Chain => {
+export const getChain = (chain: Chain | undefined | ChainKey): ConfChain => {
   const alias = chainAlias(chain)
   if (!chain || !alias || typeof import.meta.env.chains[alias] === 'undefined') {
     console.info(`Chain ${alias} not found in configured chains list, falling back to first one found`)
-    const first = (Object.keys(import.meta.env.chains) as ChainKey[])[0]
-    return import.meta.env.chains[first]
+    const [first] = Object.keys(import.meta.env.chains) as ChainKey[]
+    return import.meta.env.chains[first] as ConfChain
   }
 
-  return import.meta.env.chains[alias]
+  return import.meta.env.chains[alias] as ConfChain
 }
 
 export const chainExplorer = (chain: Chain | undefined) => {

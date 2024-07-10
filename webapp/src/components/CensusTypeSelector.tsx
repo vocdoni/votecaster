@@ -48,9 +48,10 @@ export type CensusFormValues = ChannelFormValues & {
 export type CensusTypeSelectorProps = FormControlProps & {
   complete?: boolean
   communityId?: string
+  admin?: boolean
 }
 
-const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelectorProps) => {
+const CensusTypeSelector = ({ complete, communityId, admin, ...props }: CensusTypeSelectorProps) => {
   const { bfetch, profile, isAuthenticated } = useAuth()
   const {
     control,
@@ -105,6 +106,8 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
   }, [communityId, cloading, communities, isSuccess])
   // yeah we need to do it in two steps, or use a timeout which would have been a worse solution
   useEffect(() => {
+    if (!initCommunity) return
+
     setValue('censusType', 'community')
     setValue('community', initCommunity)
   }, [initCommunity])
@@ -205,7 +208,7 @@ const CensusTypeSelector = ({ complete, communityId, ...props }: CensusTypeSelec
       {censusType === 'channel' && (
         <FormControl isRequired isInvalid={!!errors.channel} {...props}>
           <FormLabel htmlFor='channel'>Farcaster channel</FormLabel>
-          <Controller name='channel' render={({ field }) => <ChannelSelector {...field} />} />
+          <Controller name='channel' render={({ field }) => <ChannelSelector admin={admin} {...field} />} />
           <FormErrorMessage>{errors.channel?.message?.toString()}</FormErrorMessage>
         </FormControl>
       )}

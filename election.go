@@ -504,7 +504,7 @@ func ensureAccountExist(cli *apiclient.HTTPclient) error {
 		return fmt.Errorf("failed to get faucet package: %w", err)
 	}
 	accountMetadata := &api.AccountMetadata{
-		Name:        map[string]string{"default": "Farcaster frame proxy " + cli.MyAddress().Hex()},
+		Name:        map[string]string{"default": "Farcaster frame proxy"},
 		Description: map[string]string{"default": "Farcaster frame proxy account"},
 		Version:     "1.0",
 	}

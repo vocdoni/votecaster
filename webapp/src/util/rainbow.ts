@@ -5,7 +5,7 @@ import { UseWalletClientReturnType } from 'wagmi'
 export const config = getDefaultConfig({
   appName: 'farcaster.vote',
   projectId: '735ab19f8bdb36d6ab32328218ded4ac',
-  chains: Object.values(import.meta.env.chains) as [Chain, ...Chain[]],
+  chains: Object.values(import.meta.env.chains) as unknown as [Chain, ...Chain[]],
 })
 
 export const walletClientToSigner = async (walletClient: UseWalletClientReturnType['data']) => {

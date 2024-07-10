@@ -219,7 +219,7 @@ export const CommunitiesCreateForm = () => {
                     Required information
                   </Text>
                   <Meta />
-                  <CensusSelector />
+                  <CensusSelector admin />
                 </VStack>
               </Box>
               <Flex direction={'column'} gap={4}>

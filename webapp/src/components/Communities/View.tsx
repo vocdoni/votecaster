@@ -93,13 +93,14 @@ export const CommunitiesView = ({ community, chain: chainAlias, refetch }: Commu
             <Text fontSize='smaller' fontStyle='italic'>
               Managed by <CommunityAdmins community={community} />
             </Text>
-            <Text fontSize='smaller' mt='6'>
+            <Text fontSize='smaller' mt='6' display='flex' flexDir='row' gap={1} alignItems='center'>
               Deployed on{' '}
               <Link
                 isExternal
                 href={`${chain.blockExplorers?.default.url}/address/${getContractForChain(chainAlias)}`}
                 variant='primary'
               >
+                <Avatar src={chain.logo} width={4} height={4} mr={1} verticalAlign='middle' />
                 {chain.name}
               </Link>
             </Text>
