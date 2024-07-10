@@ -40,6 +40,17 @@ type Updater struct {
 	votecasterFollowers map[uint64]bool
 	recasters           map[uint64]bool
 	followersMtx        sync.Mutex
+
+	votecasterNFTPassHolders   map[common.Address]*big.Int
+	votecasterLaunchNFTHolders map[common.Address]*big.Int
+	kiwiHolders                map[common.Address]*big.Int
+	degenDAONFTHolders         map[common.Address]*big.Int
+	haberdasheryNFTHolders     map[common.Address]*big.Int
+	tokyoDAONFTHolders         map[common.Address]*big.Int
+	proxyHolders               map[common.Address]*big.Int
+	proxyStudioNFTHolders      map[common.Address]*big.Int
+	nameDegenHolders           map[common.Address]*big.Int
+	holdersMtx                 sync.Mutex
 }
 
 // NewUpdater creates a new Updater instance with the given parameters,
@@ -62,18 +73,27 @@ func NewUpdater(ctx context.Context, db *mongo.MongoStorage, fapi farcasterapi.A
 	}
 	internalCtx, cancel := context.WithCancel(ctx)
 	return &Updater{
-		ctx:                 internalCtx,
-		cancel:              cancel,
-		db:                  db,
-		fapi:                fapi,
-		airstack:            as,
-		census3:             c3,
-		lastUpdate:          time.Time{},
-		maxConcurrent:       maxConcurrent,
-		alfafrensFollowers:  make(map[uint64]bool),
-		vocdoniFollowers:    make(map[uint64]bool),
-		votecasterFollowers: make(map[uint64]bool),
-		recasters:           make(map[uint64]bool),
+		ctx:                        internalCtx,
+		cancel:                     cancel,
+		db:                         db,
+		fapi:                       fapi,
+		airstack:                   as,
+		census3:                    c3,
+		lastUpdate:                 time.Time{},
+		maxConcurrent:              maxConcurrent,
+		alfafrensFollowers:         make(map[uint64]bool),
+		vocdoniFollowers:           make(map[uint64]bool),
+		votecasterFollowers:        make(map[uint64]bool),
+		recasters:                  make(map[uint64]bool),
+		votecasterNFTPassHolders:   make(map[common.Address]*big.Int),
+		votecasterLaunchNFTHolders: make(map[common.Address]*big.Int),
+		kiwiHolders:                make(map[common.Address]*big.Int),
+		degenDAONFTHolders:         make(map[common.Address]*big.Int),
+		haberdasheryNFTHolders:     make(map[common.Address]*big.Int),
+		tokyoDAONFTHolders:         make(map[common.Address]*big.Int),
+		proxyHolders:               make(map[common.Address]*big.Int),
+		proxyStudioNFTHolders:      make(map[common.Address]*big.Int),
+		nameDegenHolders:           make(map[common.Address]*big.Int),
 	}, nil
 }
 
@@ -98,6 +118,10 @@ func (u *Updater) Start(coolDown time.Duration) error {
 				// update internal followers
 				if err := u.updateFollowersAndRecasters(); err != nil {
 					log.Warnw("error updating internal followers", "error", err)
+				}
+				// update holders
+				if err := u.updateHolders(); err != nil {
+					log.Warnw("error updating holders", "error", err)
 				}
 				// launch update communities
 				if err := u.updateCommunities(); err != nil {
@@ -169,19 +193,144 @@ func (u *Updater) updateFollowersAndRecasters() error {
 	return nil
 }
 
-// isFollowerAndRecaster method checks if a given user is a Vocdoni Alfafrens
-// Folllower, is a follower of the Vocdoni and Votecaster profiles in
-// Farcaster, and if the user has recasted the Votecaster Launch cast
-// announcement. It returns four boolean values in if the user is a Folllower
-// of Vocdoni Alfafrens, a follower of Vocdoni, a follower of Votecaster, and a
-// recaster of the Votecaster Launch cast announcement.
-func (u *Updater) isFollowerAndRecaster(userID uint64) (bool, bool, bool, bool) {
-	u.followersMtx.Lock()
-	defer u.followersMtx.Unlock()
-	return u.alfafrensFollowers[userID],
-		u.vocdoniFollowers[userID],
-		u.votecasterFollowers[userID],
-		u.recasters[userID]
+// updateHolders method updates the internal holders lists to cache the holders
+// of the Votecaster NFT pass, the Votecaster Launch NFT, the KIWI token, the
+// DegenDAO NFT, the Haberdashery NFT, the TokyoDAO NFT, the Proxy, the
+// ProxyStudio NFT, and the NameDegen NFT. It fetches the holders data from the
+// Airstack API and the Census3 API. It returns an error if the holders data
+// cannot be fetched.
+func (u *Updater) updateHolders() error {
+	u.holdersMtx.Lock()
+	defer u.holdersMtx.Unlock()
+	var errs []error
+	// update Votecaster NFT pass holders
+	votecasterNFTPassHolders, err := u.airstack.Client.TokenBalances(
+		VotecasterNFTPassAddress, VotecasterNFTPassChainShortName)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting votecaster nft pass holders: %w", err))
+	} else {
+		for _, holder := range votecasterNFTPassHolders {
+			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
+				u.votecasterNFTPassHolders[holder.Address] = holder.Balance
+			}
+		}
+	}
+	// update Votecaster Launch NFT holders
+	votecasterLaunchNFTHolders, err := u.airstack.Client.TokenBalances(
+		VotecasterLaunchNFTAddress, VotecasterLaunchNFTChainShortName)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting votecaster launch nft holders: %w", err))
+	} else {
+		for _, holder := range votecasterLaunchNFTHolders {
+			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
+				u.votecasterLaunchNFTHolders[holder.Address] = holder.Balance
+			}
+		}
+	}
+	// update KIWI holders
+	kiwiToken, err := u.census3.Token(KIWIAddress.Hex(), KIWIChainID, "")
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting KIWI token info: %w", err))
+	} else {
+		kiwiHoldersQueueID, err := u.census3.HoldersByStrategy(kiwiToken.DefaultStrategy)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error getting KIWI holders queue ID: %w", err))
+		} else {
+			for {
+				kiwiHolders, finished, err := u.census3.HoldersByStrategyQueue(
+					kiwiToken.DefaultStrategy, kiwiHoldersQueueID)
+				if err != nil {
+					errs = append(errs, fmt.Errorf("error getting KIWI holders: %w", err))
+					break
+				}
+				if finished {
+					for holder, balance := range kiwiHolders {
+						if balance.Cmp(big.NewInt(0)) > 0 {
+							u.kiwiHolders[holder] = balance
+						}
+					}
+					break
+				}
+				time.Sleep(time.Second * 1)
+			}
+		}
+	}
+	// update DegenDAO NFT holders
+	degenDAONFTHolders, err := u.airstack.Client.TokenBalances(
+		DegenDAONFTAddress, DegenDAONFTChainShortName)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting DegenDAO NFT holders: %w", err))
+	} else {
+		for _, holder := range degenDAONFTHolders {
+			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
+				u.degenDAONFTHolders[holder.Address] = holder.Balance
+			}
+		}
+	}
+	// update Haberdashery NFT holders
+	haberdasheryNFTHolders, err := u.airstack.Client.TokenBalances(
+		HaberdasheryNFTAddress, HaberdasheryNFTChainShortName)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting Haberdashery NFT holders: %w", err))
+	} else {
+		for _, holder := range haberdasheryNFTHolders {
+			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
+				u.haberdasheryNFTHolders[holder.Address] = holder.Balance
+			}
+		}
+	}
+	// update TokyoDAO NFT holders
+	tokyoDAONFTHolders, err := u.airstack.Client.TokenBalances(
+		TokyoDAONFTAddress, TokyoDAONFTChainShortName)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting TokyoDAO NFT holders: %w", err))
+	} else {
+		for _, holder := range tokyoDAONFTHolders {
+			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
+				u.tokyoDAONFTHolders[holder.Address] = holder.Balance
+			}
+		}
+	}
+	// update Proxy
+	proxyHolders, err := u.airstack.Client.TokenBalances(
+		ProxyAddress, ProxyChainShortName)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting Proxy holders: %w", err))
+	} else {
+		for _, holder := range proxyHolders {
+			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
+				u.proxyHolders[holder.Address] = holder.Balance
+			}
+		}
+	}
+	// update ProxyStudio NFT holders
+	proxyStudioNFTHolders, err := u.airstack.Client.TokenBalances(
+		ProxyStudioNFTAddress, ProxyStudioNFTShortName)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting ProxyStudio NFT holders: %w", err))
+	} else {
+		for _, holder := range proxyStudioNFTHolders {
+			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
+				u.proxyStudioNFTHolders[holder.Address] = holder.Balance
+			}
+		}
+	}
+	// update NameDegen NFT holders
+	nameDegenHolders, err := u.airstack.Client.TokenBalances(
+		NameDegenAddress, NameDegenChainShortName)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting NameDegen NFT holders: %w", err))
+	} else {
+		for _, holder := range nameDegenHolders {
+			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
+				u.nameDegenHolders[holder.Address] = holder.Balance
+			}
+		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("error updating holders: %v", errs)
+	}
+	return nil
 }
 
 // updateUsers method iterates over all users in the database and updates their
@@ -217,7 +366,7 @@ func (u *Updater) updateUsers() error {
 					<-concurrentUpdates
 				}()
 				// update user reputation
-				if err := u.updateUser(user, true, true); err != nil {
+				if err := u.updateUser(user); err != nil {
 					log.Errorf("error updating user %d: %v", user.UserID, err)
 				} else {
 					updates.Add(1)
@@ -280,7 +429,7 @@ func (u *Updater) updateCommunities() error {
 // updateUser method updates the reputation data of a given user. It fetches the
 // activity data from the database and the boosters data from the Airstack and
 // the Census3 API. It then updates the reputation data in the database.
-func (u *Updater) updateUser(user *mongo.User, activity, boosters bool) error {
+func (u *Updater) updateUser(user *mongo.User) error {
 	if u.db == nil {
 		return fmt.Errorf("database not set")
 	}
@@ -294,42 +443,38 @@ func (u *Updater) updateUser(user *mongo.User, activity, boosters bool) error {
 		return err
 	}
 	// get activiy data if needed
-	if activity {
-		activityRep, err := u.userActivityReputation(user)
-		if err != nil {
-			// if there is an error fetching the activity data, log the error and
-			// continue updating the no failed activity data
-			log.Warnw("error getting user activity reputation", "error", err, "user", user.UserID)
-		}
-		// update reputation
-		rep.FollowersCount = activityRep.FollowersCount
-		rep.ElectionsCreated = activityRep.ElectionsCreated
-		rep.CastedVotes = activityRep.CastedVotes
-		rep.VotesCastedOnCreatedElections = activityRep.VotesCastedOnCreatedElections
-		rep.CommunitiesCount = activityRep.CommunitiesCount
+	activityRep, err := u.userActivityReputation(user)
+	if err != nil {
+		// if there is an error fetching the activity data, log the error and
+		// continue updating the no failed activity data
+		log.Warnw("error getting user activity reputation", "error", err, "user", user.UserID)
 	}
+	// update reputation
+	rep.FollowersCount = activityRep.FollowersCount
+	rep.ElectionsCreated = activityRep.ElectionsCreated
+	rep.CastedVotes = activityRep.CastedVotes
+	rep.VotesCastedOnCreatedElections = activityRep.VotesCastedOnCreatedElections
+	rep.CommunitiesCount = activityRep.CommunitiesCount
 	// get boosters data if needed
-	if boosters {
-		boostersRep, err := u.userBoosters(user)
-		// if there is an error fetching the boosters data, log the error and
-		// continue updating the no failed boosters data
-		if err != nil {
-			log.Warnw("error getting some boosters", "error", err, "user", user.UserID)
-		}
-		// update reputation
-		rep.HasVotecasterNFTPass = boostersRep.HasVotecasterNFTPass
-		rep.HasVotecasterLaunchNFT = boostersRep.HasVotecasterLaunchNFT
-		rep.IsVotecasterAlphafrensFollower = boostersRep.IsVotecasterAlphafrensFollower
-		rep.IsVotecasterFarcasterFollower = boostersRep.IsVotecasterFarcasterFollower
-		rep.IsVocdoniFarcasterFollower = boostersRep.IsVocdoniFarcasterFollower
-		rep.VotecasterAnnouncementRecasted = boostersRep.VotecasterAnnouncementRecasted
-		rep.HasKIWI = boostersRep.HasKIWI
-		rep.HasDegenDAONFT = boostersRep.HasDegenDAONFT
-		rep.Has10kDegenAtLeast = boostersRep.Has10kDegenAtLeast
-		rep.HasTokyoDAONFT = boostersRep.HasTokyoDAONFT
-		rep.Has5ProxyAtLeast = boostersRep.Has5ProxyAtLeast
-		rep.HasNameDegen = boostersRep.HasNameDegen
+	boostersRep := u.userBoosters(user)
+	// if there is an error fetching the boosters data, log the error and
+	// continue updating the no failed boosters data
+	if err != nil {
+		log.Warnw("error getting some boosters", "error", err, "user", user.UserID)
 	}
+	// update reputation
+	rep.HasVotecasterNFTPass = boostersRep.HasVotecasterNFTPass
+	rep.HasVotecasterLaunchNFT = boostersRep.HasVotecasterLaunchNFT
+	rep.IsVotecasterAlphafrensFollower = boostersRep.IsVotecasterAlphafrensFollower
+	rep.IsVotecasterFarcasterFollower = boostersRep.IsVotecasterFarcasterFollower
+	rep.IsVocdoniFarcasterFollower = boostersRep.IsVocdoniFarcasterFollower
+	rep.VotecasterAnnouncementRecasted = boostersRep.VotecasterAnnouncementRecasted
+	rep.HasKIWI = boostersRep.HasKIWI
+	rep.HasDegenDAONFT = boostersRep.HasDegenDAONFT
+	rep.Has10kDegenAtLeast = boostersRep.Has10kDegenAtLeast
+	rep.HasTokyoDAONFT = boostersRep.HasTokyoDAONFT
+	rep.Has5ProxyAtLeast = boostersRep.Has5ProxyAtLeast
+	rep.HasNameDegen = boostersRep.HasNameDegen
 	// commit reputation
 	return u.db.SetDetailedReputationForUser(user.UserID, rep)
 }
@@ -416,115 +561,75 @@ func (u *Updater) communityPoints(community *mongo.Community) (float64, uint64, 
 // has a Proxy, the user has at least 5 Proxies, the user has the ProxyStudio
 // NFT, and the user has the NameDegen NFT. It returns an error if the boosters
 // data cannot be fetched.
-func (u *Updater) userBoosters(user *mongo.User) (*Boosters, error) {
+func (u *Updater) userBoosters(user *mongo.User) *Boosters {
 	// create new boosters struct and slice for errors
 	boosters := &Boosters{}
-	var errs []error
 	// check if user is votecaster alphafrens follower, is vocdoni or votecaster
 	// farcaster follower, and if the user has recasted the votecaster launch
 	// cast announcement
-	alfafrensFolllower, vocdoniFollower, votecasterFollower, announcementRecaster := u.isFollowerAndRecaster(user.UserID)
-	boosters.IsVotecasterAlphafrensFollower = alfafrensFolllower
-	boosters.IsVocdoniFarcasterFollower = vocdoniFollower
-	boosters.IsVotecasterFarcasterFollower = votecasterFollower
-	boosters.VotecasterAnnouncementRecasted = announcementRecaster
+	u.followersMtx.Lock()
+	defer u.followersMtx.Unlock()
+	boosters.IsVotecasterAlphafrensFollower = u.alfafrensFollowers[user.UserID]
+	boosters.IsVocdoniFarcasterFollower = u.vocdoniFollowers[user.UserID]
+	boosters.IsVotecasterFarcasterFollower = u.votecasterFollowers[user.UserID]
+	boosters.VotecasterAnnouncementRecasted = u.recasters[user.UserID]
 	// for every user address check every booster only if it is not already set
+	u.holdersMtx.Lock()
+	defer u.holdersMtx.Unlock()
 	for _, strAddr := range user.Addresses {
 		addr := common.HexToAddress(strAddr)
 		// check if user has votecaster nft pass
 		if !boosters.HasVotecasterNFTPass {
-			balance, err := u.airstack.Client.CheckIfHolder(VotecasterNFTPassAddress, VotecasterNFTPassChainShortName, addr)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error getting votecaster nft pass balance for %s: %w", addr, err))
-			} else {
-				boosters.HasVotecasterNFTPass = balance > 0
-			}
+			_, ok := u.votecasterNFTPassHolders[addr]
+			boosters.HasVotecasterNFTPass = ok
 		}
 		// check if user has votecaster launch nft
 		if !boosters.HasVotecasterLaunchNFT {
-			balance, err := u.airstack.Client.CheckIfHolder(VotecasterLaunchNFTAddress, VotecasterLaunchNFTChainShortName, addr)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error getting votecaster launch nft balance for %s: %w", addr, err))
-			} else {
-				boosters.HasVotecasterLaunchNFT = balance > 0
-			}
+			_, ok := u.votecasterLaunchNFTHolders[addr]
+			boosters.HasVotecasterLaunchNFT = ok
 		}
 		// check if user has KIWI
 		if !boosters.HasKIWI {
-			balance, err := u.census3.TokenHolder(KIWIAddress.Hex(), KIWIChainID, "", strAddr)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error getting KIWI balance for %s: %w", addr, err))
-			} else if balance != nil {
-				boosters.HasKIWI = balance.Cmp(big.NewInt(0)) > 0
-			}
+			_, ok := u.kiwiHolders[addr]
+			boosters.HasKIWI = ok
 		}
 		// check if user has DegenDAO NFT
 		if !boosters.HasDegenDAONFT {
-			balance, err := u.airstack.Client.CheckIfHolder(DegenDAONFTAddress, DegenDAONFTChainShortName, addr)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error getting DegenDAO NFT balance for %s: %w", addr, err))
-			} else {
-				boosters.HasDegenDAONFT = balance > 0
-			}
+			_, ok := u.degenDAONFTHolders[addr]
+			boosters.HasDegenDAONFT = ok
 		}
 		// check if user has Haberdashery NFT
 		if !boosters.HasHaberdasheryNFT {
-			balance, err := u.airstack.Client.CheckIfHolder(HaberdasheryNFTAddress, HaberdasheryNFTChainShortName, addr)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error getting Haberdashery NFT balance for %s: %w", addr, err))
-			} else {
-				boosters.HasHaberdasheryNFT = balance > 0
-			}
+			_, ok := u.haberdasheryNFTHolders[addr]
+			boosters.HasHaberdasheryNFT = ok
 		}
 		// check if user has 10k Degen
 		if !boosters.Has10kDegenAtLeast {
-			balance, err := u.airstack.Client.CheckIfHolder(DegenAddress, DegenChainShortName, addr)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error getting 10k Degen balance for %s: %w", addr, err))
-			} else {
-				boosters.Has10kDegenAtLeast = balance >= 10000
+			if balance, ok := u.degenDAONFTHolders[addr]; ok {
+				boosters.Has10kDegenAtLeast = balance.Cmp(big.NewInt(10000)) >= 0
 			}
 		}
 		// check if user has TokyoDAO NFT
 		if !boosters.HasTokyoDAONFT {
-			balance, err := u.airstack.Client.CheckIfHolder(TokyoDAONFTAddress, TokyoDAONFTChainShortName, addr)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error getting TokyoDAO NFT balance for %s: %w", addr, err))
-			} else {
-				boosters.HasTokyoDAONFT = balance > 0
-			}
+			_, ok := u.tokyoDAONFTHolders[addr]
+			boosters.HasTokyoDAONFT = ok
 		}
 		// check if user has Proxy and at least 5 Proxies
 		if !boosters.Has5ProxyAtLeast {
-			balance, err := u.airstack.Client.CheckIfHolder(ProxyAddress, ProxyChainShortName, addr)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error getting Proxy balance for %s: %w", addr, err))
-			} else {
-				boosters.Has5ProxyAtLeast = balance >= 5
+			if balance, ok := u.proxyHolders[addr]; ok {
+				boosters.Has5ProxyAtLeast = balance.Cmp(big.NewInt(5)) >= 0
 			}
 		}
 		// check if user has ProxyStudio NFT
 		if !boosters.HasProxyStudioNFT {
-			balance, err := u.airstack.Client.CheckIfHolder(ProxyStudioNFTAddress, ProxyStudioNFTShortName, addr)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error getting ProxyStudio NFT balance for %s: %w", addr, err))
-			} else {
-				boosters.HasProxyStudioNFT = balance > 0
-			}
+			_, ok := u.proxyStudioNFTHolders[addr]
+			boosters.HasProxyStudioNFT = ok
 		}
 		// check if user has NameDegen
 		if !boosters.HasNameDegen {
-			balance, err := u.airstack.Client.CheckIfHolder(NameDegenAddress, NameDegenChainShortName, addr)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error getting NameDegen balance for %s: %w", addr, err))
-			} else {
-				boosters.HasNameDegen = balance > 0
-			}
+			_, ok := u.nameDegenHolders[addr]
+			boosters.HasNameDegen = ok
 		}
 	}
-	// if there are errors, return the boosters and the errors
-	if len(errs) > 0 {
-		return boosters, errors.Join(errs...)
-	}
-	return boosters, nil
+	return boosters
 }
