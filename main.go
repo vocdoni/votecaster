@@ -351,9 +351,12 @@ func main() {
 		log.Fatalf("index.html not found in webapp directory %s", webAppDir)
 	}
 	router.AddRawHTTPHandler("/app*", http.MethodGet, handler.staticHandler)
-	router.AddRawHTTPHandler("/favicon.ico", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, path.Join(webAppDir, "favicon.ico"))
-	})
+	staticFiles := []string{"favicon.ico", "robots.txt"}
+	for _, file := range staticFiles {
+		router.AddRawHTTPHandler("/"+file, http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, path.Join(webAppDir, file))
+		})
+	}
 
 	// Add the Prometheus endpoint
 	router.ExposePrometheusEndpoint("/metrics")
