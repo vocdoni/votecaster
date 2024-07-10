@@ -58,7 +58,7 @@ func (v *vocdoniHandler) censusChannelOrAddresses(ctx context.Context,
 	var user *User
 	switch dbCensus.Type {
 	case mongo.TypeCommunityCensusFollowers:
-		fid, err := communityhub.UserRefToFID(dbCensus.Channel)
+		fid, err := communityhub.DecodeUserChannelFID(dbCensus.Channel)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("invalid user reference: %w", err)
 		}
@@ -354,17 +354,25 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 	for _, user := range typedCommunity.Admins {
 		admins = append(admins, user.FID)
 	}
-	censusAddresses := []*communityhub.ContractAddress{}
-	for _, addr := range typedCommunity.CensusAddresses {
-		censusAddresses = append(censusAddresses, &communityhub.ContractAddress{
-			Blockchain: addr.Blockchain,
-			Address:    common.HexToAddress(addr.Address),
-		})
-	}
-	// set the census channel if provided
+	// parse the census channel or addresses based on the census type
 	var censusChannel string
-	if typedCommunity.CensusChannel != nil {
-		censusChannel = typedCommunity.CensusChannel.ID
+	censusAddresses := []*communityhub.ContractAddress{}
+	switch communityhub.CensusType(typedCommunity.CensusType) {
+	case communityhub.CensusTypeERC20, communityhub.CensusTypeNFT:
+		for _, addr := range typedCommunity.CensusAddresses {
+			censusAddresses = append(censusAddresses, &communityhub.ContractAddress{
+				Blockchain: addr.Blockchain,
+				Address:    common.HexToAddress(addr.Address),
+			})
+		}
+	case communityhub.CensusTypeFollowers:
+		censusChannel = communityhub.EncodeUserChannelFID(userFID)
+	case communityhub.CensusTypeChannel:
+		if typedCommunity.CensusChannel != nil {
+			censusChannel = typedCommunity.CensusChannel.ID
+		}
+	default:
+		return ctx.Send([]byte("invalid census type"), http.StatusBadRequest)
 	}
 	// update the community image
 	if typedCommunity.LogoURL != "" && typedCommunity.LogoURL != dbCommunity.ImageURL {

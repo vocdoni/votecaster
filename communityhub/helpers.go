@@ -22,14 +22,24 @@ const (
 	chainPrefixSeparator = ":"
 )
 
-// UserRefToFID converts a user reference to a farcaster user to a user FID. It
-// is used to encode the user reference from farcaster in CensusChannel contract
-// field to support followers censuses from farcaster.
-func UserRefToFID(userRef string) (uint64, error) {
-	if strings.HasPrefix(userRef, farcasterUserRefPrefix) {
-		return strconv.ParseUint(userRef[len(farcasterUserRefPrefix):], 10, 64)
+// EncodeUserChannelFID encodes a user FID to a user reference from farcaster
+// following the format "fid:<fid>" to be stored in the community metadata as
+// the census channel (both, channel and followers census types follow the same
+// creation process so they are interchangeable).
+func EncodeUserChannelFID(fid uint64) string {
+	return fmt.Sprintf("%s%d", farcasterUserRefPrefix, fid)
+}
+
+// DecodeUserChannelFID decodes a user reference from farcaster to a user FID
+// following the format "fid:<fid>" from the community census channel metadata.
+// When a community has a census based on the creator followers, the channel
+// metadata is used to store the user reference. If something goes wrong
+// decoding the user FID, it returns an error.
+func DecodeUserChannelFID(channelFID string) (uint64, error) {
+	if strings.HasPrefix(channelFID, farcasterUserRefPrefix) {
+		return strconv.ParseUint(channelFID[len(farcasterUserRefPrefix):], 10, 64)
 	}
-	return 0, fmt.Errorf("invalid user reference: %s", userRef)
+	return 0, fmt.Errorf("invalid user reference: %s", channelFID)
 }
 
 // ContractToHub converts a contract community struct (ICommunityHubCommunity)
