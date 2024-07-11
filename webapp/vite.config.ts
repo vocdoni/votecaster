@@ -35,7 +35,7 @@ const viteconfig: UserConfigFn = ({ mode }) => {
 
   const base = process.env.BASE_URL || '/'
   const outDir = process.env.BUILD_PATH || 'dist'
-  const configuredChains: ChainKey[] = JSON.parse(process.env.VOCDONI_CHAINS || 'null') || ['degen-dev', 'base-sep']
+  const configuredChains = (process.env.VOCDONI_CHAINS || 'degen-dev,base-sep').split(',') as ChainKey[]
 
   const config = defineConfig({
     base,
