@@ -37,6 +37,15 @@ const viteconfig: UserConfigFn = ({ mode }) => {
   const outDir = process.env.BUILD_PATH || 'dist'
   const configuredChains = (process.env.VOCDONI_CHAINS || 'degen-dev,base-sep').split(',') as ChainKey[]
 
+  if (!configuredChains || !configuredChains.length) {
+    throw new Error('No chains configured')
+  }
+  for (const chain of configuredChains) {
+    if (!chainsDefinition[chain]) {
+      throw new Error(`Chain "${chain}" not found in chains_config.json`)
+    }
+  }
+
   const config = defineConfig({
     base,
     build: {
