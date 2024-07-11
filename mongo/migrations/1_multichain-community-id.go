@@ -31,7 +31,7 @@ func upNewCommunityID(ctx context.Context, db *mongo.Database) error {
 		}
 		// check if the 'community' sub-object and its 'id' attribute exist
 		if community, ok := doc["community"].(bson.M); ok {
-			if oldID, ok := community["id"].(int); ok {
+			if oldID, ok := community["id"].(uint); ok {
 				newID := fmt.Sprintf("degen:%d", oldID)
 				// update the document with the new id value
 				filter := bson.M{"_id": doc["_id"]}
@@ -60,7 +60,7 @@ func upNewCommunityID(ctx context.Context, db *mongo.Database) error {
 			return err
 		}
 		// check if the 'communityId' attribute exist
-		if oldID, ok := doc["communityId"].(int); ok {
+		if oldID, ok := doc["communityId"].(uint); ok {
 			newID := fmt.Sprintf("degen:%d", oldID)
 			// update the document with the new id value
 			filter := bson.M{"_id": doc["_id"]}
