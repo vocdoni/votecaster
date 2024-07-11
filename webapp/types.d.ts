@@ -67,6 +67,7 @@ declare global {
     title: string
     turnout: number
     voteCount: number
+    community?: Community
   }
 
   type PollResponse = {
@@ -122,6 +123,7 @@ declare global {
     createdByFID: number
     createdByUsername: string
     createdByDisplayname: string
+    community?: Community
   }
 
   type RecursivePartial<T> = {

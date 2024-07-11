@@ -97,7 +97,7 @@ export const TopPolls = ({ polls, title, ...rest }: { polls: PollRanking[]; titl
     </Text>
     <Stack spacing={3}>
       {polls.map((poll, index) => (
-        <Link key={index} as={RouterLink} to={`/poll/${poll.electionId}`}>
+        <Link key={index} as={RouterLink} to={pollLink(poll)}>
           <TopCard>
             <Text color='purple.500' fontWeight='medium'>
               {poll.title} —{' '}
@@ -115,13 +115,20 @@ export const TopPolls = ({ polls, title, ...rest }: { polls: PollRanking[]; titl
   </Box>
 )
 
+const pollLink = (poll: PollRanking | Poll) => {
+  if (poll.community) {
+    return `/communities/${poll.community.id.replace(':', '/')}/poll/${poll.electionId}`
+  }
+  return `/poll/${poll.electionId}`
+}
+
 export const TopPollsSimplified = ({ polls, ...rest }: { polls: PollRanking[] } & StackProps) => {
   const navigate = useNavigate()
 
   return (
     <Stack spacing={3} {...rest}>
       {polls.map((poll, index) => (
-        <TopCard py={2} px={4} key={index} onClick={() => navigate(`/poll/${poll.electionId}`)} cursor='pointer'>
+        <TopCard py={2} px={4} key={index} onClick={() => navigate(pollLink(poll))} cursor='pointer'>
           <Text fontWeight='medium'>
             {poll.title} —{' '}
             <Link as={RouterLink} to={`/profile/${poll.createdByUsername}`} variant='primary'>
@@ -141,7 +148,7 @@ export const UserPolls = ({ polls, title, ...rest }: { polls: Poll[]; title: str
     </Text>
     <Stack spacing={3}>
       {polls.map((poll, index) => (
-        <Link key={index} as={RouterLink} to={`/poll/${poll.electionId}`}>
+        <Link key={index} as={RouterLink} to={pollLink(poll)}>
           <TopCard>
             <Text color='purple.500' fontWeight='medium' maxW='80%'>
               {poll.title}
