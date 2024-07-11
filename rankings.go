@@ -43,12 +43,54 @@ func (v *vocdoniHandler) rankingByVotes(msg *apirest.APIdata, ctx *httprouter.HT
 }
 
 func (v *vocdoniHandler) rankingOfElections(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	elections, err := v.db.ElectionsByVoteNumber()
+	dbElections, err := v.db.ElectionsByVoteNumber()
 	if err != nil {
 		return fmt.Errorf("failed to get ranking: %w", err)
 	}
-	jresponse, err := json.Marshal(map[string]any{
-		"polls": elections,
+	// decode the elections to the response format
+	var elections []*RankedElection
+	for i := range dbElections {
+		var username, displayname string
+		user, err := v.db.User(dbElections[i].UserID)
+		if err != nil {
+			log.Warnw("failed to fetch user", "error", err)
+			username = "unknown"
+		} else {
+			username = user.Username
+			displayname = user.Displayname
+		}
+		var community *Community
+		if dbElections[i].Community != nil {
+			dbCommunity, err := v.db.Community(dbElections[i].Community.ID)
+			if err != nil {
+				log.Warnw("failed to fetch community", "error", err)
+			} else if dbCommunity != nil {
+				community = &Community{
+					ID:            dbCommunity.ID,
+					Name:          dbCommunity.Name,
+					LogoURL:       dbCommunity.ImageURL,
+					GroupChatURL:  dbCommunity.GroupChatURL,
+					Notifications: dbCommunity.Notifications,
+					Channels:      dbCommunity.Channels,
+				}
+			}
+		}
+
+		elections = append(elections, &RankedElection{
+			dbElections[i].CreatedTime,
+			dbElections[i].ElectionID,
+			dbElections[i].LastVoteTime,
+			dbElections[i].Question,
+			dbElections[i].CastedVotes,
+			uint64(dbElections[i].FarcasterUserCount),
+			username,
+			displayname,
+			community,
+		})
+	}
+	// encode the response to json including pagination information
+	jresponse, err := json.Marshal(RankedElections{
+		Elections: elections,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal response: %w", err)

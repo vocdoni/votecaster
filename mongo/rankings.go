@@ -79,7 +79,7 @@ func (ms *MongoStorage) UsersByVoteNumber() ([]UserRanking, error) {
 }
 
 // ElectionsByVoteNumber returns the list of elections ordered by the number of votes casted within the last 60 days.
-func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
+func (ms *MongoStorage) ElectionsByVoteNumber() ([]*Election, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -104,31 +104,17 @@ func (ms *MongoStorage) ElectionsByVoteNumber() ([]ElectionRanking, error) {
 	}
 	defer cur.Close(ctx)
 
-	var ranking []ElectionRanking
+	var ranking []*Election
 	for cur.Next(ctx) {
-		var election Election
-		if err := cur.Decode(&election); err != nil {
+		election := &Election{}
+		if err := cur.Decode(election); err != nil {
 			log.Warn(err)
 			continue
 		}
 		if election.CastedVotes == 0 {
 			continue
 		}
-
-		user, err := ms.userData(election.UserID)
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-
-		ranking = append(ranking, ElectionRanking{
-			ElectionID:           election.ElectionID,
-			VoteCount:            election.CastedVotes,
-			CreatedByFID:         election.UserID,
-			CreatedByDisplayname: user.Displayname,
-			Title:                election.Question,
-			CreatedByUsername:    user.Username,
-		})
+		ranking = append(ranking, election)
 	}
 
 	if err := cur.Err(); err != nil {
