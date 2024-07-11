@@ -9,6 +9,7 @@ import (
 	migrate "github.com/xakep666/mongo-migrate"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.vocdoni.io/dvote/log"
 )
 
 func init() {
@@ -31,7 +32,7 @@ func upNewCommunityID(ctx context.Context, db *mongo.Database) error {
 		}
 		// check if the 'community' sub-object and its 'id' attribute exist
 		if community, ok := doc["community"].(bson.M); ok {
-			if oldID, ok := community["id"].(uint); ok {
+			if oldID, ok := community["id"].(uint64); ok {
 				newID := fmt.Sprintf("degen:%d", oldID)
 				// update the document with the new id value
 				filter := bson.M{"_id": doc["_id"]}
@@ -40,6 +41,8 @@ func upNewCommunityID(ctx context.Context, db *mongo.Database) error {
 				if err != nil {
 					return err
 				}
+			} else {
+				log.Errorf("error decoding old id : %v", community["id"])
 			}
 		}
 	}
@@ -60,7 +63,7 @@ func upNewCommunityID(ctx context.Context, db *mongo.Database) error {
 			return err
 		}
 		// check if the 'communityId' attribute exist
-		if oldID, ok := doc["communityId"].(uint); ok {
+		if oldID, ok := doc["communityId"].(uint64); ok {
 			newID := fmt.Sprintf("degen:%d", oldID)
 			// update the document with the new id value
 			filter := bson.M{"_id": doc["_id"]}
