@@ -69,7 +69,7 @@ const CommunityInfo = ({ name, id, pfpUrl, admins, disabled, ...props }: Communi
   const { chain } = useAccount()
   const adminsFid = admins?.map((admin) => admin.fid) ?? []
   const isAdmin = profile && adminsFid.includes(profile.fid)
-  const alias = id ? chainFromId(id) : chainAlias(chain)
+  const alias = id ? chainFromId(id) : (chainAlias(chain) as ChainKey)
 
   return (
     <HStack {...props}>
