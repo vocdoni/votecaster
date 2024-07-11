@@ -66,6 +66,7 @@ func main() {
 		"Web3 RPCs")
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
 	// community hub flags
+	flag.String("chains", "base-sep,degen-dev", "The chains to use for the community hub")
 	flag.String("communityHubChainsConfig", "./chains_config.json", "The JSON configuration file for the community hub networks")
 	flag.String("communityHubAdminPrivKey", "", "The private key of a wallet admin of the CommunityHub contract in hex format")
 	// bot flags
@@ -128,6 +129,8 @@ func main() {
 	neynarAPIKey := viper.GetString("neynarAPIKey")
 	indexer := viper.GetBool("indexer")
 	// community hub vars
+	// flag.String("chains", "base-sep,degen-dev", "The chains to use for the community hub")
+	availableChains := strings.Split(viper.GetString("chains"), ",")
 	communityHubChainsConfigPath := viper.GetString("communityHubChainsConfig")
 	communityHubAdminPrivKey := viper.GetString("communityHubAdminPrivKey")
 
@@ -269,7 +272,7 @@ func main() {
 	}
 
 	// Load chains config
-	chainsConfs, err := helpers.LoadChainsConfig(communityHubChainsConfigPath)
+	chainsConfs, err := helpers.LoadChainsConfig(communityHubChainsConfigPath, availableChains)
 	if err != nil {
 		log.Fatalf("failed to load community hub chains config: %w", err)
 	}
