@@ -3,7 +3,6 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 
@@ -41,12 +40,7 @@ func upNewCommunityID(ctx context.Context, db *mongo.Database) error {
 				if err != nil {
 					return err
 				}
-			} else {
-				log.Println("community.id is not a uint64", doc["_id"])
 			}
-		} else {
-
-			log.Println("community does not exist", doc["_id"])
 		}
 	}
 	if err := electionsCursor.Err(); err != nil {
