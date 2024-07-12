@@ -134,14 +134,6 @@ declare global {
         : T[P]
   }
 
-  type RecursivePartial<T> = {
-    [P in keyof T]?: T[P] extends (infer U)[]
-      ? RecursivePartial<U>[]
-      : T[P] extends object | undefined
-        ? RecursivePartial<T[P]>
-        : T[P]
-  }
-
   type UserRanking = {
     fid: number
     username: string

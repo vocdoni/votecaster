@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -16,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	c3client "github.com/vocdoni/census3/apiclient"
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/communityhub"
@@ -69,6 +71,7 @@ func main() {
 	// census3 flags
 	flag.String("census3APIEndpoint", "https://census3-stg.vocdoni.net/api", "The Census3 API endpoint to use")
 	// community hub flags
+	flag.String("chains", "base-sep,degen-dev", "The chains to use for the community hub")
 	flag.String("communityHubChainsConfig", "./chains_config.json", "The JSON configuration file for the community hub networks")
 	flag.String("communityHubAdminPrivKey", "", "The private key of a wallet admin of the CommunityHub contract in hex format")
 	// bot flags
@@ -135,6 +138,8 @@ func main() {
 	// census3 vars
 	census3APIEndpoint := viper.GetString("census3APIEndpoint")
 	// community hub vars
+	// flag.String("chains", "base-sep,degen-dev", "The chains to use for the community hub")
+	availableChains := strings.Split(viper.GetString("chains"), ",")
 	communityHubChainsConfigPath := viper.GetString("communityHubChainsConfig")
 	communityHubAdminPrivKey := viper.GetString("communityHubAdminPrivKey")
 
@@ -194,6 +199,7 @@ func main() {
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
 		"communityHubChainsConfig", communityHubChainsConfigPath,
+		"census3APIEndpoint", census3APIEndpoint,
 		"communityHubAdmin", communityHubAdminPrivKey != "",
 		"botFid", botFid,
 		"botHubEndpoint", botHubEndpoint,
@@ -277,7 +283,7 @@ func main() {
 		}
 	}
 	// Load chains config
-	chainsConfs, err := helpers.LoadChainsConfig(communityHubChainsConfigPath)
+	chainsConfs, err := helpers.LoadChainsConfig(communityHubChainsConfigPath, availableChains)
 	if err != nil {
 		log.Fatalf("failed to load community hub chains config: %w", err)
 	}
@@ -289,6 +295,16 @@ func main() {
 		}
 	}
 	log.Infow("chain info loaded", "info", chainsConfs, "endpoints", web3pool.String())
+
+	// create census3 client
+	c3url, err := url.Parse(census3APIEndpoint)
+	if err != nil {
+		log.Fatal(err)
+	}
+	census3Client, err := c3client.NewHTTPclient(c3url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Create the Farcaster API client
 	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3pool)

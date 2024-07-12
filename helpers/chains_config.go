@@ -41,7 +41,7 @@ type chainsConfigFile map[string]struct {
 // path. It returns a ChainsConfig struct with the configuration loaded from the
 // file. If something goes wrong loading the file or parsing the JSON, it returns
 // an error.
-func LoadChainsConfig(path string) (ChainsConfig, error) {
+func LoadChainsConfig(path string, availableAliases []string) (ChainsConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -52,6 +52,9 @@ func LoadChainsConfig(path string) (ChainsConfig, error) {
 	}
 	configs := ChainsConfig{}
 	for alias, info := range cfg {
+		if len(availableAliases) > 0 && !sliceContains(availableAliases, alias) {
+			continue
+		}
 		endpoints := []string{}
 		for _, rpcs := range info.RPCs {
 			endpoints = append(endpoints, rpcs.HTTP...)
@@ -88,4 +91,13 @@ func (c ChainsConfig) ChainChainIDByAlias() map[string]uint64 {
 		aliases[config.ChainAlias] = config.ChainID
 	}
 	return aliases
+}
+
+func sliceContains(slice []string, value string) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }
