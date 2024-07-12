@@ -9,7 +9,7 @@ import (
 
 // totalReputation calculates the reputation of a user based on their activity
 // and boosters and returns the mean value of both.
-func totalReputation(ar *ActivityReputation, b *Boosters) uint32 {
+func totalReputation(ar *ActivityReputationCounts, b *Boosters) uint32 {
 	log.Infow("user reputation", "activity", activityReputation(ar), "boosters", boostersReputation(b))
 	return (activityReputation(ar) + boostersReputation(b)) / 2
 }
@@ -17,13 +17,13 @@ func totalReputation(ar *ActivityReputation, b *Boosters) uint32 {
 // activityReputation calculates the reputation of a user based on their
 // ponderated activity reputation values. If the reputation exceeds 100, it is
 // capped at 100.
-func activityReputation(rep *ActivityReputation) uint32 {
+func activityReputation(rep *ActivityReputationCounts) uint32 {
 	ponderated := ponderateActivityReputation(rep)
-	reputation := uint32(ponderated.FollowersCount +
-		ponderated.ElectionsCreated +
-		ponderated.CastedVotes +
-		ponderated.VotesCastedOnCreatedElections +
-		ponderated.CommunitiesCount)
+	reputation := uint32(ponderated.FollowersPoints +
+		ponderated.ElectionsCreatedPoints +
+		ponderated.CastVotesPoints +
+		ponderated.ParticipationsPoints +
+		ponderated.CommunitiesPoints)
 	if reputation > maxReputation {
 		reputation = maxReputation
 	}
@@ -43,22 +43,22 @@ func activityReputation(rep *ActivityReputation) uint32 {
 //     elections/20 points (up to 'maxCastedReputation' points)
 //   - CommunitiesCount: number of communities*2 points (up to
 //     'maxCommunityReputation' points)
-func ponderateActivityReputation(ar *ActivityReputation) *ActivityReputation {
-	p := &ActivityReputation{}
-	if p.FollowersCount = ar.FollowersCount / followersDividerPonderation; p.FollowersCount > maxFollowersReputation {
-		p.FollowersCount = maxFollowersReputation
+func ponderateActivityReputation(ar *ActivityReputationCounts) *ActivityReputationPoints {
+	p := &ActivityReputationPoints{}
+	if p.FollowersPoints = ar.FollowersCount / followersDividerPonderation; p.ElectionsCreatedPoints > maxFollowersReputation {
+		p.FollowersPoints = maxFollowersReputation
 	}
-	if p.ElectionsCreated = ar.ElectionsCreated / electionsDividerPonderation; p.ElectionsCreated > maxElectionsReputation {
-		p.ElectionsCreated = maxElectionsReputation
+	if p.ElectionsCreatedPoints = ar.ElectionsCreatedCount / electionsDividerPonderation; p.ElectionsCreatedPoints > maxElectionsReputation {
+		p.ElectionsCreatedPoints = maxElectionsReputation
 	}
-	if p.CastedVotes = ar.CastedVotes / votesDividerPonderation; p.CastedVotes > maxVotesReputation {
-		p.CastedVotes = maxVotesReputation
+	if p.CastVotesPoints = ar.CastVotesCount / votesDividerPonderation; p.CastVotesPoints > maxVotesReputation {
+		p.CastVotesPoints = maxVotesReputation
 	}
-	if p.VotesCastedOnCreatedElections = ar.VotesCastedOnCreatedElections / castedDividerPonderation; p.VotesCastedOnCreatedElections > maxCastedReputation {
-		p.VotesCastedOnCreatedElections = maxCastedReputation
+	if p.ParticipationsPoints = ar.ParticipationsCount / castedDividerPonderation; p.ParticipationsPoints > maxCastedReputation {
+		p.ParticipationsPoints = maxCastedReputation
 	}
-	if p.CommunitiesCount = ar.CommunitiesCount * communitiesMultiplierPonderation; p.CommunitiesCount > maxCommunityReputation {
-		p.CommunitiesCount = maxCommunityReputation
+	if p.CommunitiesPoints = ar.CommunitiesCount * communitiesMultiplierPonderation; p.CommunitiesPoints > maxCommunityReputation {
+		p.CommunitiesPoints = maxCommunityReputation
 	}
 	return p
 }

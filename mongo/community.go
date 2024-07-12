@@ -116,7 +116,7 @@ func (ms *MongoStorage) DelCommunity(communityID string) error {
 // CommunityParticipationMean returns the mean of the participation of the every
 // community poll with the given ID. It returns an error if something goes wrong
 // with the database.
-func (ms *MongoStorage) CommunityParticipationMean(communityID uint64) (float64, error) {
+func (ms *MongoStorage) CommunityParticipationMean(communityID string) (float64, error) {
 	elections, err := ms.ElectionsByCommunity(communityID)
 	if err != nil {
 		return 0, err
@@ -149,7 +149,7 @@ func (ms *MongoStorage) CommunitiesByVoter(userID uint64) ([]Community, error) {
 	// iterate over the elections getting the voters to check if the user is one
 	// of them, if so, get the community of the election and add it to the list
 	communities := []Community{}
-	alreadyIncluded := map[uint64]bool{}
+	alreadyIncluded := map[string]bool{}
 	for _, election := range communityElections {
 		// if the community is already included, skip it to avoid duplicates
 		// and unnecessary queries
@@ -182,7 +182,7 @@ func (ms *MongoStorage) CommunitiesByVoter(userID uint64) ([]Community, error) {
 // SetCommunityPoints sets the participation and census size of the community
 // with the given ID. It returns an error if something goes wrong with the
 // database.
-func (ms *MongoStorage) SetCommunityPoints(communityID uint64, participation float64, censusSize uint64) error {
+func (ms *MongoStorage) SetCommunityPoints(communityID string, participation float64, censusSize uint64) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -266,7 +266,7 @@ func (ms *MongoStorage) IsCommunityDisabled(communityID string) bool {
 	defer cancel()
 	var community Community
 	if err := ms.communities.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
-		log.Errorf("error getting community %d: %v", communityID, err)
+		log.Errorf("error getting community %s: %v", communityID, err)
 		return false
 	}
 	return community.Disabled

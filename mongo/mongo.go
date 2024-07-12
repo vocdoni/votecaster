@@ -299,6 +299,24 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on community ids for avatars: %w", err)
 	}
 
+	// Create an index for the 'userId' field on reputations
+	reputationUserIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "userId", Value: 1}}, // 1 for ascending order
+		Options: nil,
+	}
+	if _, err := ms.reputations.Indexes().CreateOne(ctx, reputationUserIndex); err != nil {
+		return fmt.Errorf("failed to create index on user ids for reputations: %w", err)
+	}
+
+	// Create an index for the 'communityId' field on reputations
+	reputationCommunityIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "communityId", Value: 1}}, // 1 for ascending order
+		Options: nil,
+	}
+	if _, err := ms.reputations.Indexes().CreateOne(ctx, reputationCommunityIndex); err != nil {
+		return fmt.Errorf("failed to create index on community ids for reputations: %w", err)
+	}
+
 	return nil
 }
 
@@ -466,19 +484,19 @@ func (ms *MongoStorage) String() string {
 
 	ctx12, cancel12 := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel12()
-	var reputations UserReputationCollection
+	var reputations ReputationCollection
 	cur, err = ms.reputations.Find(ctx12, bson.D{{}})
 	if err != nil {
 		log.Warn(err)
 	}
 	for cur.Next(ctx10) {
-		var rep UserReputation
+		var rep Reputation
 		err := cur.Decode(&rep)
 		if err != nil {
 			log.Warn(err)
 			continue
 		}
-		reputations.UserReputations = append(reputations.UserReputations, rep)
+		reputations.Reputations = append(reputations.Reputations, rep)
 	}
 
 	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communities, avatars, userAccessProfiles, reputations})
@@ -600,8 +618,8 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 	}
 
 	// Upser UserReputations
-	log.Infow("importing reputations", "count", len(collection.UserReputations))
-	for _, rep := range collection.UserReputations {
+	log.Infow("importing reputations", "count", len(collection.Reputations))
+	for _, rep := range collection.Reputations {
 		filter := bson.M{"_id": rep.UserID}
 		update := bson.M{"$set": rep}
 		opts := options.Update().SetUpsert(true)
