@@ -22,9 +22,6 @@ func (ms *MongoStorage) AddElection(
 	endTime time.Time,
 	community *ElectionCommunity,
 ) error {
-	ms.keysLock.Lock()
-	defer ms.keysLock.Unlock()
-
 	election := Election{
 		UserID:                userFID,
 		ElectionID:            electionID.String(),
@@ -36,8 +33,19 @@ func (ms *MongoStorage) AddElection(
 		Question:              question,
 		Community:             community,
 	}
+	ms.keysLock.Lock()
+	err := ms.addElection(&election)
+	ms.keysLock.Unlock()
+	if err != nil {
+		return fmt.Errorf("failed to add election: %w", err)
+	}
 	log.Infow("added new election", "electionID", electionID.String(), "userID", userFID, "question", question)
-	return ms.addElection(&election)
+	// Populate the election participants as remindable voters only if the
+	// election is a community election
+	if election.Community != nil {
+		return ms.PopulateRemindableVoters(types.HexStringToHexBytes(election.ElectionID))
+	}
+	return nil
 }
 
 // ElectionsByUser returns all the elections created by the user with the FID
@@ -181,11 +189,6 @@ func (ms *MongoStorage) addElection(election *Election) error {
 	defer cancel()
 	if _, err := ms.elections.InsertOne(ctx, election); err != nil {
 		return fmt.Errorf("cannot insert election: %w", err)
-	}
-	// Populate the election participants as remindable voters only if the
-	// election is a community election
-	if election.Community != nil {
-		return ms.populateRemindableVoters(types.HexStringToHexBytes(election.ElectionID))
 	}
 	return nil
 }

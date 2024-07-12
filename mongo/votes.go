@@ -109,7 +109,8 @@ func (ms *MongoStorage) RemindersSent(electionID types.HexBytes, reminders map[u
 	voters, err := ms.votersOfElection(electionID)
 	if err != nil {
 		if errors.Is(err, ErrElectionUnknown) {
-			return ms.createVotersList(ctx, electionID, 0)
+			_, err := ms.createVotersList(ctx, electionID, 0)
+			return err
 		} else {
 			return fmt.Errorf("error retrieving voters: %w", err)
 		}
@@ -152,6 +153,15 @@ func (ms *MongoStorage) votersOfElection(electionID types.HexBytes) (*VotersOfEl
 		log.Warn(err)
 		return nil, err
 	}
+	if voters.Voters == nil {
+		voters.Voters = []uint64{}
+	}
+	if voters.RemindableVoters == nil {
+		voters.RemindableVoters = map[uint64]string{}
+	}
+	if voters.AlreadyReminded == nil {
+		voters.AlreadyReminded = map[uint64]string{}
+	}
 	return &voters, nil
 }
 
@@ -168,7 +178,8 @@ func (ms *MongoStorage) addVoterToElection(election *Election, userFID uint64) e
 	voters, err := ms.votersOfElection(eid)
 	if err != nil {
 		if errors.Is(err, ErrElectionUnknown) {
-			return ms.createVotersList(ctx, eid, userFID)
+			_, err := ms.createVotersList(ctx, eid, userFID)
+			return err
 		} else {
 			return fmt.Errorf("error retrieving voters: %w", err)
 		}
@@ -181,7 +192,7 @@ func (ms *MongoStorage) addVoterToElection(election *Election, userFID uint64) e
 	return ms.updateVotersList(ctx, eid, voters, userFID)
 }
 
-func (ms *MongoStorage) createVotersList(ctx context.Context, electionID types.HexBytes, userFID uint64) error {
+func (ms *MongoStorage) createVotersList(ctx context.Context, electionID types.HexBytes, userFID uint64) (*VotersOfElection, error) {
 	// create a new voters list with the user as the only voter if userFID is not 0
 	users := []uint64{}
 	if userFID != 0 {
@@ -194,34 +205,35 @@ func (ms *MongoStorage) createVotersList(ctx context.Context, electionID types.H
 		AlreadyReminded:  map[uint64]string{},
 	}
 	if _, err := ms.voters.InsertOne(ctx, voters); err != nil {
-		return fmt.Errorf("failed to insert new voters list: %w", err)
+		return nil, fmt.Errorf("failed to insert new voters list: %w", err)
 	}
-	return nil
+	return voters, nil
 }
 
 // PopulateRemindableVoters creates the list of remindable voters for an election.
 func (ms *MongoStorage) PopulateRemindableVoters(electionID types.HexBytes) error {
-	ms.keysLock.Lock()
-	defer ms.keysLock.Unlock()
-	return ms.populateRemindableVoters(electionID)
-}
-
-// populateRemindableVoters creates the list of remindable voters for an election.
-// It gets the list of participants from the census and creates the list of
-// remindable voters from the participants usernames and fids.
-func (ms *MongoStorage) populateRemindableVoters(electionID types.HexBytes) error {
-	log.Debugw("populating remindable voters", "electionID", electionID.String())
 	// get the list of users that can be reminded (all participants)
+	ms.keysLock.RLock()
 	census, err := ms.censusFromElection(electionID)
+	ms.keysLock.RUnlock()
 	if err != nil {
 		return fmt.Errorf("failed to get census: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	votersCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	// check if the election exists in the voters database, if not create it
-	if _, err := ms.votersOfElection(electionID); err != nil {
+	ms.keysLock.RLock()
+	voters, err := ms.votersOfElection(electionID)
+	ms.keysLock.RUnlock()
+	// unlock reads
+	if err != nil {
 		if err == ErrElectionUnknown {
-			if err := ms.createVotersList(ctx, electionID, 0); err != nil {
+			// create the voters list with the first user as the only voter
+			// lock writes to create the voters list
+			ms.keysLock.Lock()
+			voters, err = ms.createVotersList(votersCtx, electionID, 0)
+			ms.keysLock.Unlock()
+			if err != nil {
 				return err
 			}
 		} else {
@@ -232,13 +244,23 @@ func (ms *MongoStorage) populateRemindableVoters(electionID types.HexBytes) erro
 	// participants usernames
 	remindableVoters := map[uint64]string{}
 	for username := range census.Participants {
+		ms.keysLock.RLock()
 		user, err := ms.userDataByUsername(username)
+		ms.keysLock.RUnlock()
 		if err != nil {
 			return fmt.Errorf("failed to get user by username: %w", err)
 		}
-		remindableVoters[user.UserID] = username
+		// include the user to be reminded only if it is not already in the
+		// remindeds list
+		if _, ok := voters.AlreadyReminded[user.UserID]; !ok {
+			remindableVoters[user.UserID] = username
+		}
 	}
-	_, err = ms.voters.UpdateOne(ctx, bson.M{"_id": electionID.String()}, bson.M{"$set": bson.M{"remindable_voters": remindableVoters}})
+	updateCtx, cancel2 := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel2()
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+	_, err = ms.voters.UpdateOne(updateCtx, bson.M{"_id": electionID.String()}, bson.M{"$set": bson.M{"remindable_voters": remindableVoters}})
 	if err != nil {
 		return fmt.Errorf("failed to update reminders: %w", err)
 	}
