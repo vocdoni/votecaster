@@ -276,7 +276,6 @@ func main() {
 			log.Warnw("failed to add web3 endpoint", "endpoint", endpoint, "error", err)
 		}
 	}
-
 	// Load chains config
 	chainsConfs, err := helpers.LoadChainsConfig(communityHubChainsConfigPath)
 	if err != nil {
@@ -289,7 +288,7 @@ func main() {
 			}
 		}
 	}
-	log.Infow("chain info loaded", "info", chainsConfs)
+	log.Infow("chain info loaded", "info", chainsConfs, "endpoints", web3pool.String())
 
 	// Create the Farcaster API client
 	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3pool)

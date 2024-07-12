@@ -84,36 +84,68 @@ func (ms *MongoStorage) SetReputationForUser(userID uint64, reputation uint32) e
 // DetailedUserReputation method return the reputation of a user based on the
 // user ID. It returns the detailed reputation information and values from the
 // database.
-func (ms *MongoStorage) DetailedUserReputation(userID uint64) (*UserReputation, error) {
+func (ms *MongoStorage) DetailedUserReputation(userID uint64) (*Reputation, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 	return ms.userReputation(userID)
+}
+
+// DetailedCommunityReputation method return the reputation of a community based
+// on the community ID. It returns the detailed reputation information and
+// values from the database.
+func (ms *MongoStorage) DetailedCommunityReputation(communityID string) (*Reputation, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	return ms.communityReputation(communityID)
 }
 
 // SetDetailedReputationForUser method updates the detailed reputation for a
 // given user ID. It overwrites the previous reputation values with the provided
 // values, if some values are not provided, they will keep the previous values
 // if they exist.
-func (ms *MongoStorage) SetDetailedReputationForUser(userID uint64, reputation *UserReputation) error {
+func (ms *MongoStorage) SetDetailedReputationForUser(userID uint64, reputation *Reputation) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
 	reputation.UserID = userID
-	return ms.updateUserReputation(reputation)
+	return ms.updateReputation(reputation)
 }
 
-func (ms *MongoStorage) userReputation(userID uint64) (*UserReputation, error) {
+// SetDetailedReputationForCommunity method updates the detailed reputation for
+// a given community ID. It overwrites the previous reputation values with the
+// provided values, if some values are not provided, they will keep the previous
+// values if they exist.
+func (ms *MongoStorage) SetDetailedReputationForCommunity(communityID string, reputation *Reputation) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+
+	reputation.CommunityID = communityID
+	return ms.updateReputation(reputation)
+}
+
+func (ms *MongoStorage) userReputation(userID uint64) (*Reputation, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var profile UserReputation
-	if err := ms.reputations.FindOne(ctx, bson.M{"_id": userID}).Decode(&profile); err != nil {
+	var profile Reputation
+	if err := ms.reputations.FindOne(ctx, bson.M{"userID": userID}).Decode(&profile); err != nil {
 		return nil, ErrUserUnknown
 	}
 	return &profile, nil
 }
 
-func (ms *MongoStorage) updateUserReputation(reputation *UserReputation) error {
+func (ms *MongoStorage) communityReputation(communityID string) (*Reputation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var profile Reputation
+	if err := ms.reputations.FindOne(ctx, bson.M{"communityID": communityID}).Decode(&profile); err != nil {
+		return nil, ErrUserUnknown
+	}
+	return &profile, nil
+}
+
+func (ms *MongoStorage) updateReputation(reputation *Reputation) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -121,8 +153,11 @@ func (ms *MongoStorage) updateUserReputation(reputation *UserReputation) error {
 	if err != nil {
 		return err
 	}
-
+	filter := bson.M{"userID": reputation.UserID}
+	if reputation.CommunityID != "" {
+		filter = bson.M{"communityID": reputation.CommunityID}
+	}
 	opts := options.Update().SetUpsert(true)
-	_, err = ms.reputations.UpdateOne(ctx, bson.M{"_id": reputation.UserID}, updateDoc, opts)
+	_, err = ms.reputations.UpdateOne(ctx, filter, updateDoc, opts)
 	return err
 }

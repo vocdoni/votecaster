@@ -209,11 +209,13 @@ func (u *Updater) updateHolders() error {
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting votecaster nft pass holders: %w", err))
 	} else {
+		u.votecasterLaunchNFTHolders = make(map[common.Address]*big.Int)
 		for _, holder := range votecasterNFTPassHolders {
 			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
 				u.votecasterNFTPassHolders[holder.Address] = holder.Balance
 			}
 		}
+		log.Infow("votecaster nft pass holders", "holders", len(u.votecasterLaunchNFTHolders))
 	}
 	// update Votecaster Launch NFT holders
 	votecasterLaunchNFTHolders, err := u.airstack.Client.TokenBalances(
@@ -221,11 +223,13 @@ func (u *Updater) updateHolders() error {
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting votecaster launch nft holders: %w", err))
 	} else {
+		u.votecasterLaunchNFTHolders = make(map[common.Address]*big.Int)
 		for _, holder := range votecasterLaunchNFTHolders {
 			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
 				u.votecasterLaunchNFTHolders[holder.Address] = holder.Balance
 			}
 		}
+		log.Infow("votecaster launch nft holders", "holders", len(u.votecasterLaunchNFTHolders))
 	}
 	// update KIWI holders
 	kiwiToken, err := u.census3.Token(KIWIAddress.Hex(), KIWIChainID, "")
@@ -236,6 +240,7 @@ func (u *Updater) updateHolders() error {
 		if err != nil {
 			errs = append(errs, fmt.Errorf("error getting KIWI holders queue ID: %w", err))
 		} else {
+			u.kiwiHolders = make(map[common.Address]*big.Int)
 			for {
 				kiwiHolders, finished, err := u.census3.HoldersByStrategyQueue(
 					kiwiToken.DefaultStrategy, kiwiHoldersQueueID)
@@ -253,6 +258,7 @@ func (u *Updater) updateHolders() error {
 				}
 				time.Sleep(time.Second * 1)
 			}
+			log.Infow("KIWI holders", "holders", len(u.kiwiHolders))
 		}
 	}
 	// update DegenDAO NFT holders
@@ -261,11 +267,13 @@ func (u *Updater) updateHolders() error {
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting DegenDAO NFT holders: %w", err))
 	} else {
+		u.degenDAONFTHolders = make(map[common.Address]*big.Int)
 		for _, holder := range degenDAONFTHolders {
 			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
 				u.degenDAONFTHolders[holder.Address] = holder.Balance
 			}
 		}
+		log.Infow("DegenDAO NFT holders", "holders", len(u.degenDAONFTHolders))
 	}
 	// update Haberdashery NFT holders
 	haberdasheryNFTHolders, err := u.airstack.Client.TokenBalances(
@@ -273,11 +281,13 @@ func (u *Updater) updateHolders() error {
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting Haberdashery NFT holders: %w", err))
 	} else {
+		u.haberdasheryNFTHolders = make(map[common.Address]*big.Int)
 		for _, holder := range haberdasheryNFTHolders {
 			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
 				u.haberdasheryNFTHolders[holder.Address] = holder.Balance
 			}
 		}
+		log.Infow("Haberdashery NFT holders", "holders", len(u.haberdasheryNFTHolders))
 	}
 	// update TokyoDAO NFT holders
 	tokyoDAONFTHolders, err := u.airstack.Client.TokenBalances(
@@ -285,11 +295,13 @@ func (u *Updater) updateHolders() error {
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting TokyoDAO NFT holders: %w", err))
 	} else {
+		u.tokyoDAONFTHolders = make(map[common.Address]*big.Int)
 		for _, holder := range tokyoDAONFTHolders {
 			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
 				u.tokyoDAONFTHolders[holder.Address] = holder.Balance
 			}
 		}
+		log.Infow("TokyoDAO NFT holders", "holders", len(u.tokyoDAONFTHolders))
 	}
 	// update Proxy
 	proxyHolders, err := u.airstack.Client.TokenBalances(
@@ -297,11 +309,13 @@ func (u *Updater) updateHolders() error {
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting Proxy holders: %w", err))
 	} else {
+		u.proxyHolders = make(map[common.Address]*big.Int)
 		for _, holder := range proxyHolders {
 			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
 				u.proxyHolders[holder.Address] = holder.Balance
 			}
 		}
+		log.Infow("Proxy holders", "holders", len(u.proxyHolders))
 	}
 	// update ProxyStudio NFT holders
 	proxyStudioNFTHolders, err := u.airstack.Client.TokenBalances(
@@ -309,11 +323,13 @@ func (u *Updater) updateHolders() error {
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting ProxyStudio NFT holders: %w", err))
 	} else {
+		u.proxyStudioNFTHolders = make(map[common.Address]*big.Int)
 		for _, holder := range proxyStudioNFTHolders {
 			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
 				u.proxyStudioNFTHolders[holder.Address] = holder.Balance
 			}
 		}
+		log.Infow("ProxyStudio NFT holders", "holders", len(u.proxyStudioNFTHolders))
 	}
 	// update NameDegen NFT holders
 	nameDegenHolders, err := u.airstack.Client.TokenBalances(
@@ -321,11 +337,13 @@ func (u *Updater) updateHolders() error {
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting NameDegen NFT holders: %w", err))
 	} else {
+		u.nameDegenHolders = make(map[common.Address]*big.Int)
 		for _, holder := range nameDegenHolders {
 			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
 				u.nameDegenHolders[holder.Address] = holder.Balance
 			}
 		}
+		log.Infow("NameDegen NFT holders", "holders", len(u.nameDegenHolders))
 	}
 	if len(errs) > 0 {
 		return fmt.Errorf("error updating holders: %v", errs)
@@ -357,21 +375,26 @@ func (u *Updater) updateUsers() error {
 	go func() {
 		defer innerWaiter.Done()
 		for user := range usersChan {
-			total.Add(1)
-			// get a slot in the concurrent updates channel
-			concurrentUpdates <- struct{}{}
-			go func(user *mongo.User) {
-				// release the slot when the update is done
-				defer func() {
-					<-concurrentUpdates
-				}()
-				// update user reputation
-				if err := u.updateUser(user); err != nil {
-					log.Errorf("error updating user %d: %v", user.UserID, err)
-				} else {
-					updates.Add(1)
-				}
-			}(user)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				total.Add(1)
+				// get a slot in the concurrent updates channel
+				concurrentUpdates <- struct{}{}
+				go func(user *mongo.User) {
+					// release the slot when the update is done
+					defer func() {
+						<-concurrentUpdates
+					}()
+					// update user reputation
+					if err := u.updateUser(user); err != nil {
+						log.Errorf("error updating user %d: %v", user.UserID, err)
+					} else {
+						updates.Add(1)
+					}
+				}(user)
+			}
 		}
 	}()
 	// iterate over users and send them to the channel
@@ -410,11 +433,11 @@ func (u *Updater) updateCommunities() error {
 				}()
 				participation, censusSize, err := u.communityPoints(community)
 				if err != nil {
-					log.Errorf("error getting community %d points: %v", community.ID, err)
+					log.Errorf("error getting community %s points: %v", community.ID, err)
 					return
 				}
 				if err := u.db.SetCommunityPoints(community.ID, participation, censusSize); err != nil {
-					log.Errorf("error updating community %d reputation: %v", community.ID, err)
+					log.Errorf("error updating community %s reputation: %v", community.ID, err)
 					return
 				}
 				updates.Add(1)
@@ -437,7 +460,7 @@ func (u *Updater) updateUser(user *mongo.User) error {
 	if err != nil {
 		// if the user is not found, create a new user with blank data
 		if errors.Is(err, mongo.ErrUserUnknown) {
-			return u.db.SetDetailedReputationForUser(user.UserID, &mongo.UserReputation{})
+			return u.db.SetDetailedReputationForUser(user.UserID, &mongo.Reputation{})
 		}
 		// return the error if it is not a user unknown error
 		return err
@@ -451,9 +474,9 @@ func (u *Updater) updateUser(user *mongo.User) error {
 	}
 	// update reputation
 	rep.FollowersCount = activityRep.FollowersCount
-	rep.ElectionsCreated = activityRep.ElectionsCreated
-	rep.CastedVotes = activityRep.CastedVotes
-	rep.VotesCastedOnCreatedElections = activityRep.VotesCastedOnCreatedElections
+	rep.ElectionsCreatedCount = activityRep.ElectionsCreatedCount
+	rep.CastVotesCount = activityRep.CastVotesCount
+	rep.ParticipationsCount = activityRep.ParticipationsCount
 	rep.CommunitiesCount = activityRep.CommunitiesCount
 	// get boosters data if needed
 	boostersRep := u.userBoosters(user)
@@ -485,23 +508,23 @@ func (u *Updater) updateUser(user *mongo.User) error {
 // created, the number of casted votes, the number of votes casted on elections
 // created by the user, and the number of communities where the user is an
 // admin. It returns an error if the activity data cannot be fetched.
-func (u *Updater) userActivityReputation(user *mongo.User) (*ActivityReputation, error) {
+func (u *Updater) userActivityReputation(user *mongo.User) (*ActivityReputationCounts, error) {
 	// Fetch the total votes cast on elections created by the user
 	totalVotes, err := u.db.TotalVotesForUserElections(user.UserID)
 	if err != nil {
-		return &ActivityReputation{}, fmt.Errorf("error fetching total votes for user elections: %w", err)
+		return &ActivityReputationCounts{}, fmt.Errorf("error fetching total votes for user elections: %w", err)
 	}
 	// Fetch the number of communities where the user is an admin
 	communitiesCount, err := u.db.CommunitiesCountForUser(user.UserID)
 	if err != nil {
-		return &ActivityReputation{}, fmt.Errorf("error fetching communities count for user: %w", err)
+		return &ActivityReputationCounts{}, fmt.Errorf("error fetching communities count for user: %w", err)
 	}
-	return &ActivityReputation{
-		FollowersCount:                user.Followers,
-		ElectionsCreated:              user.ElectionCount,
-		CastedVotes:                   user.CastedVotes,
-		VotesCastedOnCreatedElections: totalVotes,
-		CommunitiesCount:              communitiesCount,
+	return &ActivityReputationCounts{
+		FollowersCount:        user.Followers,
+		ElectionsCreatedCount: user.ElectionCount,
+		CastVotesCount:        user.CastedVotes,
+		ParticipationsCount:   totalVotes,
+		CommunitiesCount:      communitiesCount,
 	}, nil
 }
 
@@ -535,7 +558,7 @@ func (u *Updater) communityPoints(community *mongo.Community) (float64, uint64, 
 		}
 		censusSize = uint64(len(singleUsers))
 	case mongo.TypeCommunityCensusFollowers:
-		fid, err := communityhub.UserRefToFID(community.Census.Channel)
+		fid, err := communityhub.DecodeUserChannelFID(community.Census.Channel)
 		if err != nil {
 			return 0, 0, fmt.Errorf("invalid follower census user reference: %w", err)
 		}
@@ -576,6 +599,7 @@ func (u *Updater) userBoosters(user *mongo.User) *Boosters {
 	// for every user address check every booster only if it is not already set
 	u.holdersMtx.Lock()
 	defer u.holdersMtx.Unlock()
+	log.Info(user.Addresses)
 	for _, strAddr := range user.Addresses {
 		addr := common.HexToAddress(strAddr)
 		// check if user has votecaster nft pass

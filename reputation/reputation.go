@@ -13,12 +13,20 @@ var ErrNoReputationInfo = fmt.Errorf("no reputation information found about the 
 // activity, including the number of followers, the number of elections created,
 // the number of casted votes, the number of votes casted on created elections,
 // and the number of communities the user is part of as admin.
-type ActivityReputation struct {
-	FollowersCount                uint64 `json:"followersCount"`
-	ElectionsCreated              uint64 `json:"electionsCreated"`
-	CastedVotes                   uint64 `json:"castedVotes"`
-	VotesCastedOnCreatedElections uint64 `json:"participationAchievement"`
-	CommunitiesCount              uint64 `json:"communitiesCount"`
+type ActivityReputationCounts struct {
+	FollowersCount        uint64 `json:"followersCount"`
+	ElectionsCreatedCount uint64 `json:"createdElectionsCount"`
+	CastVotesCount        uint64 `json:"castVotesCount"`
+	ParticipationsCount   uint64 `json:"participationsCount"`
+	CommunitiesCount      uint64 `json:"communitiesCount"`
+}
+
+type ActivityReputationPoints struct {
+	FollowersPoints        uint64 `json:"followersPoints"`
+	ElectionsCreatedPoints uint64 `json:"createdElectionsPoints"`
+	CastVotesPoints        uint64 `json:"castVotesPoints"`
+	ParticipationsPoints   uint64 `json:"participationsPoints"`
+	CommunitiesPoints      uint64 `json:"communitiesPoints"`
 }
 
 // Boosters struct contains the boosters of a user, including if the user has
@@ -67,13 +75,13 @@ type ReputationInfo map[string]uint64
 // Reputation struct contains the reputation of a user, detailed by activity and
 // boosters
 type Reputation struct {
-	*Boosters          `json:"boosters"`
-	*UserPoints        `json:"points"`
-	ActivityReputation *ActivityReputation `json:"activity"`
-	ActivityCounts     *ActivityReputation `json:"activityCounts"`
-	TotalReputation    uint32              `json:"totalReputation"`
-	ActivityInfo       ReputationInfo      `json:"activityInfo"`
-	BoostersInfo       ReputationInfo      `json:"boostersInfo"`
+	*Boosters       `json:"boosters"`
+	*UserPoints     `json:"points"`
+	ActivityPoints  *ActivityReputationPoints `json:"activityPoints"`
+	ActivityCounts  *ActivityReputationCounts `json:"activityCounts"`
+	TotalReputation uint32                    `json:"totalReputation"`
+	ActivityInfo    ReputationInfo            `json:"activityInfo"`
+	BoostersInfo    ReputationInfo            `json:"boostersInfo"`
 }
 
 // Calculator struct contains the database connection to calculate the
@@ -147,12 +155,12 @@ func (c *Calculator) calcReputation(userID uint64) (*Reputation, error) {
 	if err != nil {
 		return &Reputation{}, fmt.Errorf("%w: %w", ErrNoReputationInfo, err)
 	}
-	activityRep := &ActivityReputation{
-		FollowersCount:                dbRep.FollowersCount,
-		ElectionsCreated:              dbRep.ElectionsCreated,
-		CastedVotes:                   dbRep.CastedVotes,
-		VotesCastedOnCreatedElections: dbRep.VotesCastedOnCreatedElections,
-		CommunitiesCount:              dbRep.CommunitiesCount,
+	activityRep := &ActivityReputationCounts{
+		FollowersCount:        dbRep.FollowersCount,
+		ElectionsCreatedCount: dbRep.ElectionsCreatedCount,
+		CastVotesCount:        dbRep.CastVotesCount,
+		ParticipationsCount:   dbRep.ParticipationsCount,
+		CommunitiesCount:      dbRep.CommunitiesCount,
 	}
 	boosters := &Boosters{
 		HasVotecasterNFTPass:           dbRep.HasVotecasterNFTPass,
@@ -177,10 +185,10 @@ func (c *Calculator) calcReputation(userID uint64) (*Reputation, error) {
 		return nil, fmt.Errorf("could not get user points: %w", err)
 	}
 	return &Reputation{
-		ActivityReputation: ponderateActivityReputation(activityRep),
-		ActivityCounts:     activityRep,
-		Boosters:           boosters,
-		TotalReputation:    totalReputation,
+		ActivityPoints:  ponderateActivityReputation(activityRep),
+		ActivityCounts:  activityRep,
+		Boosters:        boosters,
+		TotalReputation: totalReputation,
 		UserPoints: &UserPoints{
 			OwnerPoints: ownerPoints,
 			VoterPoints: voterPoints,
