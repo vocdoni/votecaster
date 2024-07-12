@@ -1,4 +1,7 @@
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
   Box,
   Button,
   FormControl,
@@ -78,18 +81,6 @@ export const PollRemindersModal = ({ poll, frameURL }: { poll: PollInfo; frameUR
   })
 
   const [selectedUsers, setSelectedUsers] = useState<Profile[]>([])
-
-  useEffect(() => {
-    if (!error) return
-
-    toast({
-      title: 'Error',
-      description: error?.message || 'Failed to retrieve poll reminders',
-      status: 'error',
-      duration: 5000,
-      isClosable: true,
-    })
-  }, [error])
 
   useEffect(() => {
     if (!success) return
@@ -175,7 +166,7 @@ export const PollRemindersModal = ({ poll, frameURL }: { poll: PollInfo; frameUR
               </Text>
             </ModalHeader>
             <ModalCloseButton />
-            {reminders?.remindableVoters.length || 0 > 0 ? (
+            {reminders?.remindableVoters?.length && !error ? (
               <>
                 <ModalHeader>
                   <form onSubmit={handleSubmit(sendReminders)}>
@@ -238,13 +229,22 @@ export const PollRemindersModal = ({ poll, frameURL }: { poll: PollInfo; frameUR
             ) : (
               <ModalBody>
                 <HStack spacing={4} alignItems={'center'} mb={4}>
-                  <Icon as={FaFlagCheckered} />
-                  <VStack align={'start'} spacing={1}>
-                    <Text fontWeight='semibold' fontSize={'sm'}>
-                      All the reminders have been sent.
-                    </Text>
-                    <Text fontSize={'sm'}>There are no users left to send reminders to.</Text>
-                  </VStack>
+                  {error ? (
+                    <Alert status='error'>
+                      <AlertIcon />
+                      <AlertDescription>{error.toString()}</AlertDescription>
+                    </Alert>
+                  ) : (
+                    <>
+                      <Icon as={FaFlagCheckered} />
+                      <VStack align={'start'} spacing={1}>
+                        <Text fontWeight='semibold' fontSize={'sm'}>
+                          All the reminders have been sent.
+                        </Text>
+                        <Text fontSize={'sm'}>There are no users left to send reminders to.</Text>
+                      </VStack>
+                    </>
+                  )}
                 </HStack>
               </ModalBody>
             )}
