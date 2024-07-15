@@ -71,6 +71,20 @@ func (ms *MongoStorage) ListCommunitiesByAdminFID(fid uint64, limit, offset int6
 	return communities, total, nil
 }
 
+// ListCommunitiesByAdminFID returns the list of communities where the user is 
+// the creator by FID provided.
+func (ms *MongoStorage) ListCommunitiesByCreatorFID(fid uint64, limit, offset int64) ([]Community, int64, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	communities := []Community{}
+	total, err := paginatedObjects(ms.communities, bson.M{"creator": fid}, nil, limit, offset, &communities)
+	if err != nil {
+		log.Debug("error listing communities by admin FID: ", err)
+		return nil, 0, err
+	}
+	return communities, total, nil
+}
+
 // ListCommunitiesByAdminUsername returns the list of communities where the
 // user is an admin by username provided. It queries about the user FID first.
 func (ms *MongoStorage) ListCommunitiesByAdminUsername(username string, limit, offset int64) ([]Community, int64, error) {
@@ -177,18 +191,6 @@ func (ms *MongoStorage) CommunitiesByVoter(userID uint64) ([]Community, error) {
 		communities = append(communities, *community)
 	}
 	return communities, nil
-}
-
-// SetCommunityPoints sets the participation and census size of the community
-// with the given ID. It returns an error if something goes wrong with the
-// database.
-func (ms *MongoStorage) SetCommunityPoints(communityID string, participation float64, censusSize uint64) error {
-	ms.keysLock.Lock()
-	defer ms.keysLock.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err := ms.communities.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"participation": participation, "censusSize": censusSize}})
-	return err
 }
 
 // addCommunity method adds a new community to the database. It returns an error

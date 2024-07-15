@@ -57,6 +57,10 @@ type Reputation struct {
 	CommunityID     string `json:"communityID" bson:"communityID"`
 	UserID          uint64 `json:"userID" bson:"userID"`
 	TotalReputation uint64 `json:"totalReputation" bson:"totalReputation"`
+	TotalPoints     uint64 `json:"totalPoints" bson:"totalPoints"`
+	// community
+	Participation float64 `json:"participation" bson:"participation"`
+	CensusSize    uint64  `json:"censusSize" bson:"censusSize"`
 	// activity
 	FollowersCount        uint64 `json:"followersCount" bson:"followersCount"`
 	ElectionsCreatedCount uint64 `json:"electionsCreatedCount" bson:"electionsCreatedCount"`
@@ -262,8 +266,6 @@ type Community struct {
 	Notifications bool            `json:"notifications" bson:"notifications"`
 	Disabled      bool            `json:"disabled" bson:"disabled"`
 	Featured      bool            `json:"featured" bson:"featured"`
-	Participation float64         `json:"participation" bson:"participation"`
-	CensusSize    uint64          `json:"censusSize" bson:"censusSize"`
 }
 
 const (

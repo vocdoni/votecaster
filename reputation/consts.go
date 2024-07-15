@@ -33,12 +33,13 @@ const (
 	nameDegenPuntuaction                      = 5
 	farcasterOGNFTPuntuaction                 = 6
 	// yield rate
-	yieldParamA       = 2
-	yieldParamB       = .2
-	daoMultiplier     = 4
-	channelMultiplier = 2
-	voterMultiplier   = .3
-	ownerMultiplier   = .7
+	yieldParamA         = 2
+	yieldParamB         = .2
+	daoMultiplier       = 4
+	channelMultiplier   = 2
+	voterMultiplier     = .3
+	ownerMultiplier     = .7
+	communityMultiplier = 1
 )
 
 var ActivityPuntuationInfo = ReputationInfo{

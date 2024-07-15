@@ -9,7 +9,7 @@ import (
 
 // totalReputation calculates the reputation of a user based on their activity
 // and boosters and returns the mean value of both.
-func totalReputation(ar *ActivityReputationCounts, b *Boosters) uint32 {
+func totalReputation(ar *ActivityReputationCounts, b *Boosters) uint64 {
 	log.Infow("user reputation", "activity", activityReputation(ar), "boosters", boostersReputation(b))
 	return (activityReputation(ar) + boostersReputation(b)) / 2
 }
@@ -17,13 +17,13 @@ func totalReputation(ar *ActivityReputationCounts, b *Boosters) uint32 {
 // activityReputation calculates the reputation of a user based on their
 // ponderated activity reputation values. If the reputation exceeds 100, it is
 // capped at 100.
-func activityReputation(rep *ActivityReputationCounts) uint32 {
+func activityReputation(rep *ActivityReputationCounts) uint64 {
 	ponderated := ponderateActivityReputation(rep)
-	reputation := uint32(ponderated.FollowersPoints +
+	reputation := ponderated.FollowersPoints +
 		ponderated.ElectionsCreatedPoints +
 		ponderated.CastVotesPoints +
 		ponderated.ParticipationsPoints +
-		ponderated.CommunitiesPoints)
+		ponderated.CommunitiesPoints
 	if reputation > maxReputation {
 		reputation = maxReputation
 	}
@@ -83,8 +83,8 @@ func ponderateActivityReputation(ar *ActivityReputationCounts) *ActivityReputati
 //   - FarcasterOG NFT: 'farcasterOGNFTPuntuaction' points
 //
 // If the reputation exceeds 100, it is capped at 100.
-func boostersReputation(rep *Boosters) uint32 {
-	reputation := uint32(0)
+func boostersReputation(rep *Boosters) uint64 {
+	reputation := uint64(0)
 	// add votecaster nft pass puntuaction if user has it
 	if rep.HasVotecasterNFTPass {
 		reputation += votecasterNFTPassPuntuaction
@@ -163,8 +163,8 @@ func boostersReputation(rep *Boosters) uint32 {
 // Y = (A * participationRate + B * log(censusSize)) * ownerRep
 // if DAO => Y = Y * daoMultiplier
 // if Channel => Y = Y * channelMultiplier
-func communityYieldRate(participationRate, censusSize, ownerRep float64, dao, channel bool) float64 {
-	y := (yieldParamA*participationRate + yieldParamB*math.Log(censusSize)) * ownerRep
+func communityYieldRate(p, cs, r float64, dao, channel bool) float64 {
+	y := (yieldParamA*p + yieldParamB*math.Log(cs)) * r
 	if dao {
 		y *= daoMultiplier
 	} else if channel {
@@ -173,24 +173,17 @@ func communityYieldRate(participationRate, censusSize, ownerRep float64, dao, ch
 	return y
 }
 
-// sumOfYields calculates the sum of the yields of the communities and the
-// reputation and multiplier provided. It returns the sum of the yields for
-// the reputation multiplied by the multiplier. It calculates the yield rate
-// based on the participation rate, census size, reputation, and the type of
-// census (DAO (nft or erc20), Channel, or other (followers)).
-func sumOfYields(communities []mongo.Community, reputation uint32, multiplier float64) uint64 {
-	var points uint64
-	for _, community := range communities {
-		var yieldRate float64
-		switch community.Census.Type {
-		case mongo.TypeCommunityCensusERC20, mongo.TypeCommunityCensusNFT:
-			yieldRate = communityYieldRate(community.Participation, float64(community.CensusSize), float64(reputation), true, false)
-		case mongo.TypeCommunityCensusChannel:
-			yieldRate = communityYieldRate(community.Participation, float64(community.CensusSize), float64(reputation), false, true)
-		default:
-			yieldRate = communityYieldRate(community.Participation, float64(community.CensusSize), float64(reputation), false, false)
-		}
-		points += uint64(yieldRate * multiplier)
+func communityTotalPoints(censusType string, m, p float64, cs, r uint64) uint64 {
+	var y float64
+	switch censusType {
+	case mongo.TypeCommunityCensusERC20, mongo.TypeCommunityCensusNFT:
+		y = communityYieldRate(p, float64(cs), float64(r), true, false)
+	case mongo.TypeCommunityCensusChannel:
+		y = communityYieldRate(p, float64(cs), float64(r), false, true)
+	case mongo.TypeCommunityCensusFollowers:
+		y = communityYieldRate(p, float64(cs), float64(r), false, false)
+	default:
+		return 0
 	}
-	return points
+	return uint64(y * m)
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/vocdoni/vote-frame/farcasterapi/warpcast"
 	"github.com/vocdoni/vote-frame/mongo"
-	"github.com/vocdoni/vote-frame/reputation"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
@@ -111,11 +110,11 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 		return fmt.Errorf("failed to get voters of election: %w", err)
 	}
 	maxDMs := v.MaxDirectMessages(auth.UserID, maxDirectMessages)
-	if uint32(len(remindableUsers)) > maxDMs {
+	if uint64(len(remindableUsers)) > maxDMs {
 		msg := fmt.Sprintf("too many users to remind, by your reputation you only can sent %d reminds", maxDMs)
 		return ctx.Send([]byte(msg), http.StatusBadRequest)
 	}
-	if alreadySent >= maxDMs {
+	if uint64(alreadySent) >= maxDMs {
 		msg := fmt.Sprintf("you have already sent the maximum number of reminders (%d)", maxDMs)
 		return ctx.Send([]byte(msg), http.StatusBadRequest)
 	}
@@ -217,8 +216,8 @@ func (v *vocdoniHandler) remindersQueueHandler(msg *apirest.APIdata, ctx *httpro
 // can send based on their reputation. It computes the maximum number of direct
 // messages by calculating the percentage of the absolute maximum number of
 // messages using the user's reputation.
-func (v *vocdoniHandler) MaxDirectMessages(userID uint64, absoluteMax uint32) uint32 {
-	userRep, err := reputation.NewCalculator(v.db).UserReputation(userID, true)
+func (v *vocdoniHandler) MaxDirectMessages(userID uint64, absoluteMax uint64) uint64 {
+	userRep, err := v.db.DetailedUserReputation(userID)
 	if err != nil {
 		return 0
 	}

@@ -181,8 +181,8 @@ type DirectNotification struct {
 type Reminders struct {
 	RemindableVoters       map[uint64]string `json:"remindableVoters"`
 	RemindableVotersWeight map[uint64]string `json:"votersWeight"`
-	AlreadySent            uint32            `json:"alreadySent"`
-	MaxReminders           uint32            `json:"maxReminders"`
+	AlreadySent            uint64            `json:"alreadySent"`
+	MaxReminders           uint64            `json:"maxReminders"`
 }
 
 const (

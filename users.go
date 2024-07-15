@@ -45,8 +45,8 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 		return fmt.Errorf("could not get muted users: %v", err)
 	}
 
-	// calculate the user reputation
-	rep, err := reputation.NewCalculator(v.db).UserReputation(auth.UserID, true)
+	// get user reputation
+	rep, err := v.db.DetailedUserReputation(auth.UserID)
 	if err != nil {
 		return fmt.Errorf("could not get user reputation: %v", err)
 	}
@@ -54,7 +54,7 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
 		"user":               user,
-		"reputation":         rep,
+		"reputation":         reputation.ReputationToAPIResponse(rep),
 		"polls":              userElections,
 		"mutedUsers":         mutedUsers,
 		"warpcastApiEnabled": accessprofile.WarpcastAPIKey != "",
@@ -182,8 +182,8 @@ func (v *vocdoniHandler) profilePublicHandler(msg *apirest.APIdata, ctx *httprou
 		return fmt.Errorf("could not get muted users: %v", err)
 	}
 
-	// calculate the user reputation
-	rep, err := reputation.NewCalculator(v.db).UserReputation(user.UserID, true)
+	// get user reputation
+	rep, err := v.db.DetailedUserReputation(user.UserID)
 	if err != nil {
 		return fmt.Errorf("could not get user reputation: %v", err)
 	}
@@ -191,7 +191,7 @@ func (v *vocdoniHandler) profilePublicHandler(msg *apirest.APIdata, ctx *httprou
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
 		"user":       user,
-		"reputation": rep,
+		"reputation": reputation.ReputationToAPIResponse(rep),
 		"polls":      userElections,
 		"mutedUsers": mutedUsers,
 	})

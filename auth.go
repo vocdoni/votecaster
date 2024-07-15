@@ -59,13 +59,11 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 	if err != nil {
 		return fmt.Errorf("could not generate token: %v", err)
 	}
-
-	// calculate the user reputation
-	rep, err := reputation.NewCalculator(v.db).UserReputation(resp.Fid, true)
+	// get user reputation
+	rep, err := v.db.DetailedUserReputation(resp.Fid)
 	if err != nil {
 		return fmt.Errorf("could not get user reputation: %v", err)
 	}
-
 	// Remove unnecessary fields
 	resp.State = ""
 	resp.Nonce = ""
@@ -76,7 +74,7 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 	data, err := json.Marshal(map[string]any{
 		"profile":    resp,
 		"authToken":  token.String(),
-		"reputation": rep,
+		"reputation": reputation.ReputationToAPIResponse(rep),
 	})
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)
@@ -98,15 +96,15 @@ func (v *vocdoniHandler) authCheckHandler(msg *apirest.APIdata, ctx *httprouter.
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
 	}
 
-	// calculate the user reputation
-	rep, err := reputation.NewCalculator(v.db).UserReputation(auth.UserID, true)
+	// get user reputation
+	rep, err := v.db.DetailedUserReputation(auth.UserID)
 	if err != nil {
 		return fmt.Errorf("could not get user reputation: %v", err)
 	}
 
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
-		"reputation": rep,
+		"reputation": reputation.ReputationToAPIResponse(rep),
 	})
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)
