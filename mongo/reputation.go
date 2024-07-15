@@ -7,7 +7,46 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.vocdoni.io/dvote/log"
 )
+
+func (ms *MongoStorage) ReputationRanking(users, communities bool) ([]*Reputation, error) {
+	return nil, nil
+}
+
+// ReputationsIterator iterates over available reputations and sends them to
+// the provided channel.
+func (ms *MongoStorage) ReputationsIterator(ctx context.Context, repCh chan *Reputation) error {
+	// Executing the find operation with the specified filter and options
+	ms.keysLock.RLock()
+	cur, err := ms.reputations.Find(ctx, bson.M{})
+	ms.keysLock.RUnlock()
+	if err != nil {
+		return err
+	}
+	defer cur.Close(ctx)
+
+	for {
+		ms.keysLock.RLock()
+		if !cur.Next(ctx) {
+			ms.keysLock.RUnlock()
+			break
+		}
+		rep := &Reputation{}
+		err := cur.Decode(rep)
+		ms.keysLock.RUnlock()
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+		// Send the user to the channel
+		repCh <- rep
+	}
+	if err := cur.Err(); err != nil {
+		return err
+	}
+	return nil
+}
 
 // TotalVotesForUserElections calculates the total number of votes casted on elections created by the user.
 func (ms *MongoStorage) TotalVotesForUserElections(userID uint64) (uint64, error) {

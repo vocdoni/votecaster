@@ -40,7 +40,7 @@ var (
 	serverURL         = "http://localhost:8888"
 	explorerURL       = "https://dev.explorer.vote"
 	onvoteURL         = "https://dev.onvote.app"
-	maxDirectMessages = uint32(10000)
+	maxDirectMessages = uint64(10000)
 )
 
 func main() {
@@ -160,7 +160,7 @@ func main() {
 
 	// limited features vars
 	featureNotificationReputation := uint32(viper.GetInt32("featureNotificationReputation"))
-	maxDirectMessages = uint32(viper.GetInt32("maxDirectMessages"))
+	maxDirectMessages = viper.GetUint64("maxDirectMessages")
 	reputationUpdateInterval := viper.GetDuration("reputationUpdateInterval")
 	concurrentReputationUpdates := viper.GetInt("concurrentReputationUpdates")
 

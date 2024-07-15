@@ -115,21 +115,25 @@ func (u *Updater) Start(coolDown time.Duration) error {
 					time.Sleep(time.Second * 30)
 					continue
 				}
-				// update internal followers
-				if err := u.updateFollowersAndRecasters(); err != nil {
-					log.Warnw("error updating internal followers", "error", err)
+				// fetch internal followers
+				if err := u.fetchFollowersAndRecasters(); err != nil {
+					log.Warnw("error fetching internal followers", "error", err)
 				}
-				// update holders
-				if err := u.updateHolders(); err != nil {
-					log.Warnw("error updating holders", "error", err)
+				// fetch holders
+				if err := u.fetchHolders(); err != nil {
+					log.Warnw("error fetching holders", "error", err)
 				}
-				// launch update communities
-				if err := u.updateCommunities(); err != nil {
-					log.Warnw("error updating communities", "error", err)
+				// update communities contants (participation mean and census size)
+				if err := u.updateCommunitiesContants(); err != nil {
+					log.Warnw("error updating communities constants", "error", err)
 				}
-				// launch update
-				if err := u.updateUsers(); err != nil {
-					log.Warnw("error updating users", "error", err)
+				// update users constants (activity reputation and boosters)
+				if err := u.updateUsersConstants(); err != nil {
+					log.Warnw("error updating users constants", "error", err)
+				}
+				// update total reputations of both, communities and users
+				if err := u.updateTotalReputations(); err != nil {
+					log.Warnw("error updating total reputations", "error", err)
 				}
 				// update last update time
 				u.lastUpdate = time.Now()
@@ -146,12 +150,13 @@ func (u *Updater) Stop() {
 	u.waiter.Wait()
 }
 
-// updateFollowersAndRecasters method updates the internal followers of the
+// fetchFollowersAndRecasters method updates the internal followers of the
 // Vocdoni and Votecaster profiles in Farcaster and warpcast users that have
 // recasted the Votecaster Launch cast announcement. It fetches the followers
 // and recasters data from the Farcaster API and updates the internal followers
 // maps accordingly. It returns an error if the followers data cannot be fetched.
-func (u *Updater) updateFollowersAndRecasters() error {
+func (u *Updater) fetchFollowersAndRecasters() error {
+	log.Info("fetching followers and recasters")
 	internalCtx, cancel := context.WithTimeout(u.ctx, time.Second*30)
 	defer cancel()
 	u.followersMtx.Lock()
@@ -193,13 +198,14 @@ func (u *Updater) updateFollowersAndRecasters() error {
 	return nil
 }
 
-// updateHolders method updates the internal holders lists to cache the holders
+// fetchHolders method updates the internal holders lists to cache the holders
 // of the Votecaster NFT pass, the Votecaster Launch NFT, the KIWI token, the
 // DegenDAO NFT, the Haberdashery NFT, the TokyoDAO NFT, the Proxy, the
 // ProxyStudio NFT, and the NameDegen NFT. It fetches the holders data from the
 // Airstack API and the Census3 API. It returns an error if the holders data
 // cannot be fetched.
-func (u *Updater) updateHolders() error {
+func (u *Updater) fetchHolders() error {
+	log.Info("fetching holders of reputation erc20's and nft's")
 	u.holdersMtx.Lock()
 	defer u.holdersMtx.Unlock()
 	var errs []error
@@ -351,14 +357,54 @@ func (u *Updater) updateHolders() error {
 	return nil
 }
 
-// updateUsers method iterates over all users in the database and updates their
-// reputation data. It uses a concurrent approach to update multiple users at
-// the same time, limiting the number of concurrent updates to the maximum
-// number of concurrent updates set in the Updater instance. It fetches the
-// activity data from the database and the boosters data from the Airstack and
-// the Census3 API.
-func (u *Updater) updateUsers() error {
-	log.Info("updating users reputation")
+func (u *Updater) updateCommunitiesContants() error {
+	log.Info("updating communities contants")
+	// limit the number of concurrent updates and create the channel to receive
+	// the communities, creates also the inner waiter to wait for all updates to
+	// finish
+	concurrentUpdates := make(chan struct{}, u.maxConcurrent)
+	innerWaiter := sync.WaitGroup{}
+	communities, total, err := u.db.ListCommunities(-1, 0)
+	if err != nil {
+		return fmt.Errorf("error listing communities: %w", err)
+	}
+	// counters for total and updated communities
+	updates := atomic.Int64{}
+	// listen for communities and update them concurrently
+	innerWaiter.Add(1)
+	go func() {
+		defer innerWaiter.Done()
+		for _, community := range communities {
+			// get a slot in the concurrent updates channel
+			concurrentUpdates <- struct{}{}
+			go func(community *mongo.Community) {
+				// release the slot when the update is done
+				defer func() {
+					<-concurrentUpdates
+				}()
+				participation, censusSize, err := u.communityConstants(community)
+				if err != nil {
+					log.Errorf("error getting community %s points: %v", community.ID, err)
+					return
+				}
+				if err := u.db.SetDetailedReputationForCommunity(community.ID, &mongo.Reputation{
+					Participation: participation,
+					CensusSize:    censusSize,
+				}); err != nil {
+					log.Errorf("error updating community %s reputation: %v", community.ID, err)
+					return
+				}
+				updates.Add(1)
+			}(&community)
+		}
+	}()
+	innerWaiter.Wait()
+	log.Infow("communities reputation updated", "total", total, "updated", updates.Load())
+	return nil
+}
+
+func (u *Updater) updateUsersConstants() error {
+	log.Info("updating users contants")
 	ctx, cancel := context.WithCancel(u.ctx)
 	defer cancel()
 	// limit the number of concurrent updates and create the channel to receive
@@ -388,7 +434,7 @@ func (u *Updater) updateUsers() error {
 						<-concurrentUpdates
 					}()
 					// update user reputation
-					if err := u.updateUser(user); err != nil {
+					if err := u.updateUserContants(user); err != nil {
 						log.Errorf("error updating user %d: %v", user.UserID, err)
 					} else {
 						updates.Add(1)
@@ -406,129 +452,57 @@ func (u *Updater) updateUsers() error {
 	return nil
 }
 
-func (u *Updater) updateCommunities() error {
-	log.Info("updating communities reputation")
+func (u *Updater) updateTotalReputations() error {
+	log.Info("updating total reputations")
+	ctx, cancel := context.WithCancel(u.ctx)
+	defer cancel()
 	// limit the number of concurrent updates and create the channel to receive
-	// the communities, creates also the inner waiter to wait for all updates to
+	// the users, creates also the inner waiter to wait for all updates to
 	// finish
 	concurrentUpdates := make(chan struct{}, u.maxConcurrent)
+	repsChan := make(chan *mongo.Reputation)
 	innerWaiter := sync.WaitGroup{}
-	communities, total, err := u.db.ListCommunities(-1, 0)
-	if err != nil {
-		return fmt.Errorf("error listing communities: %w", err)
-	}
-	// counters for total and updated communities
+	// counters for total and updated users
 	updates := atomic.Int64{}
-	// listen for communities and update them concurrently
+	total := atomic.Int64{}
+	// listen for users and update them concurrently
 	innerWaiter.Add(1)
 	go func() {
 		defer innerWaiter.Done()
-		for _, community := range communities {
-			// get a slot in the concurrent updates channel
-			concurrentUpdates <- struct{}{}
-			go func(community *mongo.Community) {
-				// release the slot when the update is done
-				defer func() {
-					<-concurrentUpdates
-				}()
-				participation, censusSize, err := u.communityPoints(community)
-				if err != nil {
-					log.Errorf("error getting community %s points: %v", community.ID, err)
-					return
-				}
-				if err := u.db.SetCommunityPoints(community.ID, participation, censusSize); err != nil {
-					log.Errorf("error updating community %s reputation: %v", community.ID, err)
-					return
-				}
-				updates.Add(1)
-			}(&community)
+		for reputation := range repsChan {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				total.Add(1)
+				// get a slot in the concurrent updates channel
+				concurrentUpdates <- struct{}{}
+				go func(rep *mongo.Reputation) {
+					// release the slot when the update is done
+					defer func() {
+						<-concurrentUpdates
+					}()
+					// update total reputation
+					if err := u.updateTotalReputation(rep); err != nil {
+						log.Errorf("error total reputation (userID: %d, communityID: %s): %v",
+							rep.UserID, rep.CommunityID, err)
+					} else {
+						updates.Add(1)
+					}
+				}(reputation)
+			}
 		}
 	}()
+	// iterate over users and send them to the channel
+	if err := u.db.ReputationsIterator(ctx, repsChan); err != nil {
+		return fmt.Errorf("error iterating users: %w", err)
+	}
 	innerWaiter.Wait()
-	log.Infow("communities reputation updated", "total", total, "updated", updates.Load())
+	log.Infow("users reputation updated", "total", total.Load(), "updated", updates.Load())
 	return nil
 }
 
-// updateUser method updates the reputation data of a given user. It fetches the
-// activity data from the database and the boosters data from the Airstack and
-// the Census3 API. It then updates the reputation data in the database.
-func (u *Updater) updateUser(user *mongo.User) error {
-	if u.db == nil {
-		return fmt.Errorf("database not set")
-	}
-	rep, err := u.db.DetailedUserReputation(user.UserID)
-	if err != nil {
-		// if the user is not found, create a new user with blank data
-		if errors.Is(err, mongo.ErrUserUnknown) {
-			return u.db.SetDetailedReputationForUser(user.UserID, &mongo.Reputation{})
-		}
-		// return the error if it is not a user unknown error
-		return err
-	}
-	// get activiy data if needed
-	activityRep, err := u.userActivityReputation(user)
-	if err != nil {
-		// if there is an error fetching the activity data, log the error and
-		// continue updating the no failed activity data
-		log.Warnw("error getting user activity reputation", "error", err, "user", user.UserID)
-	}
-	// update reputation
-	rep.FollowersCount = activityRep.FollowersCount
-	rep.ElectionsCreatedCount = activityRep.ElectionsCreatedCount
-	rep.CastVotesCount = activityRep.CastVotesCount
-	rep.ParticipationsCount = activityRep.ParticipationsCount
-	rep.CommunitiesCount = activityRep.CommunitiesCount
-	// get boosters data if needed
-	boostersRep := u.userBoosters(user)
-	// if there is an error fetching the boosters data, log the error and
-	// continue updating the no failed boosters data
-	if err != nil {
-		log.Warnw("error getting some boosters", "error", err, "user", user.UserID)
-	}
-	// update reputation
-	rep.HasVotecasterNFTPass = boostersRep.HasVotecasterNFTPass
-	rep.HasVotecasterLaunchNFT = boostersRep.HasVotecasterLaunchNFT
-	rep.IsVotecasterAlphafrensFollower = boostersRep.IsVotecasterAlphafrensFollower
-	rep.IsVotecasterFarcasterFollower = boostersRep.IsVotecasterFarcasterFollower
-	rep.IsVocdoniFarcasterFollower = boostersRep.IsVocdoniFarcasterFollower
-	rep.VotecasterAnnouncementRecasted = boostersRep.VotecasterAnnouncementRecasted
-	rep.HasKIWI = boostersRep.HasKIWI
-	rep.HasDegenDAONFT = boostersRep.HasDegenDAONFT
-	rep.Has10kDegenAtLeast = boostersRep.Has10kDegenAtLeast
-	rep.HasTokyoDAONFT = boostersRep.HasTokyoDAONFT
-	rep.Has5ProxyAtLeast = boostersRep.Has5ProxyAtLeast
-	rep.HasNameDegen = boostersRep.HasNameDegen
-	// commit reputation
-	return u.db.SetDetailedReputationForUser(user.UserID, rep)
-}
-
-// userActivityReputation method fetches the activity data of a given user from
-// the database. It returns the activity data as an ActivityReputation struct.
-// The activity data includes the number of followers, the number of elections
-// created, the number of casted votes, the number of votes casted on elections
-// created by the user, and the number of communities where the user is an
-// admin. It returns an error if the activity data cannot be fetched.
-func (u *Updater) userActivityReputation(user *mongo.User) (*ActivityReputationCounts, error) {
-	// Fetch the total votes cast on elections created by the user
-	totalVotes, err := u.db.TotalVotesForUserElections(user.UserID)
-	if err != nil {
-		return &ActivityReputationCounts{}, fmt.Errorf("error fetching total votes for user elections: %w", err)
-	}
-	// Fetch the number of communities where the user is an admin
-	communitiesCount, err := u.db.CommunitiesCountForUser(user.UserID)
-	if err != nil {
-		return &ActivityReputationCounts{}, fmt.Errorf("error fetching communities count for user: %w", err)
-	}
-	return &ActivityReputationCounts{
-		FollowersCount:        user.Followers,
-		ElectionsCreatedCount: user.ElectionCount,
-		CastVotesCount:        user.CastedVotes,
-		ParticipationsCount:   totalVotes,
-		CommunitiesCount:      communitiesCount,
-	}, nil
-}
-
-func (u *Updater) communityPoints(community *mongo.Community) (float64, uint64, error) {
+func (u *Updater) communityConstants(community *mongo.Community) (float64, uint64, error) {
 	participation, err := u.db.CommunityParticipationMean(community.ID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("error fetching community participation mean: %w", err)
@@ -571,6 +545,116 @@ func (u *Updater) communityPoints(community *mongo.Community) (float64, uint64, 
 		return 0, 0, fmt.Errorf("invalid census type")
 	}
 	return participation, censusSize, nil
+}
+
+// updateUserContants method updates the reputation data of a given user. It
+// fetches the activity data from the database and the boosters data from the
+// Airstack and the Census3 API. It then updates the reputation data in the
+// database.
+func (u *Updater) updateUserContants(user *mongo.User) error {
+	if u.db == nil {
+		return fmt.Errorf("database not set")
+	}
+	rep, err := u.db.DetailedUserReputation(user.UserID)
+	if err != nil {
+		// if the user is not found, create a new user with blank data
+		if errors.Is(err, mongo.ErrUserUnknown) {
+			return u.db.SetDetailedReputationForUser(user.UserID, &mongo.Reputation{})
+		}
+		// return the error if it is not a user unknown error
+		return err
+	}
+	// get activiy data and update the reputation
+	activityRep, err := u.userActivityReputation(user)
+	if err != nil {
+		// if there is an error fetching the activity data, log the error and
+		// continue updating the no failed activity data
+		log.Warnw("error getting user activity reputation", "error", err, "user", user.UserID)
+	} else {
+		rep.FollowersCount = activityRep.FollowersCount
+		rep.ElectionsCreatedCount = activityRep.ElectionsCreatedCount
+		rep.CastVotesCount = activityRep.CastVotesCount
+		rep.ParticipationsCount = activityRep.ParticipationsCount
+		rep.CommunitiesCount = activityRep.CommunitiesCount
+	}
+	// get boosters data and update reputation
+	boostersRep := u.userBoosters(user)
+	rep.HasVotecasterNFTPass = boostersRep.HasVotecasterNFTPass
+	rep.HasVotecasterLaunchNFT = boostersRep.HasVotecasterLaunchNFT
+	rep.IsVotecasterAlphafrensFollower = boostersRep.IsVotecasterAlphafrensFollower
+	rep.IsVotecasterFarcasterFollower = boostersRep.IsVotecasterFarcasterFollower
+	rep.IsVocdoniFarcasterFollower = boostersRep.IsVocdoniFarcasterFollower
+	rep.VotecasterAnnouncementRecasted = boostersRep.VotecasterAnnouncementRecasted
+	rep.HasKIWI = boostersRep.HasKIWI
+	rep.HasDegenDAONFT = boostersRep.HasDegenDAONFT
+	rep.Has10kDegenAtLeast = boostersRep.Has10kDegenAtLeast
+	rep.HasTokyoDAONFT = boostersRep.HasTokyoDAONFT
+	rep.Has5ProxyAtLeast = boostersRep.Has5ProxyAtLeast
+	rep.HasNameDegen = boostersRep.HasNameDegen
+	// calculate total reputation
+	rep.TotalReputation = totalReputation(activityRep, boostersRep)
+	// commit reputation
+	return u.db.SetDetailedReputationForUser(user.UserID, rep)
+}
+
+func (u *Updater) updateTotalReputation(reputation *mongo.Reputation) error {
+	if u.db == nil {
+		return fmt.Errorf("database not set")
+	}
+	if reputation.UserID == 0 || reputation.CommunityID == "" {
+		return fmt.Errorf("invalid reputation data")
+	}
+	// check if the reputation is about a user or a community
+	if reputation.CommunityID != "" {
+		// get the community points based on the type of census of the community
+		points, err := u.communityPoints(reputation)
+		if err != nil {
+			return fmt.Errorf("error calculating community points: %w", err)
+		}
+		if err := u.db.SetDetailedReputationForCommunity(reputation.CommunityID, &mongo.Reputation{
+			TotalPoints: points,
+		}); err != nil {
+			return fmt.Errorf("error updating community total reputation: %w", err)
+		}
+	} else {
+		// get the user points based on the current reputation
+		points, err := u.userPoints(reputation)
+		if err != nil {
+			return fmt.Errorf("error calculating user points: %w", err)
+		}
+		if err := u.db.SetDetailedReputationForUser(reputation.UserID, &mongo.Reputation{
+			TotalPoints: points,
+		}); err != nil {
+			return fmt.Errorf("error updating user total reputation: %w", err)
+		}
+	}
+	return nil
+}
+
+// userActivityReputation method fetches the activity data of a given user from
+// the database. It returns the activity data as an ActivityReputation struct.
+// The activity data includes the number of followers, the number of elections
+// created, the number of casted votes, the number of votes casted on elections
+// created by the user, and the number of communities where the user is an
+// admin. It returns an error if the activity data cannot be fetched.
+func (u *Updater) userActivityReputation(user *mongo.User) (*ActivityReputationCounts, error) {
+	// Fetch the total votes cast on elections created by the user
+	totalVotes, err := u.db.TotalVotesForUserElections(user.UserID)
+	if err != nil {
+		return &ActivityReputationCounts{}, fmt.Errorf("error fetching total votes for user elections: %w", err)
+	}
+	// Fetch the number of communities where the user is an admin
+	communitiesCount, err := u.db.CommunitiesCountForUser(user.UserID)
+	if err != nil {
+		return &ActivityReputationCounts{}, fmt.Errorf("error fetching communities count for user: %w", err)
+	}
+	return &ActivityReputationCounts{
+		FollowersCount:        user.Followers,
+		ElectionsCreatedCount: user.ElectionCount,
+		CastVotesCount:        user.CastedVotes,
+		ParticipationsCount:   totalVotes,
+		CommunitiesCount:      communitiesCount,
+	}, nil
 }
 
 // userBoosters method fetches the boosters data of a given user from the
@@ -656,4 +740,65 @@ func (u *Updater) userBoosters(user *mongo.User) *Boosters {
 		}
 	}
 	return boosters
+}
+
+func (u *Updater) userPoints(rep *mongo.Reputation) (uint64, error) {
+	points := uint64(0)
+	// get community reputation of communities where the user is the creator
+	// of the community
+	ownerCommunities, _, err := u.db.ListCommunitiesByCreatorFID(rep.UserID, -1, 0)
+	if err != nil {
+		return 0, fmt.Errorf("error fetching owner communities: %w", err)
+	}
+	for _, community := range ownerCommunities {
+		comRep, err := u.db.DetailedCommunityReputation(community.ID)
+		if err != nil {
+			return 0, fmt.Errorf("error fetching community reputation: %w", err)
+		}
+		points += communityTotalPoints(
+			community.Census.Type,
+			ownerMultiplier,
+			comRep.Participation,
+			comRep.CensusSize,
+			rep.TotalReputation)
+	}
+	// get community reputation of communities where the user is a member
+	// of the community
+	voterCommunities, err := u.db.CommunitiesByVoter(rep.UserID)
+	if err != nil {
+		return 0, fmt.Errorf("error fetching voter communities: %w", err)
+	}
+	for _, community := range voterCommunities {
+		comRep, err := u.db.DetailedCommunityReputation(community.ID)
+		if err != nil {
+			return 0, fmt.Errorf("error fetching community reputation: %w", err)
+		}
+		points += communityTotalPoints(
+			community.Census.Type,
+			voterMultiplier,
+			comRep.Participation,
+			comRep.CensusSize,
+			rep.TotalReputation)
+	}
+	return points, nil
+}
+
+func (u *Updater) communityPoints(rep *mongo.Reputation) (uint64, error) {
+	// get community to get the user fid of the creator
+	community, err := u.db.Community(rep.CommunityID)
+	if err != nil {
+		return 0, fmt.Errorf("error fetching community: %w", err)
+	}
+	// get reputation of the creator
+	userRep, err := u.db.DetailedUserReputation(community.Creator)
+	if err != nil {
+		return 0, fmt.Errorf("error fetching user reputation: %w", err)
+	}
+	// calculate the points of the community based on the creator reputation
+	return communityTotalPoints(
+		community.Census.Type,
+		communityMultiplier,
+		rep.Participation,
+		rep.CensusSize,
+		userRep.TotalReputation), nil
 }

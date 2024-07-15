@@ -708,14 +708,14 @@ func (v *vocdoniHandler) remindersHandler(msg *apirest.APIdata, ctx *httprouter.
 	delete(reminableWeights, auth.UserID)
 	// get the maximum number of direct messages the user can send by reputation
 	maxDMs := v.MaxDirectMessages(auth.UserID, maxDirectMessages)
-	if uint32(len(remindableUsers)) < maxDMs {
-		maxDMs = uint32(len(remindableUsers))
+	if uint64(len(remindableUsers)) < maxDMs {
+		maxDMs = uint64(len(remindableUsers))
 	}
 	// encode results
 	res, err := json.Marshal(&Reminders{
 		RemindableVoters:       remindableUsers,
 		RemindableVotersWeight: reminableWeights,
-		AlreadySent:            uint32(remindersSent),
+		AlreadySent:            remindersSent,
 		MaxReminders:           maxDMs,
 	})
 	if err != nil {
