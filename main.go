@@ -355,6 +355,7 @@ func main() {
 		log.Fatal(err)
 	}
 	repUpdater.Start(reputationUpdateInterval)
+	defer repUpdater.Stop()
 
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)

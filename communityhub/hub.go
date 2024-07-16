@@ -204,7 +204,6 @@ func (ch *CommunityHub) SyncCommunities() {
 							log.Warnw("failed to get community ID by chain alias", "chainAlias", contract.ChainAlias)
 							continue
 						}
-						log.Infow("syncing community", "communityID", communityID)
 						onchainCommunity, err := contract.Community(communityID)
 						if err != nil {
 							log.Warnw("failed to get community data", "error", err, "communityID", communityID)
