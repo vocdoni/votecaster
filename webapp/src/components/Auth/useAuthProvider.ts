@@ -5,20 +5,6 @@ import { userToProfile } from '~util/mappings'
 export type AuthState = ReturnType<typeof useAuthProvider>
 
 const baseRep = {
-  activity: {
-    followersCount: 0,
-    electionsCreated: 0,
-    castedVotes: 0,
-    participationAchievement: 0,
-    communitiesCount: 0,
-  },
-  activityCounts: {
-    followersCount: 0,
-    electionsCreated: 0,
-    castedVotes: 0,
-    participationAchievement: 0,
-    communitiesCount: 0,
-  },
   boosters: {
     hasVotecasterNFTPass: false,
     hasVotecasterLaunchNFT: false,
@@ -35,20 +21,6 @@ const baseRep = {
     hasProxyStudioNFT: false,
     hasNameDegen: false,
     hasFarcasterOGNFT: false,
-  },
-  points: {
-    ownerPoints: 0,
-    voterPoints: 0,
-    totalPoints: 0,
-  },
-  totalReputation: 0,
-  activityInfo: {
-    maxCastedReputation: 0,
-    maxCommunityReputation: 0,
-    maxElectionsReputation: 0,
-    maxFollowersReputation: 0,
-    maxReputation: 0,
-    maxVotesReputation: 0,
   },
   boostersInfo: {
     degenAtLeast10kPuntuaction: 0,
@@ -67,6 +39,30 @@ const baseRep = {
     votecasterLaunchNFTPuntuaction: 0,
     votecasterNFTPassPuntuaction: 0,
   },
+  activityPoints: {
+    followersPoints: 0,
+    createdElectionsPoints: 0,
+    castVotesPoints: 0,
+    participationsPoints: 0,
+    communitiesPoints: 0,
+  },
+  activityCounts: {
+    followersCount: 0,
+    createdElectionsCount: 0,
+    castVotesCount: 0,
+    participationsCount: 0,
+    communitiesCount: 0,
+  },
+  activityInfo: {
+    maxCastedReputation: 0,
+    maxCommunityReputation: 0,
+    maxElectionsReputation: 0,
+    maxFollowersReputation: 0,
+    maxReputation: 0,
+    maxVotesReputation: 0,
+  },
+  totalReputation: 0,
+  totalPoints: 0,
 }
 
 export type Reputation = typeof baseRep

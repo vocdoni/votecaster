@@ -91,23 +91,23 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
                 Manager of {reputation.activityCounts.communitiesCount} communities
               </StatLabel>
               <FlexStatNumber>
-                {reputation.activity.communitiesCount}/{reputation.activityInfo.maxCommunityReputation}
+                {reputation.activityPoints.communitiesPoints}/{reputation.activityInfo.maxCommunityReputation}
                 {` `}
                 <Icon as={FaUserGroup} boxSize={3} />
               </FlexStatNumber>
             </Stat>{' '}
             <Stat>
-              <StatLabel fontSize='x-small'>Casted {reputation.activityCounts.castedVotes} votes</StatLabel>
+              <StatLabel fontSize='x-small'>Casted {reputation.activityCounts.castVotesCount} votes</StatLabel>
               <FlexStatNumber>
-                {reputation.activity.castedVotes}/{reputation.activityInfo.maxVotesReputation}
+                {reputation.activityPoints.castVotesPoints}/{reputation.activityInfo.maxVotesReputation}
                 {` `}
                 <Icon as={MdOutlineHowToVote} boxSize={3.5} />
               </FlexStatNumber>
             </Stat>
             <Stat>
-              <StatLabel fontSize='x-small'>Created {reputation.activityCounts.electionsCreated} polls</StatLabel>
+              <StatLabel fontSize='x-small'>Created {reputation.activityCounts.createdElectionsCount} polls</StatLabel>
               <FlexStatNumber>
-                {reputation.activity.electionsCreated}/{reputation.activityInfo.maxElectionsReputation}
+                {reputation.activityPoints.createdElectionsPoints}/{reputation.activityInfo.maxElectionsReputation}
                 {` `}
                 <Icon as={SlPencil} boxSize={3} />
               </FlexStatNumber>
@@ -115,17 +115,17 @@ export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
             <Stat>
               <StatLabel fontSize='x-small'>{reputation.activityCounts.followersCount} followers</StatLabel>
               <FlexStatNumber>
-                {reputation.activity.followersCount}/{reputation.activityInfo.maxFollowersReputation}
+                {reputation.activityPoints.followersPoints}/{reputation.activityInfo.maxFollowersReputation}
                 {` `}
                 <Icon as={FaHeart} boxSize={3} />
               </FlexStatNumber>
             </Stat>
             <Stat>
               <StatLabel fontSize='x-small'>
-                Participated in {reputation.activityCounts.participationAchievement} polls
+                Participated in {reputation.activityCounts.participationsCount} polls
               </StatLabel>
               <FlexStatNumber>
-                {reputation.activity.participationAchievement}/{reputation.activityInfo.maxCastedReputation}
+                {reputation.activityCounts.participationsCount}/{reputation.activityInfo.maxCastedReputation}
                 {` `}
                 <Icon as={FaRegFaceGrinStars} boxSize={3} />
               </FlexStatNumber>
