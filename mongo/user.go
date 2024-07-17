@@ -57,9 +57,16 @@ func (ms *MongoStorage) UserIDs(startId uint64, maxResults int) ([]uint64, error
 // UsersIterator iterates over available users and sends them to the provided
 // channel.
 func (ms *MongoStorage) UsersIterator(ctx context.Context, usersCh chan *User) error {
+	filter := bson.M{
+		"$or": []bson.M{
+			{"castedVotes": bson.M{"$gt": 0}},
+			{"electionCount": bson.M{"$gt": 0}},
+			{"followers": bson.M{"$gt": 0}},
+		},
+	}
 	// Executing the find operation with the specified filter and options
 	ms.keysLock.RLock()
-	cur, err := ms.users.Find(ctx, bson.M{})
+	cur, err := ms.users.Find(ctx, filter)
 	ms.keysLock.RUnlock()
 	if err != nil {
 		return err

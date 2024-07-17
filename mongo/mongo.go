@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -51,6 +52,10 @@ type Options struct {
 
 // funcGetElection is a function that returns an election by its ID.
 type funcGetElection = func(electionID types.HexBytes) (*api.Election, error)
+
+func IsDBClosed(err error) bool {
+	return strings.Contains(err.Error(), "client is disconnected")
+}
 
 // AddElectionCallback adds a callback function to get the election details by its ID.
 func (ms *MongoStorage) AddElectionCallback(f funcGetElection) {

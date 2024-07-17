@@ -217,7 +217,7 @@ func (v *vocdoniHandler) remindersQueueHandler(msg *apirest.APIdata, ctx *httpro
 // messages by calculating the percentage of the absolute maximum number of
 // messages using the user's reputation.
 func (v *vocdoniHandler) MaxDirectMessages(userID uint64, absoluteMax uint64) uint64 {
-	userRep, err := v.db.DetailedUserReputation(userID)
+	userRep, err := v.repUpdater.UserReputation(userID, true)
 	if err != nil {
 		return 0
 	}

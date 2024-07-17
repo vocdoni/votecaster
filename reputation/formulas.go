@@ -4,13 +4,11 @@ import (
 	"math"
 
 	"github.com/vocdoni/vote-frame/mongo"
-	"go.vocdoni.io/dvote/log"
 )
 
 // totalReputation calculates the reputation of a user based on their activity
 // and boosters and returns the mean value of both.
 func totalReputation(ar *ActivityReputationCounts, b *Boosters) uint64 {
-	log.Infow("user reputation", "activity", activityReputation(ar), "boosters", boostersReputation(b))
 	return (activityReputation(ar) + boostersReputation(b)) / 2
 }
 

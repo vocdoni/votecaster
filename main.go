@@ -360,7 +360,7 @@ func main() {
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)
 	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo,
-		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, comHub, adminFID)
+		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, comHub, repUpdater, adminFID)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
 	"go.vocdoni.io/dvote/log"
@@ -58,6 +59,10 @@ func finalizeElectionsAtBackround(ctx context.Context, v *vocdoniHandler) {
 		case <-time.After(60 * time.Second):
 			electionIDs, err := v.db.ElectionsWithoutResults()
 			if err != nil {
+				if mongo.IsDBClosed(err) {
+					log.Warn("database client is disconnected")
+					return
+				}
 				log.Errorw(err, "failed to get elections without results")
 				continue
 			}

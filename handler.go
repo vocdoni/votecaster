@@ -21,6 +21,7 @@ import (
 	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"github.com/vocdoni/vote-frame/mongo"
+	"github.com/vocdoni/vote-frame/reputation"
 	"github.com/vocdoni/vote-frame/shortener"
 	"go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/apiclient"
@@ -43,6 +44,7 @@ type vocdoniHandler struct {
 	fcapi         farcasterapi.API
 	airstack      *airstack.Airstack
 	comhub        *communityhub.CommunityHub
+	repUpdater    *reputation.Updater
 
 	backgroundQueue  sync.Map
 	addAuthTokenFunc func(uint64, string)
@@ -60,6 +62,7 @@ func NewVocdoniHandler(
 	token *uuid.UUID,
 	airstack *airstack.Airstack,
 	comhub *communityhub.CommunityHub,
+	repUpdater *reputation.Updater,
 	adminFID uint64,
 ) (*vocdoniHandler, error) {
 	// Get the vocdoni account
@@ -98,6 +101,7 @@ func NewVocdoniHandler(
 		fcapi:         fcapi,
 		airstack:      airstack,
 		comhub:        comhub,
+		repUpdater:    repUpdater,
 		adminFID:      adminFID,
 		electionLRU: func() *lru.Cache[string, *api.Election] {
 			lru, err := lru.New[string, *api.Election](100)
