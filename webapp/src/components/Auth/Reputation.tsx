@@ -158,27 +158,27 @@ export const ReputationTable = ({ reputation }: { reputation: Reputation }) => (
       <Tr>
         <Td>Community created</Td>
         <Td>{reputation.activityInfo.maxCommunityReputation}</Td>
-        <Td>{reputation.activity.communitiesCount}</Td>
+        <Td>{reputation.activityCounts.communitiesCount}</Td>
       </Tr>
       <Tr>
         <Td>Polls created</Td>
         <Td>{reputation.activityInfo.maxElectionsReputation}</Td>
-        <Td>{reputation.activity.electionsCreated}</Td>
+        <Td>{reputation.activityCounts.createdElectionsCount}</Td>
       </Tr>
       <Tr>
         <Td>Participated in polls</Td>
         <Td>{reputation.activityInfo.maxCastedReputation}</Td>
-        <Td>{reputation.activity.participationAchievement}</Td>
+        <Td>{reputation.activityCounts.participationsCount}</Td>
       </Tr>
       <Tr>
         <Td>Votes cast</Td>
         <Td>{reputation.activityInfo.maxVotesReputation}</Td>
-        <Td>{reputation.activity.castedVotes}</Td>
+        <Td>{reputation.activityCounts.castVotesCount}</Td>
       </Tr>
       <Tr>
         <Td>Followers</Td>
         <Td>{reputation.activityInfo.maxFollowersReputation}</Td>
-        <Td>{reputation.activity.followersCount}</Td>
+        <Td>{reputation.activityCounts.followersCount}</Td>
       </Tr>
       <Tr>
         <Td>Follow @vocdoni on Farcaster</Td>
