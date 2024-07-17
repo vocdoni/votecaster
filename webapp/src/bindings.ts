@@ -137,18 +137,14 @@ export const communityHubAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '_communityId', internalType: 'uint256', type: 'uint256' },
-    ],
+    inputs: [{ name: '_communityId', internalType: 'uint256', type: 'uint256' }],
     name: 'deposit',
     outputs: [],
     stateMutability: 'payable',
   },
   {
     type: 'function',
-    inputs: [
-      { name: '_communityId', internalType: 'uint256', type: 'uint256' },
-    ],
+    inputs: [{ name: '_communityId', internalType: 'uint256', type: 'uint256' }],
     name: 'getCommunity',
     outputs: [
       {

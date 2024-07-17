@@ -52,14 +52,16 @@ export const UsersTableModal = ({
         <ModalContent>
           <ModalHeader>{title}</ModalHeader>
           <ModalCloseButton />
-          {!!downloadText &&  <ModalHeader display='flex' justifyContent='end'>
+          {!!downloadText && (
+            <ModalHeader display='flex' justifyContent='end'>
               <Button size='sm' rightIcon={<FaDownload />} onClick={download}>
                 {downloadText}
               </Button>
-          </ModalHeader>}
+            </ModalHeader>
+          )}
           <ModalBody>
             {error && <Check error={error} isLoading={isLoading} />}
-            <UsersTable size='sm' users={data} selectable={selectable}/>
+            <UsersTable size='sm' users={data} selectable={selectable} />
           </ModalBody>
           <ModalFooter justifyContent='space-between' flexWrap='wrap'>
             <Button size='sm' onClick={onClose} variant='ghost' alignSelf='start'>
