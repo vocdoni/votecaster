@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vocdoni/vote-frame/farcasterauth"
-	"github.com/vocdoni/vote-frame/reputation"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
@@ -59,11 +58,6 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 	if err != nil {
 		return fmt.Errorf("could not generate token: %v", err)
 	}
-	// get user reputation
-	rep, err := v.db.DetailedUserReputation(resp.Fid)
-	if err != nil {
-		return fmt.Errorf("could not get user reputation: %v", err)
-	}
 	// Remove unnecessary fields
 	resp.State = ""
 	resp.Nonce = ""
@@ -72,9 +66,8 @@ func (v *vocdoniHandler) authVerifyHandler(_ *apirest.APIdata, ctx *httprouter.H
 
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
-		"profile":    resp,
-		"authToken":  token.String(),
-		"reputation": reputation.ReputationToAPIResponse(rep),
+		"profile":   resp,
+		"authToken": token.String(),
 	})
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)
@@ -95,20 +88,6 @@ func (v *vocdoniHandler) authCheckHandler(msg *apirest.APIdata, ctx *httprouter.
 	if err != nil {
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
 	}
-
-	// get user reputation
-	rep, err := v.db.DetailedUserReputation(auth.UserID)
-	if err != nil {
-		return fmt.Errorf("could not get user reputation: %v", err)
-	}
-
-	// Marshal the response
-	data, err := json.Marshal(map[string]any{
-		"reputation": reputation.ReputationToAPIResponse(rep),
-	})
-	if err != nil {
-		return fmt.Errorf("could not marshal response: %v", err)
-	}
-	log.Infow("authentication check completed", "fid", auth.UserID, "reputation", rep)
-	return ctx.Send(data, apirest.HTTPstatusOK)
+	log.Infow("authentication check completed", "fid", auth.UserID)
+	return ctx.Send([]byte("ok"), apirest.HTTPstatusOK)
 }

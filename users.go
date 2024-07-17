@@ -183,7 +183,7 @@ func (v *vocdoniHandler) profilePublicHandler(msg *apirest.APIdata, ctx *httprou
 	}
 
 	// get user reputation
-	rep, err := v.db.DetailedUserReputation(user.UserID)
+	rep, err := v.repUpdater.UserReputation(user.UserID, true)
 	if err != nil {
 		return fmt.Errorf("could not get user reputation: %v", err)
 	}
@@ -191,7 +191,7 @@ func (v *vocdoniHandler) profilePublicHandler(msg *apirest.APIdata, ctx *httprou
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
 		"user":       user,
-		"reputation": reputation.ReputationToAPIResponse(rep),
+		"reputation": rep,
 		"polls":      userElections,
 		"mutedUsers": mutedUsers,
 	})

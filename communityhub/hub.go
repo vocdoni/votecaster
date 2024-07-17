@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	dbmongo "github.com/vocdoni/vote-frame/mongo"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.vocdoni.io/dvote/log"
 )
 
@@ -212,7 +211,10 @@ func (ch *CommunityHub) SyncCommunities() {
 						// get the community from the database
 						dbCommunity, err := ch.communityFromDB(communityID)
 						if err != nil {
-							if err != ErrCommunityNotFound {
+							if errors.Is(err, ErrClosedDB) {
+								return
+							}
+							if !errors.Is(err, ErrCommunityNotFound) {
 								log.Warnw("failed to get community from database", "error", err)
 							}
 							if err := ch.addCommunityToDB(onchainCommunity); err != nil {
@@ -470,6 +472,9 @@ func (ch *CommunityHub) joinCommunityData(data, newData *HubCommunity) (*HubComm
 func (ch *CommunityHub) communityFromDB(communityID string) (*HubCommunity, error) {
 	community, err := ch.db.Community(communityID)
 	if err != nil {
+		if dbmongo.IsDBClosed(err) {
+			return nil, ErrClosedDB
+		}
 		return nil, errors.Join(ErrGettingCommunity, err)
 	}
 	if community == nil {
@@ -490,7 +495,7 @@ func (l *CommunityHub) addCommunityToDB(hcommunity *HubCommunity) error {
 	// if community already exists in the database, update it
 	current, err := l.db.Community(hcommunity.CommunityID)
 	if err != nil {
-		if err == mongo.ErrClientDisconnected {
+		if dbmongo.IsDBClosed(err) {
 			return ErrClosedDB
 		}
 		return errors.Join(ErrAddCommunity, err)
@@ -505,7 +510,7 @@ func (l *CommunityHub) addCommunityToDB(hcommunity *HubCommunity) error {
 	}
 	// create community in the database including the first admin as the creator
 	if err := l.db.AddCommunity(dbc); err != nil {
-		if err == mongo.ErrClientDisconnected {
+		if dbmongo.IsDBClosed(err) {
 			return ErrClosedDB
 		}
 		return errors.Join(ErrAddCommunity, err)
@@ -524,7 +529,7 @@ func (l *CommunityHub) updateCommunityToDB(hcommunity *HubCommunity) error {
 	}
 	// create community in the database including the first admin as the creator
 	if err := l.db.UpdateCommunity(dbCommunity); err != nil {
-		if err == mongo.ErrClientDisconnected {
+		if dbmongo.IsDBClosed(err) {
 			return ErrClosedDB
 		}
 		return errors.Join(ErrAddCommunity, err)

@@ -48,7 +48,7 @@ const (
 	getBotUsernameTimeout   = 10 * time.Second
 	getCastByMentionTimeout = 60 * time.Second
 	postCastTimeout         = 10 * time.Second
-	defaultRequestTimeout   = 10 * time.Second
+	defaultRequestTimeout   = 30 * time.Second
 
 	// Requests backoff parameters
 	maxConcurrentRequests = 2

@@ -16,6 +16,7 @@ import (
 	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/farcasterapi"
 	"github.com/vocdoni/vote-frame/mongo"
+	dbmongo "github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/log"
 )
 
@@ -28,7 +29,7 @@ type Updater struct {
 	cancel context.CancelFunc
 	waiter sync.WaitGroup
 
-	db            *mongo.MongoStorage
+	db            *dbmongo.MongoStorage
 	fapi          farcasterapi.API
 	airstack      *airstack.Airstack
 	census3       *apiclient.HTTPclient
@@ -56,7 +57,7 @@ type Updater struct {
 // NewUpdater creates a new Updater instance with the given parameters,
 // including the parent context, the database, the Airstack client, the Census3
 // client, and the maximum number of concurrent updates.
-func NewUpdater(ctx context.Context, db *mongo.MongoStorage, fapi farcasterapi.API,
+func NewUpdater(ctx context.Context, db *dbmongo.MongoStorage, fapi farcasterapi.API,
 	as *airstack.Airstack, c3 *apiclient.HTTPclient, maxConcurrent int,
 ) (*Updater, error) {
 	if db == nil {
@@ -125,14 +126,23 @@ func (u *Updater) Start(coolDown time.Duration) error {
 				}
 				// update communities contants (participation mean and census size)
 				if err := u.updateCommunitiesContants(); err != nil {
+					if mongo.IsDBClosed(err) {
+						return
+					}
 					log.Warnw("error updating communities constants", "error", err)
 				}
 				// update users constants (activity reputation and boosters)
 				if err := u.updateUsersConstants(); err != nil {
+					if mongo.IsDBClosed(err) {
+						return
+					}
 					log.Warnw("error updating users constants", "error", err)
 				}
 				// update total reputations of both, communities and users
 				if err := u.updateTotalReputations(); err != nil {
+					if mongo.IsDBClosed(err) {
+						return
+					}
 					log.Warnw("error updating total reputations", "error", err)
 				}
 				// update last update time
@@ -146,8 +156,107 @@ func (u *Updater) Start(coolDown time.Duration) error {
 // Stop method stops the updater by canceling the context and waiting for the
 // updater to finish.
 func (u *Updater) Stop() {
+	log.Info("stopping reputation updater")
 	u.cancel()
 	u.waiter.Wait()
+}
+
+func (u *Updater) UserReputation(userID uint64, commit bool) (*Reputation, error) {
+	user, err := u.db.User(userID)
+	if err != nil {
+		// return the error if it is not a user unknown error
+		return nil, err
+	}
+	// fetch internal followers
+	if err := u.fetchFollowersAndRecasters(); err != nil {
+		log.Warnw("error fetching internal followers", "error", err)
+	}
+	// fetch holders
+	if err := u.fetchHolders(); err != nil {
+		log.Warnw("error fetching holders", "error", err)
+	}
+	// calculate user reputation
+	rep, err := u.userReputation(user)
+	if err != nil {
+		return nil, fmt.Errorf("error calculating user reputation: %w", err)
+	}
+	// calculate total points
+	rep.TotalPoints, err = u.userPoints(user.UserID, rep.TotalReputation)
+	if err != nil {
+		return nil, fmt.Errorf("error calculating user points: %w", err)
+	}
+	// update user reputation in the database if commit is true
+	if commit {
+		if err := u.db.SetDetailedReputationForUser(user.UserID, rep); err != nil {
+			return nil, fmt.Errorf("error updating user reputation: %w", err)
+		}
+	}
+	return ReputationToAPIResponse(rep), nil
+}
+
+func (u *Updater) userPoints(userID, totalReputation uint64) (uint64, error) {
+	points := uint64(0)
+	// get community reputation of communities where the user is the creator
+	// of the community
+	ownerCommunities, _, err := u.db.ListCommunitiesByCreatorFID(userID, -1, 0)
+	if err != nil {
+		return 0, fmt.Errorf("error fetching owner communities: %w", err)
+	}
+	for _, community := range ownerCommunities {
+		comRep, err := u.db.DetailedCommunityReputation(community.ID)
+		if err != nil {
+			return 0, fmt.Errorf("error fetching community reputation: %w", err)
+		}
+		points += communityTotalPoints(
+			community.Census.Type,
+			ownerMultiplier,
+			comRep.Participation,
+			comRep.CensusSize,
+			totalReputation)
+	}
+	// get community reputation of communities where the user is a member
+	// of the community
+	voterCommunities, err := u.db.CommunitiesByVoter(userID)
+	if err != nil {
+		return 0, fmt.Errorf("error fetching voter communities: %w", err)
+	}
+	for _, community := range voterCommunities {
+		comRep, err := u.db.DetailedCommunityReputation(community.ID)
+		if err != nil {
+			return 0, fmt.Errorf("error fetching community reputation: %w", err)
+		}
+		points += communityTotalPoints(
+			community.Census.Type,
+			voterMultiplier,
+			comRep.Participation,
+			comRep.CensusSize,
+			totalReputation)
+	}
+	return points, nil
+}
+
+func (u *Updater) communityPoints(communityID string) (uint64, error) {
+	// get community to get the user fid of the creator
+	community, err := u.db.Community(communityID)
+	if err != nil {
+		return 0, fmt.Errorf("error fetching community: %w", err)
+	}
+	rep, err := u.db.DetailedCommunityReputation(communityID)
+	if err != nil {
+		return 0, fmt.Errorf("error fetching community reputation: %w", err)
+	}
+	// get reputation of the creator
+	userRep, err := u.db.DetailedUserReputation(community.Creator)
+	if err != nil {
+		return 0, fmt.Errorf("error fetching user reputation: %w", err)
+	}
+	// calculate the points of the community based on the creator reputation
+	return communityTotalPoints(
+		community.Census.Type,
+		communityMultiplier,
+		rep.Participation,
+		rep.CensusSize,
+		userRep.TotalReputation), nil
 }
 
 // fetchFollowersAndRecasters method updates the internal followers of the
@@ -251,6 +360,7 @@ func (u *Updater) fetchHolders() error {
 				kiwiHolders, finished, err := u.census3.HoldersByStrategyQueue(
 					kiwiToken.DefaultStrategy, kiwiHoldersQueueID)
 				if err != nil {
+					log.Warn(err)
 					errs = append(errs, fmt.Errorf("error getting KIWI holders: %w", err))
 					break
 				}
@@ -362,6 +472,7 @@ func (u *Updater) updateCommunitiesContants() error {
 	// limit the number of concurrent updates and create the channel to receive
 	// the communities, creates also the inner waiter to wait for all updates to
 	// finish
+	stop := atomic.Bool{}
 	concurrentUpdates := make(chan struct{}, u.maxConcurrent)
 	innerWaiter := sync.WaitGroup{}
 	communities, total, err := u.db.ListCommunities(-1, 0)
@@ -375,26 +486,33 @@ func (u *Updater) updateCommunitiesContants() error {
 	go func() {
 		defer innerWaiter.Done()
 		for _, community := range communities {
+			if stop.Load() {
+				return
+			}
 			// get a slot in the concurrent updates channel
 			concurrentUpdates <- struct{}{}
-			go func(community *mongo.Community) {
+			updates.Add(1)
+			innerWaiter.Add(1)
+			go func(community *dbmongo.Community) {
 				// release the slot when the update is done
 				defer func() {
 					<-concurrentUpdates
+					innerWaiter.Done()
 				}()
 				participation, censusSize, err := u.communityConstants(community)
 				if err != nil {
 					log.Errorf("error getting community %s points: %v", community.ID, err)
 					return
 				}
-				if err := u.db.SetDetailedReputationForCommunity(community.ID, &mongo.Reputation{
+				if err := u.db.SetDetailedReputationForCommunity(community.ID, &dbmongo.Reputation{
 					Participation: participation,
 					CensusSize:    censusSize,
 				}); err != nil {
-					log.Errorf("error updating community %s reputation: %v", community.ID, err)
+					if !mongo.IsDBClosed(err) {
+						log.Errorf("error updating community %s reputation: %v", community.ID, err)
+					}
 					return
 				}
-				updates.Add(1)
 			}(&community)
 		}
 	}()
@@ -411,7 +529,7 @@ func (u *Updater) updateUsersConstants() error {
 	// the users, creates also the inner waiter to wait for all updates to
 	// finish
 	concurrentUpdates := make(chan struct{}, u.maxConcurrent)
-	usersChan := make(chan *mongo.User)
+	usersChan := make(chan *dbmongo.User)
 	innerWaiter := sync.WaitGroup{}
 	// counters for total and updated users
 	updates := atomic.Int64{}
@@ -428,13 +546,16 @@ func (u *Updater) updateUsersConstants() error {
 				total.Add(1)
 				// get a slot in the concurrent updates channel
 				concurrentUpdates <- struct{}{}
-				go func(user *mongo.User) {
+				go func(user *dbmongo.User) {
 					// release the slot when the update is done
 					defer func() {
 						<-concurrentUpdates
 					}()
 					// update user reputation
 					if err := u.updateUserContants(user); err != nil {
+						if mongo.IsDBClosed(err) {
+							return
+						}
 						log.Errorf("error updating user %d: %v", user.UserID, err)
 					} else {
 						updates.Add(1)
@@ -460,7 +581,7 @@ func (u *Updater) updateTotalReputations() error {
 	// the users, creates also the inner waiter to wait for all updates to
 	// finish
 	concurrentUpdates := make(chan struct{}, u.maxConcurrent)
-	repsChan := make(chan *mongo.Reputation)
+	repsChan := make(chan *dbmongo.Reputation)
 	innerWaiter := sync.WaitGroup{}
 	// counters for total and updated users
 	updates := atomic.Int64{}
@@ -474,10 +595,9 @@ func (u *Updater) updateTotalReputations() error {
 			case <-ctx.Done():
 				return
 			default:
-				total.Add(1)
 				// get a slot in the concurrent updates channel
 				concurrentUpdates <- struct{}{}
-				go func(rep *mongo.Reputation) {
+				go func(rep *dbmongo.Reputation) {
 					// release the slot when the update is done
 					defer func() {
 						<-concurrentUpdates
@@ -490,6 +610,7 @@ func (u *Updater) updateTotalReputations() error {
 						updates.Add(1)
 					}
 				}(reputation)
+				total.Add(1)
 			}
 		}
 	}()
@@ -502,22 +623,22 @@ func (u *Updater) updateTotalReputations() error {
 	return nil
 }
 
-func (u *Updater) communityConstants(community *mongo.Community) (float64, uint64, error) {
+func (u *Updater) communityConstants(community *dbmongo.Community) (float64, uint64, error) {
 	participation, err := u.db.CommunityParticipationMean(community.ID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("error fetching community participation mean: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(u.ctx, time.Second*30)
+	ctx, cancel := context.WithTimeout(u.ctx, time.Minute*2)
 	defer cancel()
 	var censusSize uint64
 	switch community.Census.Type {
-	case mongo.TypeCommunityCensusChannel:
+	case dbmongo.TypeCommunityCensusChannel:
 		users, err := u.fapi.ChannelFIDs(ctx, community.Census.Channel, nil)
 		if err != nil {
 			return 0, 0, fmt.Errorf("error fetching channel users: %w", err)
 		}
 		censusSize = uint64(len(users))
-	case mongo.TypeCommunityCensusERC20, mongo.TypeCommunityCensusNFT:
+	case dbmongo.TypeCommunityCensusERC20, dbmongo.TypeCommunityCensusNFT:
 		singleUsers := map[common.Address]bool{}
 		for _, token := range community.Census.Addresses {
 			holders, err := u.airstack.TokenBalances(common.HexToAddress(token.Address), token.Blockchain)
@@ -531,7 +652,7 @@ func (u *Updater) communityConstants(community *mongo.Community) (float64, uint6
 			}
 		}
 		censusSize = uint64(len(singleUsers))
-	case mongo.TypeCommunityCensusFollowers:
+	case dbmongo.TypeCommunityCensusFollowers:
 		fid, err := communityhub.DecodeUserChannelFID(community.Census.Channel)
 		if err != nil {
 			return 0, 0, fmt.Errorf("invalid follower census user reference: %w", err)
@@ -551,22 +672,68 @@ func (u *Updater) communityConstants(community *mongo.Community) (float64, uint6
 // fetches the activity data from the database and the boosters data from the
 // Airstack and the Census3 API. It then updates the reputation data in the
 // database.
-func (u *Updater) updateUserContants(user *mongo.User) error {
+func (u *Updater) updateUserContants(user *dbmongo.User) error {
+	rep, err := u.userReputation(user)
+	if err != nil {
+		return fmt.Errorf("error getting user reputation: %w", err)
+	}
+	// commit reputation
+	return u.db.SetDetailedReputationForUser(user.UserID, rep)
+}
+
+func (u *Updater) updateTotalReputation(reputation *dbmongo.Reputation) error {
 	if u.db == nil {
 		return fmt.Errorf("database not set")
+	}
+	if reputation.UserID == 0 || reputation.CommunityID == "" {
+		return fmt.Errorf("invalid reputation data")
+	}
+	// check if the reputation is about a user or a community
+	if reputation.CommunityID != "" {
+		// get the community points based on the type of census of the community
+		points, err := u.communityPoints(reputation.CommunityID)
+		if err != nil {
+			return fmt.Errorf("error calculating community points: %w", err)
+		}
+		if err := u.db.SetDetailedReputationForCommunity(reputation.CommunityID, &dbmongo.Reputation{
+			TotalPoints: points,
+		}); err != nil {
+			return fmt.Errorf("error updating community total reputation: %w", err)
+		}
+	} else {
+		// get the user points based on the current reputation
+		points, err := u.userPoints(reputation.UserID, reputation.TotalReputation)
+		if err != nil {
+			return fmt.Errorf("error calculating user points: %w", err)
+		}
+		if err := u.db.SetDetailedReputationForUser(reputation.UserID, &dbmongo.Reputation{
+			TotalPoints: points,
+		}); err != nil {
+			return fmt.Errorf("error updating user total reputation: %w", err)
+		}
+	}
+	return nil
+}
+
+func (u *Updater) userReputation(user *dbmongo.User) (*mongo.Reputation, error) {
+	if u.db == nil {
+		return nil, fmt.Errorf("database not set")
 	}
 	rep, err := u.db.DetailedUserReputation(user.UserID)
 	if err != nil {
 		// if the user is not found, create a new user with blank data
-		if errors.Is(err, mongo.ErrUserUnknown) {
-			return u.db.SetDetailedReputationForUser(user.UserID, &mongo.Reputation{})
+		if errors.Is(err, dbmongo.ErrUserUnknown) {
+			return nil, u.db.SetDetailedReputationForUser(user.UserID, &dbmongo.Reputation{})
 		}
 		// return the error if it is not a user unknown error
-		return err
+		return nil, err
 	}
 	// get activiy data and update the reputation
 	activityRep, err := u.userActivityReputation(user)
 	if err != nil {
+		if mongo.IsDBClosed(err) {
+			return nil, err
+		}
 		// if there is an error fetching the activity data, log the error and
 		// continue updating the no failed activity data
 		log.Warnw("error getting user activity reputation", "error", err, "user", user.UserID)
@@ -593,42 +760,7 @@ func (u *Updater) updateUserContants(user *mongo.User) error {
 	rep.HasNameDegen = boostersRep.HasNameDegen
 	// calculate total reputation
 	rep.TotalReputation = totalReputation(activityRep, boostersRep)
-	// commit reputation
-	return u.db.SetDetailedReputationForUser(user.UserID, rep)
-}
-
-func (u *Updater) updateTotalReputation(reputation *mongo.Reputation) error {
-	if u.db == nil {
-		return fmt.Errorf("database not set")
-	}
-	if reputation.UserID == 0 || reputation.CommunityID == "" {
-		return fmt.Errorf("invalid reputation data")
-	}
-	// check if the reputation is about a user or a community
-	if reputation.CommunityID != "" {
-		// get the community points based on the type of census of the community
-		points, err := u.communityPoints(reputation)
-		if err != nil {
-			return fmt.Errorf("error calculating community points: %w", err)
-		}
-		if err := u.db.SetDetailedReputationForCommunity(reputation.CommunityID, &mongo.Reputation{
-			TotalPoints: points,
-		}); err != nil {
-			return fmt.Errorf("error updating community total reputation: %w", err)
-		}
-	} else {
-		// get the user points based on the current reputation
-		points, err := u.userPoints(reputation)
-		if err != nil {
-			return fmt.Errorf("error calculating user points: %w", err)
-		}
-		if err := u.db.SetDetailedReputationForUser(reputation.UserID, &mongo.Reputation{
-			TotalPoints: points,
-		}); err != nil {
-			return fmt.Errorf("error updating user total reputation: %w", err)
-		}
-	}
-	return nil
+	return rep, nil
 }
 
 // userActivityReputation method fetches the activity data of a given user from
@@ -637,7 +769,7 @@ func (u *Updater) updateTotalReputation(reputation *mongo.Reputation) error {
 // created, the number of casted votes, the number of votes casted on elections
 // created by the user, and the number of communities where the user is an
 // admin. It returns an error if the activity data cannot be fetched.
-func (u *Updater) userActivityReputation(user *mongo.User) (*ActivityReputationCounts, error) {
+func (u *Updater) userActivityReputation(user *dbmongo.User) (*ActivityReputationCounts, error) {
 	// Fetch the total votes cast on elections created by the user
 	totalVotes, err := u.db.TotalVotesForUserElections(user.UserID)
 	if err != nil {
@@ -668,7 +800,7 @@ func (u *Updater) userActivityReputation(user *mongo.User) (*ActivityReputationC
 // has a Proxy, the user has at least 5 Proxies, the user has the ProxyStudio
 // NFT, and the user has the NameDegen NFT. It returns an error if the boosters
 // data cannot be fetched.
-func (u *Updater) userBoosters(user *mongo.User) *Boosters {
+func (u *Updater) userBoosters(user *dbmongo.User) *Boosters {
 	// create new boosters struct and slice for errors
 	boosters := &Boosters{}
 	// check if user is votecaster alphafrens follower, is vocdoni or votecaster
@@ -683,7 +815,6 @@ func (u *Updater) userBoosters(user *mongo.User) *Boosters {
 	// for every user address check every booster only if it is not already set
 	u.holdersMtx.Lock()
 	defer u.holdersMtx.Unlock()
-	log.Info(user.Addresses)
 	for _, strAddr := range user.Addresses {
 		addr := common.HexToAddress(strAddr)
 		// check if user has votecaster nft pass
@@ -740,65 +871,4 @@ func (u *Updater) userBoosters(user *mongo.User) *Boosters {
 		}
 	}
 	return boosters
-}
-
-func (u *Updater) userPoints(rep *mongo.Reputation) (uint64, error) {
-	points := uint64(0)
-	// get community reputation of communities where the user is the creator
-	// of the community
-	ownerCommunities, _, err := u.db.ListCommunitiesByCreatorFID(rep.UserID, -1, 0)
-	if err != nil {
-		return 0, fmt.Errorf("error fetching owner communities: %w", err)
-	}
-	for _, community := range ownerCommunities {
-		comRep, err := u.db.DetailedCommunityReputation(community.ID)
-		if err != nil {
-			return 0, fmt.Errorf("error fetching community reputation: %w", err)
-		}
-		points += communityTotalPoints(
-			community.Census.Type,
-			ownerMultiplier,
-			comRep.Participation,
-			comRep.CensusSize,
-			rep.TotalReputation)
-	}
-	// get community reputation of communities where the user is a member
-	// of the community
-	voterCommunities, err := u.db.CommunitiesByVoter(rep.UserID)
-	if err != nil {
-		return 0, fmt.Errorf("error fetching voter communities: %w", err)
-	}
-	for _, community := range voterCommunities {
-		comRep, err := u.db.DetailedCommunityReputation(community.ID)
-		if err != nil {
-			return 0, fmt.Errorf("error fetching community reputation: %w", err)
-		}
-		points += communityTotalPoints(
-			community.Census.Type,
-			voterMultiplier,
-			comRep.Participation,
-			comRep.CensusSize,
-			rep.TotalReputation)
-	}
-	return points, nil
-}
-
-func (u *Updater) communityPoints(rep *mongo.Reputation) (uint64, error) {
-	// get community to get the user fid of the creator
-	community, err := u.db.Community(rep.CommunityID)
-	if err != nil {
-		return 0, fmt.Errorf("error fetching community: %w", err)
-	}
-	// get reputation of the creator
-	userRep, err := u.db.DetailedUserReputation(community.Creator)
-	if err != nil {
-		return 0, fmt.Errorf("error fetching user reputation: %w", err)
-	}
-	// calculate the points of the community based on the creator reputation
-	return communityTotalPoints(
-		community.Census.Type,
-		communityMultiplier,
-		rep.Participation,
-		rep.CensusSize,
-		userRep.TotalReputation), nil
 }
