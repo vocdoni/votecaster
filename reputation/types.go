@@ -2,6 +2,8 @@ package reputation
 
 import "github.com/vocdoni/vote-frame/mongo"
 
+// ActivityReputationCounts struct contains the user activity counts for each
+// activity indicator.
 type ActivityReputationCounts struct {
 	FollowersCount        uint64 `json:"followersCount"`
 	ElectionsCreatedCount uint64 `json:"createdElectionsCount"`
@@ -10,6 +12,8 @@ type ActivityReputationCounts struct {
 	CommunitiesCount      uint64 `json:"communitiesCount"`
 }
 
+// ActivityReputationPoints struct contains the points obtained by the user for
+// each activity indicator.
 type ActivityReputationPoints struct {
 	FollowersPoints        uint64 `json:"followersPoints"`
 	ElectionsCreatedPoints uint64 `json:"createdElectionsPoints"`
@@ -18,6 +22,8 @@ type ActivityReputationPoints struct {
 	CommunitiesPoints      uint64 `json:"communitiesPoints"`
 }
 
+// Boosters struct contains the user boosters information, which are boolean
+// values that indicate if the user has a specific booster.
 type Boosters struct {
 	HasVotecasterNFTPass           bool `json:"hasVotecasterNFTPass"`
 	HasVotecasterLaunchNFT         bool `json:"hasVotecasterLaunchNFT"`
@@ -36,8 +42,14 @@ type Boosters struct {
 	HasFarcasterOGNFT              bool `json:"hasFarcasterOGNFT"`
 }
 
+// ReputationInfo type is a map that contains the reputation information for
+// each activity or booster indicator.
 type ReputationInfo map[string]uint64
 
+// Reputation struct contains the user reputation information, which includes
+// the user activity points, the user activity counts, the user activity info,
+// the user total reputation, the user total points, the user boosters, the
+// user boosters info.
 type Reputation struct {
 	*Boosters       `json:"boosters"`
 	BoostersInfo    ReputationInfo            `json:"boostersInfo"`
@@ -48,6 +60,8 @@ type Reputation struct {
 	TotalPoints     uint64                    `json:"totalPoints"`
 }
 
+// ReputationToAPIResponse function converts a mongo.Reputation struct to a
+// Reputation struct.
 func ReputationToAPIResponse(rep *mongo.Reputation) *Reputation {
 	activityPoints := &ActivityReputationCounts{
 		FollowersCount:        rep.FollowersCount,

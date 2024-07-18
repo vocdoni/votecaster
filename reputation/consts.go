@@ -42,6 +42,7 @@ const (
 	communityMultiplier = 1
 )
 
+// ActivityPuntuationInfo contains the max reputation values for each activity
 var ActivityPuntuationInfo = ReputationInfo{
 	"maxFollowersReputation": maxFollowersReputation,
 	"maxElectionsReputation": maxElectionsReputation,
@@ -51,6 +52,7 @@ var ActivityPuntuationInfo = ReputationInfo{
 	"maxReputation":          maxReputation,
 }
 
+// BoostersPuntuationInfo contains the puntuaction values for each booster
 var BoostersPuntuationInfo = ReputationInfo{
 	"votecasterNFTPassPuntuaction":              votecasterNFTPassPuntuaction,
 	"votecasterLaunchNFTPuntuaction":            votecasterLaunchNFTPuntuaction,
