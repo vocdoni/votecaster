@@ -16,6 +16,7 @@ import { ReputationCard } from '~components/Auth/Reputation'
 import { SignInButton } from '~components/Auth/SignInButton'
 import { useAuth } from '~components/Auth/useAuth'
 import CensusTypeSelector from '~components/CensusTypeSelector'
+import { useReputation } from '~components/Reputation/useReputation'
 import { Choices } from './Choices'
 import { Done } from './Done'
 import { Duration } from './Duration'
@@ -31,7 +32,8 @@ type FormProps = FlexProps & {
 const Form: FC<FormProps> = ({ communityId, composer, ...props }) => {
   const { error, pid, form: methods, onSubmit, loading, status } = usePollForm()
   const { handleSubmit } = methods
-  const { isAuthenticated, reputation, logout } = useAuth()
+  const { reputation } = useReputation()
+  const { isAuthenticated, logout } = useAuth()
 
   return (
     <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 550 }} {...props}>
