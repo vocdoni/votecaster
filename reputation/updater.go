@@ -41,17 +41,20 @@ type Updater struct {
 	votecasterFollowers map[uint64]bool
 	recasters           map[uint64]bool
 	followersMtx        sync.Mutex
+	cachedFollowers     atomic.Bool
 
 	votecasterNFTPassHolders   map[common.Address]*big.Int
 	votecasterLaunchNFTHolders map[common.Address]*big.Int
 	kiwiHolders                map[common.Address]*big.Int
 	degenDAONFTHolders         map[common.Address]*big.Int
+	degenHolders               map[common.Address]*big.Int
 	haberdasheryNFTHolders     map[common.Address]*big.Int
 	tokyoDAONFTHolders         map[common.Address]*big.Int
 	proxyHolders               map[common.Address]*big.Int
 	proxyStudioNFTHolders      map[common.Address]*big.Int
 	nameDegenHolders           map[common.Address]*big.Int
 	holdersMtx                 sync.Mutex
+	cachedHolders              atomic.Bool
 }
 
 // NewUpdater creates a new Updater instance with the given parameters,
@@ -90,6 +93,7 @@ func NewUpdater(ctx context.Context, db *dbmongo.MongoStorage, fapi farcasterapi
 		votecasterLaunchNFTHolders: make(map[common.Address]*big.Int),
 		kiwiHolders:                make(map[common.Address]*big.Int),
 		degenDAONFTHolders:         make(map[common.Address]*big.Int),
+		degenHolders:               make(map[common.Address]*big.Int),
 		haberdasheryNFTHolders:     make(map[common.Address]*big.Int),
 		tokyoDAONFTHolders:         make(map[common.Address]*big.Int),
 		proxyHolders:               make(map[common.Address]*big.Int),
@@ -172,12 +176,16 @@ func (u *Updater) UserReputation(userID uint64, commit bool) (*Reputation, error
 		return nil, err
 	}
 	// fetch internal followers
-	if err := u.fetchFollowersAndRecasters(); err != nil {
-		log.Warnw("error fetching internal followers", "error", err)
+	if !u.cachedFollowers.Load() {
+		if err := u.fetchFollowersAndRecasters(); err != nil {
+			log.Warnw("error fetching internal followers", "error", err)
+		}
 	}
 	// fetch holders
-	if err := u.fetchHolders(); err != nil {
-		log.Warnw("error fetching holders", "error", err)
+	if !u.cachedHolders.Load() {
+		if err := u.fetchHolders(); err != nil {
+			log.Warnw("error fetching holders", "error", err)
+		}
 	}
 	// calculate user reputation
 	rep, err := u.userReputation(user)
@@ -317,6 +325,7 @@ func (u *Updater) fetchFollowersAndRecasters() error {
 			u.recasters[fid] = true
 		}
 	}
+	u.cachedFollowers.Store(true)
 	if err != nil || err1 != nil || err2 != nil || err3 != nil {
 		return fmt.Errorf("error updating internal followers: %w, %w, %w, %w", err, err1, err2, err3)
 	}
@@ -407,6 +416,20 @@ func (u *Updater) fetchHolders() error {
 		}
 		log.Infow("DegenDAO NFT holders", "holders", len(u.degenDAONFTHolders))
 	}
+	// update Degen holders
+	degenHolders, err := u.airstack.Client.TokenBalances(
+		DegenAddress, DegenChainShortName)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting Degen holders: %w", err))
+	} else {
+		u.degenHolders = make(map[common.Address]*big.Int)
+		for _, holder := range degenHolders {
+			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
+				u.degenHolders[holder.Address] = holder.Balance
+			}
+		}
+		log.Infow("Degen holders", "holders", len(u.degenHolders))
+	}
 	// update Haberdashery NFT holders
 	haberdasheryNFTHolders, err := u.airstack.Client.TokenBalances(
 		HaberdasheryNFTAddress, HaberdasheryNFTChainShortName)
@@ -477,6 +500,7 @@ func (u *Updater) fetchHolders() error {
 		}
 		log.Infow("NameDegen NFT holders", "holders", len(u.nameDegenHolders))
 	}
+	u.cachedHolders.Store(true)
 	if len(errs) > 0 {
 		return fmt.Errorf("error updating holders: %v", errs)
 	}
@@ -794,12 +818,18 @@ func (u *Updater) userReputation(user *dbmongo.User) (*mongo.Reputation, error) 
 	rep.VotecasterAnnouncementRecasted = boostersRep.VotecasterAnnouncementRecasted
 	rep.HasKIWI = boostersRep.HasKIWI
 	rep.HasDegenDAONFT = boostersRep.HasDegenDAONFT
+	rep.HasHaberdasheryNFT = boostersRep.HasHaberdasheryNFT
 	rep.Has10kDegenAtLeast = boostersRep.Has10kDegenAtLeast
 	rep.HasTokyoDAONFT = boostersRep.HasTokyoDAONFT
+	rep.HasProxyStudioNFT = boostersRep.HasProxyStudioNFT
 	rep.Has5ProxyAtLeast = boostersRep.Has5ProxyAtLeast
 	rep.HasNameDegen = boostersRep.HasNameDegen
+	rep.HasFarcasterOGNFT = boostersRep.HasFarcasterOGNFT
 	// calculate total reputation
 	rep.TotalReputation = totalReputation(activityRep, boostersRep)
+	if user.UserID == 195929 {
+		log.Infow("boletaire reputation", "reputation", rep)
+	}
 	return rep, nil
 }
 
@@ -884,7 +914,7 @@ func (u *Updater) userBoosters(user *dbmongo.User) *Boosters {
 		}
 		// check if user has 10k Degen
 		if !boosters.Has10kDegenAtLeast {
-			if balance, ok := u.degenDAONFTHolders[addr]; ok {
+			if balance, ok := u.degenHolders[addr]; ok {
 				boosters.Has10kDegenAtLeast = balance.Cmp(big.NewInt(10000)) >= 0
 			}
 		}
