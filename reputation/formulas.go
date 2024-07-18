@@ -171,6 +171,10 @@ func communityYieldRate(p, cs, r float64, dao, channel bool) float64 {
 	return y
 }
 
+// communityTotalPoints calculates the total points of a community based on the
+// census type, the participation rate, the census size and the reputation of
+// the owner. The total points are calculated as the yield rate multiplied by
+// the participation rate and the census size.
 func communityTotalPoints(censusType string, m, p float64, cs, r uint64) uint64 {
 	var y float64
 	switch censusType {

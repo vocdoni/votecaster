@@ -161,6 +161,10 @@ func (u *Updater) Stop() {
 	u.waiter.Wait()
 }
 
+// UserReputation method calculates the reputation and points of a user based on
+// their activity and boosters. It fetches the user data from the database and
+// returns the user reputation. If the commit parameter is true, it updates the
+// user reputation in the database.
 func (u *Updater) UserReputation(userID uint64, commit bool) (*Reputation, error) {
 	user, err := u.db.User(userID)
 	if err != nil {
@@ -194,6 +198,12 @@ func (u *Updater) UserReputation(userID uint64, commit bool) (*Reputation, error
 	return ReputationToAPIResponse(rep), nil
 }
 
+// userPoints method calculates the points of a user based on the user
+// reputation and the activity as a voter and as a creator of communities. It
+// returns the total points of the user. The total points of a user are the sum
+// of the points of the communities where the user is the creator and the points
+// of the communities where the user is a voter, ponderated by specific
+// multipliers by role.
 func (u *Updater) userPoints(userID, totalReputation uint64) (uint64, error) {
 	points := uint64(0)
 	// get community reputation of communities where the user is the creator
@@ -237,6 +247,10 @@ func (u *Updater) userPoints(userID, totalReputation uint64) (uint64, error) {
 	return points, nil
 }
 
+// communityTotalPoints method calculates the points of a community based on the
+// community type, the multiplier, the participation, the census size, and the
+// reputation of the owner. The total points are calculated as the yield rate
+// multiplied by the participation rate and the census size.
 func (u *Updater) communityPoints(communityID string) (uint64, error) {
 	// get community to get the user fid of the creator
 	community, err := u.db.Community(communityID)
@@ -469,6 +483,12 @@ func (u *Updater) fetchHolders() error {
 	return nil
 }
 
+// updateCommunitiesContants method updates the participation mean and the
+// census size of all the communities in the database. It fetches the
+// communities data from the database and an external source to get the census
+// size of each community. It updates the reputation of each community and
+// returns an error if the communities data cannot be fetched or the reputation
+// cannot be updated.
 func (u *Updater) updateCommunitiesContants() error {
 	log.Info("updating communities contants")
 	// limit the number of concurrent updates and create the channel to receive
@@ -519,6 +539,11 @@ func (u *Updater) updateCommunitiesContants() error {
 	return nil
 }
 
+// updateUsersConstants method updates the reputation of all the users in the
+// database. It fetches the users data from the database and updates the
+// reputation of each user based on their activity and boosters. It returns an
+// error if the users data cannot be fetched or the reputation cannot be
+// updated.
 func (u *Updater) updateUsersConstants() error {
 	log.Info("updating users contants")
 	// limit the number of concurrent updates and create the channel to receive
@@ -567,6 +592,11 @@ func (u *Updater) updateUsersConstants() error {
 	return nil
 }
 
+// updateTotalReputations method updates the total reputation of all the users
+// and communities in the database. It fetches the reputations data from the
+// database and updates the total reputation of each user and community. It
+// returns an error if the reputations data cannot be fetched or the total
+// reputation cannot be updated.
 func (u *Updater) updateTotalReputations() error {
 	log.Info("updating total reputations")
 	// limit the number of concurrent updates and create the channel to receive
@@ -613,6 +643,11 @@ func (u *Updater) updateTotalReputations() error {
 	return nil
 }
 
+// communityConstants method calculates the participation mean and the census
+// size of a given community. It fetches the participation mean from the
+// database and the census size from an external source based on the type of
+// census of the community. It returns the participation mean and the census
+// size of the community and an error if the data cannot be fetched.
 func (u *Updater) communityConstants(community *dbmongo.Community) (float64, uint64, error) {
 	participation, err := u.db.CommunityParticipationMean(community.ID)
 	if err != nil {
@@ -674,6 +709,10 @@ func (u *Updater) updateUserContants(user *dbmongo.User) error {
 	return u.db.SetDetailedReputationForUser(user.UserID, rep)
 }
 
+// updateTotalReputation method updates the total reputation of a given user or
+// community. It fetches the reputation data from the database and calculates
+// the total reputation based on the activity and the boosters. It then updates
+// the total reputation in the database.
 func (u *Updater) updateTotalReputation(reputation *dbmongo.Reputation) error {
 	if u.db == nil {
 		return fmt.Errorf("database not set")
@@ -712,6 +751,10 @@ func (u *Updater) updateTotalReputation(reputation *dbmongo.Reputation) error {
 	return nil
 }
 
+// userReputation method calculates the reputation of a given user based on the
+// user activity and the boosters. It fetches the user data from the database
+// and returns the user reputation. It returns an error if the user data cannot
+// be fetched or the reputation cannot be calculated.
 func (u *Updater) userReputation(user *dbmongo.User) (*mongo.Reputation, error) {
 	if u.db == nil {
 		return nil, fmt.Errorf("database not set")
