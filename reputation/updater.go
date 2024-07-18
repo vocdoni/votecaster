@@ -47,7 +47,6 @@ type Updater struct {
 	votecasterLaunchNFTHolders map[common.Address]*big.Int
 	kiwiHolders                map[common.Address]*big.Int
 	degenDAONFTHolders         map[common.Address]*big.Int
-	degenHolders               map[common.Address]*big.Int
 	haberdasheryNFTHolders     map[common.Address]*big.Int
 	tokyoDAONFTHolders         map[common.Address]*big.Int
 	proxyHolders               map[common.Address]*big.Int
@@ -93,7 +92,6 @@ func NewUpdater(ctx context.Context, db *dbmongo.MongoStorage, fapi farcasterapi
 		votecasterLaunchNFTHolders: make(map[common.Address]*big.Int),
 		kiwiHolders:                make(map[common.Address]*big.Int),
 		degenDAONFTHolders:         make(map[common.Address]*big.Int),
-		degenHolders:               make(map[common.Address]*big.Int),
 		haberdasheryNFTHolders:     make(map[common.Address]*big.Int),
 		tokyoDAONFTHolders:         make(map[common.Address]*big.Int),
 		proxyHolders:               make(map[common.Address]*big.Int),
@@ -416,20 +414,10 @@ func (u *Updater) fetchHolders() error {
 		}
 		log.Infow("DegenDAO NFT holders", "holders", len(u.degenDAONFTHolders))
 	}
-	// update Degen holders
-	degenHolders, err := u.airstack.Client.TokenBalances(
-		DegenAddress, DegenChainShortName)
-	if err != nil {
-		errs = append(errs, fmt.Errorf("error getting Degen holders: %w", err))
-	} else {
-		u.degenHolders = make(map[common.Address]*big.Int)
-		for _, holder := range degenHolders {
-			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
-				u.degenHolders[holder.Address] = holder.Balance
-			}
-		}
-		log.Infow("Degen holders", "holders", len(u.degenHolders))
-	}
+	// Note: Degen holders are not cached because they are too many, instead
+	// every time we need to check if a user is a Degen holder we will check
+	// the balance of the user
+
 	// update Haberdashery NFT holders
 	haberdasheryNFTHolders, err := u.airstack.Client.TokenBalances(
 		HaberdasheryNFTAddress, HaberdasheryNFTChainShortName)
@@ -827,9 +815,6 @@ func (u *Updater) userReputation(user *dbmongo.User) (*mongo.Reputation, error) 
 	rep.HasFarcasterOGNFT = boostersRep.HasFarcasterOGNFT
 	// calculate total reputation
 	rep.TotalReputation = totalReputation(activityRep, boostersRep)
-	if user.UserID == 195929 {
-		log.Infow("boletaire reputation", "reputation", rep)
-	}
 	return rep, nil
 }
 
@@ -914,9 +899,11 @@ func (u *Updater) userBoosters(user *dbmongo.User) *Boosters {
 		}
 		// check if user has 10k Degen
 		if !boosters.Has10kDegenAtLeast {
-			if balance, ok := u.degenHolders[addr]; ok {
-				boosters.Has10kDegenAtLeast = balance.Cmp(big.NewInt(10000)) >= 0
+			balance, err := u.airstack.CheckIfHolder(DegenAddress, DegenChainShortName, addr)
+			if err != nil {
+				log.Warnw("error checking if user has 10k degen", "error", err, "user", user.UserID)
 			}
+			boosters.Has10kDegenAtLeast = balance >= 10000
 		}
 		// check if user has TokyoDAO NFT
 		if !boosters.HasTokyoDAONFT {
