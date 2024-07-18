@@ -30,7 +30,7 @@ import { FaHeart, FaInfo, FaRegFaceGrinStars, FaUserGroup } from 'react-icons/fa
 import { ImStatsDots } from 'react-icons/im'
 import { MdOutlineHowToVote } from 'react-icons/md'
 import { SlPencil } from 'react-icons/sl'
-import { Reputation } from './useAuthProvider'
+import { Reputation } from '~components/Reputation/ReputationContext'
 
 export const ReputationProgress = ({ reputation, ...props }: CircularProgressProps & { reputation?: Reputation }) => {
   if (!reputation) return
@@ -42,7 +42,7 @@ export const ReputationProgress = ({ reputation, ...props }: CircularProgressPro
   )
 }
 
-export const ReputationCard = ({ reputation }: { reputation: Reputation }) => {
+export const ReputationCard = ({ reputation }: { reputation?: Reputation }) => {
   const bg = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
   const boxShadow = useColorModeValue('0px 4px 6px rgba(0, 0, 0, 0.1)', '0px 4px 6px rgba(0, 0, 0, 0.3)')
   const isMobile = useBreakpointValue({ base: true, md: false })

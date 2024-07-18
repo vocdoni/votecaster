@@ -92,7 +92,7 @@ const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
     control,
     name: 'choices',
   })
-  const { isAuthenticated, profile, reputation, logout, bfetch } = useAuth()
+  const { isAuthenticated, profile, logout, bfetch } = useAuth()
   const [loading, setLoading] = useState<boolean>(false)
   const [pid, setPid] = useState<string | null>(null)
   const [shortened, setShortened] = useState<string | null>(null)
@@ -429,7 +429,7 @@ const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
                           logout
                         </Button>
                       </Box>
-                      <ReputationCard reputation={reputation!} />
+                      <ReputationCard />
                     </>
                   ) : (
                     <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>

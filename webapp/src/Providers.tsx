@@ -13,6 +13,7 @@ import { theme } from './theme'
 import { config } from './util/rainbow'
 
 import '@rainbow-me/rainbowkit/styles.css'
+import { ReputationProvider } from '~components/Reputation/ReputationProvider'
 
 const queryClient = new QueryClient()
 
@@ -27,7 +28,9 @@ const Providers = () => (
               <BlockchainProvider chain={mainnet}>
                 <BlockchainProvider chain={degen}>
                   <AuthProvider>
-                    <Router />
+                    <ReputationProvider>
+                      <Router />
+                    </ReputationProvider>
                   </AuthProvider>
                 </BlockchainProvider>
               </BlockchainProvider>
