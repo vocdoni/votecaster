@@ -492,7 +492,6 @@ func (u *Updater) updateCommunitiesContants() error {
 			updates.Add(1)
 			innerWaiter.Add(1)
 			go func(community *dbmongo.Community) {
-				log.Infow("updating community constants", "community", community.ID)
 				// release the slot when the update is done
 				defer func() {
 					<-concurrentUpdates
@@ -512,7 +511,6 @@ func (u *Updater) updateCommunitiesContants() error {
 					}
 					return
 				}
-				log.Infow("community constants updated", "community", community.ID, "participation", participation, "censusSize", censusSize)
 			}(&community)
 		}
 	}()
@@ -690,10 +688,12 @@ func (u *Updater) updateTotalReputation(reputation *dbmongo.Reputation) error {
 		if err != nil {
 			return fmt.Errorf("error calculating community points: %w", err)
 		}
-		if err := u.db.SetDetailedReputationForCommunity(reputation.CommunityID, &dbmongo.Reputation{
-			TotalPoints: points,
-		}); err != nil {
-			return fmt.Errorf("error updating community total reputation: %w", err)
+		if points != 0 {
+			if err := u.db.SetDetailedReputationForCommunity(reputation.CommunityID, &dbmongo.Reputation{
+				TotalPoints: points,
+			}); err != nil {
+				return fmt.Errorf("error updating community total reputation: %w", err)
+			}
 		}
 	} else {
 		// get the user points based on the current reputation
@@ -701,10 +701,12 @@ func (u *Updater) updateTotalReputation(reputation *dbmongo.Reputation) error {
 		if err != nil {
 			return fmt.Errorf("error calculating user points: %w", err)
 		}
-		if err := u.db.SetDetailedReputationForUser(reputation.UserID, &dbmongo.Reputation{
-			TotalPoints: points,
-		}); err != nil {
-			return fmt.Errorf("error updating user total reputation: %w", err)
+		if points != 0 {
+			if err := u.db.SetDetailedReputationForUser(reputation.UserID, &dbmongo.Reputation{
+				TotalPoints: points,
+			}); err != nil {
+				return fmt.Errorf("error updating user total reputation: %w", err)
+			}
 		}
 	}
 	return nil
