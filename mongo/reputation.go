@@ -10,10 +10,6 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
-func (ms *MongoStorage) ReputationRanking(users, communities bool) ([]*Reputation, error) {
-	return nil, nil
-}
-
 // ReputationsIterator iterates over available reputations and sends them to
 // the provided channel.
 func (ms *MongoStorage) ReputationsIterator(ctx context.Context, repCh chan *Reputation) error {

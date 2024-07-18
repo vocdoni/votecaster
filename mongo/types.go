@@ -253,6 +253,16 @@ type ElectionRanking struct {
 	Title                string `json:"title" bson:"title"`
 }
 
+type ReputationRanking struct {
+	UserID           uint64 `json:"userID" bson:"userID"`
+	Username         string `json:"username" bson:"username"`
+	UserDisplayname  string `json:"userDisplayname" bson:"userDisplayname"`
+	CommunityID      string `json:"communityID" bson:"communityID"`
+	CommunityName    string `json:"communityName" bson:"communityName"`
+	CommunityCreator uint64 `json:"communityCreator" bson:"communityCreator"`
+	TotalPoints      uint64 `json:"totalPoints" bson:"totalPoints"`
+}
+
 // Community represents a community entry.
 type Community struct {
 	ID            string          `json:"id" bson:"_id"`
