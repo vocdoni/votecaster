@@ -45,6 +45,21 @@ func (ms *MongoStorage) ListCommunities(limit, offset int64) ([]Community, int64
 	return communities, total, nil
 }
 
+// AllCommunities returns the list of all communities.
+func (ms *MongoStorage) AllCommunities(limit, offset int64) ([]Community, int64, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	// filter by enabled and communities
+
+	communities := []Community{}
+	opts := options.Find().SetSort(bson.D{{Key: "featured", Value: -1}, {Key: "_id", Value: -1}})
+	total, err := paginatedObjects(ms.communities, nil, opts, limit, offset, &communities)
+	if err != nil {
+		return nil, 0, err
+	}
+	return communities, total, nil
+}
+
 // ListFeaturedCommunities returns the list of featured communities.
 func (ms *MongoStorage) ListFeaturedCommunities(limit, offset int64) ([]Community, int64, error) {
 	ms.keysLock.RLock()
@@ -71,7 +86,7 @@ func (ms *MongoStorage) ListCommunitiesByAdminFID(fid uint64, limit, offset int6
 	return communities, total, nil
 }
 
-// ListCommunitiesByAdminFID returns the list of communities where the user is 
+// ListCommunitiesByAdminFID returns the list of communities where the user is
 // the creator by FID provided.
 func (ms *MongoStorage) ListCommunitiesByCreatorFID(fid uint64, limit, offset int64) ([]Community, int64, error) {
 	ms.keysLock.RLock()

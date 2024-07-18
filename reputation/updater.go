@@ -205,7 +205,8 @@ func (u *Updater) userPoints(userID, totalReputation uint64) (uint64, error) {
 	for _, community := range ownerCommunities {
 		comRep, err := u.db.DetailedCommunityReputation(community.ID)
 		if err != nil {
-			return 0, fmt.Errorf("error fetching community reputation: %w", err)
+			log.Warnw("error fetching community reputation", "error", err)
+			continue
 		}
 		points += communityTotalPoints(
 			community.Census.Type,
@@ -223,7 +224,8 @@ func (u *Updater) userPoints(userID, totalReputation uint64) (uint64, error) {
 	for _, community := range voterCommunities {
 		comRep, err := u.db.DetailedCommunityReputation(community.ID)
 		if err != nil {
-			return 0, fmt.Errorf("error fetching community reputation: %w", err)
+			log.Warnw("error fetching community reputation", "error", err)
+			continue
 		}
 		points += communityTotalPoints(
 			community.Census.Type,
@@ -472,10 +474,9 @@ func (u *Updater) updateCommunitiesContants() error {
 	// limit the number of concurrent updates and create the channel to receive
 	// the communities, creates also the inner waiter to wait for all updates to
 	// finish
-	stop := atomic.Bool{}
 	concurrentUpdates := make(chan struct{}, u.maxConcurrent)
 	innerWaiter := sync.WaitGroup{}
-	communities, total, err := u.db.ListCommunities(-1, 0)
+	communities, total, err := u.db.AllCommunities(-1, 0)
 	if err != nil {
 		return fmt.Errorf("error listing communities: %w", err)
 	}
@@ -486,14 +487,12 @@ func (u *Updater) updateCommunitiesContants() error {
 	go func() {
 		defer innerWaiter.Done()
 		for _, community := range communities {
-			if stop.Load() {
-				return
-			}
 			// get a slot in the concurrent updates channel
 			concurrentUpdates <- struct{}{}
 			updates.Add(1)
 			innerWaiter.Add(1)
 			go func(community *dbmongo.Community) {
+				log.Infow("updating community constants", "community", community.ID)
 				// release the slot when the update is done
 				defer func() {
 					<-concurrentUpdates
@@ -513,6 +512,7 @@ func (u *Updater) updateCommunitiesContants() error {
 					}
 					return
 				}
+				log.Infow("community constants updated", "community", community.ID, "participation", participation, "censusSize", censusSize)
 			}(&community)
 		}
 	}()
@@ -523,13 +523,10 @@ func (u *Updater) updateCommunitiesContants() error {
 
 func (u *Updater) updateUsersConstants() error {
 	log.Info("updating users contants")
-	ctx, cancel := context.WithCancel(u.ctx)
-	defer cancel()
 	// limit the number of concurrent updates and create the channel to receive
 	// the users, creates also the inner waiter to wait for all updates to
 	// finish
 	concurrentUpdates := make(chan struct{}, u.maxConcurrent)
-	usersChan := make(chan *dbmongo.User)
 	innerWaiter := sync.WaitGroup{}
 	// counters for total and updated users
 	updates := atomic.Int64{}
@@ -538,50 +535,46 @@ func (u *Updater) updateUsersConstants() error {
 	innerWaiter.Add(1)
 	go func() {
 		defer innerWaiter.Done()
-		for user := range usersChan {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				total.Add(1)
-				// get a slot in the concurrent updates channel
-				concurrentUpdates <- struct{}{}
-				go func(user *dbmongo.User) {
-					// release the slot when the update is done
-					defer func() {
-						<-concurrentUpdates
-					}()
-					// update user reputation
-					if err := u.updateUserContants(user); err != nil {
-						if mongo.IsDBClosed(err) {
-							return
-						}
-						log.Errorf("error updating user %d: %v", user.UserID, err)
-					} else {
-						updates.Add(1)
+		users, err := u.db.ReputableUsers()
+		if err != nil {
+			log.Errorf("error fetching reputable users: %v", err)
+			return
+		}
+		total.Store(int64(len(users)))
+		for _, user := range users {
+			// get a slot in the concurrent updates channel
+			concurrentUpdates <- struct{}{}
+			innerWaiter.Add(1)
+			go func(user *dbmongo.User) {
+				// release the slot when the update is done
+				defer func() {
+					<-concurrentUpdates
+					innerWaiter.Done()
+				}()
+				// update user reputation
+				if err := u.updateUserContants(user); err != nil {
+					if mongo.IsDBClosed(err) {
+						return
 					}
-				}(user)
-			}
+					log.Errorf("error updating user %d: %v", user.UserID, err)
+				} else {
+					updates.Add(1)
+				}
+			}(user)
 		}
 	}()
-	// iterate over users and send them to the channel
-	if err := u.db.UsersIterator(ctx, usersChan); err != nil {
-		return fmt.Errorf("error iterating users: %w", err)
-	}
 	innerWaiter.Wait()
+	close(concurrentUpdates)
 	log.Infow("users reputation updated", "total", total.Load(), "updated", updates.Load())
 	return nil
 }
 
 func (u *Updater) updateTotalReputations() error {
 	log.Info("updating total reputations")
-	ctx, cancel := context.WithCancel(u.ctx)
-	defer cancel()
 	// limit the number of concurrent updates and create the channel to receive
 	// the users, creates also the inner waiter to wait for all updates to
 	// finish
 	concurrentUpdates := make(chan struct{}, u.maxConcurrent)
-	repsChan := make(chan *dbmongo.Reputation)
 	innerWaiter := sync.WaitGroup{}
 	// counters for total and updated users
 	updates := atomic.Int64{}
@@ -590,35 +583,34 @@ func (u *Updater) updateTotalReputations() error {
 	innerWaiter.Add(1)
 	go func() {
 		defer innerWaiter.Done()
-		for reputation := range repsChan {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				// get a slot in the concurrent updates channel
-				concurrentUpdates <- struct{}{}
-				go func(rep *dbmongo.Reputation) {
-					// release the slot when the update is done
-					defer func() {
-						<-concurrentUpdates
-					}()
-					// update total reputation
-					if err := u.updateTotalReputation(rep); err != nil {
-						log.Errorf("error total reputation (userID: %d, communityID: %s): %v",
-							rep.UserID, rep.CommunityID, err)
-					} else {
-						updates.Add(1)
-					}
-				}(reputation)
-				total.Add(1)
-			}
+		reputations, err := u.db.Reputations()
+		if err != nil {
+			log.Errorf("error fetching reputations: %v", err)
+			return
+		}
+		total.Store(int64(len(reputations)))
+		for _, reputation := range reputations {
+			// get a slot in the concurrent updates channel
+			concurrentUpdates <- struct{}{}
+			innerWaiter.Add(1)
+			go func(rep *dbmongo.Reputation) {
+				// release the slot when the update is done
+				defer func() {
+					<-concurrentUpdates
+					innerWaiter.Done()
+				}()
+				// update total reputation
+				if err := u.updateTotalReputation(rep); err != nil {
+					log.Errorf("error total reputation (userID: %d, communityID: %s): %v",
+						rep.UserID, rep.CommunityID, err)
+					return
+				}
+				updates.Add(1)
+			}(reputation)
 		}
 	}()
-	// iterate over users and send them to the channel
-	if err := u.db.ReputationsIterator(ctx, repsChan); err != nil {
-		return fmt.Errorf("error iterating users: %w", err)
-	}
 	innerWaiter.Wait()
+	close(concurrentUpdates)
 	log.Infow("users reputation updated", "total", total.Load(), "updated", updates.Load())
 	return nil
 }
@@ -677,6 +669,9 @@ func (u *Updater) updateUserContants(user *dbmongo.User) error {
 	if err != nil {
 		return fmt.Errorf("error getting user reputation: %w", err)
 	}
+	if rep == nil {
+		return nil
+	}
 	// commit reputation
 	return u.db.SetDetailedReputationForUser(user.UserID, rep)
 }
@@ -685,7 +680,7 @@ func (u *Updater) updateTotalReputation(reputation *dbmongo.Reputation) error {
 	if u.db == nil {
 		return fmt.Errorf("database not set")
 	}
-	if reputation.UserID == 0 || reputation.CommunityID == "" {
+	if reputation.UserID == 0 && reputation.CommunityID == "" {
 		return fmt.Errorf("invalid reputation data")
 	}
 	// check if the reputation is about a user or a community

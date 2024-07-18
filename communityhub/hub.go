@@ -179,65 +179,70 @@ func (ch *CommunityHub) SyncCommunities() {
 	go func() {
 		defer ch.waiter.Done()
 		for {
-			// iterate over all the community contracts and sync them,
-			// getting the info of the communities stored in the database
-			// from the contract and updating them in the database
-			for _, contract := range ch.contracts {
-				log.Infow("syncing communities", "chainAlias", contract.ChainAlias, "contract", contract.Address.String())
-				nextID, err := contract.NextContractID()
-				if err != nil {
-					log.Warnw("failed to get next community ID", "error", err)
-					continue
-				}
-				// iterate from 1 to the last inserted ID in the database
-				// getting community data from the contract and updating it
-				// in the database
-				for id := uint64(1); id < nextID; id++ {
-					select {
-					case <-ch.ctx.Done():
-						return
-					default:
-						// get the community from the contract
-						communityID, ok := ch.CommunityIDByChainAlias(id, contract.ChainAlias)
-						if !ok {
-							log.Warnw("failed to get community ID by chain alias", "chainAlias", contract.ChainAlias)
-							continue
-						}
-						onchainCommunity, err := contract.Community(communityID)
-						if err != nil {
-							log.Warnw("failed to get community data", "error", err, "communityID", communityID)
-							continue
-						}
-						// get the community from the database
-						dbCommunity, err := ch.communityFromDB(communityID)
-						if err != nil {
-							if errors.Is(err, ErrClosedDB) {
-								return
+			select {
+			case <-ch.ctx.Done():
+				return
+			default:
+				// iterate over all the community contracts and sync them,
+				// getting the info of the communities stored in the database
+				// from the contract and updating them in the database
+				for _, contract := range ch.contracts {
+					log.Debugw("syncing communities", "chainAlias", contract.ChainAlias, "contract", contract.Address.String())
+					nextID, err := contract.NextContractID()
+					if err != nil {
+						log.Warnw("failed to get next community ID", "error", err)
+						continue
+					}
+					// iterate from 1 to the last inserted ID in the database
+					// getting community data from the contract and updating it
+					// in the database
+					for id := uint64(1); id < nextID; id++ {
+						select {
+						case <-ch.ctx.Done():
+							return
+						default:
+							// get the community from the contract
+							communityID, ok := ch.CommunityIDByChainAlias(id, contract.ChainAlias)
+							if !ok {
+								log.Warnw("failed to get community ID by chain alias", "chainAlias", contract.ChainAlias)
+								continue
 							}
-							if !errors.Is(err, ErrCommunityNotFound) {
-								log.Warnw("failed to get community from database", "error", err)
+							onchainCommunity, err := contract.Community(communityID)
+							if err != nil {
+								log.Warnw("failed to get community data", "error", err, "communityID", communityID)
+								continue
 							}
-							if err := ch.addCommunityToDB(onchainCommunity); err != nil {
-								log.Warnw("failed to add community to database", "error", err)
+							// get the community from the database
+							dbCommunity, err := ch.communityFromDB(communityID)
+							if err != nil {
+								if errors.Is(err, ErrClosedDB) {
+									return
+								}
+								if !errors.Is(err, ErrCommunityNotFound) {
+									log.Warnw("failed to get community from database", "error", err)
+								}
+								if err := ch.addCommunityToDB(onchainCommunity); err != nil {
+									log.Warnw("failed to add community to database", "error", err)
+								}
+								continue
 							}
-							continue
-						}
-						// join the community data from the contract with the
-						// community data from the database
-						community, err := ch.joinCommunityData(dbCommunity, onchainCommunity)
-						if err != nil {
-							log.Warnw("failed to join community data", "error", err)
-							continue
-						}
-						// update the community in the database
-						if err := ch.updateCommunityToDB(community); err != nil {
-							log.Warnw("failed to update community in database", "error", err)
-							continue
+							// join the community data from the contract with the
+							// community data from the database
+							community, err := ch.joinCommunityData(dbCommunity, onchainCommunity)
+							if err != nil {
+								log.Warnw("failed to join community data", "error", err)
+								continue
+							}
+							// update the community in the database
+							if err := ch.updateCommunityToDB(community); err != nil {
+								log.Warnw("failed to update community in database", "error", err)
+								continue
+							}
 						}
 					}
 				}
+				time.Sleep(ch.syncCooldown)
 			}
-			time.Sleep(ch.syncCooldown)
 		}
 	}()
 }
