@@ -56,43 +56,35 @@ func (ms *MongoStorage) UserIDs(startId uint64, maxResults int) ([]uint64, error
 
 // UsersIterator iterates over available users and sends them to the provided
 // channel.
-func (ms *MongoStorage) UsersIterator(ctx context.Context, usersCh chan *User) error {
+func (ms *MongoStorage) ReputableUsers() ([]*User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	filter := bson.M{
 		"$or": []bson.M{
 			{"castedVotes": bson.M{"$gt": 0}},
 			{"electionCount": bson.M{"$gt": 0}},
-			{"followers": bson.M{"$gt": 0}},
 		},
 	}
 	// Executing the find operation with the specified filter and options
 	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
 	cur, err := ms.users.Find(ctx, filter)
-	ms.keysLock.RUnlock()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer cur.Close(ctx)
 
-	for {
-		ms.keysLock.RLock()
-		if !cur.Next(ctx) {
-			ms.keysLock.RUnlock()
-			break
-		}
+	var users []*User
+	for cur.Next(ctx) {
 		user := &User{}
-		err := cur.Decode(user)
-		ms.keysLock.RUnlock()
-		if err != nil {
+		if err := cur.Decode(user); err != nil {
 			log.Warn(err)
 			continue
 		}
-		// Send the user to the channel
-		usersCh <- user
+		users = append(users, user)
 	}
-	if err := cur.Err(); err != nil {
-		return err
-	}
-	return nil
+	return users, nil
 }
 
 // CountUsers returns the total number of users in the database.

@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,36 +13,35 @@ import (
 
 // ReputationsIterator iterates over available reputations and sends them to
 // the provided channel.
-func (ms *MongoStorage) ReputationsIterator(ctx context.Context, repCh chan *Reputation) error {
+func (ms *MongoStorage) Reputations() ([]*Reputation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	// Executing the find operation with the specified filter and options
 	ms.keysLock.RLock()
-	cur, err := ms.reputations.Find(ctx, bson.M{})
-	ms.keysLock.RUnlock()
+	defer ms.keysLock.RUnlock()
+
+	cur, err := ms.reputations.Find(ctx, bson.M{
+		"$or": []bson.M{
+			{"participation": bson.M{"$gt": 0}},
+			{"censusSize": bson.M{"$gt": 0}},
+			{"totalReputation": bson.M{"$gt": 0}},
+		},
+	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer cur.Close(ctx)
 
-	for {
-		ms.keysLock.RLock()
-		if !cur.Next(ctx) {
-			ms.keysLock.RUnlock()
-			break
-		}
-		rep := &Reputation{}
-		err := cur.Decode(rep)
-		ms.keysLock.RUnlock()
-		if err != nil {
+	var reputations []*Reputation
+	for cur.Next(ctx) {
+		reputation := &Reputation{}
+		if err := cur.Decode(reputation); err != nil {
 			log.Warn(err)
 			continue
 		}
-		// Send the user to the channel
-		repCh <- rep
+		reputations = append(reputations, reputation)
 	}
-	if err := cur.Err(); err != nil {
-		return err
-	}
-	return nil
+	return reputations, nil
 }
 
 // TotalVotesForUserElections calculates the total number of votes casted on elections created by the user.
@@ -175,7 +175,7 @@ func (ms *MongoStorage) communityReputation(communityID string) (*Reputation, er
 
 	var profile Reputation
 	if err := ms.reputations.FindOne(ctx, bson.M{"communityID": communityID}).Decode(&profile); err != nil {
-		return nil, ErrUserUnknown
+		return nil, fmt.Errorf("community '%s' reputation not found: %w", communityID, err)
 	}
 	return &profile, nil
 }
