@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
@@ -243,6 +244,39 @@ func (v *vocdoniHandler) electionsByCommunityHandler(_ *apirest.APIdata, ctx *ht
 	}
 	jresponse, err := json.Marshal(map[string]any{
 		"polls": elections,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.SetResponseContentType("application/json")
+	return ctx.Send(jresponse, http.StatusOK)
+}
+
+func (v *vocdoniHandler) rankingByPoints(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	_, onlyUsers := ctx.Request.URL.Query()["onlyUsers"]
+	_, onlyCommunities := ctx.Request.URL.Query()["onlyCommunities"]
+	if onlyUsers && onlyCommunities {
+		return ctx.Send([]byte("invalid query parameters"), http.StatusBadRequest)
+	}
+	var err error
+	var ranking []mongo.ReputationRanking
+	switch {
+	case onlyUsers:
+		if ranking, err = v.db.ReputationRanking(true, false); err != nil {
+			return fmt.Errorf("failed to get ranking: %w", err)
+		}
+	case onlyCommunities:
+		if ranking, err = v.db.ReputationRanking(false, true); err != nil {
+			return fmt.Errorf("failed to get ranking: %w", err)
+		}
+	default:
+		log.Info("both")
+		if ranking, err = v.db.ReputationRanking(true, true); err != nil {
+			return fmt.Errorf("failed to get ranking: %w", err)
+		}
+	}
+	jresponse, err := json.Marshal(map[string]any{
+		"points": ranking,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal response: %w", err)
