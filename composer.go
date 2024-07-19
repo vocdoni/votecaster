@@ -13,6 +13,13 @@ import (
 	"go.vocdoni.io/dvote/vochain/transaction/proofs/farcasterproof"
 )
 
+const (
+	composerActionWebappPath     = "/app"
+	composerActionWebappFragment = "/composer"
+	composerActionTokenQuery     = "token"
+	composerActionQuestionQuery  = "question"
+)
+
 // composerActionCast is the structure of the cast field in the action message
 // state, used to extract the text of the cast that launched the composer action
 type composerActionCast struct {
@@ -46,7 +53,14 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 		return fmt.Errorf("could not generate token: %v", err)
 	}
 	// compose the action URL with the token of the user
-	actionURL := fmt.Sprintf("%s/app#/composer?token=%s", serverURL, token.String())
+	actionURL, err := url.Parse(serverURL)
+	if err != nil {
+		return fmt.Errorf("could not parse server URL: %v", err)
+	}
+	actionURL.Path = composerActionWebappPath
+	actionURL.Fragment = composerActionWebappFragment
+	query := actionURL.Query()
+	query.Set(composerActionTokenQuery, token.String())
 	// URL-decode the cast from the action message state, and extract the text
 	// to be used as a question in the composer action form, if any error occurs
 	// ignore it and continue
@@ -56,16 +70,17 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 			// add the text of the cast that launched the composer action to the URL
 			// as a question
 			if cast.Cast.Text != "" {
-				actionURL += "&question=" + url.QueryEscape(cast.Cast.Text)
+				query.Set(composerActionQuestionQuery, url.QueryEscape(cast.Cast.Text))
 			}
 		}
 	}
+	actionURL.RawQuery = query.Encode()
 	// encode the response with the resulting action URL
 	var response []byte
 	if response, err = json.Marshal(ComposerActionResponse{
 		Type:  "form",
 		Title: "Create a blockchain Poll",
-		URL:   actionURL,
+		URL:   actionURL.String(),
 	}); err != nil {
 		return err
 	}
