@@ -108,7 +108,7 @@ const (
 	// Votecaster Launch NFT network short name
 	VotecasterLaunchNFTChainShortName = "base"
 	// Votecaster Farcaster ID
-	VotecasterFarcasterFID uint64 = 527170
+	VotecasterFarcasterFID uint64 = 521116
 	// Vocdoni Farcaster ID
 	VocdoniFarcasterFID uint64 = 7548
 	// Votecaster Announcement Farcaster Cast Hash
