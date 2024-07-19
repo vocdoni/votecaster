@@ -263,6 +263,9 @@ func (u *Updater) communityPoints(communityID string) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("error fetching community: %w", err)
 	}
+	if community == nil {
+		return 0, fmt.Errorf("community not found")
+	}
 	rep, err := u.db.DetailedCommunityReputation(communityID)
 	if err != nil {
 		return 0, fmt.Errorf("error fetching community reputation: %w", err)
