@@ -239,6 +239,9 @@ func (ms *MongoStorage) ReputationRanking(users, communities bool) ([]Reputation
 				log.Warn(err)
 				continue
 			}
+			if community == nil {
+				continue
+			}
 			repRanking.CommunityName = community.Name
 			repRanking.CommunityID = community.ID
 			repRanking.CommunityCreator = community.Creator
