@@ -223,3 +223,12 @@ type RemindersStatus struct {
 	Total       int               `json:"total"`
 	Fails       map[string]string `json:"fails,omitempty"`
 }
+
+// ComposerActionResponse is the response of the composer endpoint, which is a
+// redirection to the composer app to be used to create a new election from the
+// cast form in warpcast.
+type ComposerActionResponse struct {
+	Type  string `json:"type"`
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
