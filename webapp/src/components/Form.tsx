@@ -28,11 +28,11 @@ import { BiTrash } from 'react-icons/bi'
 import { appUrl } from '~constants'
 import { cleanChannel } from '~util/strings'
 import { isErrorWithHTTPResponse } from '~util/types'
-import { ReputationCard } from './Auth/Reputation'
 import { SignInButton } from './Auth/SignInButton'
 import { useAuth } from './Auth/useAuth'
 import CensusTypeSelector, { CensusFormValues } from './CensusTypeSelector'
 import { Done } from './Done'
+import { ReputationCard } from './Reputation/Reputation'
 
 type FormValues = CensusFormValues & {
   question: string

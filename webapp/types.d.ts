@@ -54,6 +54,16 @@ declare global {
     addresses?: string[]
   }
 
+  type PointsLeaderboard = {
+    communityCreator: number
+    communityID: string
+    communityName: string
+    totalPoints: number
+    userDisplayname: string
+    userID: number
+    username: string
+  }
+
   type Poll = {
     censusParticipantsCount: number
     createdByDisplayname: string

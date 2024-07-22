@@ -1,3 +1,5 @@
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '~components/Auth/useAuth'
 import { appUrl } from '~constants'
 
 export const fetchPollsByVotes = (bfetch: FetchFunction) => async (): Promise<PollRanking[]> => {
@@ -30,4 +32,19 @@ export const fetchPollsByCommunity = (bfetch: FetchFunction, community: Communit
   const response = await bfetch(`${appUrl}/rankings/pollsByCommunity/${community.id}`)
   const { polls } = (await response.json()) as { polls: Poll[] }
   return polls
+}
+
+export const fetchPoints = (bfetch: FetchFunction) => async () => {
+  const response = await bfetch(`${appUrl}/rankings/points`)
+  const json = await response.json()
+  const { points } = json as { points: PointsLeaderboard[] }
+  return points
+}
+
+export const useFetchPoints = () => {
+  const { bfetch } = useAuth()
+  return useQuery({
+    queryKey: ['rankings', 'points'],
+    queryFn: fetchPoints(bfetch),
+  })
 }

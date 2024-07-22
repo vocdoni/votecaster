@@ -25,7 +25,7 @@ import {
   useBreakpointValue,
   useColorModeValue,
 } from '@chakra-ui/react'
-import { PropsWithChildren } from 'react'
+import { PropsWithChildren, useMemo } from 'react'
 import { FaHeart, FaInfo, FaRegFaceGrinStars, FaUserGroup } from 'react-icons/fa6'
 import { ImStatsDots } from 'react-icons/im'
 import { MdOutlineHowToVote } from 'react-icons/md'
@@ -46,10 +46,6 @@ export const ReputationCard = ({ reputation }: { reputation?: Reputation }) => {
   const bg = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
   const boxShadow = useColorModeValue('0px 4px 6px rgba(0, 0, 0, 0.1)', '0px 4px 6px rgba(0, 0, 0, 0.3)')
   const isMobile = useBreakpointValue({ base: true, md: false })
-
-  if (!reputation) {
-    return null
-  }
 
   return (
     <Popover placement='auto' trigger='hover' closeOnBlur>
@@ -144,103 +140,120 @@ export const ReputationCard = ({ reputation }: { reputation?: Reputation }) => {
     </Popover>
   )
 }
+export const ReputationTable = ({ reputation }: { reputation: Reputation }) => {
+  const totalReputation = reputation?.totalReputation
+  const totalAvailable = useMemo(() => {
+    if (!reputation) return 0
 
-export const ReputationTable = ({ reputation }: { reputation: Reputation }) => (
-  <Table>
-    <Thead>
-      <Tr>
-        <Th>Action</Th>
-        <Th>Available Points</Th>
-        <Th>Earned points</Th>
-      </Tr>
-    </Thead>
-    <Tbody>
-      <Tr>
-        <Td>Community created</Td>
-        <Td>{reputation.activityInfo.maxCommunityReputation}</Td>
-        <Td>{reputation.activityCounts.communitiesCount}</Td>
-      </Tr>
-      <Tr>
-        <Td>Polls created</Td>
-        <Td>{reputation.activityInfo.maxElectionsReputation}</Td>
-        <Td>{reputation.activityCounts.createdElectionsCount}</Td>
-      </Tr>
-      <Tr>
-        <Td>Participated in polls</Td>
-        <Td>{reputation.activityInfo.maxCastedReputation}</Td>
-        <Td>{reputation.activityCounts.participationsCount}</Td>
-      </Tr>
-      <Tr>
-        <Td>Votes cast</Td>
-        <Td>{reputation.activityInfo.maxVotesReputation}</Td>
-        <Td>{reputation.activityCounts.castVotesCount}</Td>
-      </Tr>
-      <Tr>
-        <Td>Followers</Td>
-        <Td>{reputation.activityInfo.maxFollowersReputation}</Td>
-        <Td>{reputation.activityCounts.followersCount}</Td>
-      </Tr>
-      <Tr>
-        <Td>Follow @vocdoni on Farcaster</Td>
-        <Td>
-          {reputation.boosters.isVocdoniFarcasterFollower
-            ? reputation.boostersInfo.vocdoniFarcasterFollowerPuntuaction
-            : 0}
-        </Td>
-        <Td>{reputation.boostersInfo.vocdoniFarcasterFollowerPuntuaction}</Td>
-      </Tr>
-      <Tr>
-        <Td>Follow @votecasterio on Farcaster</Td>
-        <Td>
-          {reputation.boosters.isVotecasterFarcasterFollower
-            ? reputation.boostersInfo.votecasterFarcasterFollowerPuntuaction
-            : 0}
-        </Td>
-        <Td>{reputation.boostersInfo.votecasterFarcasterFollowerPuntuaction}</Td>
-      </Tr>
-      <Tr>
-        <Td>Hold +10k $degen</Td>
-        <Td>{reputation.boosters.has10kDegenAtLeast ? reputation.boostersInfo.degenAtLeast10kPuntuaction : 0}</Td>
-        <Td>{reputation.boostersInfo.degenAtLeast10kPuntuaction}</Td>
-      </Tr>
-      <Tr>
-        <Td>Hold DegenDAO NFT</Td>
-        <Td>{reputation.boosters.hasDegenDAONFT ? reputation.boostersInfo.degenDAONFTPuntuaction : 0}</Td>
-        <Td>{reputation.boostersInfo.degenDAONFTPuntuaction}</Td>
-      </Tr>
-      <Tr>
-        <Td>Hold Haberdashery NFT</Td>
-        <Td>{reputation.boosters.hasHaberdasheryNFT ? reputation.boostersInfo.haberdasheryNFTPuntuaction : 0}</Td>
-        <Td>{reputation.boostersInfo.haberdasheryNFTPuntuaction}</Td>
-      </Tr>
-      <Tr>
-        <Td>Hold Kiwi NFT</Td>
-        <Td>{reputation.boosters.hasKIWI ? reputation.boostersInfo.kiwiPuntuaction : 0}</Td>
-        <Td>{reputation.boostersInfo.kiwiPuntuaction}</Td>
-      </Tr>
-      <Tr>
-        <Td>Hold .degen NFT</Td>
-        <Td>{reputation.boosters.hasNameDegen ? reputation.boostersInfo.nameDegenPuntuaction : 0}</Td>
-        <Td>{reputation.boostersInfo.nameDegenPuntuaction}</Td>
-      </Tr>
-      <Tr>
-        <Td>Hold ProxyStudio NFT</Td>
-        <Td>{reputation.boosters.hasProxyStudioNFT ? reputation.boostersInfo.proxyStudioNFTPuntuaction : 0}</Td>
-        <Td>{reputation.boostersInfo.proxyStudioNFTPuntuaction}</Td>
-      </Tr>
-      <Tr>
-        <Td>Hold +5 $PROXY</Td>
-        <Td>{reputation.boosters.has5ProxyAtLeast ? reputation.boostersInfo.proxyAtLeast5Puntuaction : 0}</Td>
-        <Td>{reputation.boostersInfo.proxyAtLeast5Puntuaction}</Td>
-      </Tr>
-      <Tr>
-        <Td>Hold TokyoDAO NFT</Td>
-        <Td>{reputation.boosters.hasTokyoDAONFT ? reputation.boostersInfo.tokyoDAONFTPuntuaction : 0}</Td>
-        <Td>{reputation.boostersInfo.tokyoDAONFTPuntuaction}</Td>
-      </Tr>
-    </Tbody>
-  </Table>
-)
+    return Object.values(reputation.activityInfo).reduce((acc, curr) => acc + curr, 0)
+  }, [reputation])
+
+  if (!reputation) {
+    return null
+  }
+
+  return (
+    <Table>
+      <Thead>
+        <Tr>
+          <Th>Action</Th>
+          <Th>Earned points</Th>
+          <Th>Available Points</Th>
+        </Tr>
+      </Thead>
+      <Tbody>
+        <Tr>
+          <Td>Created {reputation.activityCounts.communitiesCount} communities</Td>
+          <Td>{reputation.activityPoints.communitiesPoints}</Td>
+          <Td>{reputation.activityInfo.maxCommunityReputation}</Td>
+        </Tr>
+        <Tr>
+          <Td>Created {reputation.activityCounts.createdElectionsCount} polls</Td>
+          <Td>{reputation.activityPoints.createdElectionsPoints}</Td>
+          <Td>{reputation.activityInfo.maxElectionsReputation}</Td>
+        </Tr>
+        <Tr>
+          <Td>Participated in {reputation.activityCounts.participationsCount} polls</Td>
+          <Td>{reputation.activityPoints.participationsPoints}</Td>
+          <Td>{reputation.activityInfo.maxCastedReputation}</Td>
+        </Tr>
+        <Tr>
+          <Td>Cast {reputation.activityCounts.castVotesCount} votes</Td>
+          <Td>{reputation.activityPoints.castVotesPoints}</Td>
+          <Td>{reputation.activityInfo.maxVotesReputation}</Td>
+        </Tr>
+        <Tr>
+          <Td>{reputation.activityCounts.followersCount} followers</Td>
+          <Td>{reputation.activityPoints.followersPoints}</Td>
+          <Td>{reputation.activityInfo.maxFollowersReputation}</Td>
+        </Tr>
+        <Tr>
+          <Td>Follow @vocdoni on Farcaster</Td>
+          <Td>{reputation.boostersInfo.vocdoniFarcasterFollowerPuntuaction}</Td>
+          <Td>
+            {reputation.boosters.isVocdoniFarcasterFollower
+              ? reputation.boostersInfo.vocdoniFarcasterFollowerPuntuaction
+              : 0}
+          </Td>
+        </Tr>
+        <Tr>
+          <Td>Follow @votecasterio on Farcaster</Td>
+          <Td>{reputation.boostersInfo.votecasterFarcasterFollowerPuntuaction}</Td>
+          <Td>
+            {reputation.boosters.isVotecasterFarcasterFollower
+              ? reputation.boostersInfo.votecasterFarcasterFollowerPuntuaction
+              : 0}
+          </Td>
+        </Tr>
+        <Tr>
+          <Td>Hold +10k $degen</Td>
+          <Td>{reputation.boosters.has10kDegenAtLeast ? reputation.boostersInfo.degenAtLeast10kPuntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.degenAtLeast10kPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>Hold DegenDAO NFT</Td>
+          <Td>{reputation.boosters.hasDegenDAONFT ? reputation.boostersInfo.degenDAONFTPuntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.degenDAONFTPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>Hold Haberdashery NFT</Td>
+          <Td>{reputation.boosters.hasHaberdasheryNFT ? reputation.boostersInfo.haberdasheryNFTPuntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.haberdasheryNFTPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>Hold Kiwi NFT</Td>
+          <Td>{reputation.boosters.hasKIWI ? reputation.boostersInfo.kiwiPuntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.kiwiPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>Hold .degen NFT</Td>
+          <Td>{reputation.boosters.hasNameDegen ? reputation.boostersInfo.nameDegenPuntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.nameDegenPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>Hold ProxyStudio NFT</Td>
+          <Td>{reputation.boosters.hasProxyStudioNFT ? reputation.boostersInfo.proxyStudioNFTPuntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.proxyStudioNFTPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>Hold +5 $PROXY</Td>
+          <Td>{reputation.boosters.has5ProxyAtLeast ? reputation.boostersInfo.proxyAtLeast5Puntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.proxyAtLeast5Puntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>Hold TokyoDAO NFT</Td>
+          <Td>{reputation.boosters.hasTokyoDAONFT ? reputation.boostersInfo.tokyoDAONFTPuntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.tokyoDAONFTPuntuaction}</Td>
+        </Tr>
+        <Tr fontWeight='bold'>
+          <Td>Totals</Td>
+          <Td>{totalReputation}</Td>
+          <Td>{totalAvailable}</Td>
+        </Tr>
+      </Tbody>
+    </Table>
+  )
+}
 
 const FlexStatNumber = ({ children }: PropsWithChildren) => (
   <StatNumber fontSize='sm' display='flex' flexDir='row' alignItems='center' gap={1}>
