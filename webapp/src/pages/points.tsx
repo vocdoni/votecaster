@@ -1,4 +1,4 @@
-import { Card, VStack } from '@chakra-ui/react'
+import { Card, CardBody, CardHeader, Heading, Text, VStack } from '@chakra-ui/react'
 import { ReputationLeaderboard } from '~components/Reputation/Leaderboard'
 import { ReputationTable } from '~components/Reputation/Reputation'
 import { useReputation } from '~components/Reputation/useReputation'
@@ -10,11 +10,24 @@ const Points = () => {
   if (!reputation) return null
 
   return (
-    <VStack>
-      <Card>
-        <ReputationTable reputation={reputation} />
+    <VStack w='full'>
+      <Card w='full'>
+        <CardHeader textAlign='center' gap={3} display='flex' flexDir='column'>
+          <Heading size='md'>Points Leaderboard</Heading>
+          <Text fontSize='sm'>Ranking of users with the most points</Text>
+        </CardHeader>
+        <CardBody>
+          <ReputationLeaderboard />
+        </CardBody>
       </Card>
-      <ReputationLeaderboard />
+      <Card w='full'>
+        <CardHeader as={Heading} size='md'>
+          Your reputation points
+        </CardHeader>
+        <CardBody>
+          <ReputationTable reputation={reputation} />
+        </CardBody>
+      </Card>
     </VStack>
   )
 }
