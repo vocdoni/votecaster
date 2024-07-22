@@ -12,7 +12,6 @@ const CommunityPoll = () => {
 
   // Merge contract and API data
   let results = {
-    poll,
     ...api.data,
   } as PollInfo
 
@@ -25,11 +24,10 @@ const CommunityPoll = () => {
       contractDataToObject(data)
     ) as PollInfo
   }
-
   return (
     <>
       <Check isLoading={api.isLoading || isLoading} error={api.error || error} />
-      <PollView loading={api.isLoading && isLoading} poll={results} />
+      {results.electionId && <PollView loading={api.isLoading && isLoading} poll={results} />}
     </>
   )
 }
