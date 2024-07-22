@@ -232,3 +232,17 @@ type ComposerActionResponse struct {
 	Title string `json:"title"`
 	URL   string `json:"url"`
 }
+
+// ComposerActionMetadata is the metadata of the composer action, which is used
+// to show the action in the warpcast composer selector.
+type ComposerActionMetadata struct {
+	Type        string `json:"type"`
+	Title       string `json:"title"`
+	Name        string `json:"name"`
+	Icon        string `json:"icon"`
+	Description string `json:"description"`
+	ImageURL    string `json:"imageUrl"`
+	Action      struct {
+		Type string `json:"type"`
+	} `json:"action"`
+}

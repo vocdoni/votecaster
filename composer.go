@@ -51,6 +51,23 @@ type composerActionCast struct {
 	} `json:"cast"`
 }
 
+func (v *vocdoniHandler) composerMetadataHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	res, err := json.Marshal(ComposerActionMetadata{
+		Type:        "composer",
+		Name:        "Votecaster Action",
+		Icon:        "project-roadmap",
+		Description: "Create a blockchain poll from the cast form in Votecaster",
+		ImageURL:    "https://farcaster.vote/app/logo-farcastervote-action.png",
+		Action: struct {
+			Type string `json:"type"`
+		}{Type: "post"},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal composer metadata: %w", err)
+	}
+	return ctx.Send(res, http.StatusOK)
+}
+
 func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	// decode the packet from the message
 	packet := &FrameSignaturePacket{}

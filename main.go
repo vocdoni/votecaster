@@ -497,6 +497,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/composer", http.MethodGet, "public", handler.composerMetadataHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/composer", http.MethodPost, "public", handler.composerActionHandler); err != nil {
 		log.Fatal(err)
 	}
