@@ -87,8 +87,6 @@ export const useAuthProvider = () => {
         if (response.status !== 200) {
           logout()
         }
-
-        return response.json()
       })
       // network errors or other issues
       .catch(() => {

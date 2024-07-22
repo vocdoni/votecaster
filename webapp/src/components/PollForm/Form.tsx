@@ -12,10 +12,10 @@ import {
   VStack,
 } from '@chakra-ui/react'
 import type { FC } from 'react'
-import { ReputationCard } from '~components/Auth/Reputation'
 import { SignInButton } from '~components/Auth/SignInButton'
 import { useAuth } from '~components/Auth/useAuth'
 import CensusTypeSelector from '~components/CensusTypeSelector'
+import { ReputationCard } from '~components/Reputation/Reputation'
 import { useReputation } from '~components/Reputation/useReputation'
 import { Choices } from './Choices'
 import { Done } from './Done'
