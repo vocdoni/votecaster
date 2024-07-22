@@ -237,7 +237,6 @@ type ComposerActionResponse struct {
 // to show the action in the warpcast composer selector.
 type ComposerActionMetadata struct {
 	Type        string `json:"type"`
-	Title       string `json:"title"`
 	Name        string `json:"name"`
 	Icon        string `json:"icon"`
 	Description string `json:"description"`

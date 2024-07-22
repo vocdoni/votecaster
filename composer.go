@@ -64,7 +64,7 @@ func (v *vocdoniHandler) composerMetadataHandler(msg *apirest.APIdata, ctx *http
 		Name:        "Votecaster Action",
 		Icon:        "project-roadmap",
 		Description: "Create a blockchain poll from the cast form in Votecaster",
-		ImageURL:    "https://farcaster.vote/app/logo-farcastervote-action.png",
+		ImageURL:    serverURL + "/app/logo-farcastervote-action.png",
 		Action: struct {
 			Type string `json:"type"`
 		}{Type: "post"},
