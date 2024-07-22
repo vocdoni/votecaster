@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { appUrl } from '~constants'
+import { userToProfile } from '~util/mappings'
 
 interface AuthState {
   isAuthenticated: boolean
   bearer: string | null
   bfetch: (input: RequestInfo, init?: RequestInit) => Promise<Response>
   login: (params: LoginParams) => void
+  tokenLogin: (token: string) => void
   logout: () => void
   profile: Profile | null
   reputation: Reputation | undefined
@@ -48,6 +50,8 @@ export const useAuthProvider = (): AuthState => {
     JSON.parse(localStorage.getItem('reputation') || '{}')
   )
 
+  const isAuthenticated = useMemo(() => !!bearer && !!profile && !!reputation, [bearer, profile, reputation])
+
   const bearedFetch = useCallback(
     async (input: RequestInfo, init: RequestInit = {}) => {
       const headers = new Headers(init.headers || {})
@@ -77,7 +81,32 @@ export const useAuthProvider = (): AuthState => {
     }
     setReputation(reputation)
     localStorage.setItem('reputation', JSON.stringify(reputation))
+
+    return rep
   }
+
+  const tokenLogin = useCallback(
+    (token: string) =>
+      bearedFetch(`${appUrl}/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((resp) => resp.json())
+        .then(({ user, reputation, reputationData }: UserProfileResponse) =>
+          login({
+            profile: userToProfile(user),
+            bearer: token,
+            reputation: {
+              reputation,
+              data: {
+                ...reputationData,
+              },
+            },
+          })
+        ),
+    []
+  )
 
   // if no bearer but profile, logout
   useEffect(() => {
@@ -126,12 +155,13 @@ export const useAuthProvider = (): AuthState => {
   }, [])
 
   return {
-    isAuthenticated: !!bearer && !!profile && !!reputation,
+    isAuthenticated,
     profile,
     reputation,
     login,
     logout,
     bearer,
+    tokenLogin,
     bfetch: bearedFetch,
   }
 }

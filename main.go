@@ -382,12 +382,12 @@ func main() {
 	}
 
 	// Set the method for adding new auth tokens
-	handler.addAuthTokenFunc = func(fid uint64, token string) {
+	handler.AddAuthTokenFunc(func(fid uint64, token string) {
 		uAPI.Endpoint.AddAuthToken(token, 0)
 		if err := db.AddAuthentication(fid, token); err != nil {
 			log.Errorw(err, "failed to add authentication token to the database")
 		}
-	}
+	})
 
 	// The root endpoint redirects to /app
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodGet, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -494,6 +494,14 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/poll/results/{electionID}", http.MethodPost, "public", handler.results); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/composer", http.MethodGet, "public", handler.composerMetadataHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/composer", http.MethodPost, "public", handler.composerActionHandler); err != nil {
 		log.Fatal(err)
 	}
 
