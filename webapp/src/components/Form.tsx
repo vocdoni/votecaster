@@ -104,9 +104,11 @@ const Form: React.FC<FormProps> = ({ communityId, composer, ...props }) => {
   const [usernames, setUsernames] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [censusRecords, setCensusRecords] = useState<number>(0)
+  const [cast, setCast] = useState<string | null>(null)
 
   const censusType = watch('censusType')
   const notify = watch('notify')
+  const question = watch('question')
 
   const notifyAllowed = ['community']
 
@@ -132,6 +134,7 @@ const Form: React.FC<FormProps> = ({ communityId, composer, ...props }) => {
     if (!question) return
 
     setValue('question', question)
+    setCast(question)
   }, [search])
 
   const checkElection = async (pid: string) => {
@@ -143,7 +146,7 @@ const Form: React.FC<FormProps> = ({ communityId, composer, ...props }) => {
         if (url) {
           setShortened(url)
         }
-        return true
+        return url
       }
     } catch (error) {
       console.error('error checking election status:', error)
@@ -298,6 +301,19 @@ const Form: React.FC<FormProps> = ({ communityId, composer, ...props }) => {
         if (success) {
           clearInterval(intervalId)
           setLoading(false)
+          window.parent.postMessage(
+            {
+              type: 'createCast',
+              data: {
+                cast: {
+                  parent: '',
+                  text: cast,
+                  embeds: [success],
+                },
+              },
+            },
+            '*'
+          )
         }
       }, 1000)
     } catch (e) {

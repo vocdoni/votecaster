@@ -10,7 +10,7 @@ interface IFormInput {
 }
 
 export const Composer: React.FC = () => {
-  const { profile, isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth()
   const {
     control,
     handleSubmit,

@@ -134,6 +134,20 @@ declare global {
         : T[P]
   }
 
+  type User = {
+    userID?: number
+    electionCount: number
+    castedVotes: number
+    username: string
+    displayName: string
+    custodyAddress: string
+    addresses: string[]
+    signers: string[]
+    followers: number
+    lastUpdated: Date
+    avatar: string
+  }
+
   type UserRanking = {
     fid: number
     username: string
@@ -144,7 +158,7 @@ declare global {
   type UserProfileResponse = ReputationResponse & {
     polls: Poll[]
     mutedUsers: Profile[]
-    user: Profile
+    user: User
   }
 
   type Channel = {

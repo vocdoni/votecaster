@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { appUrl } from '~constants'
+import { userToProfile } from '~util/mappings'
 
 interface AuthState {
   isAuthenticated: boolean
@@ -92,8 +93,17 @@ export const useAuthProvider = (): AuthState => {
         },
       })
         .then((resp) => resp.json())
-        .then(({ user, reputationData }: { user: Profile; reputationData: Reputation }) =>
-          login({ profile: user, bearer: token, reputation: reputationData })
+        .then(({ user, reputation, reputationData }: UserProfileResponse) =>
+          login({
+            profile: userToProfile(user),
+            bearer: token,
+            reputation: {
+              reputation,
+              data: {
+                ...reputationData,
+              },
+            },
+          })
         ),
     []
   )

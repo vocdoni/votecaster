@@ -55,3 +55,27 @@ export const chainFromId = (id?: CommunityID) => {
 
   return id.split(':')[0] as ChainKey
 }
+
+export const userToProfile = (user: User): Profile => ({
+  fid: user.userID ?? 0,
+  username: user.username,
+  displayName: user.displayName,
+  bio: '',
+  pfpUrl: user.avatar,
+  custody: user.custodyAddress,
+  verifications: user.signers,
+  addresses: user.addresses,
+})
+
+export const profileToUser = (profile: Profile): User => ({
+  electionCount: 0,
+  castedVotes: 0,
+  username: profile.username,
+  displayName: profile.displayName,
+  custodyAddress: profile.custody,
+  addresses: profile.addresses ?? [],
+  signers: profile.verifications,
+  followers: 0,
+  lastUpdated: new Date(),
+  avatar: profile.pfpUrl,
+})
