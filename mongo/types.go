@@ -261,6 +261,7 @@ type ReputationRanking struct {
 	CommunityName    string `json:"communityName" bson:"communityName"`
 	CommunityCreator uint64 `json:"communityCreator" bson:"communityCreator"`
 	TotalPoints      uint64 `json:"totalPoints" bson:"totalPoints"`
+	ImageURL         string `json:"imageURL" bson:"imageURL"`
 }
 
 // Community represents a community entry.
