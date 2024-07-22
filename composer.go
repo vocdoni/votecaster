@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/google/uuid"
 	"go.vocdoni.io/dvote/httprouter"
@@ -36,7 +37,13 @@ func safeURL(url *url.URL) string {
 		strURL += fmt.Sprintf("#%s", url.Fragment)
 	}
 	if encoded := url.Query().Encode(); encoded != "" {
-		strURL += fmt.Sprintf("?%s", encoded)
+		queryParams := []string{}
+		for key, values := range url.Query() {
+			for _, value := range values {
+				queryParams = append(queryParams, fmt.Sprintf("%s=%s", key, value))
+			}
+		}
+		strURL += fmt.Sprintf("?%s", strings.Join(queryParams, "&"))
 	}
 	return strURL
 }
