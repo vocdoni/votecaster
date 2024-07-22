@@ -275,6 +275,24 @@ func (v *vocdoniHandler) rankingByPoints(msg *apirest.APIdata, ctx *httprouter.H
 			return fmt.Errorf("failed to get ranking: %w", err)
 		}
 	}
+	for i, item := range ranking {
+		if item.CommunityID != "" {
+			community, err := v.db.Community(item.CommunityID)
+			if err != nil {
+				log.Warnw("failed to fetch community", "error", err)
+			} else if community != nil {
+				ranking[i].ImageURL = community.ImageURL
+			}
+		} else if item.UserID > 0 {
+			user, err := v.db.User(item.UserID)
+			if err != nil {
+				log.Warnw("failed to fetch user", "error", err)
+			} else if user != nil {
+				ranking[i].ImageURL = user.Avatar
+			}
+		}
+	}
+
 	jresponse, err := json.Marshal(map[string]any{
 		"points": ranking,
 	})
