@@ -49,9 +49,10 @@ export type CensusTypeSelectorProps = FormControlProps & {
   complete?: boolean
   communityId?: string
   admin?: boolean
+  composer?: boolean
 }
 
-const CensusTypeSelector = ({ complete, communityId, admin, ...props }: CensusTypeSelectorProps) => {
+const CensusTypeSelector = ({ complete, communityId, admin, composer, ...props }: CensusTypeSelectorProps) => {
   const { bfetch, profile, isAuthenticated } = useAuth()
   const {
     control,
@@ -128,7 +129,7 @@ const CensusTypeSelector = ({ complete, communityId, admin, ...props }: CensusTy
             <Radio value='channel'>⛩ Farcaster channel gated</Radio>
             <Radio value='followers'>❤️ My Farcaster followers and me</Radio>
             {complete && <Radio value='alfafrens'>💙 My alfafrens channel subscribers</Radio>}
-            {complete && <Radio value='custom'>🦄 Token based via CSV</Radio>}
+            {complete && !composer && <Radio value='custom'>🦄 Token based via CSV</Radio>}
             <Radio value='nft'>
               <Icon as={Airstack} /> NFT based via airstack
             </Radio>

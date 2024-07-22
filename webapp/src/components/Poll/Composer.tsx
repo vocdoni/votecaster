@@ -2,6 +2,7 @@ import { Box, Button, FormControl, IconButton, Input, InputGroup, InputRightElem
 import React from 'react'
 import { Controller, SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import { FaTrash } from 'react-icons/fa6'
+import { useAuth } from '~components/Auth/useAuth'
 
 interface IFormInput {
   question: string
@@ -9,6 +10,7 @@ interface IFormInput {
 }
 
 export const Composer: React.FC = () => {
+  const { profile, isAuthenticated } = useAuth()
   const {
     control,
     handleSubmit,
@@ -38,7 +40,7 @@ export const Composer: React.FC = () => {
   }
 
   return (
-    <Box as='form' onSubmit={handleSubmit(onSubmit)} w='full'>
+    <Box as='form' onSubmit={handleSubmit(onSubmit)}>
       <VStack spacing={4} alignItems='start'>
         <FormControl id='question' isInvalid={!!errors.question}>
           <Controller
@@ -58,7 +60,7 @@ export const Composer: React.FC = () => {
               render={({ field }) => (
                 <InputGroup>
                   <Input {...field} maxLength={20} placeholder={`Option #${index + 1}`} />
-                  {index >= 2 && (
+                  {fields.length > 2 && (
                     <InputRightElement>
                       <IconButton
                         aria-label='Remove option'
@@ -82,7 +84,7 @@ export const Composer: React.FC = () => {
           </Button>
         )}
 
-        <Button type='submit' colorScheme='purple' w='full'>
+        <Button type='submit' colorScheme='purple' isDisabled={!isAuthenticated}>
           Create poll
         </Button>
       </VStack>

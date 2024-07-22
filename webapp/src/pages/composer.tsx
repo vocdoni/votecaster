@@ -1,5 +1,5 @@
-import { Composer } from '~components/Poll/Composer'
+import Form from '~components/Form'
 
-const ComposerPage = () => <Composer />
+const ComposerPage = () => <Form composer w='full' />
 
 export default ComposerPage

@@ -6,7 +6,7 @@ export const composer = extendTheme({
   styles: {
     global: {
       body: {
-        bg: 'transparent',
+        bg: window.location.href.includes('light') ? '#232323' : 'transparent',
         color: 'white',
       },
     },

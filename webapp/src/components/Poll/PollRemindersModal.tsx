@@ -19,7 +19,6 @@ import {
   Text,
   Textarea,
   useDisclosure,
-  useToast,
   VStack,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
@@ -54,7 +53,6 @@ export const PollRemindersModal = ({ poll, frameURL }: { poll: PollInfo; frameUR
   })
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { bfetch } = useAuth()
-  const toast = useToast()
   const [queueId, setQueueId] = useState<string>()
   const [loading, setLoading] = useState<boolean>(false)
   const [success, setSuccess] = useState<string>()

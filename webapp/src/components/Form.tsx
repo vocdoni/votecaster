@@ -25,6 +25,7 @@ import {
 import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { FormProvider, useFieldArray, useForm } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
+import { useLocation } from 'react-router-dom'
 import { appUrl } from '~constants'
 import { cleanChannel } from '~util/strings'
 import { isErrorWithHTTPResponse } from '~util/types'
@@ -71,15 +72,17 @@ interface CensusResponseWithUsernames extends CensusResponse {
 
 type FormProps = FlexProps & {
   communityId?: CommunityID
+  composer?: boolean
 }
 
-const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
+const Form: React.FC<FormProps> = ({ communityId, composer, ...props }) => {
   const methods = useForm<FormValues>({
     defaultValues: {
       choices: [{ choice: '' }, { choice: '' }],
       censusType: 'farcaster',
     },
   })
+  const { search } = useLocation()
   const {
     register,
     handleSubmit,
@@ -87,6 +90,7 @@ const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
     control,
     watch,
     resetField,
+    setValue,
   } = methods
   const { fields, append, remove } = useFieldArray({
     control,
@@ -120,6 +124,15 @@ const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
       resetField('notificationText')
     }
   }, [censusType])
+
+  // set question if received via GET query param
+  useEffect(() => {
+    const params = new URLSearchParams(search)
+    const question = params.get('question')
+    if (!question) return
+
+    setValue('question', question)
+  }, [search])
 
   const checkElection = async (pid: string) => {
     try {
@@ -307,7 +320,7 @@ const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
 
   return (
     <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 550 }} {...props}>
-      <Card w='100%'>
+      <Card w='100%' borderRadius={composer ? 0 : 6}>
         <CardHeader textAlign='center'>
           <Heading as='h2' size='lg' textAlign='center'>
             Create a framed poll
@@ -371,7 +384,7 @@ const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
                       Add Choice
                     </Button>
                   )}
-                  <CensusTypeSelector complete isDisabled={loading} communityId={communityId} />
+                  <CensusTypeSelector complete isDisabled={loading} composer={composer} communityId={communityId} />
                   {notifyAllowed.includes(censusType) && (
                     <FormControl isDisabled={loading}>
                       <Switch {...register('notify')} lineHeight={6}>
@@ -423,13 +436,17 @@ const Form: React.FC<FormProps> = ({ communityId, ...props }) => {
                       <Button type='submit' isLoading={loading} loadingText={status}>
                         Create
                       </Button>
-                      <Box fontSize='xs' textAlign='right'>
-                        or{' '}
-                        <Button variant='text' size='xs' p={0} onClick={logout} height='auto'>
-                          logout
-                        </Button>
-                      </Box>
-                      <ReputationCard reputation={reputation!} />
+                      {!composer && (
+                        <>
+                          <Box fontSize='xs' textAlign='right'>
+                            or{' '}
+                            <Button variant='text' size='xs' p={0} onClick={logout} height='auto'>
+                              logout
+                            </Button>
+                          </Box>
+                          <ReputationCard reputation={reputation!} />
+                        </>
+                      )}
                     </>
                   ) : (
                     <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>
