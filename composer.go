@@ -20,6 +20,27 @@ const (
 	composerActionQuestionQuery  = "question"
 )
 
+// safeURL function returns a safe URL string from the provided URL. It returns
+// an empty string if the URL is nil. The resulting string will have the format:
+// scheme://host/path#fragment?query. If the URL has no path, query or fragment,
+// they will be omitted. The query parameters will be encoded.
+func safeURL(url *url.URL) string {
+	if url == nil {
+		return ""
+	}
+	strURL := fmt.Sprintf("%s://%s", url.Scheme, url.Host)
+	if url.Path != "" {
+		strURL += url.Path
+	}
+	if url.Fragment != "" {
+		strURL += fmt.Sprintf("#%s", url.Fragment)
+	}
+	if encoded := url.Query().Encode(); encoded != "" {
+		strURL += fmt.Sprintf("?%s", encoded)
+	}
+	return strURL
+}
+
 // composerActionCast is the structure of the cast field in the action message
 // state, used to extract the text of the cast that launched the composer action
 type composerActionCast struct {
@@ -80,7 +101,7 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 	if response, err = json.Marshal(ComposerActionResponse{
 		Type:  "form",
 		Title: "Create a blockchain Poll",
-		URL:   actionURL.String(),
+		URL:   safeURL(actionURL),
 	}); err != nil {
 		return err
 	}
