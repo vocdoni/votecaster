@@ -1,20 +1,18 @@
-import { Alert, AlertIcon, Box, ChakraProvider, Flex } from '@chakra-ui/react'
+import { Box, ChakraProvider, Flex, useColorMode } from '@chakra-ui/react'
+import { useEffect } from 'react'
 import { Outlet, ScrollRestoration } from 'react-router-dom'
 import { theme } from '~src/themes/main'
 import { Footer } from './Footer'
+import { MaintenanceAlert } from './MaintenanceAlert'
 import { Navbar } from './Navbar'
 
 export const Layout = () => (
   <ChakraProvider theme={theme}>
+    <ForceLightTheme />
     <Box maxW={1920} margin='0 auto'>
       <ScrollRestoration />
       <Navbar />
-      {import.meta.env.MAINTENANCE && (
-        <Alert status='warning'>
-          <AlertIcon />
-          App is under maintenance, some features may not work as expected.
-        </Alert>
-      )}
+      <MaintenanceAlert />
       <Flex
         flexDir='column'
         justifyContent='center'
@@ -29,3 +27,14 @@ export const Layout = () => (
     </Box>
   </ChakraProvider>
 )
+
+// We need to force the theme to light to avoid issues switching from the
+// composer layout (dark) to the default one (light)
+const ForceLightTheme = () => {
+  const { setColorMode } = useColorMode()
+  useEffect(() => {
+    setColorMode('light')
+  }, [])
+
+  return null
+}

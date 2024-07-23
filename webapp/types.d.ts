@@ -23,6 +23,21 @@ declare global {
     url: string
   }
 
+  type CensusResponse = {
+    root: string
+    size: number
+    uri: string
+  }
+
+  type CensusResponseWithUsernames = CensusResponse & {
+    usernames: string[]
+    fromTotalAddresses: number
+  }
+
+  type CID = {
+    censusId: string
+  }
+
   type ConfChain = Chain & {
     logo: string
   }
@@ -36,6 +51,8 @@ declare global {
     community: string
     poll: string
   }
+
+  type CommunityID = `${ChainKey}:${number}`
 
   type Pagination = {
     limit: number
@@ -68,6 +85,17 @@ declare global {
     turnout: number
     voteCount: number
     community?: Community
+  }
+
+  type PollRequest = {
+    profile: Profile
+    question: string
+    duration: number
+    options: string[]
+    notifyUsers: boolean
+    notificationText?: string
+    census?: CensusResponse
+    community?: CommunityID
   }
 
   type PollResponse = {
@@ -169,8 +197,6 @@ declare global {
     name: string
     url: string
   }
-
-  type CommunityID = `${ChainKey}:${number}`
 
   type Community = {
     id: CommunityID
