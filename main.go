@@ -662,6 +662,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/profile/delegation", http.MethodPost, "private", handler.delegateVoteHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/profile/delegation/{delegationID}", http.MethodDelete, "private", handler.removeVoteDelegationHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/profile/warpcast", http.MethodPost, "private", handler.registerWarpcastApiKey); err != nil {
 		log.Fatal(err)
 	}

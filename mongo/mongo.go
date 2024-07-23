@@ -41,6 +41,7 @@ type MongoStorage struct {
 	userAccessProfiles *mongo.Collection
 	communities        *mongo.Collection
 	avatars            *mongo.Collection
+	delegations        *mongo.Collection
 }
 
 type Options struct {
@@ -109,6 +110,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.userAccessProfiles = client.Database(database).Collection("userAccessProfiles")
 	ms.communities = client.Database(database).Collection("communities")
 	ms.avatars = client.Database(database).Collection("avatars")
+	ms.delegations = client.Database(database).Collection("delegations")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
 	// else, just createIndexes
@@ -297,6 +299,22 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on community ids for avatars: %w", err)
 	}
 
+	delegationsUserIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "userId", Value: 1}}, // 1 for ascending order
+		Options: nil,
+	}
+	if _, err := ms.delegations.Indexes().CreateOne(ctx, delegationsUserIndex); err != nil {
+		return fmt.Errorf("failed to create index on user ids for delegations: %w", err)
+	}
+
+	delegationsCommunityIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "communityId", Value: 1}}, // 1 for ascending order
+		Options: nil,
+	}
+	if _, err := ms.delegations.Indexes().CreateOne(ctx, delegationsCommunityIndex); err != nil {
+		return fmt.Errorf("failed to create index on community ids for delegations: %w", err)
+	}
+
 	return nil
 }
 
@@ -462,7 +480,23 @@ func (ms *MongoStorage) String() string {
 		userAccessProfiles.UserAccessProfiles = append(userAccessProfiles.UserAccessProfiles, uap)
 	}
 
-	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communities, avatars, userAccessProfiles})
+	ctx12, cancel12 := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel12()
+	var delegations DelegationsCollection
+	cur, err = ms.delegations.Find(ctx12, bson.D{{}})
+	if err != nil {
+		log.Warn(err)
+	}
+	for cur.Next(ctx12) {
+		var delegation Delegation
+		err := cur.Decode(&delegation)
+		if err != nil {
+			log.Warn(err)
+		}
+		delegations.Delegations = append(delegations.Delegations, delegation)
+	}
+
+	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communities, avatars, userAccessProfiles, delegations})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -577,6 +611,18 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		_, err := ms.userAccessProfiles.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
 			log.Warnw("Error upserting userAccessProfile", "err", err, "uapID", uap.UserID)
+		}
+	}
+
+	// Upsert Delegations
+	log.Infow("importing delegations", "count", len(collection.Delegations))
+	for _, delegation := range collection.Delegations {
+		filter := bson.M{"_id": delegation.ID}
+		update := bson.M{"$set": delegation}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.delegations.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting delegation", "err", err, "delegationID", delegation.ID)
 		}
 	}
 

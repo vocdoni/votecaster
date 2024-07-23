@@ -343,7 +343,7 @@ func (v *vocdoniHandler) censusChannel(msg *apirest.APIdata, ctx *httprouter.HTT
 		return ctx.Send([]byte("channel not found"), http.StatusNotFound)
 	}
 	// create a censusID for the queue and store into it
-	data, err := v.censusWarpcastChannel(channelID, userFID)
+	data, err := v.censusWarpcastChannel(channelID, userFID, nil)
 	if err != nil {
 		log.Warnf("error creating census for the chanel: %s: %v", channelID, err)
 		return ctx.Send([]byte("error creating channel census"), http.StatusInternalServerError)
@@ -370,7 +370,7 @@ func (v *vocdoniHandler) censusFollowersHandler(msg *apirest.APIdata, ctx *httpr
 	}
 	// create the census from the followers of the user and return the data as
 	// response
-	data, err := v.censusFollowers(userFID)
+	data, err := v.censusFollowers(userFID, nil)
 	if err != nil {
 		return err
 	}
@@ -428,10 +428,15 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 	if community == nil {
 		return ctx.Send([]byte("community not found"), http.StatusNotFound)
 	}
-
 	// check if the user is admin of the community
 	if !v.db.IsCommunityAdmin(userFID, req.CommunityID) {
 		return fmt.Errorf("user is not an admin of the community")
+	}
+	// getting the delegations of the community to build the census taking into
+	// account them
+	delegations, err := v.db.DelegationsByCommunity(req.CommunityID)
+	if err != nil {
+		return err
 	}
 	// check the type to create it from the correct source (channel, airstak
 	// (nft/erc20) or user followers) and in the correct way (async or sync)
@@ -440,7 +445,7 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 		// if the census type is followers, create the census from the users who
 		// follow the user, the process is async so return add the censusID to the
 		// queue and return it to the client
-		data, err := v.censusFollowers(userFID)
+		data, err := v.censusFollowers(userFID, delegations)
 		if err != nil {
 			log.Warnf("error creating census for the user: %d: %v", userFID, err)
 			return ctx.Send([]byte("error creating user followers census"), http.StatusInternalServerError)
@@ -450,7 +455,7 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 		// if the census type is a channel, create the census from the users who
 		// follow the channel, the process is async so return add the censusID
 		// to the queue and return it to the client
-		data, err := v.censusWarpcastChannel(community.Census.Channel, userFID)
+		data, err := v.censusWarpcastChannel(community.Census.Channel, userFID, delegations)
 		if err != nil {
 			log.Warnf("error creating census for the chanel: %s: %v", community.Census.Channel, err)
 			return ctx.Send([]byte("error creating channel census"), http.StatusInternalServerError)
@@ -484,7 +489,7 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 			}
 		}
 		// create the census from the token holders
-		data, err := v.censusTokenAirstack(censusAddresses, censusType, userFID)
+		data, err := v.censusTokenAirstack(censusAddresses, censusType, userFID, delegations)
 		if err != nil {
 			return fmt.Errorf("cannot create erc20/nft based census: %w", err)
 		}
@@ -575,7 +580,7 @@ func (v *vocdoniHandler) censusTokenNFTAirstack(msg *apirest.APIdata, ctx *httpr
 		return err
 	}
 
-	data, err := v.censusTokenAirstack(req.Tokens, NFTtype, userFID)
+	data, err := v.censusTokenAirstack(req.Tokens, NFTtype, userFID, nil)
 	if err != nil {
 		return fmt.Errorf("cannot create nft census: %w", err)
 	}
@@ -630,14 +635,14 @@ func (v *vocdoniHandler) censusTokenERC20Airstack(msg *apirest.APIdata, ctx *htt
 		return err
 	}
 
-	data, err := v.censusTokenAirstack(req.Tokens, ERC20type, userFID)
+	data, err := v.censusTokenAirstack(req.Tokens, ERC20type, userFID, nil)
 	if err != nil {
 		return fmt.Errorf("cannot create erc20 census: %w", err)
 	}
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType int, createdByFID uint64) ([]byte, error) {
+func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType int, createdByFID uint64, delegations []*mongo.Delegation) ([]byte, error) {
 	if v.airstack == nil {
 		return nil, fmt.Errorf("airstack service not available")
 	}
@@ -666,7 +671,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType in
 		// create census from token holders
 		var participants []*FarcasterParticipant
 		v.trackStepProgress(censusID, 2, 3, func(progress chan int) {
-			participants, _, err = v.processCensusRecords(holders, progress)
+			participants, _, err = v.processCensusRecords(holders, nil, progress)
 		})
 		if err != nil {
 			log.Warnw("failed to build census from NFT", "err", err.Error())
@@ -735,7 +740,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType in
 // censusWarpcastChannel helper method creates a new census from a Warpcast
 // Channel. The process is async and returns the json encoded censusID. It
 // updates the progress in the queue and the result when it's ready.
-func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint64) ([]byte, error) {
+func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint64, delegations []*mongo.Delegation) ([]byte, error) {
 	// create a censusID for the queue and store into it
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
@@ -770,7 +775,7 @@ func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint6
 		// create the participants from the database users using the fids
 		var participants []*FarcasterParticipant
 		v.trackStepProgress(censusID, 2, 3, func(progress chan int) {
-			participants = v.farcasterCensusFromFids(users, progress)
+			participants = v.farcasterCensusFromFids(users, delegations, progress)
 		})
 		if len(participants) == 0 {
 			log.Errorw(fmt.Errorf("no valid participant signers found for the channel %s", channelID), "")
@@ -823,7 +828,7 @@ func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint6
 // progress in the queue and the result when it's ready. If something fails
 // during the process, it returns an error or the error is stored in the queue
 // if it's async.
-func (v *vocdoniHandler) censusFollowers(userFID uint64) ([]byte, error) {
+func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []*mongo.Delegation) ([]byte, error) {
 	// create a censusID for the queue and store into it
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
@@ -849,7 +854,7 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64) ([]byte, error) {
 		// create the participants from the database users using the fids
 		var participants []*FarcasterParticipant
 		v.trackStepProgress(censusID, 1, 2, func(progress chan int) {
-			participants = v.farcasterCensusFromFids(users, progress)
+			participants = v.farcasterCensusFromFids(users, delegations, progress)
 		})
 		if len(participants) == 0 {
 			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: "no valid participants"})
@@ -937,7 +942,7 @@ func (v *vocdoniHandler) censusAlfafrensChannel(censusID types.HexBytes, ownerFI
 		// create the participants from the database users using the fids
 		var participants []*FarcasterParticipant
 		v.trackStepProgress(censusID, 1, 2, func(progress chan int) {
-			participants = v.farcasterCensusFromFids(users, progress)
+			participants = v.farcasterCensusFromFids(users, nil, progress)
 		})
 		if len(participants) == 0 {
 			log.Errorw(fmt.Errorf("no valid participant signers found for alfafrens channel %s", channelAddr.String()), "")
@@ -1023,7 +1028,6 @@ func (v *vocdoniHandler) getTokenHoldersFromAirstack(
 		}
 
 		totalHolders += len(tokenHolders)
-
 		// update the progress if the progress channel is provided
 		// since the response time of GetTokenBalances is unknown, because it dependends on the total number
 		// holders and cannot be known beforehand, update at least the progress between tokens
@@ -1043,14 +1047,14 @@ func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, progress cha
 	if err != nil {
 		return nil, 0, err
 	}
-	return v.processCensusRecords(records, progress)
+	return v.processCensusRecords(records, nil, progress)
 }
 
 // farcasterCensusFromFids creates a list of Farcaster participants from a list
 // of FIDs. It queries the database to get the users signer keys and creates the
 // participants from them. It returns the list of participants and a map of the
 // FIDs that failed to get the users from the database or decoding the keys.
-func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, progress chan int) []*FarcasterParticipant {
+func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, delegations []*mongo.Delegation, progress chan int) []*FarcasterParticipant {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	// get participants from the users fids, quering the database and to get the
@@ -1083,6 +1087,27 @@ func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, progress chan in
 		go func(idx int, fid uint64) {
 			defer wg.Done()
 			defer func() { <-concurrencyLimit }()
+			// by default, a user has not delegated weight and has a weight of
+			// 1. If the user has the vote delegated, the weight is 0. If the
+			// user has votes delegations, the weight is the number of
+			// delegations. The final user weight is the sum of the user weight
+			// and the delegated weight, if that sum is 0, the user is not
+			// included in the census.
+			userWeight := int64(1)
+			delegatedWeight := int64(0)
+			for _, delegation := range delegations {
+				if delegation.From == fid {
+					userWeight = 0
+				}
+				if delegation.To == fid {
+					delegatedWeight++
+				}
+			}
+			// if the final weight is 0, the user is not included in the census
+			finalWeight := userWeight + delegatedWeight
+			if finalWeight == 0 {
+				return
+			}
 			// get the user from the database
 			user, err := v.db.User(fid)
 			if err != nil {
@@ -1100,7 +1125,7 @@ func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, progress chan in
 				}
 				participantsCh <- &FarcasterParticipant{
 					PubKey:   signerBytes,
-					Weight:   big.NewInt(1),
+					Weight:   big.NewInt(finalWeight),
 					Username: user.Username,
 					FID:      fid,
 				}
@@ -1167,7 +1192,7 @@ func (v *vocdoniHandler) trackStepProgress(censusID types.HexBytes, step, totalS
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.
 // The record is expected to be a string containing the address and the weight.
 // Returns the list of participants and the total number of unique addresses available in the records.
-func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan int) ([]*FarcasterParticipant, uint32, error) {
+func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []*mongo.Delegation, progress chan int) ([]*FarcasterParticipant, uint32, error) {
 	// Create a context to cancel the goroutines
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -1298,13 +1323,45 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 
 			// find the addres on the map to get the weight
 			// the weight is the sum of the weights of all the addresses of the user
-			weight := new(big.Int).SetUint64(0)
+			userWeight := new(big.Int).SetUint64(0)
 			for _, addr := range user.Addresses {
 				weightAddress, ok := addressMap[helpers.NormalizeAddressString(addr)]
 				if ok {
-					weight = weight.Add(weight, weightAddress)
+					userWeight = userWeight.Add(userWeight, weightAddress)
 				}
 			}
+			// by default, a user has not delegated weight and has a weight is
+			// the sum of weights of all addresses of the user. If the user has
+			// the vote delegated, the weight is 0. If the
+			// user has votes delegations, the weight is the number of
+			// delegations. The final user weight is the sum of the user weight
+			// and the delegated weight, if that sum is 0, the user is not
+			// included in the census.
+			delegatedWeight := big.NewInt(0)
+			for _, delegation := range delegations {
+				if delegation.From == user.UserID {
+					userWeight = big.NewInt(0)
+				}
+				if delegation.To == user.UserID {
+					delegator, err := v.db.User(delegation.From)
+					if err != nil {
+						log.Warnw("error fetching user from database", "address", addr, "error", err)
+						continue
+					}
+					for _, addr := range delegator.Addresses {
+						weightAddress, ok := addressMap[helpers.NormalizeAddressString(addr)]
+						if ok {
+							delegatedWeight = delegatedWeight.Add(delegatedWeight, weightAddress)
+						}
+					}
+				}
+			}
+			// if the final weight is 0, the user is not included in the census
+			finalWeight := userWeight.Add(userWeight, delegatedWeight)
+			if finalWeight.Cmp(big.NewInt(0)) == 0 {
+				return
+			}
+
 			for _, signer := range user.Signers {
 				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
 				if err != nil {
@@ -1313,7 +1370,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, progress chan 
 				}
 				participantsCh <- &FarcasterParticipant{
 					PubKey:   signerBytes,
-					Weight:   weight,
+					Weight:   finalWeight,
 					Username: user.Username,
 					FID:      user.UserID,
 				}
