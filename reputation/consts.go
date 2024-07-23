@@ -98,15 +98,17 @@ var (
 	// NameDegen NFT contract address
 	NameDegenAddress = common.HexToAddress("0x4087fb91A1fBdef05761C02714335D232a2Bf3a1")
 	// FarCaster OG NFT contract address
-	FarcasterOFNFTAddress = common.HexToAddress("0xe03ef4b9db1a47464de84fb476f9baf493b3e886")
+	FarcasterOGNFTAddress = common.HexToAddress("0xe03ef4b9db1a47464de84fb476f9baf493b3e886")
 )
 
 // Boosters costants (ids, hashesh and network information)
 const (
-	// Votecaster NFT Pass network short name
+	// Votecaster NFT Pass network short name and ID
 	VotecasterNFTPassChainShortName = "base"
-	// Votecaster Launch NFT network short name
+	VotecasterNFTPassChainID        = 8453
+	// Votecaster Launch NFT network short name and ID
 	VotecasterLaunchNFTChainShortName = "base"
+	VotecasterLaunchNFTChainID        = 8453
 	// Votecaster Farcaster ID
 	VotecasterFarcasterFID uint64 = 521116
 	// Vocdoni Farcaster ID
@@ -116,20 +118,28 @@ const (
 	VotecasterAnnouncementCastHash = "0xe4528c4931127eb32e4c7c473622d4e3a1c6b0a3"
 	// $KIWI token network ID
 	KIWIChainID uint64 = 10
-	// DegenDAO NFT network short name
+	// DegenDAO NFT network short name and ID
 	DegenDAONFTChainShortName = "base"
-	// Haberdashery NFT network short name
+	DegenDAONFTChainChainID   = 8453
+	// Haberdashery NFT network short name and ID
 	HaberdasheryNFTChainShortName = "base"
-	// Degen token network short name
+	HaberdasheryNFTChainChainID   = 8453
+	// Degen token network short name and ID
 	DegenChainShortName = "base"
-	// TokyoDAO NFT network short name
+	DegenChainID        = 8453
+	// TokyoDAO NFT network short name and ID
 	TokyoDAONFTChainShortName = "base"
-	// $PROXY token network short name
+	TokyoDAONFTChainChainID   = 8453
+	// $PROXY token network short name and ID
 	ProxyChainShortName = "degen"
-	// ProxyStudio NFT network short name
+	ProxyChainID        = 666666666
+	// ProxyStudio NFT network short name and ID
 	ProxyStudioNFTShortName = "base"
-	// NameDegen NFT network short name
+	ProxyStudioNFTChainID   = 8453
+	// NameDegen NFT network short name and ID
 	NameDegenChainShortName = "degen"
-	// FarCaster OG NFT network short name
-	FarcasterOFNFTChainShortName = "zora"
+	NameDegenChainID        = 666666666
+	// FarCaster OG NFT network short name and ID
+	FarcasterOGNFTChainShortName = "zora"
+	FarcasterOGNFTChainID        = 7777777
 )

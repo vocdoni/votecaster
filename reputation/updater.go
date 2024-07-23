@@ -52,6 +52,7 @@ type Updater struct {
 	proxyHolders               map[common.Address]*big.Int
 	proxyStudioNFTHolders      map[common.Address]*big.Int
 	nameDegenHolders           map[common.Address]*big.Int
+	farcasterOGNFTHolders      map[common.Address]*big.Int
 	holdersMtx                 sync.Mutex
 	cachedHolders              atomic.Bool
 }
@@ -97,6 +98,7 @@ func NewUpdater(ctx context.Context, db *dbmongo.MongoStorage, fapi farcasterapi
 		proxyHolders:               make(map[common.Address]*big.Int),
 		proxyStudioNFTHolders:      make(map[common.Address]*big.Int),
 		nameDegenHolders:           make(map[common.Address]*big.Int),
+		farcasterOGNFTHolders:      make(map[common.Address]*big.Int),
 	}, nil
 }
 
@@ -343,98 +345,42 @@ func (u *Updater) fetchHolders() error {
 	log.Info("fetching holders of reputation erc20's and nft's")
 	u.holdersMtx.Lock()
 	defer u.holdersMtx.Unlock()
+	var err error
 	var errs []error
 	// update Votecaster NFT pass holders
-	votecasterNFTPassHolders, err := u.airstack.Client.TokenBalances(
-		VotecasterNFTPassAddress, VotecasterNFTPassChainShortName)
+	u.votecasterNFTPassHolders, err = u.tokenHolders(VotecasterNFTPassAddress, VotecasterNFTPassChainID)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting votecaster nft pass holders: %w", err))
-	} else {
-		u.votecasterLaunchNFTHolders = make(map[common.Address]*big.Int)
-		for _, holder := range votecasterNFTPassHolders {
-			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
-				u.votecasterNFTPassHolders[holder.Address] = holder.Balance
-			}
-		}
-		log.Infow("votecaster nft pass holders", "holders", len(u.votecasterLaunchNFTHolders))
 	}
+	log.Debugw("votecaster nft pass holders", "holders", len(u.votecasterNFTPassHolders))
 	// update Votecaster Launch NFT holders
-	votecasterLaunchNFTHolders, err := u.airstack.Client.TokenBalances(
-		VotecasterLaunchNFTAddress, VotecasterLaunchNFTChainShortName)
+	u.votecasterLaunchNFTHolders, err = u.tokenHolders(VotecasterLaunchNFTAddress, VotecasterLaunchNFTChainID)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting votecaster launch nft holders: %w", err))
-	} else {
-		u.votecasterLaunchNFTHolders = make(map[common.Address]*big.Int)
-		for _, holder := range votecasterLaunchNFTHolders {
-			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
-				u.votecasterLaunchNFTHolders[holder.Address] = holder.Balance
-			}
-		}
-		log.Infow("votecaster launch nft holders", "holders", len(u.votecasterLaunchNFTHolders))
 	}
+	log.Debugw("votecaster launch nft holders", "holders", len(u.votecasterLaunchNFTHolders))
 	// update KIWI holders
-	kiwiToken, err := u.census3.Token(KIWIAddress.Hex(), KIWIChainID, "")
+	u.kiwiHolders, err = u.tokenHolders(KIWIAddress, KIWIChainID)
 	if err != nil {
-		errs = append(errs, fmt.Errorf("error getting KIWI token info: %w", err))
-	} else {
-		kiwiHoldersQueueID, err := u.census3.HoldersByStrategy(kiwiToken.DefaultStrategy)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("error getting KIWI holders queue ID: %w", err))
-		} else {
-			u.kiwiHolders = make(map[common.Address]*big.Int)
-			for {
-				kiwiHolders, finished, err := u.census3.HoldersByStrategyQueue(
-					kiwiToken.DefaultStrategy, kiwiHoldersQueueID)
-				if err != nil {
-					log.Warn(err)
-					errs = append(errs, fmt.Errorf("error getting KIWI holders: %w", err))
-					break
-				}
-				if finished {
-					for holder, balance := range kiwiHolders {
-						if balance.Cmp(big.NewInt(0)) > 0 {
-							u.kiwiHolders[holder] = balance
-						}
-					}
-					break
-				}
-				time.Sleep(time.Second * 1)
-			}
-			log.Infow("KIWI holders", "holders", len(u.kiwiHolders))
-		}
+		errs = append(errs, fmt.Errorf("error getting kiwi holders: %w", err))
 	}
+	log.Debugw("kiwi holders", "holders", len(u.kiwiHolders))
 	// update DegenDAO NFT holders
-	degenDAONFTHolders, err := u.airstack.Client.TokenBalances(
-		DegenDAONFTAddress, DegenDAONFTChainShortName)
+	u.degenDAONFTHolders, err = u.tokenHolders(DegenDAONFTAddress, DegenDAONFTChainChainID)
 	if err != nil {
-		errs = append(errs, fmt.Errorf("error getting DegenDAO NFT holders: %w", err))
-	} else {
-		u.degenDAONFTHolders = make(map[common.Address]*big.Int)
-		for _, holder := range degenDAONFTHolders {
-			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
-				u.degenDAONFTHolders[holder.Address] = holder.Balance
-			}
-		}
-		log.Infow("DegenDAO NFT holders", "holders", len(u.degenDAONFTHolders))
+		errs = append(errs, fmt.Errorf("error getting degen dao nft holders: %w", err))
 	}
+	log.Debugw("degen dao nft holders", "holders", len(u.degenDAONFTHolders))
 	// Note: Degen holders are not cached because they are too many, instead
 	// every time we need to check if a user is a Degen holder we will check
 	// the balance of the user
 
 	// update Haberdashery NFT holders
-	haberdasheryNFTHolders, err := u.airstack.Client.TokenBalances(
-		HaberdasheryNFTAddress, HaberdasheryNFTChainShortName)
+	u.haberdasheryNFTHolders, err = u.tokenHolders(HaberdasheryNFTAddress, HaberdasheryNFTChainChainID)
 	if err != nil {
-		errs = append(errs, fmt.Errorf("error getting Haberdashery NFT holders: %w", err))
-	} else {
-		u.haberdasheryNFTHolders = make(map[common.Address]*big.Int)
-		for _, holder := range haberdasheryNFTHolders {
-			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
-				u.haberdasheryNFTHolders[holder.Address] = holder.Balance
-			}
-		}
-		log.Infow("Haberdashery NFT holders", "holders", len(u.haberdasheryNFTHolders))
+		errs = append(errs, fmt.Errorf("error getting haberdashery nft holders: %w", err))
 	}
+	log.Debugw("haberdashery nft holders", "holders", len(u.haberdasheryNFTHolders))
 	// update TokyoDAO NFT holders
 	tokyoDAONFTHolders, err := u.airstack.Client.TokenBalances(
 		TokyoDAONFTAddress, TokyoDAONFTChainShortName)
@@ -447,50 +393,32 @@ func (u *Updater) fetchHolders() error {
 				u.tokyoDAONFTHolders[holder.Address] = holder.Balance
 			}
 		}
-		log.Infow("TokyoDAO NFT holders", "holders", len(u.tokyoDAONFTHolders))
 	}
+	log.Debugw("tokyo dao nft holders", "holders", len(u.tokyoDAONFTHolders))
 	// update Proxy
-	proxyHolders, err := u.airstack.Client.TokenBalances(
-		ProxyAddress, ProxyChainShortName)
+	u.proxyHolders, err = u.tokenHolders(ProxyAddress, ProxyChainID)
 	if err != nil {
-		errs = append(errs, fmt.Errorf("error getting Proxy holders: %w", err))
-	} else {
-		u.proxyHolders = make(map[common.Address]*big.Int)
-		for _, holder := range proxyHolders {
-			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
-				u.proxyHolders[holder.Address] = holder.Balance
-			}
-		}
-		log.Infow("Proxy holders", "holders", len(u.proxyHolders))
+		errs = append(errs, fmt.Errorf("error getting proxy holders: %w", err))
 	}
+	log.Debugw("proxy holders", "holders", len(u.proxyHolders))
 	// update ProxyStudio NFT holders
-	proxyStudioNFTHolders, err := u.airstack.Client.TokenBalances(
-		ProxyStudioNFTAddress, ProxyStudioNFTShortName)
+	u.proxyStudioNFTHolders, err = u.tokenHolders(ProxyStudioNFTAddress, ProxyStudioNFTChainID)
 	if err != nil {
-		errs = append(errs, fmt.Errorf("error getting ProxyStudio NFT holders: %w", err))
-	} else {
-		u.proxyStudioNFTHolders = make(map[common.Address]*big.Int)
-		for _, holder := range proxyStudioNFTHolders {
-			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
-				u.proxyStudioNFTHolders[holder.Address] = holder.Balance
-			}
-		}
-		log.Infow("ProxyStudio NFT holders", "holders", len(u.proxyStudioNFTHolders))
+		errs = append(errs, fmt.Errorf("error getting proxy studio nft holders: %w", err))
 	}
+	log.Debugw("proxy studio nft holders", "holders", len(u.proxyStudioNFTHolders))
 	// update NameDegen NFT holders
-	nameDegenHolders, err := u.airstack.Client.TokenBalances(
-		NameDegenAddress, NameDegenChainShortName)
+	u.nameDegenHolders, err = u.tokenHolders(NameDegenAddress, NameDegenChainID)
 	if err != nil {
-		errs = append(errs, fmt.Errorf("error getting NameDegen NFT holders: %w", err))
-	} else {
-		u.nameDegenHolders = make(map[common.Address]*big.Int)
-		for _, holder := range nameDegenHolders {
-			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
-				u.nameDegenHolders[holder.Address] = holder.Balance
-			}
-		}
-		log.Infow("NameDegen NFT holders", "holders", len(u.nameDegenHolders))
+		errs = append(errs, fmt.Errorf("error getting name degen nft holders: %w", err))
 	}
+	log.Debugw("name degen nft holders", "holders", len(u.nameDegenHolders))
+	// update Farcaster OG NFT holders
+	u.farcasterOGNFTHolders, err = u.tokenHolders(FarcasterOGNFTAddress, FarcasterOGNFTChainID)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting farcaster og nft holders: %w", err))
+	}
+	log.Debugw("farcaster og nft holders", "holders", len(u.farcasterOGNFTHolders))
 	u.cachedHolders.Store(true)
 	if len(errs) > 0 {
 		return fmt.Errorf("error updating holders: %v", errs)
@@ -902,11 +830,13 @@ func (u *Updater) userBoosters(user *dbmongo.User) *Boosters {
 		}
 		// check if user has 10k Degen
 		if !boosters.Has10kDegenAtLeast {
-			balance, err := u.airstack.CheckIfHolder(DegenAddress, DegenChainShortName, addr)
+			balance, err := u.census3.TokenHolder(DegenAddress.Hex(), DegenChainID, "", addr.Hex())
 			if err != nil {
 				log.Warnw("error checking if user has 10k degen", "error", err, "user", user.UserID)
 			}
-			boosters.Has10kDegenAtLeast = balance >= 10000
+			if balance != nil {
+				boosters.Has10kDegenAtLeast = balance.Cmp(big.NewInt(10000)) >= 0
+			}
 		}
 		// check if user has TokyoDAO NFT
 		if !boosters.HasTokyoDAONFT {
@@ -929,6 +859,44 @@ func (u *Updater) userBoosters(user *dbmongo.User) *Boosters {
 			_, ok := u.nameDegenHolders[addr]
 			boosters.HasNameDegen = ok
 		}
+		// check if user has Farcaster OG NFT
+		if !boosters.HasFarcasterOGNFT {
+			_, ok := u.farcasterOGNFTHolders[addr]
+			boosters.HasFarcasterOGNFT = ok
+		}
 	}
 	return boosters
+}
+
+// tokenHolders method fetches the holders of a given token from the Census3 API.
+// It returns the token holders as a map of addresses and balances. It returns an
+// error if the token holders data cannot be fetched.
+func (u *Updater) tokenHolders(address common.Address, chainID uint64) (map[common.Address]*big.Int, error) {
+	tokenHolders := make(map[common.Address]*big.Int)
+	tokenInfo, err := u.census3.Token(address.Hex(), chainID, "")
+	if err != nil {
+		return nil, fmt.Errorf("error getting token info: %w", err)
+	} else {
+		holdersQueueID, err := u.census3.HoldersByStrategy(tokenInfo.DefaultStrategy)
+		if err != nil {
+			return nil, fmt.Errorf("error getting KIWI holders queue ID: %w", err)
+		} else {
+			for {
+				holders, finished, err := u.census3.HoldersByStrategyQueue(
+					tokenInfo.DefaultStrategy, holdersQueueID)
+				if err != nil {
+					return nil, fmt.Errorf("error getting token holders from the queue: %w", err)
+				}
+				if finished {
+					for holder, balance := range holders {
+						if balance.Cmp(big.NewInt(0)) > 0 {
+							tokenHolders[holder] = balance
+						}
+					}
+					break
+				}
+			}
+		}
+	}
+	return tokenHolders, nil
 }
