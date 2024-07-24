@@ -78,7 +78,7 @@ const CensusTypeSelector = ({
   const { data: blockchains, isLoading: bloading } = useQuery({
     queryKey: ['blockchains'],
     queryFn: fetchAirstackBlockchains(bfetch),
-    enabled: import.meta.env.VOCDONI_AIRSTACKAPIKEY !== '',
+    enabled: import.meta.env.airstackEnabled,
   })
   const {
     data: communities,
@@ -132,8 +132,8 @@ const CensusTypeSelector = ({
     { value: 'followers', label: '❤️ My Farcaster followers and me' },
     { value: 'alfafrens', label: '💙 My alfafrens channel subscribers', visible: complete && !composer },
     { value: 'custom', label: '🦄 Token based via CSV', visible: complete && !composer },
-    { value: 'nft', label: '🎨 NFT based via airstack', isDisabled: import.meta.env.VOCDONI_AIRSTACKAPIKEY === '' },
-    { value: 'erc20', label: '💰 ERC20 based via airstack', isDisabled: import.meta.env.VOCDONI_AIRSTACKAPIKEY === '' },
+    { value: 'nft', label: '🎨 NFT based via airstack', isDisabled: !import.meta.env.airstackEnabled },
+    { value: 'erc20', label: '💰 ERC20 based via airstack', isDisabled: !import.meta.env.airstackEnabled },
   ].filter((o) => o.visible !== false)
 
   return (

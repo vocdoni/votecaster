@@ -5,7 +5,7 @@ interface ImportMeta {
     VOCDONI_EXPLORER: string
     MAINTENANCE: boolean
     VOCDONI_ADMINFID: number
-    VOCDONI_AIRSTACKAPIKEY: string
+    airstackEnabled: boolean
     chains: ChainsConfig
   }
 }
