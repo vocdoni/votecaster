@@ -1,4 +1,4 @@
-import { FormControl, FormLabel, Input, Switch, Textarea } from '@chakra-ui/react'
+import { Alert, AlertDescription, AlertIcon, FormControl, FormLabel, Input, Switch, Textarea } from '@chakra-ui/react'
 import { usePollForm } from './usePollForm'
 
 export const Notify = () => {
@@ -7,6 +7,7 @@ export const Notify = () => {
     loading,
     notifyAllowed,
     form: { watch, register },
+    usernames,
   } = usePollForm()
   const notify = watch('notify')
 
@@ -29,6 +30,14 @@ export const Notify = () => {
             {...register('notificationText')}
           />
         </FormControl>
+      )}
+      {notify && usernames.length > 1000 && (
+        <Alert status='warning'>
+          <AlertIcon />
+          <AlertDescription>
+            Selected census contains more than 1,000 farcaster users. Won't be notifying them.
+          </AlertDescription>
+        </Alert>
       )}
     </>
   )

@@ -40,3 +40,10 @@ export const getRandomPollOption = (): string => {
   const randomIndex = Math.floor(Math.random() * pollOptionSuggestions.length)
   return pollOptionSuggestions[randomIndex]
 }
+
+export const Validations = {
+  required: {
+    value: true,
+    message: 'This field is required',
+  },
+}

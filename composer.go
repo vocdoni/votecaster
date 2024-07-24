@@ -63,7 +63,7 @@ func (v *vocdoniHandler) composerMetadataHandler(msg *apirest.APIdata, ctx *http
 		Type:        "composer",
 		Name:        "Votecaster Action",
 		Icon:        "project-roadmap",
-		Description: "Create a blockchain poll from the cast form in Votecaster",
+		Description: "Run polls and earn points",
 		ImageURL:    serverURL + "/app/logo-farcastervote-action.png",
 		Action: struct {
 			Type string `json:"type"`
@@ -124,7 +124,7 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 	var response []byte
 	if response, err = json.Marshal(ComposerActionResponse{
 		Type:  "form",
-		Title: "Create a blockchain Poll",
+		Title: "Create a Blockchain Poll",
 		URL:   safeURL(actionURL),
 	}); err != nil {
 		return err

@@ -17,7 +17,7 @@ export const composer = extendTheme({
   styles: {
     global: ({ colorMode }: ThemeProps) => ({
       body: {
-        bg: colorMode === 'dark' ? 'transparent' : '#232323',
+        bg: colorMode === 'dark' ? '#181020' : '#232323',
       },
       // this is required in order to override the overflow: hidden on the chakra-collapse component
       // otherwise the select menus inside the collapse are hidden
