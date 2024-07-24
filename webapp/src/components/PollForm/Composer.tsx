@@ -20,6 +20,7 @@ import {
 } from '@chakra-ui/react'
 import React from 'react'
 import { FaTrash } from 'react-icons/fa6'
+import { TokenSignin } from '~components/Auth/TokenSignIn'
 import { useAuth } from '~components/Auth/useAuth'
 import CensusTypeSelector from '~components/CensusTypeSelector'
 import { Duration } from './Duration'
@@ -98,16 +99,19 @@ export const Composer: React.FC = () => {
           </Alert>
         )}
 
-        <Button
-          type='submit'
-          colorScheme='purple'
-          isDisabled={!isAuthenticated}
-          isLoading={loading}
-          w='full'
-          loadingText={status}
-        >
-          Create poll
-        </Button>
+        <TokenSignin />
+        {isAuthenticated && (
+          <Button
+            type='submit'
+            colorScheme='purple'
+            isDisabled={!isAuthenticated}
+            isLoading={loading}
+            w='full'
+            loadingText={status}
+          >
+            Create poll
+          </Button>
+        )}
         <Accordion allowToggle>
           <AccordionItem>
             <AccordionButton>

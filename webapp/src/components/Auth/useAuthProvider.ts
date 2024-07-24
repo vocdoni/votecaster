@@ -2,16 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { appUrl } from '~constants'
 import { userToProfile } from '~util/mappings'
 
-interface AuthState {
-  isAuthenticated: boolean
-  bearer: string | null
-  bfetch: (input: RequestInfo, init?: RequestInit) => Promise<Response>
-  login: (params: LoginParams) => void
-  tokenLogin: (token: string) => void
-  logout: () => void
-  profile: Profile | null
-  reputation: Reputation | undefined
-}
+export type AuthState = ReturnType<typeof useAuthProvider>
 
 const baseRep = {
   reputation: 0,
@@ -43,9 +34,11 @@ type LoginParams = {
   reputation: Reputation
 }
 
-export const useAuthProvider = (): AuthState => {
+export const useAuthProvider = () => {
   const [bearer, setBearer] = useState<string | null>(localStorage.getItem('bearer'))
   const [profile, setProfile] = useState<Profile | null>(JSON.parse(localStorage.getItem('profile') || 'null'))
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
   const [reputation, setReputation] = useState<Reputation | undefined>(
     JSON.parse(localStorage.getItem('reputation') || '{}')
   )
@@ -85,27 +78,43 @@ export const useAuthProvider = (): AuthState => {
     return rep
   }
 
-  const tokenLogin = useCallback(
-    (token: string) =>
-      bearedFetch(`${appUrl}/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((resp) => resp.json())
-        .then(({ user, reputation, reputationData }: UserProfileResponse) =>
-          login({
-            profile: userToProfile(user),
-            bearer: token,
-            reputation: {
-              reputation,
-              data: {
-                ...reputationData,
-              },
+  const tokenLogin = useCallback((token: string) => {
+    setError(null)
+    setLoading(true)
+    return bearedFetch(`${appUrl}/profile`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((resp) => resp.json())
+      .then(({ user, reputation, reputationData }: UserProfileResponse) =>
+        login({
+          profile: userToProfile(user),
+          bearer: token,
+          reputation: {
+            reputation,
+            data: {
+              ...reputationData,
             },
-          })
-        ),
-    []
+          },
+        })
+      )
+      .catch((err) => {
+        setError(err.message)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const searchParamsTokenLogin = useCallback(
+    (search: string) => {
+      const params = new URLSearchParams(search.replace(/^\?/, ''))
+      const token = params.get('token')
+
+      if (!token || isAuthenticated) return
+
+      tokenLogin(token)
+    },
+    [isAuthenticated]
   )
 
   // if no bearer but profile, logout
@@ -155,13 +164,16 @@ export const useAuthProvider = (): AuthState => {
   }, [])
 
   return {
+    bearer,
+    bfetch: bearedFetch,
+    error,
     isAuthenticated,
-    profile,
-    reputation,
+    loading,
     login,
     logout,
-    bearer,
+    profile,
+    reputation,
+    searchParamsTokenLogin,
     tokenLogin,
-    bfetch: bearedFetch,
   }
 }

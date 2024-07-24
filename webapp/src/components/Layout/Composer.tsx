@@ -7,16 +7,11 @@ import { MaintenanceAlert } from './MaintenanceAlert'
 
 export const ComposerLayout = () => {
   const { search } = useLocation()
-  const { tokenLogin, isAuthenticated } = useAuth()
+  const { searchParamsTokenLogin } = useAuth()
 
   // login via token (needs to be handled here because the auth provider is outside of the router context)
   useEffect(() => {
-    const params = new URLSearchParams(search.replace(/^\?/, ''))
-    const token = params.get('token')
-
-    if (!token || isAuthenticated) return
-
-    tokenLogin(token)
+    searchParamsTokenLogin(search)
   }, [search])
 
   return (
