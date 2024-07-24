@@ -61,9 +61,9 @@ type composerActionCast struct {
 func (v *vocdoniHandler) composerMetadataHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	res, err := json.Marshal(ComposerActionMetadata{
 		Type:        "composer",
-		Name:        "Votecaster Action",
+		Name:        "Votecaster",
 		Icon:        "project-roadmap",
-		Description: "Run polls and earn points",
+		Description: "Run verifiable polls",
 		ImageURL:    serverURL + "/app/logo-farcastervote-action.png",
 		Action: struct {
 			Type string `json:"type"`
