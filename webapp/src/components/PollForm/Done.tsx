@@ -1,25 +1,18 @@
 import { Box, Button, Code, Icon, IconButton, Image, Link, Text, useClipboard } from '@chakra-ui/react'
-import { Dispatch, SetStateAction, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { FaCheck, FaDownload, FaRegCopy } from 'react-icons/fa6'
+import { FarcasterLogo } from '~components/FarcasterLogo'
 import { appUrl } from '~constants'
-import { CsvGenerator } from '../generator'
-import { FarcasterLogo } from './FarcasterLogo'
+import { CsvGenerator } from '~src/generator'
+import { usePollForm } from './usePollForm'
 
 const pollUrl = (pid: string) => `${appUrl}/${pid}`
 const cast = (uri: string) => window.open(`https://warpcast.com/~/compose?embeds[]=${encodeURIComponent(uri)}`)
 
-type DoneProps = {
-  pid: string
-  setPid: Dispatch<SetStateAction<string | null>>
-  usernames: string[]
-  setUsernames: Dispatch<SetStateAction<string[]>>
-  censusRecords: number
-  shortened: string | null
-}
-
-export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords, shortened }: DoneProps) => {
-  const { hasCopied, onCopy } = useClipboard(shortened ?? pollUrl(pid))
+export const Done = () => {
+  const { shortened, pid, usernames, setUsernames, censusRecords, setPid } = usePollForm()
+  const { hasCopied, onCopy } = useClipboard(shortened ?? pollUrl(pid as string))
   const { reset } = useFormContext()
 
   const usersfile = useMemo(() => {
@@ -36,7 +29,7 @@ export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords, shor
       <Text display='inline'>Done! You can now cast it using this link:</Text>
       <Box display='flex' alignItems='center' justifyContent='space-between' overflow='hidden'>
         <Code overflowX='auto' whiteSpace='nowrap' flex={1} isTruncated>
-          {shortened ?? pollUrl(pid)}
+          {shortened ?? pollUrl(pid as string)}
         </Code>
         <IconButton
           aria-label='Copy to clipboard'
@@ -57,7 +50,7 @@ export const Done = ({ pid, setPid, usernames, setUsernames, censusRecords, shor
             <FarcasterLogo fill='white' />
           </Icon>
         }
-        onClick={() => cast(shortened ?? pollUrl(pid))}
+        onClick={() => cast(shortened ?? pollUrl(pid as string))}
       >
         Cast it!
       </Button>

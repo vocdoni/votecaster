@@ -9,7 +9,6 @@ import {
   FormErrorMessage,
   FormHelperText,
   FormLabel,
-  Icon,
   IconButton,
   Input,
   InputGroup,
@@ -33,7 +32,6 @@ import { MdArrowDropDown } from 'react-icons/md'
 import { fetchAirstackBlockchains } from '~queries/census'
 import { fetchCommunitiesByAdmin } from '~queries/communities'
 import { ucfirst } from '~util/strings'
-import Airstack from '../assets/airstack.svg?react'
 import { useAuth } from './Auth/useAuth'
 import ChannelSelector, { ChannelFormValues } from './Census/ChannelSelector'
 import { CreateFarcasterCommunityButton } from './Layout/DegenButton'
@@ -50,9 +48,17 @@ export type CensusTypeSelectorProps = FormControlProps & {
   communityId?: string
   admin?: boolean
   composer?: boolean
+  showAsSelect?: boolean
 }
 
-const CensusTypeSelector = ({ complete, communityId, admin, composer, ...props }: CensusTypeSelectorProps) => {
+const CensusTypeSelector = ({
+  complete,
+  communityId,
+  admin,
+  composer,
+  showAsSelect,
+  ...props
+}: CensusTypeSelectorProps) => {
   const { bfetch, profile, isAuthenticated } = useAuth()
   const {
     control,
@@ -72,6 +78,7 @@ const CensusTypeSelector = ({ complete, communityId, admin, composer, ...props }
   const { data: blockchains, isLoading: bloading } = useQuery({
     queryKey: ['blockchains'],
     queryFn: fetchAirstackBlockchains(bfetch),
+    enabled: import.meta.env.airstackEnabled,
   })
   const {
     data: communities,
@@ -118,26 +125,45 @@ const CensusTypeSelector = ({ complete, communityId, admin, composer, ...props }
     message: 'This field is required',
   }
 
+  const options = [
+    { value: 'farcaster', label: '🌐 All farcaster users', visible: complete },
+    { value: 'community', label: '🏘️ Community based', visible: complete },
+    { value: 'channel', label: '⛩ Farcaster channel gated' },
+    { value: 'followers', label: '❤️ My Farcaster followers and me' },
+    { value: 'alfafrens', label: '💙 My alfafrens channel subscribers', visible: complete && !composer },
+    { value: 'custom', label: '🦄 Token based via CSV', visible: complete && !composer },
+    { value: 'nft', label: '🎨 NFT based via airstack', isDisabled: !import.meta.env.airstackEnabled },
+    { value: 'erc20', label: '💰 ERC20 based via airstack', isDisabled: !import.meta.env.airstackEnabled },
+  ].filter((o) => o.visible !== false)
+
   return (
     <>
       <FormControl {...props} isRequired>
         <FormLabel>Census/voters</FormLabel>
-        <RadioGroup onChange={(val: CensusType) => setValue('censusType', val)} value={censusType} id='census-type'>
-          <Stack direction='column' flexWrap='wrap'>
-            {complete && <Radio value='farcaster'>🌐 All farcaster users</Radio>}
-            {complete && <Radio value='community'>🏘️ Community based</Radio>}
-            <Radio value='channel'>⛩ Farcaster channel gated</Radio>
-            <Radio value='followers'>❤️ My Farcaster followers and me</Radio>
-            {complete && <Radio value='alfafrens'>💙 My alfafrens channel subscribers</Radio>}
-            {complete && !composer && <Radio value='custom'>🦄 Token based via CSV</Radio>}
-            <Radio value='nft'>
-              <Icon as={Airstack} /> NFT based via airstack
-            </Radio>
-            <Radio value='erc20'>
-              <Icon as={Airstack} /> ERC20 based via airstack
-            </Radio>
-          </Stack>
-        </RadioGroup>
+        {showAsSelect ? (
+          <Controller
+            name='censusType'
+            control={control}
+            render={({ field }) => (
+              <RSelect
+                placeholder='Select census type'
+                options={options}
+                value={options.find((option) => option.value === field.value)}
+                onChange={(selectedOption) => field.onChange(selectedOption?.value)}
+              />
+            )}
+          />
+        ) : (
+          <RadioGroup onChange={(val: CensusType) => setValue('censusType', val)} value={censusType} id='census-type'>
+            <Stack direction='column' flexWrap='wrap'>
+              {options.map((option, index) => (
+                <Radio key={index} value={option.value} isDisabled={option.isDisabled}>
+                  {option.label}
+                </Radio>
+              ))}
+            </Stack>
+          </RadioGroup>
+        )}
       </FormControl>
       {censusType === 'community' &&
         (communities && communities?.communities.length ? (
