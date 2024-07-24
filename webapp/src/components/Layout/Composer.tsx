@@ -1,4 +1,4 @@
-import { Box, ChakraProvider, useColorMode } from '@chakra-ui/react'
+import { Box, ChakraProvider, ColorModeScript } from '@chakra-ui/react'
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
@@ -16,25 +16,11 @@ export const ComposerLayout = () => {
 
   return (
     <ChakraProvider theme={composer}>
-      <ColorModeSwitch />
+      <ColorModeScript />
       <Box p={4}>
         <MaintenanceAlert />
         <Outlet />
       </Box>
     </ChakraProvider>
   )
-}
-
-// colormode switch via url param
-const ColorModeSwitch = () => {
-  const { search } = useLocation()
-  const { setColorMode } = useColorMode()
-
-  useEffect(() => {
-    const params = new URLSearchParams(search)
-    const mode = params.has('light') ? 'light' : 'dark'
-    setColorMode(mode)
-  }, [location])
-
-  return null
 }

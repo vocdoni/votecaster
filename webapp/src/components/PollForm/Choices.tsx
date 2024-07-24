@@ -57,7 +57,14 @@ export const Choices: FC = () => {
         ))}
       </FormControl>
       {fields.length < 4 && (
-        <Button onClick={addOption} size='sm' variant='outline' alignSelf='end' isDisabled={loading}>
+        <Button
+          onClick={addOption}
+          size='sm'
+          variant='outline'
+          colorScheme='purple'
+          alignSelf='end'
+          isDisabled={loading}
+        >
           Add choice
         </Button>
       )}

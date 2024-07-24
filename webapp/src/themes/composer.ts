@@ -4,8 +4,8 @@ import { Button } from './composer/Button'
 import { Input } from './composer/Input'
 
 const config: ThemeConfig = {
-  initialColorMode: 'dark',
-  useSystemColorMode: false,
+  initialColorMode: 'system',
+  useSystemColorMode: true,
 }
 
 type ThemeProps = {
@@ -17,7 +17,7 @@ export const composer = extendTheme({
   styles: {
     global: ({ colorMode }: ThemeProps) => ({
       body: {
-        bg: colorMode === 'dark' ? '#181020' : '#232323',
+        bg: colorMode === 'dark' ? '#181020' : 'white',
       },
       // this is required in order to override the overflow: hidden on the chakra-collapse component
       // otherwise the select menus inside the collapse are hidden

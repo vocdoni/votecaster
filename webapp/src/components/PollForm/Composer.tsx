@@ -45,18 +45,6 @@ export const Composer: React.FC = () => {
         )}
 
         <TokenSignin />
-        {isAuthenticated && (
-          <Button
-            type='submit'
-            colorScheme='purple'
-            isDisabled={!isAuthenticated}
-            isLoading={loading}
-            w='full'
-            loadingText={status}
-          >
-            Create poll
-          </Button>
-        )}
         <Accordion allowToggle>
           <AccordionItem>
             <AccordionButton>
@@ -70,6 +58,18 @@ export const Composer: React.FC = () => {
             </AccordionPanel>
           </AccordionItem>
         </Accordion>
+        {isAuthenticated && (
+          <Button
+            type='submit'
+            colorScheme='purple'
+            isDisabled={!isAuthenticated}
+            isLoading={loading}
+            w='full'
+            loadingText={status}
+          >
+            Create poll
+          </Button>
+        )}
       </VStack>
     </Box>
   )

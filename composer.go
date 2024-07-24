@@ -124,7 +124,7 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 	var response []byte
 	if response, err = json.Marshal(ComposerActionResponse{
 		Type:  "form",
-		Title: "Create a Blockchain Poll",
+		Title: "Create a verifiable poll",
 		URL:   safeURL(actionURL),
 	}); err != nil {
 		return err
