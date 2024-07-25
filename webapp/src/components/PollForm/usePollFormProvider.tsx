@@ -27,7 +27,7 @@ export const usePollFormProvider = () => {
   const [usernames, setUsernames] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [censusRecords, setCensusRecords] = useState<number>(0)
-  const [cast, setCast] = useState<string | null>(null)
+  const [cast, setCast] = useState<string>('')
   const { search } = useLocation()
   const form = useForm<FormValues>({
     defaultValues: {
@@ -95,7 +95,6 @@ export const usePollFormProvider = () => {
         type: 'createCast',
         data: {
           cast: {
-            parent: '',
             text: cast,
             embeds: [success],
           },
