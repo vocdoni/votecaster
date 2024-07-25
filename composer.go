@@ -137,9 +137,6 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 		return fmt.Errorf("could not update user: %v", err)
 	}
 	log.Infow("new composer action user access", "fid", userFID, "url", url)
-	if err := v.db.AddAuthentication(userFID, token.String()); err != nil {
-		return fmt.Errorf("could not add authentication token: %v", err)
-	}
 	v.addAuthTokenFunc(userFID, token.String())
 	// store the token in the database and send the response
 	return ctx.Send(response, http.StatusOK)
