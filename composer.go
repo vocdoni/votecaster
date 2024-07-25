@@ -3,14 +3,12 @@ package main
 import (
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
@@ -134,19 +132,15 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 		return err
 	}
 
-	// Get or create the user profile
-	if _, err := v.db.UserAccessProfile(userFID); err != nil {
-		if errors.Is(err, mongo.ErrUserUnknown) {
-			log.Infow("create new user profile from composer action", "fid", userFID)
-			if _, _, err := v.db.UpdateAndGetReputationForUser(userFID); err != nil {
-				return fmt.Errorf("could not add user access profile: %v", err)
-			}
-		}
+	// Ensure the user profile exists
+	if _, _, err := v.db.UpdateAndGetReputationForUser(userFID); err != nil {
+		return fmt.Errorf("could not update user: %v", err)
 	}
 	log.Infow("new composer action user access", "fid", userFID, "url", url)
 	if err := v.db.AddAuthentication(userFID, token.String()); err != nil {
 		return fmt.Errorf("could not add authentication token: %v", err)
 	}
+	v.addAuthTokenFunc(userFID, token.String())
 	// store the token in the database and send the response
 	return ctx.Send(response, http.StatusOK)
 }
