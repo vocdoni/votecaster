@@ -3,14 +3,17 @@ package main
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
+	"go.vocdoni.io/dvote/log"
 	"go.vocdoni.io/dvote/vochain/transaction/proofs/farcasterproof"
 )
 
@@ -120,16 +123,30 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 		}
 	}
 	actionURL.RawQuery = query.Encode()
+	url := safeURL(actionURL)
 	// encode the response with the resulting action URL
 	var response []byte
 	if response, err = json.Marshal(ComposerActionResponse{
 		Type:  "form",
 		Title: "Create a verifiable poll",
-		URL:   safeURL(actionURL),
+		URL:   url,
 	}); err != nil {
 		return err
 	}
+
+	// Get or create the user profile
+	if _, err := v.db.UserAccessProfile(userFID); err != nil {
+		if errors.Is(err, mongo.ErrUserUnknown) {
+			log.Infow("create new user profile from composer action", "fid", userFID)
+			if _, _, err := v.db.UpdateAndGetReputationForUser(userFID); err != nil {
+				return fmt.Errorf("could not add user access profile: %v", err)
+			}
+		}
+	}
+	log.Infow("new composer action user access", "fid", userFID, "url", url)
+	if err := v.db.AddAuthentication(userFID, token.String()); err != nil {
+		return fmt.Errorf("could not add authentication token: %v", err)
+	}
 	// store the token in the database and send the response
-	v.addAuthTokenFunc(userFID, token.String())
 	return ctx.Send(response, http.StatusOK)
 }
