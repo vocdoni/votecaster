@@ -109,12 +109,12 @@ func (v *vocdoniHandler) sendRemindersHandler(msg *apirest.APIdata, ctx *httprou
 	if err != nil {
 		return fmt.Errorf("failed to get voters of election: %w", err)
 	}
-	maxDMs := v.db.MaxDirectMessages(auth.UserID, maxDirectMessages)
-	if uint32(len(remindableUsers)) > maxDMs {
+	maxDMs := v.MaxDirectMessages(auth.UserID, maxDirectMessages)
+	if uint64(len(remindableUsers)) > maxDMs {
 		msg := fmt.Sprintf("too many users to remind, by your reputation you only can sent %d reminds", maxDMs)
 		return ctx.Send([]byte(msg), http.StatusBadRequest)
 	}
-	if alreadySent >= maxDMs {
+	if uint64(alreadySent) >= maxDMs {
 		msg := fmt.Sprintf("you have already sent the maximum number of reminders (%d)", maxDMs)
 		return ctx.Send([]byte(msg), http.StatusBadRequest)
 	}
@@ -210,4 +210,16 @@ func (v *vocdoniHandler) remindersQueueHandler(msg *apirest.APIdata, ctx *httpro
 		return fmt.Errorf("failed to marshal reminders response: %w", err)
 	}
 	return ctx.Send(res, http.StatusOK)
+}
+
+// MaxDirectMessages calculates the maximum number of direct messages the user
+// can send based on their reputation. It computes the maximum number of direct
+// messages by calculating the percentage of the absolute maximum number of
+// messages using the user's reputation.
+func (v *vocdoniHandler) MaxDirectMessages(userID uint64, absoluteMax uint64) uint64 {
+	userRep, err := v.repUpdater.UserReputation(userID, true)
+	if err != nil {
+		return 0
+	}
+	return absoluteMax * userRep.TotalReputation / 100
 }

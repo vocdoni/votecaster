@@ -94,6 +94,23 @@ func (ms *MongoStorage) UserFromAuthToken(authToken string) (uint64, error) {
 	return authData.UserID, nil
 }
 
+// UserAuthorizations method returns the tokens of a user for the fid provider.
+// If the user is not found, it returns ErrUserUnknown.
+func (ms *MongoStorage) UserAuthorizations(userFID uint64) ([]string, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var authData Authentication
+	err := ms.authentications.FindOne(ctx, bson.M{"_id": userFID}).Decode(&authData)
+	if err != nil {
+		return nil, ErrUserUnknown
+	}
+	return authData.AuthTokens, nil
+}
+
 // Authentications returns the full list of authTokens.
 func (ms *MongoStorage) Authentications() ([]string, error) {
 	ms.keysLock.RLock()

@@ -19,6 +19,7 @@ import (
 const (
 	// endpoints
 	ENDPOINT_CAST_BY_MENTION       = "castsByMention?fid=%d"
+	ENDPOINT_CAST_RECASTS          = "reactionsByCast?target_fid=%d&reaction_type=2&target_hash=%s"
 	ENDPOINT_GET_CAST              = "castById?fid=%d&hash=%s"
 	ENDPOINT_SUBMIT_MESSAGE        = "submitMessage"
 	ENDPOINT_USERDATA              = "userDataByFid?fid=%d"
@@ -38,6 +39,8 @@ const (
 	MESSAGE_TYPE_VERIFICATION = "MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS"
 	MESSAGE_TYPE_LINK         = "MESSAGE_TYPE_LINK_ADD"
 	MESSAGE_TYPE_USERDATA_ADD = "MESSAGE_TYPE_USER_DATA_ADD"
+	MESSAGE_TYPE_REACTION_ADD = "MESSAGE_TYPE_REACTION_ADD"
+	MESSAGE_TYPE_RECAST       = "REACTION_TYPE_RECAST"
 	// user data types
 	USERDATA_TYPE_USERNAME = "USER_DATA_TYPE_USERNAME"
 	// other constants
@@ -338,6 +341,52 @@ func (h *Hub) Reply(ctx context.Context, targetMsg *farcasterapi.APIMessage,
 		return fmt.Errorf("error submitting the message: %s", string(body))
 	}
 	return nil
+}
+
+// RecastsFIDs method returns the fids of the users that recast the message with
+// the given fid and hash. It returns the fids in a slice of uint64 and an error
+// if something goes wrong.
+func (h *Hub) RecastsFIDs(ctx context.Context, msg *farcasterapi.APIMessage) ([]uint64, error) {
+	log.Infow("getting message recasts", "hash", msg.Hash)
+	// create a new context with a timeout
+	internalCtx, cancel := context.WithTimeout(ctx, getCastTimeout)
+	defer cancel()
+	// compose endpoint uri
+	uri := fmt.Sprintf(ENDPOINT_CAST_RECASTS, msg.Author, msg.Hash)
+	// prepare the request to get the cast from the API
+	req, err := h.newRequest(internalCtx, http.MethodGet, uri, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %s", err)
+	}
+	// download the cast from the API and check for errors
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading cast: %s", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error downloading cast: %s", res.Status)
+	}
+	// read the response body
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %s", err)
+	}
+	// decode the cast from the body
+	reactionsRes := &hubReactionsResponse{}
+	if err := json.Unmarshal(body, msg); err != nil {
+		return nil, fmt.Errorf("error unmarshalling cast: %s", err)
+	}
+	var fids []uint64
+	for _, r := range reactionsRes.Reactions {
+		isRecast := r.Data.Type == MESSAGE_TYPE_REACTION_ADD &&
+			r.Data.Body != nil &&
+			r.Data.Body.Type == MESSAGE_TYPE_RECAST
+		if isRecast {
+			fids = append(fids, r.Data.Author)
+		}
+	}
+	return fids, nil
 }
 
 // UserDataByFID method returns the user data for the given FID. It includes the

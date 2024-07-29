@@ -23,6 +23,21 @@ declare global {
     url: string
   }
 
+  type CensusResponse = {
+    root: string
+    size: number
+    uri: string
+  }
+
+  type CensusResponseWithUsernames = CensusResponse & {
+    usernames: string[]
+    fromTotalAddresses: number
+  }
+
+  type CID = {
+    censusId: string
+  }
+
   type ConfChain = Chain & {
     logo: string
   }
@@ -36,6 +51,8 @@ declare global {
     community: string
     poll: string
   }
+
+  type CommunityID = `${ChainKey}:${number}`
 
   type Pagination = {
     limit: number
@@ -54,6 +71,16 @@ declare global {
     addresses?: string[]
   }
 
+  type PointsLeaderboard = {
+    communityCreator: number
+    communityID: string
+    communityName: string
+    totalPoints: number
+    userDisplayname: string
+    userID: number
+    username: string
+  }
+
   type Poll = {
     censusParticipantsCount: number
     createdByDisplayname: string
@@ -68,6 +95,17 @@ declare global {
     turnout: number
     voteCount: number
     community?: Community
+  }
+
+  type PollRequest = {
+    profile: Profile
+    question: string
+    duration: number
+    options: string[]
+    notifyUsers: boolean
+    notificationText?: string
+    census?: CensusResponse
+    community?: CommunityID
   }
 
   type PollResponse = {
@@ -134,6 +172,28 @@ declare global {
         : T[P]
   }
 
+  type User = {
+    userID?: number
+    electionCount: number
+    castedVotes: number
+    username: string
+    displayName: string
+    custodyAddress: string
+    addresses: string[]
+    signers: string[]
+    followers: number
+    lastUpdated: Date
+    avatar: string
+  }
+
+  type RecursivePartial<T> = {
+    [P in keyof T]?: T[P] extends (infer U)[]
+      ? RecursivePartial<U>[]
+      : T[P] extends object | undefined
+        ? RecursivePartial<T[P]>
+        : T[P]
+  }
+
   type UserRanking = {
     fid: number
     username: string
@@ -144,7 +204,7 @@ declare global {
   type UserProfileResponse = ReputationResponse & {
     polls: Poll[]
     mutedUsers: Profile[]
-    user: Profile
+    user: User
   }
 
   type Channel = {
@@ -155,8 +215,6 @@ declare global {
     name: string
     url: string
   }
-
-  type CommunityID = `${ChainKey}:${number}`
 
   type Community = {
     id: CommunityID

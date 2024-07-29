@@ -181,8 +181,8 @@ type DirectNotification struct {
 type Reminders struct {
 	RemindableVoters       map[uint64]string `json:"remindableVoters"`
 	RemindableVotersWeight map[uint64]string `json:"votersWeight"`
-	AlreadySent            uint32            `json:"alreadySent"`
-	MaxReminders           uint32            `json:"maxReminders"`
+	AlreadySent            uint64            `json:"alreadySent"`
+	MaxReminders           uint64            `json:"maxReminders"`
 }
 
 const (
@@ -222,4 +222,26 @@ type RemindersStatus struct {
 	AlreadySent int               `json:"alreadySent"`
 	Total       int               `json:"total"`
 	Fails       map[string]string `json:"fails,omitempty"`
+}
+
+// ComposerActionResponse is the response of the composer endpoint, which is a
+// redirection to the composer app to be used to create a new election from the
+// cast form in warpcast.
+type ComposerActionResponse struct {
+	Type  string `json:"type"`
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
+
+// ComposerActionMetadata is the metadata of the composer action, which is used
+// to show the action in the warpcast composer selector.
+type ComposerActionMetadata struct {
+	Type        string `json:"type"`
+	Name        string `json:"name"`
+	Icon        string `json:"icon"`
+	Description string `json:"description"`
+	ImageURL    string `json:"imageUrl"`
+	Action      struct {
+		Type string `json:"type"`
+	} `json:"action"`
 }

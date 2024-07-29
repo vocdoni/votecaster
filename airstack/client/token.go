@@ -132,6 +132,9 @@ func (c *Client) CheckIfHolder(tokenAddress common.Address, blockchain string, a
 	if err != nil {
 		return 0, fmt.Errorf("cannot check token ownership from Airstack: %w", err)
 	}
+	if len(resp.TokenBalances.TokenBalance) == 0 {
+		return 0, nil
+	}
 	return uint64(resp.TokenBalances.TokenBalance[0].FormattedAmount), nil
 }
 

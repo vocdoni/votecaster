@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import { createHashRouter, redirect, RouterProvider } from 'react-router-dom'
 import { Layout } from '~components/Layout'
+import { ComposerLayout } from '~components/Layout/Composer'
 import { SuspenseLoader } from './SuspenseLoader'
 
 const About = lazy(() => import('~pages/About'))
@@ -12,8 +13,10 @@ const AllCommunitiesList = lazy(() => import('~pages/communities'))
 const MyCommunitiesList = lazy(() => import('~pages/communities/mine'))
 const Community = lazy(() => import('~pages/communities/view'))
 const CommunityPoll = lazy(() => import('~pages/communities/poll'))
+const Composer = lazy(() => import('~pages/composer'))
 const FarcasterAccountProtectedRoute = lazy(() => import('./FarcasterAccountProtectedRoute'))
 const Leaderboards = lazy(() => import('~pages/Leaderboards'))
+const Points = lazy(() => import('~pages/points'))
 const Poll = lazy(() => import('~pages/Poll'))
 const Profile = lazy(() => import('~pages/Profile'))
 const ProtectedRoute = lazy(() => import('./ProtectedRoute'))
@@ -115,6 +118,14 @@ export const Router = () => {
                 </SuspenseLoader>
               ),
             },
+            {
+              path: '/points',
+              element: (
+                <SuspenseLoader>
+                  <Points />
+                </SuspenseLoader>
+              ),
+            },
           ],
         },
         {
@@ -167,6 +178,20 @@ export const Router = () => {
               ],
             },
           ],
+        },
+      ],
+    },
+    {
+      path: '/composer',
+      element: <ComposerLayout />,
+      children: [
+        {
+          path: '',
+          element: (
+            <SuspenseLoader>
+              <Composer />
+            </SuspenseLoader>
+          ),
         },
       ],
     },

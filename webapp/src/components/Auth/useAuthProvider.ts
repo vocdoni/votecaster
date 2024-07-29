@@ -1,52 +1,21 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { appUrl } from '~constants'
+import { userToProfile } from '~util/mappings'
 
-interface AuthState {
-  isAuthenticated: boolean
-  bearer: string | null
-  bfetch: (input: RequestInfo, init?: RequestInit) => Promise<Response>
-  login: (params: LoginParams) => void
-  logout: () => void
-  profile: Profile | null
-  reputation: Reputation | undefined
-}
-
-const baseRep = {
-  reputation: 0,
-  data: {
-    castedVotes: 0,
-    electionsCreated: 0,
-    followersCount: 0,
-    participationAchievement: 0,
-    communitiesCount: 0,
-  },
-}
-
-export type Reputation = typeof baseRep
-export type ReputationResponse = {
-  reputation: number
-  reputationData: (typeof baseRep)['data']
-}
-
-export const reputationResponse2Reputation = (rep: ReputationResponse): Reputation => ({
-  reputation: rep.reputation,
-  data: {
-    ...rep.reputationData,
-  },
-})
+export type AuthState = ReturnType<typeof useAuthProvider>
 
 type LoginParams = {
   profile: Profile
   bearer: string
-  reputation: Reputation
 }
 
-export const useAuthProvider = (): AuthState => {
+export const useAuthProvider = () => {
   const [bearer, setBearer] = useState<string | null>(localStorage.getItem('bearer'))
   const [profile, setProfile] = useState<Profile | null>(JSON.parse(localStorage.getItem('profile') || 'null'))
-  const [reputation, setReputation] = useState<Reputation | undefined>(
-    JSON.parse(localStorage.getItem('reputation') || '{}')
-  )
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const isAuthenticated = useMemo(() => !!bearer && !!profile, [bearer, profile])
 
   const bearedFetch = useCallback(
     async (input: RequestInfo, init: RequestInit = {}) => {
@@ -68,16 +37,38 @@ export const useAuthProvider = (): AuthState => {
     [bearer]
   )
 
-  const storeReputation = (rep: ReputationResponse) => {
-    const reputation = {
-      reputation: rep.reputation,
-      data: {
-        ...rep.reputationData,
+  const tokenLogin = useCallback((token: string) => {
+    setError(null)
+    setLoading(true)
+    return bearedFetch(`${appUrl}/profile`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    }
-    setReputation(reputation)
-    localStorage.setItem('reputation', JSON.stringify(reputation))
-  }
+    })
+      .then((resp) => resp.json())
+      .then(({ user }: UserProfileResponse) =>
+        login({
+          profile: userToProfile(user),
+          bearer: token,
+        })
+      )
+      .catch((err) => {
+        setError(err.message)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const searchParamsTokenLogin = useCallback(
+    (search: string) => {
+      const params = new URLSearchParams(search.replace(/^\?/, ''))
+      const token = params.get('token')
+
+      if (!token || isAuthenticated) return
+
+      tokenLogin(token)
+    },
+    [isAuthenticated]
+  )
 
   // if no bearer but profile, logout
   useEffect(() => {
@@ -96,42 +87,37 @@ export const useAuthProvider = (): AuthState => {
         if (response.status !== 200) {
           logout()
         }
-
-        return response.json()
       })
-      // update reputation
-      .then(storeReputation)
       // network errors or other issues
       .catch(() => {
         logout()
       })
   }, [])
 
-  const login = useCallback(({ profile, bearer, reputation }: LoginParams) => {
+  const login = useCallback(({ profile, bearer }: LoginParams) => {
     localStorage.setItem('bearer', bearer)
     localStorage.setItem('profile', JSON.stringify(profile))
-    localStorage.setItem('reputation', JSON.stringify(reputation))
     setBearer(bearer)
     setProfile(profile)
-    setReputation(reputation)
   }, [])
 
   const logout = useCallback(() => {
     localStorage.removeItem('bearer')
     localStorage.removeItem('profile')
-    localStorage.removeItem('reputation')
     setBearer(null)
     setProfile(null)
-    setReputation(undefined)
   }, [])
 
   return {
-    isAuthenticated: !!bearer && !!profile && !!reputation,
-    profile,
-    reputation,
-    login,
-    logout,
     bearer,
     bfetch: bearedFetch,
+    error,
+    isAuthenticated,
+    loading,
+    login,
+    logout,
+    profile,
+    searchParamsTokenLogin,
+    tokenLogin,
   }
 }

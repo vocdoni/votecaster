@@ -11,6 +11,7 @@
     "pretty": "prettier --write src"
   },
   "dependencies": {
+    "@chakra-ui/anatomy": "^2.2.2",
     "@chakra-ui/react": "^2.8.2",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
@@ -65,5 +66,5 @@
     "npm": "use pnpm instead",
     "yarn": "use pnpm instead"
   },
-  "packageManager": "pnpm@8.15.4+sha256.cea6d0bdf2de3a0549582da3983c70c92ffc577ff4410cbf190817ddc35137c2"
+  "packageManager": "pnpm@9.5.0"
 }

@@ -51,10 +51,6 @@ export const SignInButton = (props: ButtonProps) => {
       login({
         bearer: rjson.authToken,
         profile: rjson.profile,
-        reputation: {
-          reputation: rjson.reputation,
-          data: rjson.reputationData,
-        },
       })
       return true
     }

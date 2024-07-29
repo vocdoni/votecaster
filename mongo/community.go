@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.vocdoni.io/dvote/log"
+	"go.vocdoni.io/dvote/types"
 )
 
 func (ms *MongoStorage) AddCommunity(community *Community) error {
@@ -44,6 +45,21 @@ func (ms *MongoStorage) ListCommunities(limit, offset int64) ([]Community, int64
 	return communities, total, nil
 }
 
+// AllCommunities returns the list of all communities.
+func (ms *MongoStorage) AllCommunities(limit, offset int64) ([]Community, int64, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	// filter by enabled and communities
+
+	communities := []Community{}
+	opts := options.Find().SetSort(bson.D{{Key: "featured", Value: -1}, {Key: "_id", Value: -1}})
+	total, err := paginatedObjects(ms.communities, nil, opts, limit, offset, &communities)
+	if err != nil {
+		return nil, 0, err
+	}
+	return communities, total, nil
+}
+
 // ListFeaturedCommunities returns the list of featured communities.
 func (ms *MongoStorage) ListFeaturedCommunities(limit, offset int64) ([]Community, int64, error) {
 	ms.keysLock.RLock()
@@ -63,6 +79,20 @@ func (ms *MongoStorage) ListCommunitiesByAdminFID(fid uint64, limit, offset int6
 	defer ms.keysLock.RUnlock()
 	communities := []Community{}
 	total, err := paginatedObjects(ms.communities, bson.M{"owners": fid}, nil, limit, offset, &communities)
+	if err != nil {
+		log.Debug("error listing communities by admin FID: ", err)
+		return nil, 0, err
+	}
+	return communities, total, nil
+}
+
+// ListCommunitiesByAdminFID returns the list of communities where the user is
+// the creator by FID provided.
+func (ms *MongoStorage) ListCommunitiesByCreatorFID(fid uint64, limit, offset int64) ([]Community, int64, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	communities := []Community{}
+	total, err := paginatedObjects(ms.communities, bson.M{"creator": fid}, nil, limit, offset, &communities)
 	if err != nil {
 		log.Debug("error listing communities by admin FID: ", err)
 		return nil, 0, err
@@ -110,6 +140,76 @@ func (ms *MongoStorage) DelCommunity(communityID string) error {
 	defer cancel()
 	_, err := ms.communities.DeleteOne(ctx, bson.M{"_id": communityID})
 	return err
+}
+
+// CommunityParticipationMean returns the mean of the participation of the every
+// community poll with the given ID. It returns an error if something goes wrong
+// with the database.
+func (ms *MongoStorage) CommunityParticipationMean(communityID string) (float64, error) {
+	elections, err := ms.ElectionsByCommunity(communityID)
+	if err != nil {
+		return 0, err
+	}
+	if len(elections) == 0 {
+		return 0, nil
+	}
+	// participation = Σ (sum of votes / sum of voters * 100)
+	var totalParticipation float64
+	for _, election := range elections {
+		// prevent to divide by zero
+		if election.FarcasterUserCount == 0 {
+			continue
+		}
+		totalParticipation += float64(election.CastedVotes) / float64(election.FarcasterUserCount) * 100
+	}
+	// mean participation = total participation / number of elections
+	return totalParticipation / float64(len(elections)), nil
+}
+
+// CommunitiesByVoter returns the list of communities with elections where the
+// user is voter. It returns an error if something goes wrong with the database.
+func (ms *MongoStorage) CommunitiesByVoter(userID uint64) ([]Community, error) {
+	// get elections with a defined community object and then check if the user
+	// id provided is voter for any of those elections, then returns the
+	// communities of the elections where the user is voter
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	// get elections with a defined community object
+	communityElections, err := ms.electionsWithCommunity()
+	if err != nil {
+		return nil, err
+	}
+	// iterate over the elections getting the voters to check if the user is one
+	// of them, if so, get the community of the election and add it to the list
+	communities := []Community{}
+	alreadyIncluded := map[string]bool{}
+	for _, election := range communityElections {
+		// if the community is already included, skip it to avoid duplicates
+		// and unnecessary queries
+		if _, ok := alreadyIncluded[election.Community.ID]; ok {
+			continue
+		}
+		// get the voters of the election and check if the user is one of them
+		voters, err := ms.votersOfElection(types.HexBytes(election.ElectionID))
+		if err != nil {
+			if err == ErrElectionUnknown {
+				continue
+			}
+			return nil, err
+		}
+		// if the user is not a voter, skip the election
+		if !ms.isUserVoter(voters, userID) {
+			continue
+		}
+		// get the community of the election and add it to the list
+		community, err := ms.community(election.Community.ID)
+		if err != nil {
+			return nil, err
+		}
+		alreadyIncluded[election.Community.ID] = true
+		communities = append(communities, *community)
+	}
+	return communities, nil
 }
 
 // addCommunity method adds a new community to the database. It returns an error
@@ -187,7 +287,7 @@ func (ms *MongoStorage) IsCommunityDisabled(communityID string) bool {
 	defer cancel()
 	var community Community
 	if err := ms.communities.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
-		log.Errorf("error getting community %d: %v", communityID, err)
+		log.Errorf("error getting community %s: %v", communityID, err)
 		return false
 	}
 	return community.Disabled

@@ -1,12 +1,11 @@
 import { Box, Grid, GridItem, Link, Text, VStack } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { ReputationCard } from '~components/Auth/Reputation'
 import { useAuth } from '~components/Auth/useAuth'
-import { ReputationResponse, reputationResponse2Reputation } from '~components/Auth/useAuthProvider'
 import { Check } from '~components/Check'
 import { FarcasterLogo } from '~components/FarcasterLogo'
 import { MutedUsersList } from '~components/MutedUsersList'
+import { ReputationCard } from '~components/Reputation/Reputation'
 import { UserPolls } from '~components/Top'
 import { WarpcastApiKey } from '~components/WarpcastApiKey'
 import { fetchUserProfile, useUserDegenOrEnsName } from '~queries/profile'
@@ -68,7 +67,7 @@ const Profile = () => {
               )}
             </VStack>
           </Box>
-          <ReputationCard reputation={reputationResponse2Reputation(user as ReputationResponse)} />
+          <ReputationCard reputation={user.reputation} />
         </Box>
       </GridItem>
       <GridItem gridArea='muted'>{isOwnProfile && <MutedUsersList />}</GridItem>

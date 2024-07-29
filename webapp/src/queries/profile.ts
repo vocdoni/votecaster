@@ -71,7 +71,7 @@ export const useFirstDegenOrEnsName = (addresses: string[] = []) => {
 }
 
 export const getProfileAddresses = (p?: UserProfileResponse) => {
-  return p?.user.verifications ?? p?.user.addresses ?? []
+  return p?.user.addresses
 }
 
 export const useUserDegenOrEnsName = (user?: UserProfileResponse) => {

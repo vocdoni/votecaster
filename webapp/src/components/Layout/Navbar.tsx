@@ -2,9 +2,10 @@ import { Avatar, Box, Flex, Heading, HStack, Icon, IconButton, Stack, useDisclos
 import { GiHamburgerMenu } from 'react-icons/gi'
 import { IoClose } from 'react-icons/io5'
 import { Link } from 'react-router-dom'
-import { ReputationProgress } from '../Auth/Reputation'
+import { useReputation } from '~components/Reputation/useReputation'
 import { SignInButton } from '../Auth/SignInButton'
 import { useAuth } from '../Auth/useAuth'
+import { ReputationProgress } from '../Reputation/Reputation'
 import { MenuButton } from './MenuButton'
 import logo from '/logo-farcastervote.png'
 
@@ -44,7 +45,8 @@ const links: NavbarLink[] = [
 
 export const Navbar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { isAuthenticated, profile, reputation } = useAuth()
+  const { isAuthenticated, profile } = useAuth()
+  const { reputation } = useReputation()
 
   return (
     <Box px={{ base: 3 }}>

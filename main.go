@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -16,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	c3client "github.com/vocdoni/census3/apiclient"
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/communityhub"
@@ -27,6 +29,7 @@ import (
 	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/mongo"
 	"github.com/vocdoni/vote-frame/notifications"
+	"github.com/vocdoni/vote-frame/reputation"
 	urlapi "go.vocdoni.io/dvote/api"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
@@ -37,7 +40,7 @@ var (
 	serverURL         = "http://localhost:8888"
 	explorerURL       = "https://dev.explorer.vote"
 	onvoteURL         = "https://dev.onvote.app"
-	maxDirectMessages = uint32(10000)
+	maxDirectMessages = uint64(10000)
 )
 
 func main() {
@@ -65,6 +68,8 @@ func main() {
 		"https://rpc.degen.tips,https://eth.llamarpc.com,https://rpc.ankr.com/eth,https://ethereum-rpc.publicnode.com,https://mainnet.optimism.io,https://optimism.llamarpc.com,https://optimism-mainnet.public.blastapi.io,https://rpc.ankr.com/optimism",
 		"Web3 RPCs")
 	flag.Bool("indexer", false, "Enable the indexer to autodiscover users and their profiles")
+	// census3 flags
+	flag.String("census3APIEndpoint", "https://census3-stg.vocdoni.net/api", "The Census3 API endpoint to use")
 	// community hub flags
 	flag.String("chains", "base-sep,degen-dev", "The chains to use for the community hub")
 	flag.String("communityHubChainsConfig", "./chains_config.json", "The JSON configuration file for the community hub networks")
@@ -92,6 +97,8 @@ func main() {
 	// Limited features flags
 	flag.Int32("featureNotificationReputation", 15, "Reputation threshold to enable the notification feature")
 	flag.Int32("maxDirectMessages", 10000, "The maximum number of direct messages that any user can send. It will be scaled based on the reputation of the user.")
+	flag.Duration("reputationUpdateInterval", time.Hour*6, "The interval to update the reputation of the users")
+	flag.Int("concurrentReputationUpdates", 5, "The number of concurrent reputation updates")
 
 	// Parse the command line flags
 	flag.Parse()
@@ -128,6 +135,8 @@ func main() {
 	web3endpoint := strings.Split(web3endpointStr, ",")
 	neynarAPIKey := viper.GetString("neynarAPIKey")
 	indexer := viper.GetBool("indexer")
+	// census3 vars
+	census3APIEndpoint := viper.GetString("census3APIEndpoint")
 	// community hub vars
 	// flag.String("chains", "base-sep,degen-dev", "The chains to use for the community hub")
 	availableChains := strings.Split(viper.GetString("chains"), ",")
@@ -151,7 +160,9 @@ func main() {
 
 	// limited features vars
 	featureNotificationReputation := uint32(viper.GetInt32("featureNotificationReputation"))
-	maxDirectMessages = uint32(viper.GetInt32("maxDirectMessages"))
+	maxDirectMessages = viper.GetUint64("maxDirectMessages")
+	reputationUpdateInterval := viper.GetDuration("reputationUpdateInterval")
+	concurrentReputationUpdates := viper.GetInt("concurrentReputationUpdates")
 
 	// overwrite features thesholds
 	if featureNotificationReputation > 0 {
@@ -188,6 +199,7 @@ func main() {
 		"pollSize", pollSize,
 		"pprofPort", pprofPort,
 		"communityHubChainsConfig", communityHubChainsConfigPath,
+		"census3APIEndpoint", census3APIEndpoint,
 		"communityHubAdmin", communityHubAdminPrivKey != "",
 		"botFid", botFid,
 		"botHubEndpoint", botHubEndpoint,
@@ -270,7 +282,6 @@ func main() {
 			log.Warnw("failed to add web3 endpoint", "endpoint", endpoint, "error", err)
 		}
 	}
-
 	// Load chains config
 	chainsConfs, err := helpers.LoadChainsConfig(communityHubChainsConfigPath, availableChains)
 	if err != nil {
@@ -283,7 +294,17 @@ func main() {
 			}
 		}
 	}
-	log.Infow("chain info loaded", "info", chainsConfs)
+	log.Infow("chain info loaded", "info", chainsConfs, "endpoints", web3pool.String())
+
+	// create census3 client
+	c3url, err := url.Parse(census3APIEndpoint)
+	if err != nil {
+		log.Fatal(err)
+	}
+	census3Client, err := c3client.NewHTTPclient(c3url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Create the Farcaster API client
 	neynarcli, err := neynar.NewNeynarAPI(neynarAPIKey, web3pool)
@@ -328,10 +349,18 @@ func main() {
 		}
 	}
 
+	// start reputation updater
+	repUpdater, err := reputation.NewUpdater(mainCtx, db, neynarcli, as, census3Client, concurrentReputationUpdates)
+	if err != nil {
+		log.Fatal(err)
+	}
+	repUpdater.Start(reputationUpdateInterval)
+	defer repUpdater.Stop()
+
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)
 	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo,
-		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, comHub, adminFID)
+		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, comHub, repUpdater, adminFID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -382,12 +411,12 @@ func main() {
 	}
 
 	// Set the method for adding new auth tokens
-	handler.addAuthTokenFunc = func(fid uint64, token string) {
+	handler.AddAuthTokenFunc(func(fid uint64, token string) {
 		uAPI.Endpoint.AddAuthToken(token, 0)
 		if err := db.AddAuthentication(fid, token); err != nil {
 			log.Errorw(err, "failed to add authentication token to the database")
 		}
-	}
+	})
 
 	// The root endpoint redirects to /app
 	if err := uAPI.Endpoint.RegisterMethod("/", http.MethodGet, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -460,6 +489,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/rankings/points", http.MethodGet, "public", handler.rankingByPoints); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/rankings/pollsByCommunity/{chainAlias}:{communityID}", http.MethodGet, "public", handler.electionsByCommunityHandler); err != nil {
 		log.Fatal(err)
 	}
@@ -494,6 +527,14 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/poll/results/{electionID}", http.MethodPost, "public", handler.results); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/composer", http.MethodGet, "public", handler.composerMetadataHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/composer", http.MethodPost, "public", handler.composerActionHandler); err != nil {
 		log.Fatal(err)
 	}
 
