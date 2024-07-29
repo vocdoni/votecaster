@@ -26,12 +26,14 @@ const (
 	kiwiPuntuaction                           = 4
 	degenDAONFTPuntuaction                    = 6
 	haberdasheryNFTPuntuaction                = 6
-	degenAtLeast10kPuntuaction                = 4
-	tokyoDAONFTPuntuaction                    = 5
+	degenAtLeast10kPuntuaction                = 3
+	tokyoDAONFTPuntuaction                    = 4
 	proxyStudioNFTPuntuaction                 = 5
-	proxyAtLeast5Puntuaction                  = 4
-	nameDegenPuntuaction                      = 5
+	proxyAtLeast5Puntuaction                  = 3
+	nameDegenPuntuaction                      = 4
 	farcasterOGNFTPuntuaction                 = 6
+	moxiePassPuntuaction			  = 4
+	
 	// yield rate
 	yieldParamA         = 2
 	yieldParamB         = .2
@@ -69,6 +71,7 @@ var BoostersPuntuationInfo = ReputationInfo{
 	"proxyAtLeast5Puntuaction":                  proxyAtLeast5Puntuaction,
 	"nameDegenPuntuaction":                      nameDegenPuntuaction,
 	"farcasterOGNFTPuntuaction":                 farcasterOGNFTPuntuaction,
+	"moxiePassPuntuaction":			     moxiePassPuntuaction,
 }
 
 // Boosters contract addresses
@@ -99,6 +102,8 @@ var (
 	NameDegenAddress = common.HexToAddress("0x4087fb91A1fBdef05761C02714335D232a2Bf3a1")
 	// FarCaster OG NFT contract address
 	FarcasterOGNFTAddress = common.HexToAddress("0xe03ef4b9db1a47464de84fb476f9baf493b3e886")
+	// Moxie Pass NFT contract address:
+	MoxiePassAddress = common.HexToAddress("0x235CAD50d8a510Bc9081279996f01877827142D8")
 )
 
 // Boosters costants (ids, hashesh and network information)
@@ -142,4 +147,7 @@ const (
 	// FarCaster OG NFT network short name and ID
 	FarcasterOGNFTChainShortName = "zora"
 	FarcasterOGNFTChainID        = 7777777
+	// Moxie Pass NFT network short name and ID
+	MoxiePassChainShortName = "base"
+	MoxiePassChainChainID   = 8453
 )
