@@ -71,6 +71,16 @@ declare global {
     addresses?: string[]
   }
 
+  type PointsLeaderboard = {
+    communityCreator: number
+    communityID: string
+    communityName: string
+    totalPoints: number
+    userDisplayname: string
+    userID: number
+    username: string
+  }
+
   type Poll = {
     censusParticipantsCount: number
     createdByDisplayname: string
@@ -174,6 +184,14 @@ declare global {
     followers: number
     lastUpdated: Date
     avatar: string
+  }
+
+  type RecursivePartial<T> = {
+    [P in keyof T]?: T[P] extends (infer U)[]
+      ? RecursivePartial<U>[]
+      : T[P] extends object | undefined
+        ? RecursivePartial<T[P]>
+        : T[P]
   }
 
   type UserRanking = {

@@ -6,6 +6,7 @@ import { WagmiProvider } from 'wagmi'
 import { BlockchainProvider } from '~components/Blockchains/BlockchainProvider'
 import { BlockchainRegistryProvider } from '~components/Blockchains/BlockchainRegistry'
 import { HealthcheckProvider } from '~components/Healthcheck/HealthcheckProvider'
+import { ReputationProvider } from '~components/Reputation/ReputationProvider'
 import { AuthProvider } from './components/Auth/AuthContext'
 import { Router } from './router'
 import { config } from './util/rainbow'
@@ -24,7 +25,9 @@ const Providers = () => (
             <BlockchainProvider chain={mainnet}>
               <BlockchainProvider chain={degen}>
                 <AuthProvider>
-                  <Router />
+                  <ReputationProvider>
+                    <Router />
+                  </ReputationProvider>
                 </AuthProvider>
               </BlockchainProvider>
             </BlockchainProvider>

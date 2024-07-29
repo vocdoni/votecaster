@@ -54,6 +54,39 @@ func (ms *MongoStorage) UserIDs(startId uint64, maxResults int) ([]uint64, error
 	return ids, nil
 }
 
+// UsersIterator iterates over available users and sends them to the provided
+// channel.
+func (ms *MongoStorage) ReputableUsers() ([]*User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{"castedVotes": bson.M{"$gt": 0}},
+			{"electionCount": bson.M{"$gt": 0}},
+		},
+	}
+	// Executing the find operation with the specified filter and options
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	cur, err := ms.users.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var users []*User
+	for cur.Next(ctx) {
+		user := &User{}
+		if err := cur.Decode(user); err != nil {
+			log.Warn(err)
+			continue
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
 // CountUsers returns the total number of users in the database.
 func (ms *MongoStorage) CountUsers() uint64 {
 	ms.keysLock.RLock()

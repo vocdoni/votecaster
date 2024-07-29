@@ -149,6 +149,30 @@ func (ms *MongoStorage) ElectionsByCommunity(communityID string) ([]*Election, e
 	return elections, nil
 }
 
+// electionsWithCommunity returns all the elections with a defined community object.
+func (ms *MongoStorage) electionsWithCommunity() ([]*Election, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	// get elections with a defined community object
+	cursor, err := ms.elections.Find(ctx, bson.M{"community": bson.M{"$ne": nil}}, nil)
+	if err != nil {
+		log.Warn(err)
+		return nil, fmt.Errorf("failed to find elections by community ID: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var elections []*Election
+	for cursor.Next(ctx) {
+		var election Election
+		if err := cursor.Decode(&election); err != nil {
+			log.Warn("failed to decode election: ", err)
+			continue
+		}
+		elections = append(elections, &election)
+	}
+	return elections, nil
+}
+
 // LatestElections returns the latest elections, sorted by CreatedTime in descending order.
 func (ms *MongoStorage) LatestElections(limit, offset int64) ([]*Election, int64, error) {
 	opts := options.Find().SetSort(bson.D{{Key: "createdTime", Value: -1}})

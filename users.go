@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/vocdoni/vote-frame/mongo"
+	"github.com/vocdoni/vote-frame/reputation"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 )
@@ -30,12 +31,6 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 	if err != nil {
 		return ctx.Send([]byte("could not get user access profile"), apirest.HTTPstatusInternalErr)
 	}
-	// Get and update the user's reputation
-	reputation, reputationData, err := v.db.UpdateAndGetReputationForUser(auth.UserID)
-	if err != nil {
-		return fmt.Errorf("could not update reputation: %v", err)
-	}
-
 	// Get the elections created by the user. If the user is not found, it
 	// continues with an empty list.
 	userElections, err := v.db.ElectionsByUser(auth.UserID, 16)
@@ -50,11 +45,16 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 		return fmt.Errorf("could not get muted users: %v", err)
 	}
 
+	// get user reputation
+	rep, err := v.db.DetailedUserReputation(auth.UserID)
+	if err != nil {
+		return fmt.Errorf("could not get user reputation: %v", err)
+	}
+
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
 		"user":               user,
-		"reputation":         reputation,
-		"reputationData":     reputationData,
+		"reputation":         reputation.ReputationToAPIResponse(rep),
 		"polls":              userElections,
 		"mutedUsers":         mutedUsers,
 		"warpcastApiEnabled": accessprofile.WarpcastAPIKey != "",
@@ -168,12 +168,6 @@ func (v *vocdoniHandler) profilePublicHandler(msg *apirest.APIdata, ctx *httprou
 		}
 	}
 
-	// Get and update the user's reputation
-	reputation, reputationData, err := v.db.UpdateAndGetReputationForUser(user.UserID)
-	if err != nil {
-		return fmt.Errorf("could not update reputation: %v", err)
-	}
-
 	// Get the elections created by the user. If the user is not found, it
 	// continues with an empty list.
 	userElections, err := v.db.ElectionsByUser(user.UserID, 16)
@@ -188,13 +182,18 @@ func (v *vocdoniHandler) profilePublicHandler(msg *apirest.APIdata, ctx *httprou
 		return fmt.Errorf("could not get muted users: %v", err)
 	}
 
+	// get user reputation
+	rep, err := v.repUpdater.UserReputation(user.UserID, true)
+	if err != nil {
+		return fmt.Errorf("could not get user reputation: %v", err)
+	}
+
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
-		"user":           user,
-		"reputation":     reputation,
-		"reputationData": reputationData,
-		"polls":          userElections,
-		"mutedUsers":     mutedUsers,
+		"user":       user,
+		"reputation": rep,
+		"polls":      userElections,
+		"mutedUsers": mutedUsers,
 	})
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)

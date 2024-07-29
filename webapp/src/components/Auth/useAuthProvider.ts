@@ -4,34 +4,9 @@ import { userToProfile } from '~util/mappings'
 
 export type AuthState = ReturnType<typeof useAuthProvider>
 
-const baseRep = {
-  reputation: 0,
-  data: {
-    castedVotes: 0,
-    electionsCreated: 0,
-    followersCount: 0,
-    participationAchievement: 0,
-    communitiesCount: 0,
-  },
-}
-
-export type Reputation = typeof baseRep
-export type ReputationResponse = {
-  reputation: number
-  reputationData: (typeof baseRep)['data']
-}
-
-export const reputationResponse2Reputation = (rep: ReputationResponse): Reputation => ({
-  reputation: rep.reputation,
-  data: {
-    ...rep.reputationData,
-  },
-})
-
 type LoginParams = {
   profile: Profile
   bearer: string
-  reputation: Reputation
 }
 
 export const useAuthProvider = () => {
@@ -39,11 +14,8 @@ export const useAuthProvider = () => {
   const [profile, setProfile] = useState<Profile | null>(JSON.parse(localStorage.getItem('profile') || 'null'))
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
-  const [reputation, setReputation] = useState<Reputation | undefined>(
-    JSON.parse(localStorage.getItem('reputation') || '{}')
-  )
 
-  const isAuthenticated = useMemo(() => !!bearer && !!profile && !!reputation, [bearer, profile, reputation])
+  const isAuthenticated = useMemo(() => !!bearer && !!profile, [bearer, profile])
 
   const bearedFetch = useCallback(
     async (input: RequestInfo, init: RequestInit = {}) => {
@@ -65,19 +37,6 @@ export const useAuthProvider = () => {
     [bearer]
   )
 
-  const storeReputation = (rep: ReputationResponse) => {
-    const reputation = {
-      reputation: rep.reputation,
-      data: {
-        ...rep.reputationData,
-      },
-    }
-    setReputation(reputation)
-    localStorage.setItem('reputation', JSON.stringify(reputation))
-
-    return rep
-  }
-
   const tokenLogin = useCallback((token: string) => {
     setError(null)
     setLoading(true)
@@ -87,16 +46,10 @@ export const useAuthProvider = () => {
       },
     })
       .then((resp) => resp.json())
-      .then(({ user, reputation, reputationData }: UserProfileResponse) =>
+      .then(({ user }: UserProfileResponse) =>
         login({
           profile: userToProfile(user),
           bearer: token,
-          reputation: {
-            reputation,
-            data: {
-              ...reputationData,
-            },
-          },
         })
       )
       .catch((err) => {
@@ -134,33 +87,25 @@ export const useAuthProvider = () => {
         if (response.status !== 200) {
           logout()
         }
-
-        return response.json()
       })
-      // update reputation
-      .then(storeReputation)
       // network errors or other issues
       .catch(() => {
         logout()
       })
   }, [])
 
-  const login = useCallback(({ profile, bearer, reputation }: LoginParams) => {
+  const login = useCallback(({ profile, bearer }: LoginParams) => {
     localStorage.setItem('bearer', bearer)
     localStorage.setItem('profile', JSON.stringify(profile))
-    localStorage.setItem('reputation', JSON.stringify(reputation))
     setBearer(bearer)
     setProfile(profile)
-    setReputation(reputation)
   }, [])
 
   const logout = useCallback(() => {
     localStorage.removeItem('bearer')
     localStorage.removeItem('profile')
-    localStorage.removeItem('reputation')
     setBearer(null)
     setProfile(null)
-    setReputation(undefined)
   }, [])
 
   return {
@@ -172,7 +117,6 @@ export const useAuthProvider = () => {
     login,
     logout,
     profile,
-    reputation,
     searchParamsTokenLogin,
     tokenLogin,
   }

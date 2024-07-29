@@ -52,6 +52,40 @@ type UserAccessProfile struct {
 	WarpcastAPIKey          string   `json:"warpcastAPIKey" bson:"warpcastAPIKey"`
 }
 
+type Reputation struct {
+	// ids
+	CommunityID     string `json:"communityID" bson:"communityID"`
+	UserID          uint64 `json:"userID" bson:"userID"`
+	TotalReputation uint64 `json:"totalReputation" bson:"totalReputation"`
+	TotalPoints     uint64 `json:"totalPoints" bson:"totalPoints"`
+	// community
+	Participation float64 `json:"participation" bson:"participation"`
+	CensusSize    uint64  `json:"censusSize" bson:"censusSize"`
+	// activity
+	FollowersCount        uint64 `json:"followersCount" bson:"followersCount"`
+	ElectionsCreatedCount uint64 `json:"electionsCreatedCount" bson:"electionsCreatedCount"`
+	CastVotesCount        uint64 `json:"castVotesCount" bson:"castVotesCount"`
+	ParticipationsCount   uint64 `json:"participationsCount" bson:"participationsCount"`
+	CommunitiesCount      uint64 `json:"communitiesCount" bson:"communitiesCount"`
+	// boosters
+	HasVotecasterNFTPass           bool `json:"hasVotecasterNFTPass" bson:"hasVotecasterNFTPass"`
+	HasVotecasterLaunchNFT         bool `json:"hasVotecasterLaunchNFT" bson:"hasVotecasterLaunchNFT"`
+	IsVotecasterAlphafrensFollower bool `json:"isVotecasterAlphafrensFollower" bson:"isVotecasterAlphafrensFollower"`
+	IsVotecasterFarcasterFollower  bool `json:"isVotecasterFarcasterFollower" bson:"isVotecasterFarcasterFollower"`
+	IsVocdoniFarcasterFollower     bool `json:"isVocdoniFarcasterFollower" bson:"isVocdoniFarcasterFollower"`
+	VotecasterAnnouncementRecasted bool `json:"votecasterAnnouncementRecasted" bson:"votecasterAnnouncementRecasted"`
+	HasKIWI                        bool `json:"hasKIWI" bson:"hasKIWI"`
+	HasDegenDAONFT                 bool `json:"hasDegenDAONFT" bson:"hasDegenDAONFT"`
+	HasHaberdasheryNFT             bool `json:"hasHaberdasheryNFT" bson:"hasHaberdasheryNFT"`
+	Has10kDegenAtLeast             bool `json:"has10kDegenAtLeast" bson:"has10kDegenAtLeast"`
+	HasTokyoDAONFT                 bool `json:"hasTokyoDAONFT" bson:"hasTokyoDAONFT"`
+	HasProxy                       bool `json:"hasProxy" bson:"hasProxy"`
+	Has5ProxyAtLeast               bool `json:"has5ProxyAtLeast" bson:"has5ProxyAtLeast"`
+	HasProxyStudioNFT              bool `json:"hasProxyStudioNFT" bson:"hasProxyStudioNFT"`
+	HasNameDegen                   bool `json:"hasNameDegen" bson:"hasNameDegen"`
+	HasFarcasterOGNFT              bool `json:"hasFarcasterOGNFT" bson:"hasFarcasterOGNFT"`
+}
+
 // ElectionCommunity represents the community used to create an election.
 type ElectionCommunity struct {
 	ID   string `json:"id" bson:"id"`
@@ -154,6 +188,7 @@ type Collection struct {
 	CommunitiesCollection
 	AvatarsCollection
 	UserAccessProfileCollection
+	ReputationCollection
 }
 
 // UserCollection is a dataset containing several users (used for dump and import).
@@ -196,6 +231,10 @@ type UserAccessProfileCollection struct {
 	UserAccessProfiles []UserAccessProfile `json:"userAccessProfiles" bson:"userAccessProfiles"`
 }
 
+type ReputationCollection struct {
+	Reputations []Reputation `json:"reputations" bson:"reputations"`
+}
+
 // UserRanking is a user ranking entry.
 type UserRanking struct {
 	FID         uint64 `json:"fid" bson:"fid"`
@@ -212,6 +251,17 @@ type ElectionRanking struct {
 	CreatedByUsername    string `json:"createdByUsername" bson:"createdByUsername"`
 	CreatedByDisplayname string `json:"createdByDisplayname" bson:"createdByDisplayname"`
 	Title                string `json:"title" bson:"title"`
+}
+
+type ReputationRanking struct {
+	UserID           uint64 `json:"userID" bson:"userID"`
+	Username         string `json:"username" bson:"username"`
+	UserDisplayname  string `json:"userDisplayname" bson:"userDisplayname"`
+	CommunityID      string `json:"communityID" bson:"communityID"`
+	CommunityName    string `json:"communityName" bson:"communityName"`
+	CommunityCreator uint64 `json:"communityCreator" bson:"communityCreator"`
+	TotalPoints      uint64 `json:"totalPoints" bson:"totalPoints"`
+	ImageURL         string `json:"imageURL" bson:"imageURL"`
 }
 
 // Community represents a community entry.
@@ -331,7 +381,10 @@ func paginatedObjects(collection *mongo.Collection, query bson.M, opts *options.
 	if opts == nil {
 		opts = options.Find()
 	}
-	opts = opts.SetLimit(limit).SetSkip(offset)
+	// return all objects if limit is -1 and offset is 0
+	if limit > -1 && offset == 0 {
+		opts = opts.SetLimit(limit).SetSkip(offset)
+	}
 	ctx, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel2()
 	cursor, err := collection.Find(ctx, query, opts)

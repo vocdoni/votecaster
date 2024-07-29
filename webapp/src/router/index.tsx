@@ -16,6 +16,7 @@ const CommunityPoll = lazy(() => import('~pages/communities/poll'))
 const Composer = lazy(() => import('~pages/composer'))
 const FarcasterAccountProtectedRoute = lazy(() => import('./FarcasterAccountProtectedRoute'))
 const Leaderboards = lazy(() => import('~pages/Leaderboards'))
+const Points = lazy(() => import('~pages/points'))
 const Poll = lazy(() => import('~pages/Poll'))
 const Profile = lazy(() => import('~pages/Profile'))
 const ProtectedRoute = lazy(() => import('./ProtectedRoute'))
@@ -114,6 +115,14 @@ export const Router = () => {
               element: (
                 <SuspenseLoader>
                   <Profile />
+                </SuspenseLoader>
+              ),
+            },
+            {
+              path: '/points',
+              element: (
+                <SuspenseLoader>
+                  <Points />
                 </SuspenseLoader>
               ),
             },

@@ -2,9 +2,16 @@ package alfafrens
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"go.vocdoni.io/dvote/types"
+)
+
+// Error definitions to be handled by the caller
+var (
+	ErrNetworkIssue = fmt.Errorf("network error")
+	ErrServerIssue  = fmt.Errorf("server error")
 )
 
 const (

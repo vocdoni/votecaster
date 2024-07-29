@@ -193,3 +193,69 @@ func (ms *MongoStorage) LastCreatedElections(count int) ([]*Election, error) {
 
 	return elections, nil
 }
+
+func (ms *MongoStorage) ReputationRanking(users, communities bool) ([]ReputationRanking, error) {
+	if !users && !communities {
+		return nil, nil
+	}
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	// set query options (limit and sort by totalPoints)
+	limit := int64(10)
+	opts := options.FindOptions{Limit: &limit}
+	opts.SetSort(bson.M{"totalPoints": -1})
+	// set filter for users or communities depending on the provided flags
+	orFilter := []bson.M{}
+	if users {
+		orFilter = append(orFilter, bson.M{"userID": bson.M{"$exists": true}})
+	}
+	if communities {
+		orFilter = append(orFilter, bson.M{"communityID": bson.M{"$exists": true}})
+	}
+	// get the top 10 users or communities sorted by totalPoints
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cur, err := ms.reputations.Find(ctx, bson.M{"$or": orFilter}, &opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	// iterate over the results to get user or community data
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel2()
+	var ranking []ReputationRanking
+	for cur.Next(ctx2) {
+		var rep Reputation
+		if err := cur.Decode(&rep); err != nil {
+			log.Warn(err)
+			continue
+		}
+		repRanking := ReputationRanking{
+			TotalPoints: rep.TotalPoints,
+		}
+		if rep.CommunityID != "" {
+			community, err := ms.community(rep.CommunityID)
+			if err != nil {
+				log.Warn(err)
+				continue
+			}
+			if community == nil {
+				continue
+			}
+			repRanking.CommunityName = community.Name
+			repRanking.CommunityID = community.ID
+			repRanking.CommunityCreator = community.Creator
+		} else {
+			user, err := ms.userData(rep.UserID)
+			if err != nil {
+				log.Warn(err)
+				continue
+			}
+			repRanking.UserID = user.UserID
+			repRanking.Username = user.Username
+			repRanking.UserDisplayname = user.Displayname
+		}
+		ranking = append(ranking, repRanking)
+	}
+	return ranking, nil
+}

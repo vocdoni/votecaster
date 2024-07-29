@@ -2,129 +2,50 @@ package mongo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.vocdoni.io/dvote/log"
 )
 
-const (
-	maxFollowersReputation = 10
-	maxElectionsReputation = 10
-	maxVotesReputation     = 25
-	maxCastedReputation    = 45
-	maxCommunityReputation = 10
-	maxReputation          = 100
-)
+// ReputationsIterator iterates over available reputations and sends them to
+// the provided channel.
+func (ms *MongoStorage) Reputations() ([]*Reputation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	// Executing the find operation with the specified filter and options
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
 
-// UserData holds the user's data for calculating reputation.
-type UserData struct {
-	FollowersCount                uint64 `json:"followersCount"`
-	ElectionsCreated              uint64 `json:"electionsCreated"`
-	CastedVotes                   uint64 `json:"castedVotes"`
-	VotesCastedOnCreatedElections uint64 `json:"participationAchievement"`
-	CommunitiesCount              uint64 `json:"communitiesCount"`
-}
-
-// calculateReputation calculates the user's reputation based on predefined criteria.
-func calculateReputation(user *UserData) uint32 {
-	reputation := 0.0
-	// Calculate FollowersCount score (up to 10 points, max 20000 followers)
-	if followersRep := float64(user.FollowersCount) / 2000; followersRep <= maxFollowersReputation {
-		reputation += followersRep
-	} else {
-		reputation += maxFollowersReputation
-	}
-	// Calculate ElectionsCreated score (up to 10 points, max 100 elections)
-	if electionsRep := float64(user.ElectionsCreated) / 10; electionsRep <= maxElectionsReputation {
-		reputation += electionsRep
-	} else {
-		reputation += maxElectionsReputation
-	}
-	// Calculate CastedVotes score (up to 30 points, max 120 votes)
-	if votesRep := float64(user.CastedVotes) / 4; votesRep <= maxVotesReputation {
-		reputation += votesRep
-	} else {
-		reputation += maxVotesReputation
-	}
-	// Calculate VotesCastedOnCreatedElections score (up to 50 points, max 1000 votes)
-	if castedRep := float64(user.VotesCastedOnCreatedElections) / 20; castedRep <= maxCastedReputation {
-		reputation += castedRep
-	} else {
-		reputation += maxCastedReputation
-	}
-	// Calculate CommunitiesCount score (up to 10 points, max 5 communities)
-	if comRep := float64(user.CommunitiesCount) * 2; comRep <= maxCommunityReputation {
-		reputation += comRep
-	} else {
-		reputation += maxCommunityReputation
-	}
-	// Ensure the reputation does not exceed 100
-	if reputation > maxReputation {
-		reputation = maxReputation
-	}
-	return uint32(reputation)
-}
-
-// UpdateAndGetReputationForUser updates the user's reputation based on their activities and returns the new reputation.
-func (ms *MongoStorage) UpdateAndGetReputationForUser(userID uint64) (uint32, *UserData, error) {
-	// Fetch the user data
-	user, err := ms.User(userID)
+	cur, err := ms.reputations.Find(ctx, bson.M{
+		"$or": []bson.M{
+			{"participation": bson.M{"$gt": 0}},
+			{"censusSize": bson.M{"$gt": 0}},
+			{"totalReputation": bson.M{"$gt": 0}},
+		},
+	})
 	if err != nil {
-		if errors.Is(err, ErrUserUnknown) {
-			// If the user is not found, create a new user with blank data
-			if err := ms.AddUser(userID, "", "", []string{}, []string{}, "", 0); err != nil {
-				return 0, nil, fmt.Errorf("error adding user: %w", err)
-			}
-			if err := ms.SetReputationForUser(userID, 0); err != nil {
-				return 0, nil, fmt.Errorf("error setting user reputation: %w", err)
-			}
-			return 0, &UserData{}, nil
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var reputations []*Reputation
+	for cur.Next(ctx) {
+		reputation := &Reputation{}
+		if err := cur.Decode(reputation); err != nil {
+			log.Warn(err)
+			continue
 		}
-		return 0, nil, fmt.Errorf("error fetching user: %w", err)
+		reputations = append(reputations, reputation)
 	}
-	// Fetch the total votes cast on elections created by the user
-	totalVotes, err := ms.totalVotesForUserElections(userID)
-	if err != nil {
-		return 0, nil, fmt.Errorf("error fetching total votes for user elections: %w", err)
-	}
-	// Fetch the number of communities where the user is an admin
-	communitiesCount, err := ms.communitiesCountForUser(userID)
-	if err != nil {
-		return 0, nil, fmt.Errorf("error fetching communities count for user: %w", err)
-	}
-	userData := UserData{
-		FollowersCount:                user.Followers,
-		ElectionsCreated:              user.ElectionCount,
-		CastedVotes:                   user.CastedVotes,
-		VotesCastedOnCreatedElections: totalVotes,
-		CommunitiesCount:              communitiesCount,
-	}
-	// Calculate the new reputation
-	newReputation := calculateReputation(&userData)
-	// Update the user's reputation in the database
-	if err := ms.SetReputationForUser(userID, newReputation); err != nil {
-		return 0, nil, fmt.Errorf("error updating user reputation: %w", err)
-	}
-	return newReputation, &userData, nil
+	return reputations, nil
 }
 
-// MaxDirectMessages calculates the maximum number of direct messages the user
-// can send based on their reputation. It computes the maximum number of direct
-// messages by calculating the percentage of the absolute maximum number of
-// messages using the user's reputation.
-func (ms *MongoStorage) MaxDirectMessages(userID uint64, absoluteMax uint32) uint32 {
-	userRep, _, err := ms.UpdateAndGetReputationForUser(userID)
-	if err != nil {
-		return 0
-	}
-	return absoluteMax * userRep / 100
-}
-
-// totalVotesForUserElections calculates the total number of votes casted on elections created by the user.
-func (ms *MongoStorage) totalVotesForUserElections(userID uint64) (uint64, error) {
+// TotalVotesForUserElections calculates the total number of votes casted on elections created by the user.
+func (ms *MongoStorage) TotalVotesForUserElections(userID uint64) (uint64, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -157,9 +78,9 @@ func (ms *MongoStorage) totalVotesForUserElections(userID uint64) (uint64, error
 	return 0, nil
 }
 
-// communitiesCountForUser calculates the number of communities where the
+// CommunitiesCountForUser calculates the number of communities where the
 // user is an admin.
-func (ms *MongoStorage) communitiesCountForUser(userID uint64) (uint64, error) {
+func (ms *MongoStorage) CommunitiesCountForUser(userID uint64) (uint64, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -188,4 +109,90 @@ func (ms *MongoStorage) communitiesCountForUser(userID uint64) (uint64, error) {
 	}
 
 	return 0, nil
+}
+
+// SetReputationForUser updates the reputation for a given user ID.
+func (ms *MongoStorage) SetReputationForUser(userID uint64, reputation uint32) error {
+	return ms.updateUserAccessProfile(userID, bson.M{"$set": bson.M{"reputation": reputation}})
+}
+
+// DetailedUserReputation method return the reputation of a user based on the
+// user ID. It returns the detailed reputation information and values from the
+// database.
+func (ms *MongoStorage) DetailedUserReputation(userID uint64) (*Reputation, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	return ms.userReputation(userID)
+}
+
+// DetailedCommunityReputation method return the reputation of a community based
+// on the community ID. It returns the detailed reputation information and
+// values from the database.
+func (ms *MongoStorage) DetailedCommunityReputation(communityID string) (*Reputation, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	return ms.communityReputation(communityID)
+}
+
+// SetDetailedReputationForUser method updates the detailed reputation for a
+// given user ID. It overwrites the previous reputation values with the provided
+// values, if some values are not provided, they will keep the previous values
+// if they exist.
+func (ms *MongoStorage) SetDetailedReputationForUser(userID uint64, reputation *Reputation) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+
+	reputation.UserID = userID
+	return ms.updateReputation(reputation)
+}
+
+// SetDetailedReputationForCommunity method updates the detailed reputation for
+// a given community ID. It overwrites the previous reputation values with the
+// provided values, if some values are not provided, they will keep the previous
+// values if they exist.
+func (ms *MongoStorage) SetDetailedReputationForCommunity(communityID string, reputation *Reputation) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+
+	reputation.CommunityID = communityID
+	return ms.updateReputation(reputation)
+}
+
+func (ms *MongoStorage) userReputation(userID uint64) (*Reputation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var profile Reputation
+	if err := ms.reputations.FindOne(ctx, bson.M{"userID": userID}).Decode(&profile); err != nil {
+		return nil, ErrUserUnknown
+	}
+	return &profile, nil
+}
+
+func (ms *MongoStorage) communityReputation(communityID string) (*Reputation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var profile Reputation
+	if err := ms.reputations.FindOne(ctx, bson.M{"communityID": communityID}).Decode(&profile); err != nil {
+		return nil, fmt.Errorf("community '%s' reputation not found: %w", communityID, err)
+	}
+	return &profile, nil
+}
+
+func (ms *MongoStorage) updateReputation(reputation *Reputation) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	updateDoc, err := dynamicUpdateDocument(reputation, nil)
+	if err != nil {
+		return err
+	}
+	filter := bson.M{"userID": reputation.UserID}
+	if reputation.CommunityID != "" {
+		filter = bson.M{"communityID": reputation.CommunityID}
+	}
+	opts := options.Update().SetUpsert(true)
+	_, err = ms.reputations.UpdateOne(ctx, filter, updateDoc, opts)
+	return err
 }

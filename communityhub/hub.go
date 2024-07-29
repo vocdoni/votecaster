@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	dbmongo "github.com/vocdoni/vote-frame/mongo"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.vocdoni.io/dvote/log"
 )
 
@@ -180,63 +179,70 @@ func (ch *CommunityHub) SyncCommunities() {
 	go func() {
 		defer ch.waiter.Done()
 		for {
-			// iterate over all the community contracts and sync them,
-			// getting the info of the communities stored in the database
-			// from the contract and updating them in the database
-			for _, contract := range ch.contracts {
-				log.Infow("syncing communities", "chainAlias", contract.ChainAlias, "contract", contract.Address.String())
-				nextID, err := contract.NextContractID()
-				if err != nil {
-					log.Warnw("failed to get next community ID", "error", err)
-					continue
-				}
-				// iterate from 1 to the last inserted ID in the database
-				// getting community data from the contract and updating it
-				// in the database
-				for id := uint64(1); id < nextID; id++ {
-					select {
-					case <-ch.ctx.Done():
-						return
-					default:
-						// get the community from the contract
-						communityID, ok := ch.CommunityIDByChainAlias(id, contract.ChainAlias)
-						if !ok {
-							log.Warnw("failed to get community ID by chain alias", "chainAlias", contract.ChainAlias)
-							continue
-						}
-						log.Infow("syncing community", "communityID", communityID)
-						onchainCommunity, err := contract.Community(communityID)
-						if err != nil {
-							log.Warnw("failed to get community data", "error", err, "communityID", communityID)
-							continue
-						}
-						// get the community from the database
-						dbCommunity, err := ch.communityFromDB(communityID)
-						if err != nil {
-							if err != ErrCommunityNotFound {
-								log.Warnw("failed to get community from database", "error", err)
+			select {
+			case <-ch.ctx.Done():
+				return
+			default:
+				// iterate over all the community contracts and sync them,
+				// getting the info of the communities stored in the database
+				// from the contract and updating them in the database
+				for _, contract := range ch.contracts {
+					log.Debugw("syncing communities", "chainAlias", contract.ChainAlias, "contract", contract.Address.String())
+					nextID, err := contract.NextContractID()
+					if err != nil {
+						log.Warnw("failed to get next community ID", "error", err)
+						continue
+					}
+					// iterate from 1 to the last inserted ID in the database
+					// getting community data from the contract and updating it
+					// in the database
+					for id := uint64(1); id < nextID; id++ {
+						select {
+						case <-ch.ctx.Done():
+							return
+						default:
+							// get the community from the contract
+							communityID, ok := ch.CommunityIDByChainAlias(id, contract.ChainAlias)
+							if !ok {
+								log.Warnw("failed to get community ID by chain alias", "chainAlias", contract.ChainAlias)
+								continue
 							}
-							if err := ch.addCommunityToDB(onchainCommunity); err != nil {
-								log.Warnw("failed to add community to database", "error", err)
+							onchainCommunity, err := contract.Community(communityID)
+							if err != nil {
+								log.Warnw("failed to get community data", "error", err, "communityID", communityID)
+								continue
 							}
-							continue
-						}
-						// join the community data from the contract with the
-						// community data from the database
-						community, err := ch.joinCommunityData(dbCommunity, onchainCommunity)
-						if err != nil {
-							log.Warnw("failed to join community data", "error", err)
-							continue
-						}
-						// update the community in the database
-						if err := ch.updateCommunityToDB(community); err != nil {
-							log.Warnw("failed to update community in database", "error", err)
-							continue
+							// get the community from the database
+							dbCommunity, err := ch.communityFromDB(communityID)
+							if err != nil {
+								if errors.Is(err, ErrClosedDB) {
+									return
+								}
+								if !errors.Is(err, ErrCommunityNotFound) {
+									log.Warnw("failed to get community from database", "error", err)
+								}
+								if err := ch.addCommunityToDB(onchainCommunity); err != nil {
+									log.Warnw("failed to add community to database", "error", err)
+								}
+								continue
+							}
+							// join the community data from the contract with the
+							// community data from the database
+							community, err := ch.joinCommunityData(dbCommunity, onchainCommunity)
+							if err != nil {
+								log.Warnw("failed to join community data", "error", err)
+								continue
+							}
+							// update the community in the database
+							if err := ch.updateCommunityToDB(community); err != nil {
+								log.Warnw("failed to update community in database", "error", err)
+								continue
+							}
 						}
 					}
 				}
+				time.Sleep(ch.syncCooldown)
 			}
-			time.Sleep(ch.syncCooldown)
 		}
 	}()
 }
@@ -471,6 +477,9 @@ func (ch *CommunityHub) joinCommunityData(data, newData *HubCommunity) (*HubComm
 func (ch *CommunityHub) communityFromDB(communityID string) (*HubCommunity, error) {
 	community, err := ch.db.Community(communityID)
 	if err != nil {
+		if dbmongo.IsDBClosed(err) {
+			return nil, ErrClosedDB
+		}
 		return nil, errors.Join(ErrGettingCommunity, err)
 	}
 	if community == nil {
@@ -491,7 +500,7 @@ func (l *CommunityHub) addCommunityToDB(hcommunity *HubCommunity) error {
 	// if community already exists in the database, update it
 	current, err := l.db.Community(hcommunity.CommunityID)
 	if err != nil {
-		if err == mongo.ErrClientDisconnected {
+		if dbmongo.IsDBClosed(err) {
 			return ErrClosedDB
 		}
 		return errors.Join(ErrAddCommunity, err)
@@ -506,7 +515,7 @@ func (l *CommunityHub) addCommunityToDB(hcommunity *HubCommunity) error {
 	}
 	// create community in the database including the first admin as the creator
 	if err := l.db.AddCommunity(dbc); err != nil {
-		if err == mongo.ErrClientDisconnected {
+		if dbmongo.IsDBClosed(err) {
 			return ErrClosedDB
 		}
 		return errors.Join(ErrAddCommunity, err)
@@ -525,7 +534,7 @@ func (l *CommunityHub) updateCommunityToDB(hcommunity *HubCommunity) error {
 	}
 	// create community in the database including the first admin as the creator
 	if err := l.db.UpdateCommunity(dbCommunity); err != nil {
-		if err == mongo.ErrClientDisconnected {
+		if dbmongo.IsDBClosed(err) {
 			return ErrClosedDB
 		}
 		return errors.Join(ErrAddCommunity, err)
