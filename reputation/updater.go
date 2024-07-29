@@ -193,6 +193,9 @@ func (u *Updater) UserReputation(userID uint64, commit bool) (*Reputation, error
 		return nil, fmt.Errorf("error calculating user reputation: %w", err)
 	}
 	// calculate total points
+	if rep == nil {
+		return nil, fmt.Errorf("user reputation not found")
+	}
 	rep.TotalPoints, err = u.userPoints(user.UserID, rep.TotalReputation)
 	if err != nil {
 		return nil, fmt.Errorf("error calculating user points: %w", err)

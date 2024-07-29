@@ -156,6 +156,10 @@ func (ms *MongoStorage) CommunityParticipationMean(communityID string) (float64,
 	// participation = Σ (sum of votes / sum of voters * 100)
 	var totalParticipation float64
 	for _, election := range elections {
+		// prevent to divide by zero
+		if election.FarcasterUserCount == 0 {
+			continue
+		}
 		totalParticipation += float64(election.CastedVotes) / float64(election.FarcasterUserCount) * 100
 	}
 	// mean participation = total participation / number of elections
