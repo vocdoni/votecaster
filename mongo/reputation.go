@@ -111,11 +111,6 @@ func (ms *MongoStorage) CommunitiesCountForUser(userID uint64) (uint64, error) {
 	return 0, nil
 }
 
-// SetReputationForUser updates the reputation for a given user ID.
-func (ms *MongoStorage) SetReputationForUser(userID uint64, reputation uint32) error {
-	return ms.updateUserAccessProfile(userID, bson.M{"$set": bson.M{"reputation": reputation}})
-}
-
 // DetailedUserReputation method return the reputation of a user based on the
 // user ID. It returns the detailed reputation information and values from the
 // database.

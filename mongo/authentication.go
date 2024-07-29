@@ -2,6 +2,8 @@ package mongo
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,6 +13,17 @@ import (
 
 // AddAuthentication adds an authentication token for a user and updates the CreatedAt field to the current time.
 func (ms *MongoStorage) AddAuthentication(userFID uint64, authToken string) error {
+	// check if the user exists, if not create a the user in the database
+	if _, err := ms.User(userFID); err != nil {
+		if !errors.Is(err, ErrUserUnknown) {
+			return fmt.Errorf("error fetching user: %w", err)
+		}
+		// If the user is not found, create a new user with blank data
+		if err := ms.AddUser(userFID, "", "", []string{}, []string{}, "", 0); err != nil {
+			return fmt.Errorf("error adding user: %w", err)
+		}
+	}
+
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
@@ -96,7 +109,7 @@ func (ms *MongoStorage) UserFromAuthToken(authToken string) (uint64, error) {
 
 // UserAuthorizations method returns the tokens of a user for the fid provider.
 // If the user is not found, it returns ErrUserUnknown.
-func (ms *MongoStorage) UserAuthorizations(userFID uint64) ([]string, error) {
+func (ms *MongoStorage) UserAuthorizations(userID uint64) ([]string, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -104,8 +117,7 @@ func (ms *MongoStorage) UserAuthorizations(userFID uint64) ([]string, error) {
 	defer cancel()
 
 	var authData Authentication
-	err := ms.authentications.FindOne(ctx, bson.M{"_id": userFID}).Decode(&authData)
-	if err != nil {
+	if err := ms.authentications.FindOne(ctx, bson.M{"_id": userID}).Decode(&authData); err != nil {
 		return nil, ErrUserUnknown
 	}
 	return authData.AuthTokens, nil
