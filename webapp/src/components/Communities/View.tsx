@@ -176,7 +176,7 @@ export const CommunitiesView = ({ community, chain: chainAlias, refetch }: Commu
         <GridItem gridArea='polls'>
           <WhiteBox gap={4} flexDir='column'>
             <Heading size={'md'}>Community Polls</Heading>
-            <TableContainer>
+            <TableContainer w='full'>
               <Table>
                 <Thead>
                   <Tr>
