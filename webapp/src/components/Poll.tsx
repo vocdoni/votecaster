@@ -58,7 +58,13 @@ export const PollView = ({ poll, loading }: PollViewProps) => {
       <Box flex={1} bg='white' p={6} pb={12} boxShadow='md' borderRadius='md'>
         <VStack spacing={8} alignItems='left'>
           <VStack spacing={4} alignItems='left'>
-            <Skeleton isLoaded={!loading} display='flex' justifyContent='end'>
+            <Skeleton
+              isLoaded={!loading}
+              display='flex'
+              justifyContent='end'
+              gap={{ base: 3, lg: 0 }}
+              flexDir={{ base: 'column', lg: 'row' }}
+            >
               {poll.community && poll.community.id ? (
                 <Back link={`/communities/${poll.community.id.replace(':', '/')}`} text={poll.community.name}></Back>
               ) : (
