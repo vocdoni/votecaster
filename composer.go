@@ -93,10 +93,22 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 	if err != nil {
 		return fmt.Errorf("failed to verify frame signature: %w", err)
 	}
-	// generate new token for the user
-	token, err := uuid.NewRandom()
-	if err != nil {
-		return fmt.Errorf("could not generate token: %v", err)
+	// Ensure the user profile exists
+	if exists := v.db.UserExists(userFID); !exists {
+		return fmt.Errorf("user not found: %d", userFID)
+	}
+	// get the token of the user from the database, or generate a new one
+	var token string
+	if authTokens, err := v.db.UserAuthorizations(userFID); err != nil {
+		// generate new token for the user
+		uuidToken, err := uuid.NewRandom()
+		if err != nil {
+			return fmt.Errorf("could not generate token: %v", err)
+		}
+		token = uuidToken.String()
+	} else {
+		// use the first token found
+		token = authTokens[0]
 	}
 	// compose the action URL with the token of the user
 	actionURL, err := url.Parse(serverURL)
@@ -106,7 +118,7 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 	actionURL.Path = composerActionWebappPath
 	actionURL.Fragment = composerActionWebappFragment
 	query := actionURL.Query()
-	query.Set(composerActionTokenQuery, token.String())
+	query.Set(composerActionTokenQuery, token)
 	// URL-decode the cast from the action message state, and extract the text
 	// to be used as a question in the composer action form, if any error occurs
 	// ignore it and continue
@@ -131,13 +143,8 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 	}); err != nil {
 		return err
 	}
-
-	// Ensure the user profile exists
-	if _, _, err := v.db.UpdateAndGetReputationForUser(userFID); err != nil {
-		return fmt.Errorf("could not update user: %v", err)
-	}
-	log.Infow("new composer action user access", "fid", userFID, "url", url)
-	v.addAuthTokenFunc(userFID, token.String())
 	// store the token in the database and send the response
+	v.addAuthTokenFunc(userFID, token)
+	log.Infow("new composer action user access", "fid", userFID, "url", url)
 	return ctx.Send(response, http.StatusOK)
 }
