@@ -93,10 +93,6 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 	if err != nil {
 		return fmt.Errorf("failed to verify frame signature: %w", err)
 	}
-	// Ensure the user profile exists
-	if exists := v.db.UserExists(userFID); !exists {
-		return fmt.Errorf("user not found: %d", userFID)
-	}
 	// get the token of the user from the database, or generate a new one
 	var token string
 	if authTokens, err := v.db.UserAuthorizations(userFID); err != nil {
