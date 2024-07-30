@@ -77,7 +77,13 @@ func (ms *MongoStorage) DelegationsByCommunity(communityID string) ([]Delegation
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	communityDelegations, err := ms.filterDelegations(ctx, bson.M{"communityId": communityID})
+	return ms.filterDelegations(ctx, bson.M{"communityId": communityID})
+}
+
+// FinalDelegationsByCommunity retrieves all delegations to a community by the
+// community ID provided, solving nested delegations
+func (ms *MongoStorage) FinalDelegationsByCommunity(communityID string) ([]Delegation, error) {
+	communityDelegations, err := ms.DelegationsByCommunity(communityID)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +112,23 @@ func (ms *MongoStorage) DelegationsByCommunityFrom(communityID string, userID ui
 	return solveNestedDelegations(communityDelegations, userDelegations), nil
 }
 
+// DeleteDelegation deletes a delegation from the database by its ID
+func (ms *MongoStorage) DeleteDelegation(id string) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_id, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	_, err = ms.delegations.DeleteOne(ctx, bson.M{"_id": _id})
+	return err
+}
+
 func (ms *MongoStorage) filterDelegations(ctx context.Context, filter bson.M) ([]Delegation, error) {
 	cursor, err := ms.delegations.Find(ctx, filter)
 	if err != nil {
@@ -123,23 +146,6 @@ func (ms *MongoStorage) filterDelegations(ctx context.Context, filter bson.M) ([
 		return nil, err
 	}
 	return delegations, nil
-}
-
-// DeleteDelegation deletes a delegation from the database by its ID
-func (ms *MongoStorage) DeleteDelegation(id string) error {
-	ms.keysLock.Lock()
-	defer ms.keysLock.Unlock()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_id, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
-	}
-
-	_, err = ms.delegations.DeleteOne(ctx, bson.M{"_id": _id})
-	return err
 }
 
 // solveNestedDelegations itereates over the list of delegations and solves
