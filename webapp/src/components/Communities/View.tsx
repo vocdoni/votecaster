@@ -37,6 +37,7 @@ import { fetchPollsByCommunity } from '~queries/rankings'
 import { getChain, getContractForChain } from '~util/chain'
 import { humanDate, participation } from '~util/strings'
 import { CensusTypeInfo } from './CensusTypeInfo'
+import { Delegates } from './Delegates'
 import { ManageCommunity } from './Manage'
 
 type CommunitiesViewProps = {
@@ -124,52 +125,55 @@ export const CommunitiesView = ({ community, chain: chainAlias, refetch }: Commu
         </WhiteBox>
       </GridItem>
       <GridItem gridArea='links'>
-        <WhiteBox alignItems='start' fontSize='sm' flexDir='column' gap={0.5}>
-          <Heading size={'sm'} mb={2}>
-            Community Info
-          </Heading>
-          {!!community.channels && (
-            <VStack alignItems='start' spacing={0}>
+        <WhiteBox>
+          <VStack alignItems='start' fontSize='sm' flexDir='column'>
+            <Heading size={'sm'} mb={2}>
+              Community Info
+            </Heading>
+            {!!community.channels && (
+              <VStack alignItems='start' spacing={0}>
+                <HStack spacing={2} align='center'>
+                  <Icon as={SiFarcaster} size={8} />
+                  <Text fontWeight={'semibold'}>Farcaster channels</Text>
+                </HStack>
+                <Box ml={6}>
+                  {community.channels.map((channel, index) => (
+                    <Fragment key={index}>
+                      <Link isExternal href={`https://warpcast.com/~/channel/${channel}`} variant='primary'>
+                        /{channel}
+                      </Link>
+                      {index < community.channels.length && (
+                        <Text as='span' mx={1} color='gray'>
+                          {index < community.channels.length - 2
+                            ? ', '
+                            : index === community.channels.length - 2 && ' & '}
+                        </Text>
+                      )}
+                    </Fragment>
+                  ))}
+                </Box>
+              </VStack>
+            )}
+            {!!community.groupChat && (
               <HStack spacing={2} align='center'>
-                <Icon as={SiFarcaster} size={8} />
-                <Text fontWeight={'semibold'}>Farcaster channels</Text>
+                <Icon as={BsChatDotsFill} />
+                <Link
+                  isExternal
+                  href={community.groupChat}
+                  variant='primary'
+                  display='flex'
+                  flexDir='row'
+                  gap={1}
+                  alignItems='center'
+                >
+                  Group chat
+                  <Icon as={TbExternalLink} size={4} />
+                </Link>
               </HStack>
-              <Box ml={6}>
-                {community.channels.map((channel, index) => (
-                  <Fragment key={index}>
-                    <Link isExternal href={`https://warpcast.com/~/channel/${channel}`} variant='primary'>
-                      /{channel}
-                    </Link>
-                    {index < community.channels.length && (
-                      <Text as='span' mx={1} color='gray'>
-                        {index < community.channels.length - 2
-                          ? ', '
-                          : index === community.channels.length - 2 && ' & '}
-                      </Text>
-                    )}
-                  </Fragment>
-                ))}
-              </Box>
-            </VStack>
-          )}
-          {!!community.groupChat && (
-            <HStack spacing={2} align='center'>
-              <Icon as={BsChatDotsFill} />
-              <Link
-                isExternal
-                href={community.groupChat}
-                variant='primary'
-                display='flex'
-                flexDir='row'
-                gap={1}
-                alignItems='center'
-              >
-                Group chat
-                <Icon as={TbExternalLink} size={4} />
-              </Link>
-            </HStack>
-          )}
-          <CensusTypeInfo community={community} />
+            )}
+            <CensusTypeInfo community={community} />
+          </VStack>
+          <Delegates community={community} />
         </WhiteBox>
       </GridItem>
       {!!communityPolls && (
