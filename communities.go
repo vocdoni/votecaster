@@ -428,7 +428,7 @@ func (v *vocdoniHandler) communityDelegationsHandler(msg *apirest.APIdata, ctx *
 		return ctx.Send([]byte("error getting delegations"), http.StatusInternalServerError)
 	}
 	if len(delegations) == 0 {
-		return ctx.Send([]byte("no delegations found"), http.StatusNotFound)
+		return ctx.Send(nil, http.StatusNoContent)
 	}
 	res, err := json.Marshal(delegations)
 	if err != nil {
