@@ -148,25 +148,21 @@ func (v *vocdoniHandler) unmuteUserHandler(msg *apirest.APIdata, ctx *httprouter
 }
 
 func (v *vocdoniHandler) delegateVoteHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
-	// get the authenticated user
-	token := msg.AuthToken
-	if token == "" {
-		return ctx.Send([]byte("missing auth token header"), apirest.HTTPstatusBadRequest)
-	}
-	auth, err := v.db.UpdateActivityAndGetData(token)
+	// extract userFID from auth token
+	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
 	if err != nil {
-		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
+		return fmt.Errorf("cannot get user from auth token: %w", err)
 	}
 	// parse the username from the request
-	req := &mongo.Delegation{}
-	if err := json.Unmarshal(msg.Data, req); err != nil {
+	req := mongo.Delegation{}
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		return ctx.Send([]byte("could not parse request"), apirest.HTTPstatusBadRequest)
 	}
 	// check if the required fields are present
 	if req.To == 0 || req.CommuniyID == "" {
 		return ctx.Send([]byte("missing required fields"), apirest.HTTPstatusBadRequest)
 	}
-	req.From = auth.UserID
+	req.From = userFID
 	// check if the user is trying to delegate to themselves
 	if req.From == req.To {
 		return ctx.Send([]byte("cannot delegate to yourself"), apirest.HTTPstatusBadRequest)
@@ -180,6 +176,17 @@ func (v *vocdoniHandler) delegateVoteHandler(msg *apirest.APIdata, ctx *httprout
 	_, err = v.db.Community(req.CommuniyID)
 	if err != nil {
 		return ctx.Send([]byte("failied to get community to delegate to"), apirest.HTTPstatusInternalErr)
+	}
+	// get current delegations for the community to prevent circular delegations
+	delegations, err := v.db.DelegationsByCommunityFrom(req.CommuniyID, req.To)
+	if err != nil {
+		return ctx.Send([]byte("could not get delegations"), apirest.HTTPstatusInternalErr)
+	}
+	// check if the delegation would create a circular delegation
+	for _, delegation := range delegations {
+		if delegation.To == req.From {
+			return ctx.Send([]byte("circular delegation"), apirest.HTTPstatusBadRequest)
+		}
 	}
 	// delegate the vote
 	if _, err := v.db.SetDelegation(req); err != nil {

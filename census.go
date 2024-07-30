@@ -642,7 +642,7 @@ func (v *vocdoniHandler) censusTokenERC20Airstack(msg *apirest.APIdata, ctx *htt
 	return ctx.Send(data, http.StatusOK)
 }
 
-func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType int, createdByFID uint64, delegations []*mongo.Delegation) ([]byte, error) {
+func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType int, createdByFID uint64, delegations []mongo.Delegation) ([]byte, error) {
 	if v.airstack == nil {
 		return nil, fmt.Errorf("airstack service not available")
 	}
@@ -740,7 +740,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType in
 // censusWarpcastChannel helper method creates a new census from a Warpcast
 // Channel. The process is async and returns the json encoded censusID. It
 // updates the progress in the queue and the result when it's ready.
-func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint64, delegations []*mongo.Delegation) ([]byte, error) {
+func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint64, delegations []mongo.Delegation) ([]byte, error) {
 	// create a censusID for the queue and store into it
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
@@ -828,7 +828,7 @@ func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint6
 // progress in the queue and the result when it's ready. If something fails
 // during the process, it returns an error or the error is stored in the queue
 // if it's async.
-func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []*mongo.Delegation) ([]byte, error) {
+func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []mongo.Delegation) ([]byte, error) {
 	// create a censusID for the queue and store into it
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
@@ -1055,7 +1055,7 @@ func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, progress cha
 // of FIDs. It queries the database to get the users signer keys and creates the
 // participants from them. It returns the list of participants and a map of the
 // FIDs that failed to get the users from the database or decoding the keys.
-func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, delegations []*mongo.Delegation, progress chan int) []*FarcasterParticipant {
+func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, delegations []mongo.Delegation, progress chan int) []*FarcasterParticipant {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	// get participants from the users fids, quering the database and to get the

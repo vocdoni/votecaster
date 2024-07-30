@@ -312,7 +312,7 @@ func (ms *MongoStorage) CommunityAllowNotifications(communityID string) bool {
 	defer cancel()
 	var community Community
 	if err := ms.communities.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
-		log.Errorf("error getting community %d: %v", communityID, err)
+		log.Errorf("error getting community %s: %v", communityID, err)
 		return false
 	}
 	return community.Notifications

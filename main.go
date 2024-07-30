@@ -735,6 +735,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}/delegations", http.MethodGet, "public", handler.communityDelegationsHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/short", http.MethodGet, "private", handler.shortURLHanlder); err != nil {
 		log.Fatal(err)
 	}
