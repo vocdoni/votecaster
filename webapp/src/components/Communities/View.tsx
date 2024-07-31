@@ -125,7 +125,7 @@ export const CommunitiesView = ({ community, chain: chainAlias, refetch }: Commu
         </WhiteBox>
       </GridItem>
       <GridItem gridArea='links'>
-        <WhiteBox>
+        <WhiteBox flexWrap={{ base: 'wrap', lg: 'nowrap' }}>
           <VStack alignItems='start' fontSize='sm' flexDir='column'>
             <Heading size={'sm'} mb={2}>
               Community Info

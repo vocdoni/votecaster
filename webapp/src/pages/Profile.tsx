@@ -67,7 +67,7 @@ const Profile = () => {
               )}
             </VStack>
           </Box>
-          <ReputationCard reputation={user.reputation} />
+          <ReputationCard reputation={user?.reputation} />
         </Box>
       </GridItem>
       <GridItem gridArea='muted'>{isOwnProfile && <MutedUsersList />}</GridItem>

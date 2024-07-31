@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAddress } from 'viem'
 import { degen, mainnet } from 'viem/chains'
 import abi from '~abis/nftdegen.json'
+import { useAuth } from '~components/Auth/useAuth'
 import { useBlockchain } from '~components/Blockchains/BlockchainContext'
 import { useHealthcheck } from '~components/Healthcheck/use-healthcheck'
 import { appUrl, degenNameResolverContractAddress } from '~constants'
@@ -76,4 +77,75 @@ export const getProfileAddresses = (p?: UserProfileResponse) => {
 
 export const useUserDegenOrEnsName = (user?: UserProfileResponse) => {
   return useFirstDegenOrEnsName(getProfileAddresses(user))
+}
+
+export const useFetchProfileMutation = () => {
+  const { bfetch } = useAuth()
+
+  return useMutation({
+    mutationFn: async (userId: number | string) => {
+      const response = await bfetch(`${appUrl}/profile/fid/${Number(userId)}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch delegated user')
+      }
+      const { user } = (await response.json()) as UserProfileResponse
+      return user
+    },
+  })
+}
+
+export const useDelegateVote = () => {
+  const queryClient = useQueryClient()
+  const { bfetch } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ to, communityId }: { to: string; communityId: string }) => {
+      const userResponse = await bfetch(`${appUrl}/profile/user/${to}`)
+      if (!userResponse.ok) {
+        throw new Error('User not found')
+      }
+      const { user } = (await userResponse.json()) as UserProfileResponse
+
+      const response = await bfetch(`${appUrl}/profile/delegation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: user.userID,
+          communityId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Delegation failed')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['delegations'],
+      })
+    },
+  })
+}
+
+export const useRevokeDelegation = () => {
+  const queryClient = useQueryClient()
+  const { bfetch } = useAuth()
+
+  return useMutation({
+    mutationFn: async (delegationId: string) => {
+      const response = await bfetch(`${appUrl}/profile/delegation/${delegationId}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        throw new Error('Failed to revoke delegation')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['delegations'],
+      })
+    },
+  })
 }
