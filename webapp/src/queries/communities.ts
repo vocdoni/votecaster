@@ -1,3 +1,5 @@
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '~components/Auth/useAuth'
 import { appUrl, paginationItemsPerPage } from '~constants'
 
 export const fetchCommunities =
@@ -34,6 +36,16 @@ export const fetchCommunity = (bfetch: FetchFunction, id: string) => async () =>
   return community
 }
 
+export const useCommunity = (id?: string) => {
+  const { bfetch } = useAuth()
+
+  return useQuery({
+    queryFn: fetchCommunity(bfetch, id!),
+    queryKey: ['community', id],
+    enabled: !!id,
+  })
+}
+
 export const updateCommunity = async (bfetch: FetchFunction, community: Community) => {
   const response = await bfetch(`${appUrl}/communities/${community.id}`, {
     method: 'PUT',
@@ -43,4 +55,25 @@ export const updateCommunity = async (bfetch: FetchFunction, community: Communit
     body: JSON.stringify(community),
   })
   return response.json()
+}
+
+const fetchDelegations = (bfetch: FetchFunction, community: Community) => async () => {
+  const response = await bfetch(`${appUrl}/communities/${community.id}/delegations`)
+  try {
+    const delegates = (await response.json()) as Delegation[]
+    return delegates
+  } catch (e) {
+    return null
+  }
+}
+
+export const useDelegations = (community: Community) => {
+  const { bfetch, isAuthenticated } = useAuth()
+
+  return useQuery({
+    queryFn: fetchDelegations(bfetch, community),
+    queryKey: ['delegations', community.id],
+    enabled: isAuthenticated && !!community.id,
+    retry: false,
+  })
 }

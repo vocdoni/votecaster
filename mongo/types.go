@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -189,6 +190,7 @@ type Collection struct {
 	CommunitiesCollection
 	AvatarsCollection
 	UserAccessProfileCollection
+	DelegationsCollection
 	ReputationCollection
 }
 
@@ -232,6 +234,12 @@ type UserAccessProfileCollection struct {
 	UserAccessProfiles []UserAccessProfile `json:"userAccessProfiles" bson:"userAccessProfiles"`
 }
 
+// DelegationsCollection is a dataset containing several delegations (used for dump and import).
+type DelegationsCollection struct {
+	Delegations []Delegation `json:"delegations" bson:"delegations"`
+}
+
+// ReputationCollection is a dataset containing several reputations (used for dump and import).
 type ReputationCollection struct {
 	Reputations []Reputation `json:"reputations" bson:"reputations"`
 }
@@ -320,6 +328,15 @@ type Avatar struct {
 	UserID      uint64    `json:"userId" bson:"userId"`
 	CommunityID string    `json:"communityId" bson:"communityId"`
 	ContentType string    `json:"contentType" bson:"contentType"`
+}
+
+// Delegation represents a delegation of votes from one user to another for a
+// specific community.
+type Delegation struct {
+	ID         primitive.ObjectID `json:"id" bson:"_id"`
+	From       uint64             `json:"from" bson:"from"`
+	To         uint64             `json:"to" bson:"to"`
+	CommuniyID string             `json:"communityId" bson:"communityId"`
 }
 
 // dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.

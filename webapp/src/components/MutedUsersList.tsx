@@ -11,22 +11,25 @@ import {
   Input,
   Link,
   Spacer,
+  Text,
   VStack,
 } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { FaTrash } from 'react-icons/fa6'
-import { appUrl } from '~constants'
-import { fetchMutedUsers } from '~queries/profile'
+import { useMuteUser, useUnmuteUser } from '~queries/profile'
 import { useAuth } from './Auth/useAuth'
-import { Check } from './Check'
 
 type MutedUsersFormValues = {
   username: string
 }
 
-export const MutedUsersList: React.FC = (props: BoxProps) => {
+type MutedUsersListProps = BoxProps & {
+  list?: Profile[]
+}
+
+export const MutedUsersList: React.FC<MutedUsersListProps> = ({ list, ...props }) => {
   const {
     register,
     handleSubmit,
@@ -38,40 +41,32 @@ export const MutedUsersList: React.FC = (props: BoxProps) => {
       username: '',
     },
   })
-  const { bfetch } = useAuth()
-  const [loading, setLoading] = useState<boolean>(false)
-  const { data, error, isLoading, refetch } = useQuery<Profile[], Error>({
-    queryKey: ['mutedUsers'],
-    queryFn: fetchMutedUsers(bfetch),
-  })
 
-  const handleUnmute = async (username: string) => {
-    try {
-      setLoading(true)
-      await bfetch(`${appUrl}/profile/mutedUsers/${username}`, { method: 'DELETE' }).then(() => refetch())
-    } catch (e) {
-      console.error('could not unmute user', e)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { profile } = useAuth()
+  const queryClient = useQueryClient()
+  const muteUserMutation = useMuteUser()
+  const unmuteUserMutation = useUnmuteUser()
+  const [loading, setLoading] = useState<boolean>(false)
 
   const onSubmit = async (data: MutedUsersFormValues) => {
     setLoading(true)
-    try {
-      await bfetch(`${appUrl}/profile/mutedUsers`, {
-        method: 'POST',
-        body: JSON.stringify({ username: data.username }),
-      }).then(() => refetch())
-      reset({ username: '' }) // Reset only the username field
-    } catch (e) {
-      if (e instanceof Error) {
-        setError('username', { message: e.message })
-      }
-      console.error('could not add muted user', e)
-    } finally {
-      setLoading(false)
-    }
+    muteUserMutation.mutate(data.username, {
+      onSuccess: () => {
+        reset({ username: '' })
+        queryClient.invalidateQueries({
+          queryKey: ['profile', profile?.username],
+        })
+      },
+      onError: (error) => {
+        if (error instanceof Error) {
+          setError('username', { message: error.message })
+        }
+        console.error('could not add muted user', error)
+      },
+      onSettled: () => {
+        setLoading(false)
+      },
+    })
   }
 
   return (
@@ -80,8 +75,8 @@ export const MutedUsersList: React.FC = (props: BoxProps) => {
         Muted users
       </Heading>
       <VStack spacing={4} align='stretch'>
-        {data ? (
-          data?.map((user) => (
+        {list ? (
+          list.map((user) => (
             <HStack
               key={user.fid}
               spacing={4}
@@ -102,17 +97,29 @@ export const MutedUsersList: React.FC = (props: BoxProps) => {
                 aria-label={`Unmute ${user.username}`}
                 title={`Unmute "${user.username}"`}
                 icon={<FaTrash />}
-                onClick={() => handleUnmute(user.username)}
+                onClick={() =>
+                  unmuteUserMutation.mutate(user.username, {
+                    onSuccess: () => {
+                      queryClient.invalidateQueries({
+                        queryKey: ['profile', profile?.username],
+                      })
+                    },
+                    onError: (error) => {
+                      console.error('could not unmute user', error)
+                    },
+                    onSettled: () => {
+                      setLoading(false)
+                    },
+                  })
+                }
                 colorScheme='purple'
                 isLoading={loading}
                 size='sm'
               />
             </HStack>
           ))
-        ) : isLoading || error ? (
-          <Check isLoading={isLoading} error={error} />
         ) : (
-          <p>No muted users yet</p>
+          <Text>No muted users yet</Text>
         )}
         <form onSubmit={handleSubmit(onSubmit)}>
           <Box borderRadius='md' p={4} bg='purple.50'>

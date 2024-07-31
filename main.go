@@ -703,6 +703,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/profile/delegation", http.MethodPost, "private", handler.delegateVoteHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/profile/delegation/{delegationID}", http.MethodDelete, "private", handler.removeVoteDelegationHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/profile/warpcast", http.MethodPost, "private", handler.registerWarpcastApiKey); err != nil {
 		log.Fatal(err)
 	}
@@ -724,6 +732,10 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}", http.MethodPut, "private", handler.communitySettingsHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}/delegations", http.MethodGet, "public", handler.communityDelegationsHandler); err != nil {
 		log.Fatal(err)
 	}
 

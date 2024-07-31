@@ -1,5 +1,5 @@
 import { Chain } from 'viem'
-import type { ReputationResponse } from '~components/Auth/useAuthProvider'
+import { Reputation } from '~components/Reputation/ReputationContext'
 import chainsDefinition from '../chains_config.json'
 
 declare global {
@@ -53,6 +53,13 @@ declare global {
   }
 
   type CommunityID = `${ChainKey}:${number}`
+
+  type Delegation = {
+    id: string
+    from: number
+    to: number
+    communityId: CommunityID
+  }
 
   type Pagination = {
     limit: number
@@ -201,10 +208,12 @@ declare global {
     displayName: string
   }
 
-  type UserProfileResponse = ReputationResponse & {
+  type UserProfileResponse = {
     polls: Poll[]
     mutedUsers: Profile[]
     user: User
+    reputation?: Reputation
+    delegations?: Delegation[]
   }
 
   type Channel = {

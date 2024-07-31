@@ -45,6 +45,11 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 		return fmt.Errorf("could not get muted users: %v", err)
 	}
 
+	// get user delegations
+	delegations, err := v.db.DelegationsFrom(auth.UserID)
+	if err != nil {
+		return fmt.Errorf("could not get user delegations: %v", err)
+	}
 	// get user reputation
 	rep, err := v.db.DetailedUserReputation(auth.UserID)
 	if err != nil {
@@ -57,6 +62,7 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 		"reputation":         reputation.ReputationToAPIResponse(rep),
 		"polls":              userElections,
 		"mutedUsers":         mutedUsers,
+		"delegations":        delegations,
 		"warpcastApiEnabled": accessprofile.WarpcastAPIKey != "",
 	})
 	if err != nil {
@@ -137,6 +143,83 @@ func (v *vocdoniHandler) unmuteUserHandler(msg *apirest.APIdata, ctx *httprouter
 	// unmute the user
 	if err := v.db.DelNotificationMutedUser(auth.UserID, mutedUser.UserID); err != nil {
 		return ctx.Send([]byte("could not mute user"), apirest.HTTPstatusInternalErr)
+	}
+	return ctx.Send([]byte("Ok"), apirest.HTTPstatusOK)
+}
+
+func (v *vocdoniHandler) delegateVoteHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// extract userFID from auth token
+	userFID, err := v.db.UserFromAuthToken(msg.AuthToken)
+	if err != nil {
+		return fmt.Errorf("cannot get user from auth token: %w", err)
+	}
+	// parse the username from the request
+	req := mongo.Delegation{}
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		return ctx.Send([]byte("could not parse request"), apirest.HTTPstatusBadRequest)
+	}
+	// check if the required fields are present
+	if req.To == 0 || req.CommuniyID == "" {
+		return ctx.Send([]byte("missing required fields"), apirest.HTTPstatusBadRequest)
+	}
+	req.From = userFID
+	// check if the user is trying to delegate to themselves
+	if req.From == req.To {
+		return ctx.Send([]byte("cannot delegate to yourself"), apirest.HTTPstatusBadRequest)
+	}
+	// check if the user is trying to delegate to a non-existing user
+	_, err = v.db.User(req.To)
+	if err != nil {
+		return ctx.Send([]byte("failied to get user to delegate to"), apirest.HTTPstatusInternalErr)
+	}
+	// check if the user is trying to delegate to a non-existing community
+	_, err = v.db.Community(req.CommuniyID)
+	if err != nil {
+		return ctx.Send([]byte("failied to get community to delegate to"), apirest.HTTPstatusInternalErr)
+	}
+	// get current delegations for the community to prevent circular delegations
+	delegations, err := v.db.DelegationsByCommunityFrom(req.CommuniyID, req.To)
+	if err != nil {
+		return ctx.Send([]byte("could not get delegations"), apirest.HTTPstatusInternalErr)
+	}
+	// check if the delegation would create a circular delegation
+	for _, delegation := range delegations {
+		if delegation.To == req.From {
+			return ctx.Send([]byte("circular delegation"), apirest.HTTPstatusBadRequest)
+		}
+	}
+	// delegate the vote
+	if _, err := v.db.SetDelegation(req); err != nil {
+		return ctx.Send([]byte("could not delegate vote"), apirest.HTTPstatusInternalErr)
+	}
+	return ctx.Send([]byte("Ok"), apirest.HTTPstatusOK)
+}
+
+func (v *vocdoniHandler) removeVoteDelegationHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// get the authenticated user
+	token := msg.AuthToken
+	if token == "" {
+		return ctx.Send([]byte("missing auth token header"), apirest.HTTPstatusBadRequest)
+	}
+	auth, err := v.db.UpdateActivityAndGetData(token)
+	if err != nil {
+		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
+	}
+	// get the delegation ID from the request and retrieve the delegation from
+	// the database
+	delegationID := ctx.URLParam("delegationID")
+	delegation, err := v.db.Delegation(delegationID)
+	if err != nil {
+		return ctx.Send([]byte("delegation not found"), apirest.HTTPstatusNotFound)
+	}
+	// check if the user is trying to remove a delegation that does not belong to
+	// them
+	if delegation.From != auth.UserID {
+		return ctx.Send([]byte("delegation does not belong to user"), apirest.HTTPstatusBadRequest)
+	}
+	// remove the delegation
+	if err := v.db.DeleteDelegation(delegationID); err != nil {
+		return ctx.Send([]byte("could not remove delegation"), apirest.HTTPstatusInternalErr)
 	}
 	return ctx.Send([]byte("Ok"), apirest.HTTPstatusOK)
 }

@@ -29,7 +29,7 @@ func (v *vocdoniHandler) parseCommunityIDFromURL(ctx *httprouter.HTTPContext) (s
 	}
 	id, err := strconv.ParseUint(strID, 10, 64)
 	if err != nil {
-		return "", "", 0, fmt.Errorf("invalid community ID")
+		return "", "", 0, fmt.Errorf("invalid community ID: %w", err)
 	}
 	// get community chain from the URL
 	chainAlias := ctx.URLParam("chainAlias")
@@ -415,4 +415,24 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 		return fmt.Errorf("error updating community: %w", err)
 	}
 	return ctx.Send([]byte("ok"), http.StatusOK)
+}
+
+func (v *vocdoniHandler) communityDelegationsHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// get community id from the URL
+	communityID, _, _, err := v.parseCommunityIDFromURL(ctx)
+	if err != nil {
+		return ctx.Send([]byte(err.Error()), http.StatusBadRequest)
+	}
+	delegations, err := v.db.DelegationsByCommunity(communityID)
+	if err != nil {
+		return ctx.Send([]byte("error getting delegations"), http.StatusInternalServerError)
+	}
+	if len(delegations) == 0 {
+		return ctx.Send(nil, http.StatusNoContent)
+	}
+	res, err := json.Marshal(delegations)
+	if err != nil {
+		return ctx.Send([]byte("error encoding delegations"), http.StatusInternalServerError)
+	}
+	return ctx.Send(res, http.StatusOK)
 }

@@ -42,6 +42,7 @@ type MongoStorage struct {
 	userAccessProfiles *mongo.Collection
 	communities        *mongo.Collection
 	avatars            *mongo.Collection
+	delegations        *mongo.Collection
 	reputations        *mongo.Collection
 }
 
@@ -115,6 +116,7 @@ func New(url, database string) (*MongoStorage, error) {
 	ms.userAccessProfiles = client.Database(database).Collection("userAccessProfiles")
 	ms.communities = client.Database(database).Collection("communities")
 	ms.avatars = client.Database(database).Collection("avatars")
+	ms.delegations = client.Database(database).Collection("delegations")
 	ms.reputations = client.Database(database).Collection("reputations")
 
 	// If reset flag is enabled, Reset drops the database documents and recreates indexes
@@ -304,6 +306,22 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on community ids for avatars: %w", err)
 	}
 
+	delegationsUserIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "userId", Value: 1}}, // 1 for ascending order
+		Options: nil,
+	}
+	if _, err := ms.delegations.Indexes().CreateOne(ctx, delegationsUserIndex); err != nil {
+		return fmt.Errorf("failed to create index on user ids for delegations: %w", err)
+	}
+
+	delegationsCommunityIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "communityId", Value: 1}}, // 1 for ascending order
+		Options: nil,
+	}
+	if _, err := ms.delegations.Indexes().CreateOne(ctx, delegationsCommunityIndex); err != nil {
+		return fmt.Errorf("failed to create index on community ids for delegations: %w", err)
+	}
+
 	// Create an index for the 'userId' field on reputations
 	reputationUserIndex := mongo.IndexModel{
 		Keys:    bson.D{{Key: "userId", Value: 1}}, // 1 for ascending order
@@ -489,8 +507,24 @@ func (ms *MongoStorage) String() string {
 
 	ctx12, cancel12 := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel12()
+	var delegations DelegationsCollection
+	cur, err = ms.delegations.Find(ctx12, bson.D{{}})
+	if err != nil {
+		log.Warn(err)
+	}
+	for cur.Next(ctx12) {
+		var delegation Delegation
+		err := cur.Decode(&delegation)
+		if err != nil {
+			log.Warn(err)
+		}
+		delegations.Delegations = append(delegations.Delegations, delegation)
+	}
+
+	ctx13, cancel13 := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel13()
 	var reputations ReputationCollection
-	cur, err = ms.reputations.Find(ctx12, bson.D{{}})
+	cur, err = ms.reputations.Find(ctx13, bson.D{{}})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -503,8 +537,7 @@ func (ms *MongoStorage) String() string {
 		}
 		reputations.Reputations = append(reputations.Reputations, rep)
 	}
-
-	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communities, avatars, userAccessProfiles, reputations})
+	data, err := json.Marshal(&Collection{users, elections, results, votersOfElection, censuses, communities, avatars, userAccessProfiles, delegations, reputations})
 	if err != nil {
 		log.Warn(err)
 	}
@@ -631,6 +664,18 @@ func (ms *MongoStorage) Import(jsonData []byte) error {
 		_, err := ms.userAccessProfiles.UpdateOne(ctx, filter, update, opts)
 		if err != nil {
 			log.Warnw("error upserting userReputation", "err", err, "reputationUserID", rep.UserID)
+		}
+	}
+
+	// Upsert Delegations
+	log.Infow("importing delegations", "count", len(collection.Delegations))
+	for _, delegation := range collection.Delegations {
+		filter := bson.M{"_id": delegation.ID}
+		update := bson.M{"$set": delegation}
+		opts := options.Update().SetUpsert(true)
+		_, err := ms.delegations.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Warnw("Error upserting delegation", "err", err, "delegationID", delegation.ID)
 		}
 	}
 
