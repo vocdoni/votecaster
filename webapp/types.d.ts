@@ -58,7 +58,7 @@ declare global {
     id: string
     from: number
     to: number
-    communityId: string
+    communityId: CommunityID
   }
 
   type Pagination = {
@@ -213,6 +213,7 @@ declare global {
     mutedUsers: Profile[]
     user: User
     reputation?: Reputation
+    delegations?: Delegation[]
   }
 
   type Channel = {

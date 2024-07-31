@@ -1,30 +1,21 @@
 import { Box, Grid, GridItem, Link, Text, VStack } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
 import { Check } from '~components/Check'
+import { Delegations } from '~components/Delegations'
 import { FarcasterLogo } from '~components/FarcasterLogo'
 import { MutedUsersList } from '~components/MutedUsersList'
 import { ReputationCard } from '~components/Reputation/Reputation'
 import { UserPolls } from '~components/Top'
 import { WarpcastApiKey } from '~components/WarpcastApiKey'
-import { fetchUserProfile, useUserDegenOrEnsName } from '~queries/profile'
+import { useUserDegenOrEnsName, useUserProfile } from '~queries/profile'
 
 const Profile = () => {
   const { id } = useParams()
-  const { bfetch, profile } = useAuth()
+  const { profile } = useAuth()
   const username = id || profile?.username
   const isOwnProfile = profile?.username === username
-  // Utilizing React Query to fetch polls
-  const {
-    isLoading,
-    error,
-    data: user,
-  } = useQuery<UserProfileResponse, Error>({
-    queryKey: ['profile', username],
-    queryFn: fetchUserProfile(bfetch, username as string),
-  })
-
+  const { isLoading, error, data: user } = useUserProfile(id)
   const { data: degenOrEnsName } = useUserDegenOrEnsName(user)
 
   if (isLoading || error) {
@@ -38,7 +29,7 @@ const Profile = () => {
       gap={4}
       templateAreas={{
         base: `"profile" "muted" "muted" "warpcastapikey" "polls"`,
-        md: `"polls profile" "polls muted" "polls muted" "polls warpcastapikey"`,
+        md: `"polls profile" "polls muted" "polls muted" "polls delegations" "polls warpcastapikey"`,
       }}
     >
       <GridItem gridArea='profile'>
@@ -70,7 +61,8 @@ const Profile = () => {
           <ReputationCard reputation={user?.reputation} />
         </Box>
       </GridItem>
-      <GridItem gridArea='muted'>{isOwnProfile && <MutedUsersList />}</GridItem>
+      <GridItem gridArea='muted'>{isOwnProfile && <MutedUsersList list={user?.mutedUsers} />}</GridItem>
+      <GridItem gridArea='delegations'>{isOwnProfile && <Delegations delegations={user?.delegations} />}</GridItem>
       <GridItem gridArea='warpcastapikey'>{isOwnProfile && <WarpcastApiKey />}</GridItem>
       <GridItem gridArea='polls'>
         <UserPolls

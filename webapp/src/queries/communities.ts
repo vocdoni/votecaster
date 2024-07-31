@@ -36,6 +36,16 @@ export const fetchCommunity = (bfetch: FetchFunction, id: string) => async () =>
   return community
 }
 
+export const useCommunity = (id?: string) => {
+  const { bfetch } = useAuth()
+
+  return useQuery({
+    queryFn: fetchCommunity(bfetch, id!),
+    queryKey: ['community', id],
+    enabled: !!id,
+  })
+}
+
 export const updateCommunity = async (bfetch: FetchFunction, community: Community) => {
   const response = await bfetch(`${appUrl}/communities/${community.id}`, {
     method: 'PUT',
