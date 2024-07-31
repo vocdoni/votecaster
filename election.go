@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/features"
 	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/imageframe"
@@ -157,19 +158,18 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	if v.checkIfElectionFinishedAndHandle(electionIDbytes, ctx) {
 		return nil
 	}
-
 	// get the election from the cache or the API
 	election, err := v.election(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch election: %w", err)
 	}
-
 	// unpack the frame data from the message body
 	packet := &FrameSignaturePacket{}
 	if err := json.Unmarshal(msg.Data, packet); err != nil {
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
 	}
-
+	// validate the frame package to airstack
+	airstack.ValidateFrameMessage(msg.Data)
 	// check if the user is eligible to vote and extract the vote data
 	voteData, err := extractVoteDataAndCheckIfEligible(packet, electionID, election.Census.CensusRoot, v.cli)
 	// handle the error (if any)
