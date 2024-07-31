@@ -85,6 +85,7 @@ type Reputation struct {
 	HasProxyStudioNFT              bool `json:"hasProxyStudioNFT" bson:"hasProxyStudioNFT"`
 	HasNameDegen                   bool `json:"hasNameDegen" bson:"hasNameDegen"`
 	HasFarcasterOGNFT              bool `json:"hasFarcasterOGNFT" bson:"hasFarcasterOGNFT"`
+	HasMoxiePass                   bool `json:"hasMoxiePass" bson:"hasMoxiePass"`
 }
 
 // ElectionCommunity represents the community used to create an election.
