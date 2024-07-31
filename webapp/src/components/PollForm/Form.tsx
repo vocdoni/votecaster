@@ -51,7 +51,13 @@ const Form: FC<FormProps> = ({ communityId, composer, ...props }) => {
               <>
                 <Question />
                 <Choices />
-                <CensusTypeSelector complete isDisabled={loading} composer={composer} communityId={communityId} />
+                <CensusTypeSelector
+                  complete
+                  isDisabled={loading}
+                  composer={composer}
+                  showAsSelect
+                  communityId={communityId}
+                />
                 <Notify />
                 <Duration />
 
