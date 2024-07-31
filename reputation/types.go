@@ -40,6 +40,7 @@ type Boosters struct {
 	HasProxyStudioNFT              bool `json:"hasProxyStudioNFT"`
 	HasNameDegen                   bool `json:"hasNameDegen"`
 	HasFarcasterOGNFT              bool `json:"hasFarcasterOGNFT"`
+	HasMoxiePass                   bool `json:"hasMoxiePass"`
 }
 
 // ReputationInfo type is a map that contains the reputation information for

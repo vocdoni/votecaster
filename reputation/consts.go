@@ -32,8 +32,8 @@ const (
 	proxyAtLeast5Puntuaction                  = 3
 	nameDegenPuntuaction                      = 4
 	farcasterOGNFTPuntuaction                 = 6
-	moxiePassPuntuaction			  = 4
-	
+	moxiePassPuntuaction                      = 4
+
 	// yield rate
 	yieldParamA         = 2
 	yieldParamB         = .2
@@ -71,7 +71,7 @@ var BoostersPuntuationInfo = ReputationInfo{
 	"proxyAtLeast5Puntuaction":                  proxyAtLeast5Puntuaction,
 	"nameDegenPuntuaction":                      nameDegenPuntuaction,
 	"farcasterOGNFTPuntuaction":                 farcasterOGNFTPuntuaction,
-	"moxiePassPuntuaction":			     moxiePassPuntuaction,
+	"moxiePassPuntuaction":                      moxiePassPuntuaction,
 }
 
 // Boosters contract addresses

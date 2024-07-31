@@ -53,6 +53,7 @@ type Updater struct {
 	proxyStudioNFTHolders      map[common.Address]*big.Int
 	nameDegenHolders           map[common.Address]*big.Int
 	farcasterOGNFTHolders      map[common.Address]*big.Int
+	moxiePassHolders           map[common.Address]*big.Int
 	holdersMtx                 sync.Mutex
 	cachedHolders              atomic.Bool
 }
@@ -99,6 +100,7 @@ func NewUpdater(ctx context.Context, db *dbmongo.MongoStorage, fapi farcasterapi
 		proxyStudioNFTHolders:      make(map[common.Address]*big.Int),
 		nameDegenHolders:           make(map[common.Address]*big.Int),
 		farcasterOGNFTHolders:      make(map[common.Address]*big.Int),
+		moxiePassHolders:           make(map[common.Address]*big.Int),
 	}, nil
 }
 
@@ -422,6 +424,11 @@ func (u *Updater) fetchHolders() error {
 		errs = append(errs, fmt.Errorf("error getting farcaster og nft holders: %w", err))
 	}
 	log.Debugw("farcaster og nft holders", "holders", len(u.farcasterOGNFTHolders))
+	// update Moxie Pass NFT holders
+	u.moxiePassHolders, err = u.tokenHolders(MoxiePassAddress, MoxiePassChainChainID)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting moxie pass nft holders: %w", err))
+	}
 	u.cachedHolders.Store(true)
 	if len(errs) > 0 {
 		return fmt.Errorf("error updating holders: %v", errs)
@@ -747,6 +754,7 @@ func (u *Updater) userReputation(user *dbmongo.User) (*mongo.Reputation, error) 
 	rep.Has5ProxyAtLeast = boostersRep.Has5ProxyAtLeast
 	rep.HasNameDegen = boostersRep.HasNameDegen
 	rep.HasFarcasterOGNFT = boostersRep.HasFarcasterOGNFT
+	rep.HasMoxiePass = boostersRep.HasMoxiePass
 	// calculate total reputation
 	rep.TotalReputation = totalReputation(activityRep, boostersRep)
 	return rep, nil
@@ -866,6 +874,11 @@ func (u *Updater) userBoosters(user *dbmongo.User) *Boosters {
 		if !boosters.HasFarcasterOGNFT {
 			_, ok := u.farcasterOGNFTHolders[addr]
 			boosters.HasFarcasterOGNFT = ok
+		}
+		// check if user has Moxie Pass
+		if !boosters.HasMoxiePass {
+			_, ok := u.moxiePassHolders[addr]
+			boosters.HasMoxiePass = ok
 		}
 	}
 	return boosters
