@@ -14,6 +14,8 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
+const validateFrameEndpoint = "https://hubs.airstack.xyz/v1/validateMessage"
+
 // Airstack wraps all the required artifacts for interacting with the Airstack API
 type Airstack struct {
 	*ac.Client
@@ -162,4 +164,38 @@ func (a *Airstack) NumHoldersByTokenAnkrAPI(tokenAddress, blockchain string) (ui
 	}
 
 	return uint32(holderCount.(float64)), nil
+}
+
+func ValidateFrameMessage(msg []byte) {
+	go func() {
+		req, err := http.NewRequest(http.MethodPost, validateFrameEndpoint, bytes.NewBuffer(msg))
+		if err != nil {
+			log.Warn("error creating request:", err)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Warn("error sending request:", err)
+			return
+		}
+		airstackResponse := make(map[string]interface{})
+		if err := json.NewDecoder(res.Body).Decode(&airstackResponse); err != nil {
+			log.Warn("error decoding response:", err)
+			return
+		}
+		if res.StatusCode != http.StatusOK {
+			log.Warn("unexpected status code:", res.StatusCode)
+			return
+		}
+		isValid, ok := airstackResponse["isValid"]
+		if !ok {
+			log.Warn("isValid field missing in response")
+			return
+		}
+		if valid, ok := isValid.(bool); !ok || !valid {
+			log.Warn("invalid frame message")
+			return
+		}
+	}()
 }

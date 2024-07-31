@@ -33,6 +33,7 @@ export const Choices: FC = () => {
                 })}
                 defaultValue={field.choice}
                 placeholder={optionPlaceholders[index]}
+                isDisabled={loading}
               />
               {fields.length > 2 && (
                 <InputRightElement>
@@ -43,6 +44,7 @@ export const Choices: FC = () => {
                     variant='ghost'
                     onClick={() => remove(index)}
                     colorScheme='red'
+                    isDisabled={loading}
                   />
                 </InputRightElement>
               )}

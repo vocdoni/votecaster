@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/vocdoni/vote-frame/airstack"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
@@ -82,6 +83,8 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 	if err := json.Unmarshal(msg.Data, packet); err != nil {
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
 	}
+	// validate the frame package to airstack
+	airstack.ValidateFrameMessage(msg.Data)
 	// decode the message bytes
 	messageBytes, err := hex.DecodeString(packet.TrustedData.MessageBytes)
 	if err != nil {

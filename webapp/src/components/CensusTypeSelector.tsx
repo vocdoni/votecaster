@@ -57,6 +57,7 @@ const CensusTypeSelector = ({
   admin,
   composer,
   showAsSelect,
+  isDisabled,
   ...props
 }: CensusTypeSelectorProps) => {
   const { bfetch, profile, isAuthenticated } = useAuth()
@@ -138,7 +139,7 @@ const CensusTypeSelector = ({
 
   return (
     <>
-      <FormControl {...props} isRequired>
+      <FormControl {...props} isRequired isDisabled={isDisabled}>
         <FormLabel>Census/voters</FormLabel>
         {showAsSelect ? (
           <Controller
@@ -157,7 +158,7 @@ const CensusTypeSelector = ({
           <RadioGroup onChange={(val: CensusType) => setValue('censusType', val)} value={censusType} id='census-type'>
             <Stack direction='column' flexWrap='wrap'>
               {options.map((option, index) => (
-                <Radio key={index} value={option.value} isDisabled={option.isDisabled}>
+                <Radio key={index} value={option.value} isDisabled={option.isDisabled || isDisabled}>
                   {option.label}
                 </Radio>
               ))}
@@ -167,7 +168,7 @@ const CensusTypeSelector = ({
       </FormControl>
       {censusType === 'community' &&
         (communities && communities?.communities.length ? (
-          <FormControl isRequired>
+          <FormControl isRequired isDisabled={isDisabled}>
             <FormLabel>Select a community</FormLabel>
             <Controller
               name='community'
@@ -193,7 +194,7 @@ const CensusTypeSelector = ({
         ))}
       {['erc20', 'nft'].includes(censusType) &&
         addressFields.map((field, index) => (
-          <FormControl key={field.id} {...props}>
+          <FormControl key={field.id} {...props} isDisabled={isDisabled}>
             <FormLabel>
               {censusType.toUpperCase()} address {index + 1}
             </FormLabel>
@@ -233,14 +234,14 @@ const CensusTypeSelector = ({
         </Button>
       )}
       {censusType === 'channel' && (
-        <FormControl isRequired isInvalid={!!errors.channel} {...props}>
+        <FormControl isRequired isInvalid={!!errors.channel} {...props} isDisabled={isDisabled}>
           <FormLabel htmlFor='channel'>Farcaster channel</FormLabel>
           <Controller name='channel' render={({ field }) => <ChannelSelector admin={admin} {...field} />} />
           <FormErrorMessage>{errors.channel?.message?.toString()}</FormErrorMessage>
         </FormControl>
       )}
       {censusType === 'custom' && (
-        <FormControl isRequired {...props}>
+        <FormControl isRequired {...props} isDisabled={isDisabled}>
           <FormLabel htmlFor='csv'>CSV files</FormLabel>
           <Input
             id='csv'

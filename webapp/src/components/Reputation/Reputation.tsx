@@ -47,6 +47,8 @@ export const ReputationCard = ({ reputation }: { reputation?: Reputation }) => {
   const boxShadow = useColorModeValue('0px 4px 6px rgba(0, 0, 0, 0.1)', '0px 4px 6px rgba(0, 0, 0, 0.3)')
   const isMobile = useBreakpointValue({ base: true, md: false })
 
+  if (!reputation) return null
+
   return (
     <Popover placement='auto' trigger='hover' closeOnBlur>
       <PopoverTrigger>
