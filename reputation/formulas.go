@@ -151,6 +151,11 @@ func boostersReputation(rep *Boosters) uint64 {
 	if rep.HasFarcasterOGNFT {
 		reputation += farcasterOGNFTPuntuaction
 	}
+	// add moxie pass puntuaction if user has moxie pass
+	// (base:0x235CAD50d8a510Bc9081279996f01877827142D8)
+	if rep.HasMoxiePass {
+		reputation += moxiePassPuntuaction
+	}
 	// ensure the reputation does not exceed 100
 	if reputation > maxReputation {
 		reputation = maxReputation
