@@ -1,8 +1,10 @@
 import { Alert, Box, Button, Heading, Link, Progress } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
+import { Link as RouteLink } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
 import { useFetchProfileMutation, useRevokeDelegation } from '~queries/profile'
 import { DelegatedCommunity } from './Communities/Delegates'
+import { PurpleBox } from './Layout/PurpleBox'
 
 type DelegationProps = {
   delegations: Delegation[]
@@ -65,7 +67,7 @@ export const Delegation = ({ delegations, communityId }: DelegationProps) => {
       <Box>
         {communityId && <DelegatedCommunity delegation={delegation} mr={1} />}
         Vote delegated to{` `}
-        <Link fontWeight='bold' href={`https://warpcast.com/${delegatedUser.username}`}>
+        <Link as={RouteLink} fontWeight='bold' to={`/profile/${delegatedUser.username}`}>
           {delegatedUser.displayName}
         </Link>
       </Box>
@@ -80,19 +82,17 @@ type DelegationsProps = {
   delegations?: Delegation[]
 }
 
-export const Delegations = ({ delegations }: DelegationsProps) => {
-  return (
-    <Box display='flex' flexDir='column' gap={4} boxShadow='md' borderRadius='md' bg='purple.100' p={4}>
-      <Heading fontSize='xl' mb={4} fontWeight='600' color='purple.800'>
-        Delegations
-      </Heading>
-      {delegations ? (
-        delegations.map((delegation) => (
-          <Delegation key={delegation.id} delegations={delegations} communityId={delegation.communityId} />
-        ))
-      ) : (
-        <Box>No delegations yet. You can delegate your vote via the communities view</Box>
-      )}
-    </Box>
-  )
-}
+export const Delegations = ({ delegations }: DelegationsProps) => (
+  <PurpleBox>
+    <Heading fontSize='xl' fontWeight='600' color='purple.800'>
+      Delegations
+    </Heading>
+    {delegations ? (
+      delegations.map((delegation) => (
+        <Delegation key={delegation.id} delegations={delegations} communityId={delegation.communityId} />
+      ))
+    ) : (
+      <Box>No delegations yet. You can delegate your vote via the communities view</Box>
+    )}
+  </PurpleBox>
+)

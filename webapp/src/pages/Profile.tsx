@@ -4,6 +4,7 @@ import { useAuth } from '~components/Auth/useAuth'
 import { Check } from '~components/Check'
 import { Delegations } from '~components/Delegations'
 import { FarcasterLogo } from '~components/FarcasterLogo'
+import { PurpleBox } from '~components/Layout/PurpleBox'
 import { MutedUsersList } from '~components/MutedUsersList'
 import { ReputationCard } from '~components/Reputation/Reputation'
 import { UserPolls } from '~components/Top'
@@ -33,7 +34,7 @@ const Profile = () => {
       }}
     >
       <GridItem gridArea='profile'>
-        <Box boxShadow='md' borderRadius='md' bg='purple.100' p={4} display='flex' flexDir='column' gap={2}>
+        <PurpleBox>
           <Box display='flex' flexDir='row' gap={2}>
             <VStack spacing={0} alignItems='start'>
               <Text fontWeight='500' display='flex' gap={2}>
@@ -59,7 +60,7 @@ const Profile = () => {
             </VStack>
           </Box>
           <ReputationCard reputation={user?.reputation} />
-        </Box>
+        </PurpleBox>
       </GridItem>
       <GridItem gridArea='muted'>{isOwnProfile && <MutedUsersList list={user?.mutedUsers} />}</GridItem>
       <GridItem gridArea='delegations'>{isOwnProfile && <Delegations delegations={user?.delegations} />}</GridItem>

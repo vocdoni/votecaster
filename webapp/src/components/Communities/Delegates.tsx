@@ -20,6 +20,7 @@ import { useAuth } from '~components/Auth/useAuth'
 import { Delegation } from '~components/Delegations'
 import { useCommunity, useDelegations } from '~queries/communities'
 import { useDelegateVote } from '~queries/profile'
+import { getDelegationsPath } from '~util/objects'
 
 type FormData = {
   to: string
@@ -34,6 +35,13 @@ export const Delegates = ({ community }: { community: Community }) => {
   const { data, isLoading, error } = useDelegations(community)
 
   if (!isAuthenticated || !community) return null
+
+  const path = getDelegationsPath(data || [])
+  if (path.length) {
+    for (const p of path) {
+      console.info('Delegation path:', p.join(' -> '))
+    }
+  }
 
   return (
     <VStack alignItems='start' maxW={{ base: 'full', lg: '50%' }}>
