@@ -7,33 +7,25 @@ import { DelegatedCommunity } from './Communities/Delegates'
 import { PurpleBox } from './Layout/PurpleBox'
 
 type DelegationProps = {
-  delegations: Delegation[]
+  delegation: Delegation
   communityId?: CommunityID
 }
 
-export const Delegation = ({ delegations, communityId }: DelegationProps) => {
+export const Delegation = ({ delegation, communityId }: DelegationProps) => {
   const { profile } = useAuth()
   const [delegatedUser, setDelegatedUser] = useState<User | undefined>()
-  const [delegation, setDelegation] = useState<Delegation | undefined>()
   const delegatedUserMutation = useFetchProfileMutation()
   const revokeMutation = useRevokeDelegation()
 
   useEffect(() => {
-    if (!delegations || !profile) return
+    if (!delegation) return
 
-    // find our delegation
-    const foundDelegation = delegations.find(
-      (d) => d.from === profile.fid && (communityId ? d.communityId === communityId : true)
-    )
-    if (!foundDelegation) return
-    setDelegation(foundDelegation)
-
-    delegatedUserMutation.mutate(foundDelegation.to, {
+    delegatedUserMutation.mutate(delegation.to, {
       onSuccess: (user) => {
         setDelegatedUser(user)
       },
     })
-  }, [delegations, profile])
+  }, [delegation, profile])
 
   const revokeDelegation = () => {
     if (!delegation) return
@@ -43,7 +35,6 @@ export const Delegation = ({ delegations, communityId }: DelegationProps) => {
     revokeMutation.mutate(delegation.id, {
       onSuccess: () => {
         setDelegatedUser(undefined)
-        setDelegation(undefined)
       },
     })
   }
@@ -60,7 +51,7 @@ export const Delegation = ({ delegations, communityId }: DelegationProps) => {
     return <Alert status='error'>{(revokeMutation.error as Error).message}</Alert>
   }
 
-  if (!delegations || !delegations.length || !profile || !delegatedUser) return null
+  if (!profile || !delegatedUser) return null
 
   return (
     <Box fontSize='sm' gap={2} display='flex' alignItems='end'>
@@ -89,7 +80,7 @@ export const Delegations = ({ delegations }: DelegationsProps) => (
     </Heading>
     {delegations ? (
       delegations.map((delegation) => (
-        <Delegation key={delegation.id} delegations={delegations} communityId={delegation.communityId} />
+        <Delegation key={delegation.id} delegation={delegation} communityId={delegation.communityId} />
       ))
     ) : (
       <Box>No delegations yet. You can delegate your vote via the communities view</Box>

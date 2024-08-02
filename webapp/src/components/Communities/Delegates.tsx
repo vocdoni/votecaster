@@ -14,6 +14,7 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link as RouterLink } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
@@ -31,8 +32,21 @@ type CommunityDelegateProps = {
 }
 
 export const Delegates = ({ community }: { community: Community }) => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, profile } = useAuth()
   const { data, isLoading, error } = useDelegations(community)
+  const [delegation, setDelegation] = useState<Delegation | undefined>()
+
+  useEffect(() => {
+    if (!data || !profile) return
+
+    // find our delegation
+    const foundDelegation = data.find((d) => d.from === profile.fid && d.communityId === community.id)
+    if (!foundDelegation) {
+      setDelegation(undefined)
+      return
+    }
+    setDelegation(foundDelegation)
+  }, [data, profile])
 
   if (!isAuthenticated || !community) return null
 
@@ -50,8 +64,8 @@ export const Delegates = ({ community }: { community: Community }) => {
         You can delegate your voting power to any community member to vote on your behalf. You may revoke the delegation
         at any time, though this won't affect votes already in progress.
       </Text>
-      {!data && !isLoading && <CommunityDelegate community={community} />}
-      {data && <Delegation delegations={data} />}
+      {!delegation && !isLoading && <CommunityDelegate community={community} />}
+      {delegation && <Delegation delegation={delegation} />}
       {error && <Alert status='error'>{error.toString()}</Alert>}
     </VStack>
   )
