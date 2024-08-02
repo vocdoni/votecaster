@@ -17,6 +17,7 @@ import {
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link as RouterLink } from 'react-router-dom'
+import { SignInButton } from '~components/Auth/SignInButton'
 import { useAuth } from '~components/Auth/useAuth'
 import { Delegation } from '~components/Delegations'
 import { useCommunity, useDelegations } from '~queries/communities'
@@ -48,7 +49,7 @@ export const Delegates = ({ community }: { community: Community }) => {
     setDelegation(foundDelegation)
   }, [data, profile])
 
-  if (!isAuthenticated || !community) return null
+  if (!community) return null
 
   const path = getDelegationsPath(data || [])
   if (path.length) {
@@ -64,9 +65,15 @@ export const Delegates = ({ community }: { community: Community }) => {
         You can delegate your voting power to any community member to vote on your behalf. You may revoke the delegation
         at any time, though this won't affect votes already in progress.
       </Text>
-      {!delegation && !isLoading && <CommunityDelegate community={community} />}
-      {delegation && <Delegation delegation={delegation} />}
-      {error && <Alert status='error'>{error.toString()}</Alert>}
+      {!isAuthenticated ? (
+        <SignInButton size='sm' />
+      ) : (
+        <>
+          {!delegation && !isLoading && <CommunityDelegate community={community} />}
+          {delegation && <Delegation delegation={delegation} />}
+          {error && <Alert status='error'>{error.toString()}</Alert>}
+        </>
+      )}
     </VStack>
   )
 }
