@@ -11,7 +11,6 @@ import (
 	"github.com/vocdoni/vote-frame/reputation"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
-	"go.vocdoni.io/dvote/log"
 )
 
 func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
@@ -19,49 +18,44 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 	if token == "" {
 		return fmt.Errorf("missing auth token header")
 	}
-	log.Debugw("profileHandler", "token", token)
 	auth, err := v.db.UpdateActivityAndGetData(token)
 	if err != nil {
 		return ctx.Send([]byte(err.Error()), apirest.HTTPstatusNotFound)
 	}
-	log.Debugw("profileHandler", "userID", auth.UserID)
 	// get user data and access profile
 	user, err := v.db.User(auth.UserID)
 	if err != nil {
 		return ctx.Send([]byte("user not found"), apirest.HTTPstatusNotFound)
 	}
-	log.Debug("profileHandler, user found")
 	accessprofile, err := v.db.UserAccessProfile(auth.UserID)
 	if err != nil {
 		return ctx.Send([]byte("could not get user access profile"), apirest.HTTPstatusInternalErr)
 	}
-	log.Debug("profileHandler, access profile found")
 	// Get the elections created by the user. If the user is not found, it
 	// continues with an empty list.
 	userElections, err := v.db.ElectionsByUser(auth.UserID, 16)
 	if err != nil && !errors.Is(err, mongo.ErrElectionUnknown) {
 		return fmt.Errorf("could not get user elections: %v", err)
 	}
-	log.Debug("profileHandler, elections found")
+
 	// Get muted users by current user. If the user is not found, it continues
 	// with an empty list.
 	mutedUsers, err := v.db.ListNotificationMutedUsers(auth.UserID)
 	if err != nil && !errors.Is(err, mongo.ErrUserUnknown) {
 		return fmt.Errorf("could not get muted users: %v", err)
 	}
-	log.Debug("profileHandler, muted users found")
+
 	// get user delegations
 	delegations, err := v.db.DelegationsFrom(auth.UserID)
 	if err != nil {
 		return fmt.Errorf("could not get user delegations: %v", err)
 	}
-	log.Debug("profileHandler, delegations found")
 	// get user reputation
 	rep, err := v.db.DetailedUserReputation(auth.UserID)
 	if err != nil {
 		return fmt.Errorf("could not get user reputation: %v", err)
 	}
-	log.Debug("profileHandler, reputation found")
+
 	// Marshal the response
 	data, err := json.Marshal(map[string]any{
 		"user":               user,
