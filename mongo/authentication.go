@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.vocdoni.io/dvote/log"
 )
 
 // AddAuthentication adds an authentication token for a user and updates the CreatedAt field to the current time.
@@ -23,8 +24,8 @@ func (ms *MongoStorage) AddAuthentication(userFID uint64, authToken string) erro
 			return fmt.Errorf("error adding user: %w", err)
 		}
 		// Update the user access profile with the empty data
-		if err := ms.updateUserAccessProfile(userFID, bson.M{}); err != nil {
-			return fmt.Errorf("error updating user access profile: %w", err)
+		if err := ms.createUserAccessProfile(userFID); err != nil {
+			log.Warnw("error creating user access profile", "error", err)
 		}
 	}
 
