@@ -79,6 +79,7 @@ func init() {
 // ImageRequest is a general struct for making requests to the API.
 // It includes all possible fields that can be sent to the API.
 type ImageRequest struct {
+	Title         string   `json:"title,omitempty"`
 	Type          string   `json:"type"`
 	Error         string   `json:"error,omitempty"`
 	Info          []string `json:"info,omitempty"`
@@ -228,7 +229,7 @@ func AfterVoteImage() string {
 
 // AlreadyVotedImage creates a static image to be displayed when a user has already voted.
 func AlreadyVotedImage() string {
-	return emptyBodyImage("alreadyvoted")
+	return notEligibleImage("You cannot vote as your voting power was delegated for this community poll")
 }
 
 // NotElegibleImage creates a static image to be displayed when a user is not elegible to vote.
@@ -270,6 +271,25 @@ func NotificationsManageImage() string {
 // NotificationsErrorImage creates a static image to be displayed when there is an error with notifications.
 func NotificationsErrorImage() string {
 	return AddImageToCache(backgroundFrames[BackgroundNotificationsError])
+}
+
+// notEligibleImage creates images of methods that do not have body
+func notEligibleImage(title string) string {
+	requestData := ImageRequest{
+		Type:  "notelibile",
+		Title: title,
+	}
+	imgCacheKey := oneTimeImageCacheKey()
+	go func() {
+		png, err := makeRequest(requestData)
+		if err != nil {
+			log.Errorw(fmt.Errorf("failed to create noteligible image: %w", err), "error image")
+			return
+		}
+		AddImageToCacheWithID(imgCacheKey, png)
+	}()
+	time.Sleep(2 * time.Second)
+	return imgCacheKey
 }
 
 // emptyBodyImage creates images of methods that do not have body
