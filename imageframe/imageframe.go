@@ -236,6 +236,11 @@ func NotElegibleImage() string {
 	return emptyBodyImage("noteligible")
 }
 
+// AlreadyDelegated creates a static image to be displayed when a user has already delegated their vote.
+func AlreadyDelegated() string {
+	return emptyBodyImage("alreadydelegated")
+}
+
 // NotFoundImage creates a static image to be displayed when an election is not found.
 func NotFoundImage() string {
 	png, _ := ErrorImage("Election not found")

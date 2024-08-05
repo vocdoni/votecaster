@@ -169,6 +169,14 @@ var frameNotElegible = header + `
     <meta property="fc:frame:button:1" content="Back" />
 ` + body
 
+var frameDelegatedVote = header + `
+    <meta property="fc:frame" content="vNext" />
+    <meta property="fc:frame:image" content="{image}" />
+    <meta name="fc:frame:image:aspect_ratio" content="1:1" />
+    <meta property="fc:frame:post_url" content="{server}/{processID}" />
+    <meta property="fc:frame:button:1" content="Back" />
+` + body
+
 var frameError = header + `
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="{image}" />
