@@ -438,7 +438,6 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 	if err != nil {
 		return err
 	}
-	log.Infow("current delegations found", "delegations", delegations)
 	// check the type to create it from the correct source (channel, airstak
 	// (nft/erc20) or user followers) and in the correct way (async or sync)
 	switch community.Census.Type {

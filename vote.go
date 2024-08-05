@@ -98,6 +98,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if err != nil {
 			log.Warnw("failed to fetch delegations", "error", err)
 		}
+		log.Info(delegations)
 		if len(delegations) > 0 {
 			if response, err := handleVoteError(ErrVoteDelegated, &voteData{
 				FID: uint64(packet.UntrustedData.FID),
