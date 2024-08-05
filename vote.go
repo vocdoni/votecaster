@@ -101,11 +101,10 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		if len(delegations) > 0 {
 			if response, err := handleVoteError(ErrVoteDelegated, &voteData{
 				FID: uint64(packet.UntrustedData.FID),
-			}, electionIDbytes); err == nil {
+			}, electionIDbytes); err != nil {
 				ctx.SetResponseContentType("text/html; charset=utf-8")
 				return ctx.Send([]byte(response), http.StatusOK)
 			}
-			return fmt.Errorf("failed to handle delegated vote error: %w", ErrVoteDelegated)
 		}
 	}
 
