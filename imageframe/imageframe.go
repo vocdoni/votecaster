@@ -229,7 +229,7 @@ func AfterVoteImage() string {
 
 // AlreadyVotedImage creates a static image to be displayed when a user has already voted.
 func AlreadyVotedImage() string {
-	return notEligibleImage("You cannot vote as your voting power was delegated for this community poll")
+	return emptyBodyImage("alreadyvoted")
 }
 
 // NotElegibleImage creates a static image to be displayed when a user is not elegible to vote.
@@ -239,7 +239,7 @@ func NotElegibleImage() string {
 
 // AlreadyDelegated creates a static image to be displayed when a user has already delegated their vote.
 func AlreadyDelegated() string {
-	return emptyBodyImage("alreadydelegated")
+	return notEligibleImage("You cannot vote as your voting power was delegated for this community poll")
 }
 
 // NotFoundImage creates a static image to be displayed when an election is not found.
