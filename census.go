@@ -672,7 +672,7 @@ func (v *vocdoniHandler) censusTokenAirstack(tokens []*CensusToken, tokenType in
 		// create census from token holders
 		var participants []*FarcasterParticipant
 		v.trackStepProgress(censusID, 2, 3, func(progress chan int) {
-			participants, _, err = v.processCensusRecords(holders, nil, progress)
+			participants, _, err = v.processCensusRecords(holders, delegations, progress)
 		})
 		if err != nil {
 			log.Warnw("failed to build census from NFT", "err", err.Error())
@@ -1194,7 +1194,7 @@ func (v *vocdoniHandler) trackStepProgress(censusID types.HexBytes, step, totalS
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.
 // The record is expected to be a string containing the address and the weight.
 // Returns the list of participants and the total number of unique addresses available in the records.
-func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []*mongo.Delegation, progress chan int) ([]*FarcasterParticipant, uint32, error) {
+func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []mongo.Delegation, progress chan int) ([]*FarcasterParticipant, uint32, error) {
 	// Create a context to cancel the goroutines
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
