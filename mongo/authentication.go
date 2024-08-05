@@ -22,6 +22,10 @@ func (ms *MongoStorage) AddAuthentication(userFID uint64, authToken string) erro
 		if err := ms.AddUser(userFID, "", "", []string{}, []string{}, "", 0); err != nil {
 			return fmt.Errorf("error adding user: %w", err)
 		}
+		// Update the user access profile with the empty data
+		if err := ms.updateUserAccessProfile(userFID, bson.M{}); err != nil {
+			return fmt.Errorf("error updating user access profile: %w", err)
+		}
 	}
 
 	ms.keysLock.Lock()
