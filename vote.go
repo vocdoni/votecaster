@@ -81,7 +81,6 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	if err := json.Unmarshal(msg.Data, packet); err != nil {
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
 	}
-
 	// check if the user has delegated their vote
 	dbElection, err := v.db.Election(electionIDbytes)
 	if err != nil {
@@ -92,17 +91,11 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		ctx.SetResponseContentType("text/html; charset=utf-8")
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
-
-	log.Infow("received vote request",
-		"electionID", electionID,
-		"fid", packet.UntrustedData.FID,
-		"community", dbElection.Community)
 	if dbElection.Community != nil {
 		delegations, err := v.db.DelegationsByCommunityFrom(dbElection.Community.ID, uint64(packet.UntrustedData.FID))
 		if err != nil {
 			log.Warnw("failed to fetch delegations", "error", err)
 		}
-		log.Info(delegations)
 		if len(delegations) > 0 {
 			if response, err := handleVoteError(ErrVoteDelegated, &voteData{
 				FID: uint64(packet.UntrustedData.FID),
