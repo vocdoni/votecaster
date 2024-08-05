@@ -93,6 +93,10 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		return ctx.Send([]byte(response), http.StatusOK)
 	}
 
+	log.Infow("received vote request",
+		"electionID", electionID,
+		"fid", packet.UntrustedData.FID,
+		"community", dbElection.Community)
 	if dbElection.Community != nil {
 		delegations, err := v.db.DelegationsByCommunityFrom(dbElection.Community.ID, uint64(packet.UntrustedData.FID))
 		if err != nil {
