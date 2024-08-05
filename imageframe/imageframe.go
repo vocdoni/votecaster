@@ -276,7 +276,7 @@ func NotificationsErrorImage() string {
 // notEligibleImage creates images of methods that do not have body
 func notEligibleImage(title string) string {
 	requestData := ImageRequest{
-		Type:  "notelibile",
+		Type:  "noteligible",
 		Title: title,
 	}
 	imgCacheKey := oneTimeImageCacheKey()
