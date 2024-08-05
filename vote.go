@@ -29,6 +29,7 @@ var (
 	ErrNotElegible    = fmt.Errorf("not elegible")
 	ErrNotInCensus    = fmt.Errorf("not in the census")
 	ErrAlreadyVoted   = fmt.Errorf("already voted")
+	ErrVoteDelegated  = fmt.Errorf("vote delegated")
 	ErrFrameSignature = fmt.Errorf("frame signature verification failed")
 )
 
@@ -79,6 +80,33 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	packet := &FrameSignaturePacket{}
 	if err := json.Unmarshal(msg.Data, packet); err != nil {
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
+	}
+
+	// check if the user has delegated their vote
+	dbElection, err := v.db.Election(electionIDbytes)
+	if err != nil {
+		response, err := handleVoteError(err, nil, electionIDbytes)
+		if err != nil {
+			return fmt.Errorf("failed to handle election error: %w", err)
+		}
+		ctx.SetResponseContentType("text/html; charset=utf-8")
+		return ctx.Send([]byte(response), http.StatusOK)
+	}
+
+	if dbElection.Community != nil {
+		delegations, err := v.db.DelegationsByCommunityFrom(dbElection.Community.ID, uint64(packet.UntrustedData.FID))
+		if err != nil {
+			log.Warnw("failed to fetch delegations", "error", err)
+		}
+		if len(delegations) > 0 {
+			if response, err := handleVoteError(ErrVoteDelegated, &voteData{
+				FID: uint64(packet.UntrustedData.FID),
+			}, electionIDbytes); err == nil {
+				ctx.SetResponseContentType("text/html; charset=utf-8")
+				return ctx.Send([]byte(response), http.StatusOK)
+			}
+			return fmt.Errorf("failed to handle delegated vote error: %w", ErrVoteDelegated)
+		}
 	}
 
 	// get the vote count for future check
@@ -221,6 +249,17 @@ func handleVoteError(err error, voteData *voteData, electionID types.HexBytes) (
 		response = strings.ReplaceAll(response, "{nullifier}", fmt.Sprintf("%x", voteData.Nullifier))
 		response = strings.ReplaceAll(response, "{processID}", electionID.String())
 		return []byte(response), ErrAlreadyVoted
+	}
+
+	if errors.Is(err, ErrVoteDelegated) {
+		log.Debugw("participant already delegated vote",
+			"electionID", electionID.String(),
+			"fid", voteData.FID,
+		)
+		png := imageframe.AlreadyDelegated()
+		response := strings.ReplaceAll(frame(frameDelegatedVote), "{image}", imageLink(png))
+		response = strings.ReplaceAll(response, "{processID}", electionID.String())
+		return []byte(response), ErrVoteDelegated
 	}
 
 	if err != nil {
