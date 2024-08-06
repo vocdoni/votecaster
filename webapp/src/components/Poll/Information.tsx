@@ -1,6 +1,5 @@
-import { HStack, Link, Text, useToast, VStack } from '@chakra-ui/react'
+import { HStack, Link, Text, VStack } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
 import { adminFID, vocdoniExplorer } from '~constants'
 import { fetchCensus } from '~queries/census'
 import { fetchCommunity } from '~queries/communities'
@@ -13,14 +12,13 @@ import { VotersTableModal } from './VotersTableModal'
 
 export const Information = ({ poll, url }: { poll: PollInfo; url?: string }) => {
   const { profile, bfetch } = useAuth()
-  const toast = useToast()
   const { data: community } = useQuery({
     queryKey: ['community', poll?.community?.id],
     queryFn: fetchCommunity(bfetch, poll?.community?.id.toString() || ''),
     enabled: !!poll?.community?.id.toString(),
   })
 
-  const { data: census, error: errorCensus } = useQuery({
+  const { data: census } = useQuery({
     queryKey: ['census', poll.electionId],
     queryFn: fetchCensus(bfetch, poll.electionId),
     enabled: !!poll.electionId,
@@ -32,18 +30,6 @@ export const Information = ({ poll, url }: { poll: PollInfo; url?: string }) => 
       return false
     },
   })
-
-  useEffect(() => {
-    if (!errorCensus) return
-
-    toast({
-      title: 'Error',
-      description: errorCensus?.message || 'Failed to retrieve remaining voters list',
-      status: 'error',
-      duration: 5000,
-      isClosable: true,
-    })
-  }, [errorCensus])
 
   const isAdmin = () => {
     if (!profile || !community) return false
