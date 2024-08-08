@@ -360,7 +360,6 @@ func dynamicUpdateDocument(item interface{}, alwaysUpdateTags []string) (bson.M,
 	for _, tag := range alwaysUpdateTags {
 		alwaysUpdateMap[tag] = true
 	}
-
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
 		if !field.CanInterface() {
@@ -371,7 +370,6 @@ func dynamicUpdateDocument(item interface{}, alwaysUpdateTags []string) (bson.M,
 		if tag == "" || tag == "-" || tag == "_id" {
 			continue
 		}
-
 		// Check if the field should always be updated or is not the zero value
 		_, alwaysUpdate := alwaysUpdateMap[tag]
 		if alwaysUpdate || !reflect.DeepEqual(field.Interface(), reflect.Zero(field.Type()).Interface()) {
@@ -399,9 +397,13 @@ func paginatedObjects(collection *mongo.Collection, query bson.M, opts *options.
 	if opts == nil {
 		opts = options.Find()
 	}
-	// return all objects if limit is -1 and offset is 0
-	if limit > -1 && offset == 0 {
-		opts = opts.SetLimit(limit).SetSkip(offset)
+	// limit the number of results if the limit is greater than -1
+	if limit > -1 {
+		opts = opts.SetLimit(limit)
+	}
+	// skip the number of results if the offset is greater than 0
+	if offset == 0 {
+		opts = opts.SetSkip(offset)
 	}
 	ctx, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel2()

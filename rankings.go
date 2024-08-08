@@ -259,36 +259,41 @@ func (v *vocdoniHandler) rankingByPoints(msg *apirest.APIdata, ctx *httprouter.H
 		return ctx.Send([]byte("invalid query parameters"), http.StatusBadRequest)
 	}
 	var err error
-	var ranking []mongo.ReputationRanking
+	var rankingItems []mongo.ReputationRanking
 	switch {
 	case onlyUsers:
-		if ranking, err = v.db.ReputationRanking(true, false); err != nil {
+		if rankingItems, err = v.db.ReputationRanking(true, false); err != nil {
 			return fmt.Errorf("failed to get ranking: %w", err)
 		}
 	case onlyCommunities:
-		if ranking, err = v.db.ReputationRanking(false, true); err != nil {
+		if rankingItems, err = v.db.ReputationRanking(false, true); err != nil {
 			return fmt.Errorf("failed to get ranking: %w", err)
 		}
 	default:
 		log.Info("both")
-		if ranking, err = v.db.ReputationRanking(true, true); err != nil {
+		if rankingItems, err = v.db.ReputationRanking(true, true); err != nil {
 			return fmt.Errorf("failed to get ranking: %w", err)
 		}
 	}
-	for i, item := range ranking {
+	// iterate over ranking items and fetch the user or community image and
+	// skip the disabled communities
+	var ranking []mongo.ReputationRanking
+	for _, item := range rankingItems {
 		if item.CommunityID != "" {
 			community, err := v.db.Community(item.CommunityID)
 			if err != nil {
 				log.Warnw("failed to fetch community", "error", err)
-			} else if community != nil {
-				ranking[i].ImageURL = community.ImageURL
+			} else if community != nil && !community.Disabled {
+				item.ImageURL = community.ImageURL
+				ranking = append(ranking, item)
 			}
 		} else if item.UserID > 0 {
 			user, err := v.db.User(item.UserID)
 			if err != nil {
 				log.Warnw("failed to fetch user", "error", err)
 			} else if user != nil {
-				ranking[i].ImageURL = user.Avatar
+				item.ImageURL = user.Avatar
+				ranking = append(ranking, item)
 			}
 		}
 	}
