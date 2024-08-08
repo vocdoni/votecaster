@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.vocdoni.io/dvote/log"
 )
 
 var (
@@ -405,6 +406,7 @@ func paginatedObjects(collection *mongo.Collection, query bson.M, opts *options.
 	if offset == 0 {
 		opts = opts.SetSkip(offset)
 	}
+	log.Info("opts", "sort", opts.Sort, "limit", opts.Limit, "skip", opts.Skip)
 	ctx, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel2()
 	cursor, err := collection.Find(ctx, query, opts)
