@@ -143,7 +143,6 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 		}
 		offset = int64(n)
 	}
-	log.Debugw("list communities", "adminFID", byAdminFID, "adminUsername", byAdminUsername, "featured", featured, "limit", limit, "offset", offset)
 	var totalCommunities int64
 	switch {
 	case byAdminFID != "":
