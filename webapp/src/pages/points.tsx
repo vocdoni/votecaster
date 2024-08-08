@@ -22,7 +22,7 @@ const Points = () => {
       </Card>
       <Card w='full'>
         <CardHeader as={Heading} size='md'>
-          Your reputation points
+          Your reputation score
         </CardHeader>
         <CardBody>
           <ReputationTable reputation={reputation} />
