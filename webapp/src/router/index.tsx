@@ -1,7 +1,8 @@
 import { lazy } from 'react'
-import { createHashRouter, redirect, RouterProvider } from 'react-router-dom'
+import { createHashRouter, generatePath, redirect, RouterProvider } from 'react-router-dom'
 import { Layout } from '~components/Layout'
 import { ComposerLayout } from '~components/Layout/Composer'
+import { RoutePath } from '~constants'
 import { SuspenseLoader } from './SuspenseLoader'
 
 const About = lazy(() => import('~pages/About'))
@@ -24,11 +25,11 @@ const ProtectedRoute = lazy(() => import('./ProtectedRoute'))
 export const Router = () => {
   const router = createHashRouter([
     {
-      path: '/',
+      path: RoutePath.Base,
       element: <Layout />,
       children: [
         {
-          path: '/',
+          path: RoutePath.Base,
           element: (
             <SuspenseLoader>
               <Home />
@@ -36,7 +37,7 @@ export const Router = () => {
           ),
         },
         {
-          path: '/form/:id?',
+          path: RoutePath.PollForm,
           element: (
             <SuspenseLoader>
               <AppForm />
@@ -44,7 +45,7 @@ export const Router = () => {
           ),
         },
         {
-          path: '/about',
+          path: RoutePath.About,
           element: (
             <SuspenseLoader>
               <About />
@@ -52,7 +53,7 @@ export const Router = () => {
           ),
         },
         {
-          path: '/leaderboards',
+          path: RoutePath.Leaderboards,
           element: (
             <SuspenseLoader>
               <Leaderboards />
@@ -60,7 +61,7 @@ export const Router = () => {
           ),
         },
         {
-          path: '/poll/:pid',
+          path: RoutePath.Poll,
           element: (
             <SuspenseLoader>
               <Poll />
@@ -68,19 +69,21 @@ export const Router = () => {
           ),
         },
         {
-          path: '/communities/:id',
+          path: RoutePath.CommunityOld,
           loader: ({ params: { id } }) => {
-            return redirect(`/communities/degen/${id}`)
+            return redirect(generatePath(RoutePath.Community, { chain: 'degen', id: id as string }))
           },
         },
         {
-          path: '/communities/:id/poll/:pid',
+          path: RoutePath.CommunityOldPoll,
           loader: ({ params: { id, pid } }) => {
-            return redirect(`/communities/degen/${id}/poll/${pid}`)
+            return redirect(
+              generatePath(RoutePath.CommunityPoll, { chain: 'degen', community: id as string, poll: pid as string })
+            )
           },
         },
         {
-          path: '/communities/:chain/:id',
+          path: RoutePath.Community,
           element: (
             <SuspenseLoader>
               <Community />
@@ -88,7 +91,7 @@ export const Router = () => {
           ),
         },
         {
-          path: '/communities/:chain/:community/poll/:poll',
+          path: RoutePath.CommunityPoll,
           element: (
             <SuspenseLoader>
               <CommunityPoll />
@@ -96,7 +99,7 @@ export const Router = () => {
           ),
         },
         {
-          path: '/profile/:id',
+          path: RoutePath.ProfileView,
           element: (
             <SuspenseLoader>
               <Profile />
@@ -111,7 +114,7 @@ export const Router = () => {
           ),
           children: [
             {
-              path: '/profile',
+              path: RoutePath.Profile,
               element: (
                 <SuspenseLoader>
                   <Profile />
@@ -119,7 +122,7 @@ export const Router = () => {
               ),
             },
             {
-              path: '/points',
+              path: RoutePath.Points,
               element: (
                 <SuspenseLoader>
                   <Points />
@@ -136,7 +139,7 @@ export const Router = () => {
           ),
           children: [
             {
-              path: '/communities/new',
+              path: RoutePath.CommunitiesForm,
               element: (
                 <SuspenseLoader>
                   <CommunitiesNew />
@@ -153,7 +156,7 @@ export const Router = () => {
           ),
           children: [
             {
-              path: '/communities/page?/:page?',
+              path: RoutePath.CommunitiesPaginatedList,
               element: (
                 <SuspenseLoader>
                   <AllCommunitiesList />
@@ -168,7 +171,7 @@ export const Router = () => {
               ),
               children: [
                 {
-                  path: '/communities/mine/:page?',
+                  path: RoutePath.MyCommunitiesPaginatedList,
                   element: (
                     <SuspenseLoader>
                       <MyCommunitiesList />

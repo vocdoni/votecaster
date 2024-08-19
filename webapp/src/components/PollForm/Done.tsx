@@ -1,9 +1,11 @@
-import { Box, Button, Code, Icon, IconButton, Image, Link, Text, useClipboard } from '@chakra-ui/react'
+import { Box, Button, Code, HStack, Icon, IconButton, Image, Link, Text, useClipboard } from '@chakra-ui/react'
 import { useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
+import { FaInfoCircle } from 'react-icons/fa'
 import { FaCheck, FaDownload, FaRegCopy } from 'react-icons/fa6'
+import { generatePath, Link as RouterLink } from 'react-router-dom'
 import { FarcasterLogo } from '~components/FarcasterLogo'
-import { appUrl } from '~constants'
+import { appUrl, RoutePath } from '~constants'
 import { CsvGenerator } from '~src/generator'
 import { usePollForm } from './usePollForm'
 
@@ -43,17 +45,30 @@ export const Done = () => {
         />
       </Box>
       <Image src={`${appUrl}/preview/${pid}`} alt='poll preview' />
-      <Button
-        colorScheme='purple'
-        rightIcon={
-          <Icon height={24} mt='px'>
-            <FarcasterLogo fill='white' />
-          </Icon>
-        }
-        onClick={() => cast(shortened ?? pollUrl(pid as string))}
-      >
-        Cast it!
-      </Button>
+      <HStack w='full'>
+        <Button
+          colorScheme='purple'
+          rightIcon={
+            <Icon height={24} mt='px'>
+              <FarcasterLogo fill='white' />
+            </Icon>
+          }
+          flex={1}
+          onClick={() => cast(shortened ?? pollUrl(pid as string))}
+        >
+          Cast it!
+        </Button>
+        <Button
+          rightIcon={<FaInfoCircle />}
+          variant='ghost'
+          colorScheme='purple'
+          as={RouterLink}
+          flex={1}
+          to={generatePath(RoutePath.Poll, { pid })}
+        >
+          More info
+        </Button>
+      </HStack>
       <Box fontSize='xs' textAlign='right'>
         or{' '}
         <Button

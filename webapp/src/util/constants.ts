@@ -12,6 +12,25 @@ export const explorers = {
   ethereum: 'https://etherscan.io',
 }
 
+export enum RoutePath {
+  Base = '/',
+  About = '/about',
+  CommunitiesForm = '/communities/form',
+  CommunitiesPaginatedList = '/communities/page?/:page?',
+  Community = '/communities/:chain/:id',
+  CommunityOld = '/communities/:id',
+  CommunityOldPoll = '/communities/:id/poll/:pid',
+  CommunityPoll = '/communities/:chain/:community/poll/:poll',
+  Composer = '/composer',
+  Leaderboards = '/leaderboards',
+  MyCommunitiesPaginatedList = '/communities/mine/:page?',
+  Points = '/points',
+  Poll = '/poll/:pid',
+  PollForm = '/form/:id?',
+  Profile = '/profile',
+  ProfileView = '/profile/:id',
+}
+
 export const degenNameResolverContractAddress = '0x4087fb91A1fBdef05761C02714335D232a2Bf3a1'
 
 export const adminFID = import.meta.env.VOCDONI_ADMINFID
