@@ -33,7 +33,7 @@ const Form: FC<FormProps> = ({ communityId, composer, ...props }) => {
   const { error, pid, form: methods, onSubmit, loading, status } = usePollForm()
   const { handleSubmit } = methods
   const { reputation } = useReputation()
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated } = useAuth()
 
   return (
     <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 550 }} {...props}>
@@ -72,17 +72,7 @@ const Form: FC<FormProps> = ({ communityId, composer, ...props }) => {
                     <Button type='submit' isLoading={loading} loadingText={status}>
                       Create
                     </Button>
-                    {!composer && (
-                      <>
-                        <Box fontSize='xs' textAlign='right'>
-                          or{' '}
-                          <Button variant='text' size='xs' p={0} onClick={logout} height='auto'>
-                            logout
-                          </Button>
-                        </Box>
-                        <ReputationCard reputation={reputation!} />
-                      </>
-                    )}
+                    {!composer && <ReputationCard reputation={reputation!} />}
                   </>
                 ) : (
                   <Box display='flex' justifyContent='center' alignItems='center' flexDir='column'>

@@ -1,6 +1,21 @@
-import { Avatar, Box, Flex, Heading, HStack, Icon, IconButton, Stack, useDisclosure } from '@chakra-ui/react'
+import {
+  Avatar,
+  Box,
+  Button,
+  MenuButton as CMenuButton,
+  Flex,
+  Heading,
+  HStack,
+  Icon,
+  IconButton,
+  Menu,
+  MenuItem,
+  MenuList,
+  Stack,
+  useDisclosure,
+} from '@chakra-ui/react'
 import { GiHamburgerMenu } from 'react-icons/gi'
-import { IoClose } from 'react-icons/io5'
+import { IoChevronDownCircleOutline, IoChevronUpCircleOutline, IoClose } from 'react-icons/io5'
 import { Link } from 'react-router-dom'
 import { useReputation } from '~components/Reputation/useReputation'
 import { SignInButton } from '../Auth/SignInButton'
@@ -45,8 +60,6 @@ const links: NavbarLink[] = [
 
 export const Navbar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { isAuthenticated, profile } = useAuth()
-  const { reputation } = useReputation()
 
   return (
     <Box px={{ base: 3 }}>
@@ -67,16 +80,7 @@ export const Navbar = () => {
             <NavbarMenuLinks />
           </HStack>
         </HStack>
-        <Flex alignItems={'center'}>
-          {isAuthenticated ? (
-            <Link to='/profile'>
-              <ReputationProgress mr={3} size='32px' reputation={reputation} />
-              <Avatar size={'sm'} src={profile?.pfpUrl} />
-            </Link>
-          ) : (
-            <SignInButton size='sm' />
-          )}
-        </Flex>
+        <ProfileMenu />
       </Flex>
 
       {isOpen && (
@@ -87,6 +91,43 @@ export const Navbar = () => {
         </Box>
       )}
     </Box>
+  )
+}
+
+const ProfileMenu = () => {
+  const { isAuthenticated, logout, profile } = useAuth()
+  const { reputation } = useReputation()
+
+  return (
+    <Flex alignItems={'center'}>
+      {isAuthenticated ? (
+        <Menu size='xs'>
+          {({ isOpen }) => (
+            <>
+              <CMenuButton
+                as={Button}
+                size='lg'
+                variant='link'
+                rightIcon={isOpen ? <IoChevronUpCircleOutline /> : <IoChevronDownCircleOutline />}
+              >
+                <ReputationProgress mr={3} size='32px' reputation={reputation} />
+                <Avatar size={'sm'} src={profile?.pfpUrl} />
+              </CMenuButton>
+              <MenuList>
+                <MenuItem as={Link} to='/profile'>
+                  Profile
+                </MenuItem>
+                <MenuItem as={Link} onClick={logout}>
+                  Logout
+                </MenuItem>
+              </MenuList>
+            </>
+          )}
+        </Menu>
+      ) : (
+        <SignInButton size='sm' />
+      )}
+    </Flex>
   )
 }
 
