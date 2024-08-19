@@ -224,6 +224,35 @@ type RemindersStatus struct {
 	Fails       map[string]string `json:"fails,omitempty"`
 }
 
+// AnnouncementRequest defines the parameters to send an announcement, including
+// the content of the announcement and the users to send the announcement to.
+type AnnouncementRequest struct {
+	Content string            `json:"content"` // content of the reminder
+	Users   map[uint64]string `json:"users"`   // map of userFID to username
+}
+
+// AnnouncementResponse defines the response of an announcement request,
+// including the queue ID of the background process that will send the
+// announcement. It allows to check the status of the process.
+type AnnouncementResponse struct {
+	QueuedID string `json:"queuedId"`
+}
+
+// AnnouncementStatus defines the status of an announcement process, including
+// the number of announcements that have been already sent, the total number of
+// announcements to send and the list of users that have failed to receive the
+// announcement (with the error message). It also includes the error message in
+// case of an global error and a flag to indicate if the process has been
+// completed.
+type AnnouncementStatus struct {
+	CommunityID string            `json:"communityId"`
+	Completed   bool              `json:"completed"`
+	AlreadySent int               `json:"alreadySent"`
+	Total       int               `json:"total"`
+	Fails       map[string]string `json:"fails,omitempty"`
+	Error       string            `json:"error,omitempty"`
+}
+
 // ComposerActionResponse is the response of the composer endpoint, which is a
 // redirection to the composer app to be used to create a new election from the
 // cast form in warpcast.

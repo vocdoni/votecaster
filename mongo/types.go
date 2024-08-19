@@ -275,17 +275,18 @@ type ReputationRanking struct {
 
 // Community represents a community entry.
 type Community struct {
-	ID            string          `json:"id" bson:"_id"`
-	Name          string          `json:"name" bson:"name"`
-	Channels      []string        `json:"channels" bson:"channels"`
-	Census        CommunityCensus `json:"census" bson:"census"`
-	ImageURL      string          `json:"imageURL" bson:"imageURL"`
-	GroupChatURL  string          `json:"groupChatURL" bson:"groupChatURL"`
-	Creator       uint64          `json:"creator" bson:"creator"`
-	Admins        []uint64        `json:"owners" bson:"owners"`
-	Notifications bool            `json:"notifications" bson:"notifications"`
-	Disabled      bool            `json:"disabled" bson:"disabled"`
-	Featured      bool            `json:"featured" bson:"featured"`
+	ID               string          `json:"id" bson:"_id"`
+	Name             string          `json:"name" bson:"name"`
+	Channels         []string        `json:"channels" bson:"channels"`
+	Census           CommunityCensus `json:"census" bson:"census"`
+	ImageURL         string          `json:"imageURL" bson:"imageURL"`
+	GroupChatURL     string          `json:"groupChatURL" bson:"groupChatURL"`
+	Creator          uint64          `json:"creator" bson:"creator"`
+	Admins           []uint64        `json:"owners" bson:"owners"`
+	Notifications    bool            `json:"notifications" bson:"notifications"`
+	Disabled         bool            `json:"disabled" bson:"disabled"`
+	Featured         bool            `json:"featured" bson:"featured"`
+	LastAnnouncement time.Time       `json:"lastAnnouncement" bson:"lastAnnouncement"`
 }
 
 const (
