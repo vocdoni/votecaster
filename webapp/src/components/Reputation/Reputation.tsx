@@ -123,7 +123,7 @@ export const ReputationCard = ({ reputation }: { reputation?: Reputation }) => {
                 Participated in {reputation.activityCounts.participationsCount} polls
               </StatLabel>
               <FlexStatNumber>
-                {reputation.activityCounts.participationsCount}/{reputation.activityInfo.maxCastedReputation}
+                {reputation.activityPoints.participationsPoints}/{reputation.activityInfo.maxCastedReputation}
                 {` `}
                 <Icon as={FaRegFaceGrinStars} boxSize={3} />
               </FlexStatNumber>
