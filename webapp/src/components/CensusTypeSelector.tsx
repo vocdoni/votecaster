@@ -131,7 +131,6 @@ const CensusTypeSelector = ({
     { value: 'community', label: '🏘️ Community based', visible: !!complete },
     { value: 'channel', label: '⛩ Farcaster channel gated' },
     { value: 'followers', label: '❤️ My Farcaster followers and me' },
-    { value: 'alfafrens', label: '💙 My alfafrens channel subscribers', visible: !!complete && !composer },
     { value: 'custom', label: '🦄 Token based via CSV', visible: !!complete && !composer },
     { value: 'nft', label: '🎨 NFT based via airstack', isDisabled: !import.meta.env.airstackEnabled },
     { value: 'erc20', label: '💰 ERC20 based via airstack', isDisabled: !import.meta.env.airstackEnabled },
