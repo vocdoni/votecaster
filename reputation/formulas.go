@@ -43,7 +43,7 @@ func activityReputation(rep *ActivityReputationCounts) uint64 {
 //     'maxCommunityReputation' points)
 func ponderateActivityReputation(ar *ActivityReputationCounts) *ActivityReputationPoints {
 	p := &ActivityReputationPoints{}
-	if p.FollowersPoints = ar.FollowersCount / followersDividerPonderation; p.ElectionsCreatedPoints > maxFollowersReputation {
+	if p.FollowersPoints = ar.FollowersCount / followersDividerPonderation; p.FollowersPoints > maxFollowersReputation {
 		p.FollowersPoints = maxFollowersReputation
 	}
 	if p.ElectionsCreatedPoints = ar.ElectionsCreatedCount / electionsDividerPonderation; p.ElectionsCreatedPoints > maxElectionsReputation {
