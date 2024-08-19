@@ -59,7 +59,7 @@ export const Delegates = ({ community }: { community: Community }) => {
   }
 
   return (
-    <VStack alignItems='start' maxW={{ base: 'full', lg: '50%' }}>
+    <VStack alignItems='start' flex={1}>
       <Heading size='sm'>Delegate your vote</Heading>
       <Text fontSize='small' fontStyle='italic'>
         You can delegate your voting power to any community member to vote on your behalf. You may revoke the delegation
