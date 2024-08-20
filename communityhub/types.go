@@ -25,6 +25,13 @@ const (
 	CensusTypeFollowers CensusType = "followers"
 )
 
+var ChainIDByShortName = map[string]uint64{
+	"ethereum": 1,
+	"base":     8453,
+	"zora":     7777777,
+	"degen":    666666666,
+}
+
 const (
 	// CONTRACT_CENSUS_TYPE_FC represents the census type for all farcaster
 	// users in the CommunityHub contract

@@ -310,6 +310,7 @@ type CommunityCensus struct {
 	Type      string                     `json:"type" bson:"type"`
 	Addresses []CommunityCensusAddresses `json:"addresses" bson:"addresses"`
 	Channel   string                     `json:"channel" bson:"channel"`
+	Strategy  uint64                     `json:"strategy" bson:"strategy"`
 }
 
 // CommunityCensusAddresses represents the addresses of a contract to be used to

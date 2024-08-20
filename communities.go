@@ -17,13 +17,6 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
-var chainIDByShortName = map[string]uint64{
-	"ethereum": 1,
-	"base":     8453,
-	"zora":     7777777,
-	"degen":    666666666,
-}
-
 func (v *vocdoniHandler) parseCommunityIDFromURL(ctx *httprouter.HTTPContext) (string, string, uint64, error) {
 	// get community id from the URL
 	strID := ctx.URLParam("communityID")
@@ -72,7 +65,7 @@ func (v *vocdoniHandler) CommunityStatus(community *mongo.Community) (bool, int,
 	nTokens := len(community.Census.Addresses)
 	// iterate over the addresses of the community getting status of token in census3
 	for _, contract := range community.Census.Addresses {
-		chainID, ok := chainIDByShortName[contract.Blockchain]
+		chainID, ok := communityhub.ChainIDByShortName[contract.Blockchain]
 		if !ok {
 			return false, 0, fmt.Errorf("invalid blockchain alias")
 		}

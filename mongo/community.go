@@ -327,3 +327,31 @@ func (ms *MongoStorage) SetCommunityNotifications(communityID string, enabled bo
 	_, err := ms.communities.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"notifications": enabled}})
 	return err
 }
+
+// SetCommunityCensusStrategy sets the census strategy of the community with the given ID.
+func (ms *MongoStorage) SetCommunityCensusStrategy(communityID string, strategyID uint64) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := ms.communities.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"census.strategy": strategyID}})
+	return err
+}
+
+// CommunityCensusStrategy returns the census strategy of the community with the
+// given ID.
+func (ms *MongoStorage) CommunityCensusStrategy(communityID string) (uint64, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var community Community
+	if err := ms.communities.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
+		log.Errorf("error getting community %s: %v", communityID, err)
+		return 0, err
+	}
+	if community.Census.Strategy == 0 {
+		return 0, ErrNoResults
+	}
+	return community.Census.Strategy, nil
+}

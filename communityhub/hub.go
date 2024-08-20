@@ -5,10 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	c3api "github.com/vocdoni/census3/api"
+	c3cli "github.com/vocdoni/census3/apiclient"
+	"github.com/vocdoni/census3/helpers/strategyoperators"
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
 	dbmongo "github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/log"
@@ -41,6 +45,7 @@ type CommunityHub struct {
 	waiter           sync.WaitGroup
 	cancel           context.CancelFunc
 	w3pool           *c3web3.Web3Pool
+	census3          *c3cli.HTTPclient
 	discoverCooldown time.Duration
 	syncCooldown     time.Duration
 
@@ -59,6 +64,7 @@ type CommunityHub struct {
 func NewCommunityHub(
 	goblalCtx context.Context,
 	w3p *c3web3.Web3Pool,
+	census3 *c3cli.HTTPclient,
 	conf *CommunityHubConfig,
 ) (*CommunityHub, error) {
 	// check that the database is defined in the provided configuration
@@ -82,6 +88,7 @@ func NewCommunityHub(
 		cancel:       cancel,
 		waiter:       sync.WaitGroup{},
 		w3pool:       w3p,
+		census3:      census3,
 		ChainAliases: conf.ChainAliases,
 		contracts:    map[string]*HubContract{},
 	}
@@ -123,15 +130,15 @@ func NewCommunityHub(
 // in the database. If something goes wrong getting the community data or
 // creating the community in the database, it logs an error and retries in
 // the next iteration. It sleeps if no communities are found in the contract.
-func (l *CommunityHub) ScanNewCommunities() {
+func (ch *CommunityHub) ScanNewCommunities() {
 	// scan for new logs in background
-	l.waiter.Add(1)
+	ch.waiter.Add(1)
 	go func() {
-		defer l.waiter.Done()
+		defer ch.waiter.Done()
 		for {
-			for _, contract := range l.contracts {
+			for _, contract := range ch.contracts {
 				select {
-				case <-l.ctx.Done():
+				case <-ch.ctx.Done():
 					return
 				default:
 					nextID, err := contract.NextContractID()
@@ -140,7 +147,7 @@ func (l *CommunityHub) ScanNewCommunities() {
 						continue
 					}
 					// get the community from the contract
-					communityID, ok := l.CommunityIDByChainAlias(nextID, contract.ChainAlias)
+					communityID, ok := ch.CommunityIDByChainAlias(nextID, contract.ChainAlias)
 					if !ok {
 						log.Warnw("failed to get community ID by chain alias", "chainAlias", contract.ChainAlias, "ID", nextID)
 						continue
@@ -152,18 +159,24 @@ func (l *CommunityHub) ScanNewCommunities() {
 						}
 						continue
 					}
-					if err := l.validateData(onchainCommunity); err != nil {
+					if err := ch.validateData(onchainCommunity); err != nil {
 						log.Warnw("failed to validate community data", "error", err)
 						continue
 					}
 					// store the community in the database
-					if err := l.addCommunityToDB(onchainCommunity); err != nil {
+					if err := ch.addCommunityToDB(onchainCommunity); err != nil {
 						log.Warnw("failed to add community to database", "error", err)
+						continue
+					}
+					// register token addresses in the census3 service and set
+					// the strategy ID in the community
+					if err := ch.registerTokenAddresses(onchainCommunity); err != nil {
+						log.Warnw("failed to register token addresses", "error", err)
 						continue
 					}
 				}
 			}
-			time.Sleep(l.discoverCooldown)
+			time.Sleep(ch.discoverCooldown)
 		}
 	}()
 }
@@ -221,13 +234,21 @@ func (ch *CommunityHub) SyncCommunities() {
 								if !errors.Is(err, ErrCommunityNotFound) {
 									log.Warnw("failed to get community from database", "error", err)
 								}
+								// store the community in the database
 								if err := ch.addCommunityToDB(onchainCommunity); err != nil {
 									log.Warnw("failed to add community to database", "error", err)
 								}
+								// register token addresses in the census3
+								// service and set the strategy ID in the
+								// community
+								if err := ch.registerTokenAddresses(onchainCommunity); err != nil {
+									log.Warnw("failed to register token addresses", "error", err)
+									continue
+								}
 								continue
 							}
-							// join the community data from the contract with the
-							// community data from the database
+							// join the community data from the contract with
+							// the community data from the database
 							community, err := ch.joinCommunityData(dbCommunity, onchainCommunity)
 							if err != nil {
 								log.Warnw("failed to join community data", "error", err)
@@ -236,6 +257,13 @@ func (ch *CommunityHub) SyncCommunities() {
 							// update the community in the database
 							if err := ch.updateCommunityToDB(community); err != nil {
 								log.Warnw("failed to update community in database", "error", err)
+								continue
+							}
+							// try to register token addresses in the census3
+							// service and set the strategy ID in the community
+							// if it need to be updated
+							if err := ch.registerTokenAddresses(onchainCommunity); err != nil {
+								log.Warnw("failed to register token addresses", "error", err)
 								continue
 							}
 						}
@@ -248,10 +276,10 @@ func (ch *CommunityHub) SyncCommunities() {
 }
 
 // Stop method stops the listener and waits for the goroutines to finish.
-func (l *CommunityHub) Stop() {
+func (ch *CommunityHub) Stop() {
 	log.Info("stopping communities hub scanner")
-	l.cancel()
-	l.waiter.Wait()
+	ch.cancel()
+	ch.waiter.Wait()
 }
 
 // CommunityContract method gets the contract of a community by the community ID.
@@ -293,7 +321,12 @@ func (ch *CommunityHub) UpdateCommunity(newData *HubCommunity) error {
 	if err := contract.SetCommunity(resultData); err != nil {
 		return errors.Join(ErrSettingCommunity, err)
 	}
-	return ch.updateCommunityToDB(resultData)
+	if err := ch.updateCommunityToDB(resultData); err != nil {
+		return errors.Join(ErrSettingCommunity, err)
+	}
+	// try to register token addresses in the census3 service and set the
+	// strategy ID in the community if it need to be updated
+	return ch.registerTokenAddresses(resultData)
 }
 
 // CommunityIDByChainID method gets the community ID by the chain ID and the
@@ -312,8 +345,8 @@ func (ch *CommunityHub) CommunityIDByChainID(id, chainID uint64) (string, bool) 
 // ID of the community. It gets the chain alias from the chain ID and creates
 // the community ID using the chain alias and the ID. If the chain alias is not
 // found, it returns an empty string and false.
-func (h *CommunityHub) CommunityIDByChainAlias(id uint64, chainAlias string) (string, bool) {
-	if _, ok := h.ChainIDFromAlias(chainAlias); !ok {
+func (ch *CommunityHub) CommunityIDByChainAlias(id uint64, chainAlias string) (string, bool) {
+	if _, ok := ch.ChainIDFromAlias(chainAlias); !ok {
 		return "", false
 	}
 	return fmt.Sprintf(chainPrefixFormat, chainAlias, fmt.Sprint(id)), true
@@ -496,9 +529,9 @@ func (ch *CommunityHub) communityFromDB(communityID string) (*HubCommunity, erro
 // the HubToDB helper method to convert the HubCommunity struct to a dbmongo
 // Community struct. If something goes wrong creating the community, it returns
 // an error.
-func (l *CommunityHub) addCommunityToDB(hcommunity *HubCommunity) error {
+func (ch *CommunityHub) addCommunityToDB(hcommunity *HubCommunity) error {
 	// if community already exists in the database, update it
-	current, err := l.db.Community(hcommunity.CommunityID)
+	current, err := ch.db.Community(hcommunity.CommunityID)
 	if err != nil {
 		if dbmongo.IsDBClosed(err) {
 			return ErrClosedDB
@@ -506,7 +539,7 @@ func (l *CommunityHub) addCommunityToDB(hcommunity *HubCommunity) error {
 		return errors.Join(ErrAddCommunity, err)
 	}
 	if current != nil {
-		return l.updateCommunityToDB(hcommunity)
+		return ch.updateCommunityToDB(hcommunity)
 	}
 	// if community does not exist in the database, create it in the database
 	dbc, err := HubToDB(hcommunity)
@@ -514,7 +547,7 @@ func (l *CommunityHub) addCommunityToDB(hcommunity *HubCommunity) error {
 		return err
 	}
 	// create community in the database including the first admin as the creator
-	if err := l.db.AddCommunity(dbc); err != nil {
+	if err := ch.db.AddCommunity(dbc); err != nil {
 		if dbmongo.IsDBClosed(err) {
 			return ErrClosedDB
 		}
@@ -527,17 +560,93 @@ func (l *CommunityHub) addCommunityToDB(hcommunity *HubCommunity) error {
 // the HubToDB helper method to convert the HubCommunity struct to a dbmongo
 // Community struct. If something goes wrong creating the community, it returns
 // an error.
-func (l *CommunityHub) updateCommunityToDB(hcommunity *HubCommunity) error {
+func (ch *CommunityHub) updateCommunityToDB(hcommunity *HubCommunity) error {
 	dbCommunity, err := HubToDB(hcommunity)
 	if err != nil {
 		return err
 	}
 	// create community in the database including the first admin as the creator
-	if err := l.db.UpdateCommunity(dbCommunity); err != nil {
+	if err := ch.db.UpdateCommunity(dbCommunity); err != nil {
 		if dbmongo.IsDBClosed(err) {
 			return ErrClosedDB
 		}
 		return errors.Join(ErrAddCommunity, err)
 	}
 	return nil
+}
+
+// registerTokenAddresses method registers the token addresses in the census3
+// service. It skips if the census type is not ERC20 or NFT. It creates the
+// token in the census3 service and creates a new strategy with the created
+// tokens if there is more than one token. If there is only one token, it gets
+// the token info from the census3 service to know the default strategy ID.
+// Then it stores the strategy ID in the community. It returns an error if the
+// blockchain is invalid, if there are no token addresses, if the token is
+// already created, if the strategy is already created, or if there is an error
+// setting the strategy ID in the community.
+func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
+	// skip if the census type is not ERC20 or NFT
+	if hcommunity.CensusType != CensusTypeERC20 && hcommunity.CensusType != CensusTypeNFT {
+		return nil
+	}
+	nTokens := len(hcommunity.CensusAddesses)
+	if nTokens == 0 {
+		return fmt.Errorf("no token addresses")
+	}
+	tokenAliases := []string{}
+	predicateTokens := map[string]*c3api.StrategyToken{}
+	tokenCreated := false
+	for _, cAddress := range hcommunity.CensusAddesses {
+		chainID, ok := ChainIDByShortName[cAddress.Blockchain]
+		if !ok {
+			return fmt.Errorf("invalid blockchain")
+		}
+		var err error
+		if err = ch.census3.CreateToken(&c3api.Token{
+			ID:      cAddress.Address.Hex(),
+			ChainID: chainID,
+		}); err != nil && !strings.Contains(err.Error(), "token already created") {
+			return err
+		}
+		tokenCreated = tokenCreated || err == nil
+		tokenAlias := fmt.Sprintf("%s:%s", cAddress.Blockchain, cAddress.Address.Hex())
+		tokenAliases = append(tokenAliases, tokenAlias)
+		predicateTokens[tokenAlias] = &c3api.StrategyToken{
+			ID:      cAddress.Address.Hex(),
+			ChainID: chainID,
+		}
+	}
+	// if no token was created, check if the community census has already a
+	// strategy set, if so, skip
+	if !tokenCreated {
+		if _, err := ch.db.CommunityCensusStrategy(hcommunity.CommunityID); err == nil {
+			return nil
+		}
+	}
+	// if the community census has no strategy set, or any of the tokens was
+	// created, create a new strategy with the created tokens:
+	//  - if there is only one token, get the token info from census3 to know
+	//    the default strategy ID,
+	//  - if not create a new strategy with the created tokens
+	var strategyID uint64
+	if len(predicateTokens) == 1 {
+		token := predicateTokens[tokenAliases[0]]
+		tokenInfo, err := ch.census3.Token(token.ID, token.ChainID, "")
+		if err != nil {
+			return err
+		}
+		strategyID = tokenInfo.DefaultStrategy
+	} else {
+		var err error
+		strategyID, err = ch.census3.CreateStrategy(&c3api.Strategy{
+			Alias:     fmt.Sprintf("CommunityHub-%s", hcommunity.Name),
+			Predicate: strings.Join(tokenAliases, fmt.Sprintf(" %s ", strategyoperators.ORSUMTag)),
+			Tokens:    predicateTokens,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	// set the strategy ID in the community
+	return ch.db.SetCommunityCensusStrategy(hcommunity.CommunityID, strategyID)
 }
