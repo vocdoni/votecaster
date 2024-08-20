@@ -318,13 +318,14 @@ func main() {
 	// Create the community hub service
 	var comHub *communityhub.CommunityHub
 	if communityHubChainsConfigPath != "" && chainsConfs != nil {
-		comHub, err = communityhub.NewCommunityHub(mainCtx, web3pool, &communityhub.CommunityHubConfig{
-			ChainAliases:      chainsConfs.ChainChainIDByAlias(),
-			ContractAddresses: chainsConfs.ContractsAddressesByChainAlias(),
-			DB:                db,
-			PrivKey:           communityHubAdminPrivKey,
-		})
-		if err != nil {
+		if comHub, err = communityhub.NewCommunityHub(mainCtx, web3pool,
+			census3Client, &communityhub.CommunityHubConfig{
+				ChainAliases:      chainsConfs.ChainChainIDByAlias(),
+				ContractAddresses: chainsConfs.ContractsAddressesByChainAlias(),
+				DB:                db,
+				PrivKey:           communityHubAdminPrivKey,
+			},
+		); err != nil {
 			log.Warnw("failed to create community hub", "error", err)
 		}
 		comHub.ScanNewCommunities()
