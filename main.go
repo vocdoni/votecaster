@@ -360,7 +360,8 @@ func main() {
 	// Create the Vocdoni handler
 	apiTokenUUID := uuid.MustParse(apiToken)
 	handler, err := NewVocdoniHandler(apiEndpoint, vocdoniPrivKey, censusInfo,
-		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, comHub, repUpdater, adminFID)
+		webAppDir, db, mainCtx, neynarcli, &apiTokenUUID, as, census3Client,
+		comHub, repUpdater, adminFID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -728,6 +729,10 @@ func main() {
 	}
 
 	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}", http.MethodGet, "public", handler.communityHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}/status", http.MethodGet, "public", handler.communityStatusHandler); err != nil {
 		log.Fatal(err)
 	}
 
