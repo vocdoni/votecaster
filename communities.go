@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/vocdoni/vote-frame/communityhub"
@@ -213,18 +214,19 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 		}
 		// add community to the list
 		communities.Communities = append(communities.Communities, &Community{
-			ID:              c.ID,
-			Name:            c.Name,
-			LogoURL:         c.ImageURL,
-			GroupChatURL:    c.GroupChatURL,
-			Admins:          admins,
-			Notifications:   c.Notifications,
-			CensusType:      c.Census.Type,
-			CensusAddresses: cAddresses,
-			CensusChannel:   cChannel,
-			UserRef:         userRef,
-			Channels:        c.Channels,
-			Disabled:        c.Disabled,
+			ID:                   c.ID,
+			Name:                 c.Name,
+			LogoURL:              c.ImageURL,
+			GroupChatURL:         c.GroupChatURL,
+			Admins:               admins,
+			Notifications:        c.Notifications,
+			CensusType:           c.Census.Type,
+			CensusAddresses:      cAddresses,
+			CensusChannel:        cChannel,
+			UserRef:              userRef,
+			Channels:             c.Channels,
+			Disabled:             c.Disabled,
+			CanSendAnnouncements: c.LastAnnouncement.Add(DefaultAnnouncementTimeSpan).Before(time.Now()),
 		})
 	}
 	res, err := json.Marshal(communities)
@@ -276,18 +278,19 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 	}
 	// encode the community
 	res, err := json.Marshal(Community{
-		ID:              dbCommunity.ID,
-		Name:            dbCommunity.Name,
-		LogoURL:         dbCommunity.ImageURL,
-		GroupChatURL:    dbCommunity.GroupChatURL,
-		Admins:          admins,
-		Notifications:   dbCommunity.Notifications,
-		CensusType:      dbCommunity.Census.Type,
-		CensusAddresses: cAddresses,
-		CensusChannel:   cChannel,
-		UserRef:         userRef,
-		Channels:        dbCommunity.Channels,
-		Disabled:        dbCommunity.Disabled,
+		ID:                   dbCommunity.ID,
+		Name:                 dbCommunity.Name,
+		LogoURL:              dbCommunity.ImageURL,
+		GroupChatURL:         dbCommunity.GroupChatURL,
+		Admins:               admins,
+		Notifications:        dbCommunity.Notifications,
+		CensusType:           dbCommunity.Census.Type,
+		CensusAddresses:      cAddresses,
+		CensusChannel:        cChannel,
+		UserRef:              userRef,
+		Channels:             dbCommunity.Channels,
+		Disabled:             dbCommunity.Disabled,
+		CanSendAnnouncements: dbCommunity.LastAnnouncement.Add(DefaultAnnouncementTimeSpan).Before(time.Now()),
 	})
 	if err != nil {
 		return ctx.Send([]byte("error encoding community"), http.StatusInternalServerError)

@@ -134,18 +134,19 @@ type CensusAddress struct {
 // (FarcasterProfile), the census addresses (CensusAddress) and the channels
 // (Channel)
 type Community struct {
-	ID              string           `json:"id"`
-	Name            string           `json:"name"`
-	LogoURL         string           `json:"logoURL"`
-	GroupChatURL    string           `json:"groupChat"`
-	Admins          []*User          `json:"admins,omitempty"`
-	Notifications   bool             `json:"notifications"`
-	CensusType      string           `json:"censusType,omitempty"`
-	CensusAddresses []*CensusAddress `json:"censusAddresses,omitempty"`
-	CensusChannel   *Channel         `json:"censusChannel,omitempty"`
-	UserRef         *User            `json:"userRef,omitempty"`
-	Channels        []string         `json:"channels,omitempty"`
-	Disabled        bool             `json:"disabled"`
+	ID                   string           `json:"id"`
+	Name                 string           `json:"name"`
+	LogoURL              string           `json:"logoURL"`
+	GroupChatURL         string           `json:"groupChat"`
+	Admins               []*User          `json:"admins,omitempty"`
+	Notifications        bool             `json:"notifications"`
+	CensusType           string           `json:"censusType,omitempty"`
+	CensusAddresses      []*CensusAddress `json:"censusAddresses,omitempty"`
+	CensusChannel        *Channel         `json:"censusChannel,omitempty"`
+	UserRef              *User            `json:"userRef,omitempty"`
+	Channels             []string         `json:"channels,omitempty"`
+	Disabled             bool             `json:"disabled"`
+	CanSendAnnouncements bool             `json:"canSendAnnouncements"`
 }
 
 // CommunityList defines the list of communities
@@ -227,8 +228,7 @@ type RemindersStatus struct {
 // AnnouncementRequest defines the parameters to send an announcement, including
 // the content of the announcement and the users to send the announcement to.
 type AnnouncementRequest struct {
-	Content string            `json:"content"` // content of the reminder
-	Users   map[uint64]string `json:"users"`   // map of userFID to username
+	Content string `json:"content"` // content of the reminder
 }
 
 // AnnouncementResponse defines the response of an announcement request,

@@ -170,9 +170,6 @@ func (v *vocdoniHandler) sendAnnouncementsHandler(msg *apirest.APIdata, ctx *htt
 	if req.Content == "" {
 		return ctx.Send([]byte("missing content in announcement request"), http.StatusBadRequest)
 	}
-	if len(req.Users) == 0 {
-		return ctx.Send([]byte("missing users in announcement request"), http.StatusBadRequest)
-	}
 	// get access profile to use the warpcast api key of the current user
 	accessProfile, err := v.db.UserAccessProfile(auth.UserID)
 	if err != nil {
@@ -214,7 +211,7 @@ func (v *vocdoniHandler) sendAnnouncementsHandler(msg *apirest.APIdata, ctx *htt
 	taskID := util.RandomHex(16)
 	v.backgroundQueue.Store(taskID, AnnouncementStatus{
 		CommunityID: communityID,
-		Total:       len(req.Users),
+		Fails:       make(map[string]string),
 	})
 	// send the announcement to all the users of the community
 	go func() {
@@ -232,12 +229,13 @@ func (v *vocdoniHandler) sendAnnouncementsHandler(msg *apirest.APIdata, ctx *htt
 			v.backgroundQueue.Store(taskID, currentStatus)
 			return
 		}
+		// update the total number of users to send the announcement to
+		currentStatus.Total = len(communityUsers) - 1 // exclude the sender
+		v.backgroundQueue.Store(taskID, currentStatus)
 		// send the announcement to the users in the community
-		for fid, username := range req.Users {
-			// check if the user is in the community
-			if _, ok := communityUsers[fid]; !ok {
-				currentStatus.Fails[username] = "user not in community"
-				v.backgroundQueue.Store(taskID, currentStatus)
+		for fid, username := range communityUsers {
+			// skip the user that sends the announcement
+			if fid == auth.UserID {
 				continue
 			}
 			// send the announcement to the user via warpcast api
