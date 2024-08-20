@@ -146,6 +146,14 @@ type Community struct {
 	UserRef         *User            `json:"userRef,omitempty"`
 	Channels        []string         `json:"channels,omitempty"`
 	Disabled        bool             `json:"disabled"`
+	Ready           bool             `json:"ready"`
+}
+
+// CommunityStatus defines the status of a community, including if it is ready
+// to be used and the progress of the community setup
+type CommunityStatus struct {
+	Ready    bool `json:"ready"`
+	Progress int  `json:"progress"`
 }
 
 // CommunityList defines the list of communities

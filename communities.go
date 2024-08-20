@@ -17,6 +17,13 @@ import (
 	"go.vocdoni.io/dvote/log"
 )
 
+var chainIDByShortName = map[string]uint64{
+	"ethereum": 1,
+	"base":     8453,
+	"zora":     7777777,
+	"degen":    666666666,
+}
+
 func (v *vocdoniHandler) parseCommunityIDFromURL(ctx *httprouter.HTTPContext) (string, string, uint64, error) {
 	// get community id from the URL
 	strID := ctx.URLParam("communityID")
@@ -41,6 +48,45 @@ func (v *vocdoniHandler) parseCommunityIDFromURL(ctx *httprouter.HTTPContext) (s
 		return "", "", 0, fmt.Errorf("invalid community ID")
 	}
 	return communityID, chainAlias, id, nil
+}
+
+// CommunityStatus method checks the status of a community based on the census
+// type. If the census type is not based on ERC20 or NFT, it returns true and
+// 100% progress, because different types of census do not require syncing, they
+// depend on external sources. If the census type is based on ERC20 or NFT, it
+// iterates over the addresses of the community getting the status of the token
+// in census3. It returns false if any token is not synced, and the average
+// progress of all tokens.
+func (v *vocdoniHandler) CommunityStatus(community *mongo.Community) (bool, int, error) {
+	// return error if the community is nil
+	if community == nil {
+		return false, 0, fmt.Errorf("community not found")
+	}
+	// return true if the community is not based on ERC20 or NFT
+	if community.Census.Type != mongo.TypeCommunityCensusERC20 &&
+		community.Census.Type != mongo.TypeCommunityCensusNFT {
+		return true, 100, nil
+	}
+	synced := true
+	progress := 0
+	nTokens := len(community.Census.Addresses)
+	// iterate over the addresses of the community getting status of token in census3
+	for _, contract := range community.Census.Addresses {
+		chainID, ok := chainIDByShortName[contract.Blockchain]
+		if !ok {
+			return false, 0, fmt.Errorf("invalid blockchain alias")
+		}
+		tokenInfo, err := v.census3.Token(contract.Address, chainID, "")
+		if err != nil {
+			return false, 0, fmt.Errorf("error getting token info: %w", err)
+		}
+		if tokenInfo == nil {
+			return false, 0, fmt.Errorf("token not found")
+		}
+		synced = synced && tokenInfo.Status.Synced
+		progress += tokenInfo.Status.Progress / nTokens
+	}
+	return synced, progress, nil
 }
 
 // censusChannelOrAddresses gets the census channel or addresses based on the
@@ -211,6 +257,11 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 		if err != nil && err != farcasterapi.ErrChannelNotFound {
 			return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
 		}
+		// check if the community is ready (soft check, if it fails, continue)
+		ready, _, err := v.CommunityStatus(&c)
+		if err != nil {
+			log.Warnw("error getting community status", "err", err, "community", c.ID)
+		}
 		// add community to the list
 		communities.Communities = append(communities.Communities, &Community{
 			ID:              c.ID,
@@ -225,6 +276,7 @@ func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httpr
 			UserRef:         userRef,
 			Channels:        c.Channels,
 			Disabled:        c.Disabled,
+			Ready:           ready,
 		})
 	}
 	res, err := json.Marshal(communities)
@@ -274,6 +326,11 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 	if err != nil && err != farcasterapi.ErrChannelNotFound {
 		return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
 	}
+	// check if the community is ready (hard check, if it fails return an error)
+	ready, _, err := v.CommunityStatus(dbCommunity)
+	if err != nil {
+		return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
+	}
 	// encode the community
 	res, err := json.Marshal(Community{
 		ID:              dbCommunity.ID,
@@ -288,9 +345,40 @@ func (v *vocdoniHandler) communityHandler(msg *apirest.APIdata, ctx *httprouter.
 		UserRef:         userRef,
 		Channels:        dbCommunity.Channels,
 		Disabled:        dbCommunity.Disabled,
+		Ready:           ready,
 	})
 	if err != nil {
 		return ctx.Send([]byte("error encoding community"), http.StatusInternalServerError)
+	}
+	return ctx.Send(res, http.StatusOK)
+}
+
+func (v *vocdoniHandler) communityStatusHandler(_ *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// get community id from the URL
+	communityID, _, _, err := v.parseCommunityIDFromURL(ctx)
+	if err != nil {
+		return ctx.Send([]byte(err.Error()), http.StatusBadRequest)
+	}
+	// get the community from the database by its id
+	dbCommunity, err := v.db.Community(communityID)
+	if err != nil {
+		return ctx.Send([]byte("error getting community"), http.StatusInternalServerError)
+	}
+	if dbCommunity == nil {
+		return ctx.Send([]byte("community not found"), http.StatusNotFound)
+	}
+	// get the status of the community
+	ready, progress, err := v.CommunityStatus(dbCommunity)
+	if err != nil {
+		return ctx.Send([]byte(err.Error()), http.StatusInternalServerError)
+	}
+	// encode the status
+	res, err := json.Marshal(CommunityStatus{
+		Ready:    ready,
+		Progress: progress,
+	})
+	if err != nil {
+		return ctx.Send([]byte("error encoding community status"), http.StatusInternalServerError)
 	}
 	return ctx.Send(res, http.StatusOK)
 }

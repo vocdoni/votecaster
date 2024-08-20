@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
+	c3cli "github.com/vocdoni/census3/apiclient"
 	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/farcasterapi"
@@ -43,6 +44,7 @@ type vocdoniHandler struct {
 	electionLRU   *lru.Cache[string, *api.Election]
 	fcapi         farcasterapi.API
 	airstack      *airstack.Airstack
+	census3       *c3cli.HTTPclient
 	comhub        *communityhub.CommunityHub
 	repUpdater    *reputation.Updater
 
@@ -61,6 +63,7 @@ func NewVocdoniHandler(
 	fcapi farcasterapi.API,
 	token *uuid.UUID,
 	airstack *airstack.Airstack,
+	census3 *c3cli.HTTPclient,
 	comhub *communityhub.CommunityHub,
 	repUpdater *reputation.Updater,
 	adminFID uint64,
@@ -100,6 +103,7 @@ func NewVocdoniHandler(
 		db:            db,
 		fcapi:         fcapi,
 		airstack:      airstack,
+		census3:       census3,
 		comhub:        comhub,
 		repUpdater:    repUpdater,
 		adminFID:      adminFID,
