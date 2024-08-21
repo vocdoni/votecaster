@@ -232,7 +232,14 @@ func (ms *MongoStorage) addCommunity(community *Community) error {
 func (ms *MongoStorage) updateCommunity(community *Community) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
+	// prevent to override community census strategy if it is zero
+	if community.Census.Strategy == 0 {
+		currentCommunity, err := ms.community(community.ID)
+		if err != nil {
+			return fmt.Errorf("cannot update community: %w", err)
+		}
+		community.Census.Strategy = currentCommunity.Census.Strategy
+	}
 	updateDoc, err := dynamicUpdateDocument(community, []string{"notifications", "disabled"})
 	if err != nil {
 		return fmt.Errorf("failed to create update document: %w", err)
@@ -336,22 +343,4 @@ func (ms *MongoStorage) SetCommunityCensusStrategy(communityID string, strategyI
 	defer cancel()
 	_, err := ms.communities.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"census.strategy": strategyID}})
 	return err
-}
-
-// CommunityCensusStrategy returns the census strategy of the community with the
-// given ID.
-func (ms *MongoStorage) CommunityCensusStrategy(communityID string) (uint64, error) {
-	ms.keysLock.RLock()
-	defer ms.keysLock.RUnlock()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	var community Community
-	if err := ms.communities.FindOne(ctx, bson.M{"_id": communityID}).Decode(&community); err != nil {
-		log.Errorf("error getting community %s: %v", communityID, err)
-		return 0, err
-	}
-	if community.Census.Strategy == 0 {
-		return 0, ErrNoResults
-	}
-	return community.Census.Strategy, nil
 }

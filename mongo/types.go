@@ -377,7 +377,6 @@ func dynamicUpdateDocument(item interface{}, alwaysUpdateTags []string) (bson.M,
 			update[tag] = field.Interface()
 		}
 	}
-
 	return bson.M{"$set": update}, nil
 }
 
