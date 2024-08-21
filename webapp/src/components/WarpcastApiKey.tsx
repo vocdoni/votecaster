@@ -74,7 +74,13 @@ export const WarpcastApiKey: React.FC = (props: BoxProps) => {
                 <FormControl isInvalid={!!errors.apikey}>
                   <Input
                     placeholder='Paste here your API Key'
-                    {...register('apikey', { required: 'This field is required' })}
+                    {...register('apikey', {
+                      required: 'This field is required',
+                      minLength: {
+                        message: 'Too short, are you sure this is a valid API Key?',
+                        value: 64,
+                      },
+                    })}
                   />
                   <FormErrorMessage>{errors.apikey?.message?.toString()}</FormErrorMessage>
                 </FormControl>
