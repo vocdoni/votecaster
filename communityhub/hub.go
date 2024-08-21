@@ -645,7 +645,7 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 			ID:      cAddress.Address.Hex(),
 			Type:    tokenType,
 			ChainID: chainID,
-		}); err != nil {
+		}); err != nil && !errors.Is(err, c3cli.ErrAlreadyExists) {
 			return err
 		}
 		// set the flag to know if there are new tokens to create their strategy
@@ -690,7 +690,7 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 			Predicate: strings.Join(tokenAliases, fmt.Sprintf(" %s ", strategyoperators.ORSUMTag)),
 			Tokens:    predicateTokens,
 		})
-		if err != nil {
+		if err != nil && !errors.Is(err, c3cli.ErrAlreadyExists) {
 			return err
 		}
 	}

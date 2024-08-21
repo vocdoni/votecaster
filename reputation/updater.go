@@ -888,31 +888,9 @@ func (u *Updater) userBoosters(user *dbmongo.User) *Boosters {
 // It returns the token holders as a map of addresses and balances. It returns an
 // error if the token holders data cannot be fetched.
 func (u *Updater) tokenHolders(address common.Address, chainID uint64) (map[common.Address]*big.Int, error) {
-	tokenHolders := make(map[common.Address]*big.Int)
 	tokenInfo, err := u.census3.Token(address.Hex(), chainID, "")
 	if err != nil {
 		return nil, fmt.Errorf("error getting token info: %w", err)
-	} else {
-		holdersQueueID, err := u.census3.HoldersByStrategy(tokenInfo.DefaultStrategy)
-		if err != nil {
-			return nil, fmt.Errorf("error getting KIWI holders queue ID: %w", err)
-		} else {
-			for {
-				holders, finished, err := u.census3.HoldersByStrategyQueue(
-					tokenInfo.DefaultStrategy, holdersQueueID)
-				if err != nil {
-					return nil, fmt.Errorf("error getting token holders from the queue: %w", err)
-				}
-				if finished {
-					for holder, balance := range holders {
-						if balance.Cmp(big.NewInt(0)) > 0 {
-							tokenHolders[holder] = balance
-						}
-					}
-					break
-				}
-			}
-		}
 	}
-	return tokenHolders, nil
+	return u.census3.AllHoldersByStrategy(tokenInfo.DefaultStrategy)
 }
