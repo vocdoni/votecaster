@@ -109,10 +109,11 @@ func (c *CensusInfo) FromFile(file string) error {
 
 // FarcasterParticipant is a participant in the Farcaster network to be included in the census.
 type FarcasterParticipant struct {
-	PubKey   []byte   `json:"pubkey"`
-	Weight   *big.Int `json:"weight"`
-	Username string   `json:"username"`
-	FID      uint64   `json:"fid"`
+	PubKey      []byte   `json:"pubkey"`
+	Weight      *big.Int `json:"weight"`
+	Username    string   `json:"username"`
+	FID         uint64   `json:"fid"`
+	Delegations uint32   `json:"delegations"`
 }
 
 // CreateCensus creates a new census from a list of participants.
@@ -1190,6 +1191,81 @@ func (v *vocdoniHandler) trackStepProgress(censusID types.HexBytes, step, totalS
 	}
 }
 
+// findWeightAndSignersForCensusRecord is a helper function for the processCensusRecords method.
+// It finds the final weight, including delegations, and the signers of a user.
+// It creates a FarcasterParticipant for each signer of the user and sends it to the participants channel.
+// If a participant has weight 0, it is not sent to the channel.
+func findWeightAndSignersForCensusRecord(user *mongo.User, addressMap map[string]*big.Int, db *mongo.MongoStorage, delegations []mongo.Delegation, participantsCh chan *FarcasterParticipant) {
+	// find the addres on the map to get the weight
+	// the weight is the sum of the weights of all the addresses of the user
+	userWeight := new(big.Int).SetUint64(0)
+	for _, addr := range user.Addresses {
+		weightAddress, ok := addressMap[helpers.NormalizeAddressString(addr)]
+		if ok {
+			userWeight = userWeight.Add(userWeight, weightAddress)
+		}
+	}
+	// by default, a user has not delegated weight and has a weight is
+	// the sum of weights of all addresses of the user. If the user has
+	// the vote delegated, the weight is 0. If the
+	// user has votes delegations, the weight is the number of
+	// delegations. The final user weight is the sum of the user weight
+	// and the delegated weight, if that sum is 0, the user is not
+	// included in the census.
+	delegatedWeight := big.NewInt(0)
+	delegationsCount := uint32(0)
+	for _, delegation := range delegations {
+		// if the user has delegated its vote, assign weight 0
+		if delegation.From == user.UserID {
+			userWeight = big.NewInt(0)
+			continue
+		}
+		// if the user has votes delegated to him, sum them on deleagatedWeight
+		if delegation.To == user.UserID {
+			delegator, err := db.User(delegation.From)
+			if err != nil {
+				log.Warnw("error fetching user from database", "fid", delegation.From, "error", err)
+				continue
+			}
+			partialDelegatedWeight := big.NewInt(0)
+			// sum the weight of all the addresses of the delegator
+			for _, addr := range delegator.Addresses {
+				weightAddress, ok := addressMap[helpers.NormalizeAddressString(addr)]
+				if ok {
+					partialDelegatedWeight = partialDelegatedWeight.Add(partialDelegatedWeight, weightAddress)
+				}
+			}
+			// if the weight is 0, the delegator is not included in the census and the delegation is ignored
+			if partialDelegatedWeight.Cmp(big.NewInt(0)) != 0 {
+				delegationsCount++
+				delegatedWeight = delegatedWeight.Add(delegatedWeight, partialDelegatedWeight)
+			} else {
+				log.Warnw("delegator has no weight, skiping...", "fid", delegation.From, "address", delegator.Addresses)
+			}
+		}
+	}
+	// if the final weight is 0, the user is not included in the census
+	finalWeight := userWeight.Add(userWeight, delegatedWeight)
+	if finalWeight.Cmp(big.NewInt(0)) == 0 {
+		return
+	}
+
+	for _, signer := range user.Signers {
+		signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
+		if err != nil {
+			log.Warnw("error decoding signer", "signer", signer, "err", err)
+			continue
+		}
+		participantsCh <- &FarcasterParticipant{
+			PubKey:      signerBytes,
+			Weight:      finalWeight,
+			Username:    user.Username,
+			FID:         user.UserID,
+			Delegations: delegationsCount,
+		}
+	}
+}
+
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.
 // The record is expected to be a string containing the address and the weight.
 // Returns the list of participants and the total number of unique addresses available in the records.
@@ -1321,61 +1397,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 				pendingAddressesCh <- addr
 				return
 			}
-
-			// find the addres on the map to get the weight
-			// the weight is the sum of the weights of all the addresses of the user
-			userWeight := new(big.Int).SetUint64(0)
-			for _, addr := range user.Addresses {
-				weightAddress, ok := addressMap[helpers.NormalizeAddressString(addr)]
-				if ok {
-					userWeight = userWeight.Add(userWeight, weightAddress)
-				}
-			}
-			// by default, a user has not delegated weight and has a weight is
-			// the sum of weights of all addresses of the user. If the user has
-			// the vote delegated, the weight is 0. If the
-			// user has votes delegations, the weight is the number of
-			// delegations. The final user weight is the sum of the user weight
-			// and the delegated weight, if that sum is 0, the user is not
-			// included in the census.
-			delegatedWeight := big.NewInt(0)
-			for _, delegation := range delegations {
-				if delegation.From == user.UserID {
-					userWeight = big.NewInt(0)
-				}
-				if delegation.To == user.UserID {
-					delegator, err := v.db.User(delegation.From)
-					if err != nil {
-						log.Warnw("error fetching user from database", "address", addr, "error", err)
-						continue
-					}
-					for _, addr := range delegator.Addresses {
-						weightAddress, ok := addressMap[helpers.NormalizeAddressString(addr)]
-						if ok {
-							delegatedWeight = delegatedWeight.Add(delegatedWeight, weightAddress)
-						}
-					}
-				}
-			}
-			// if the final weight is 0, the user is not included in the census
-			finalWeight := userWeight.Add(userWeight, delegatedWeight)
-			if finalWeight.Cmp(big.NewInt(0)) == 0 {
-				return
-			}
-
-			for _, signer := range user.Signers {
-				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
-				if err != nil {
-					log.Warnw("error decoding signer", "signer", signer, "err", err)
-					continue
-				}
-				participantsCh <- &FarcasterParticipant{
-					PubKey:   signerBytes,
-					Weight:   finalWeight,
-					Username: user.Username,
-					FID:      user.UserID,
-				}
-			}
+			findWeightAndSignersForCensusRecord(user, addressMap, v.db, delegations, participantsCh)
 			processedAddresses.Add(1)
 		}(address)
 	}
@@ -1431,41 +1453,15 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 				}
 			}
 
-			// find the addres on the map to get the weight
-			// the weight is the sum of the weights of all the addresses of the user
-			weight := new(big.Int).SetUint64(0)
-			for _, addr := range userData.VerificationsAddresses {
-				weightAddress, ok := addressMap[helpers.NormalizeAddressString(addr)]
-				if ok {
-					weight = weight.Add(weight, weightAddress)
-				}
-			}
-			if weight.Cmp(big.NewInt(0)) == 0 {
-				log.Warnw("user has no weight, skiping...", "fid", userData.FID, "address", userData.VerificationsAddresses)
-				continue
-			}
-
-			// Add the user to the participants list (with all the signers)
-			for _, signer := range userData.Signers {
-				signerBytes, err := hex.DecodeString(strings.TrimPrefix(signer, "0x"))
-				if err != nil {
-					log.Warnw("error decoding signer", "signer", signer, "err", err)
-					continue
-				}
-				participants = append(participants, &FarcasterParticipant{
-					PubKey:   signerBytes,
-					Weight:   weight,
-					Username: userData.Username,
-					FID:      userData.FID,
-				})
-			}
+			findWeightAndSignersForCensusRecord(dbUser, addressMap, v.db, delegations, participantsCh)
 			count++
 		}
 		processedAddresses.Add(uint32(to - i))
 	}
 	if len(pendingAddresses) > 0 {
-		log.Infow("users found on farcaster", "count", count, "ratio", fmt.Sprintf("%.2f%%", 100*float64(count)/float64(len(pendingAddresses))))
+		log.Infow("users found on remote farcaster API", "count", count, "ratio", fmt.Sprintf("%.2f%%", 100*float64(count)/float64(len(pendingAddresses))))
 	}
+
 	return participants, uint32(len(addressMap)), nil
 }
 
