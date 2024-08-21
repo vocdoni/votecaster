@@ -11,6 +11,7 @@ import {
   Link,
   LinkProps,
   Progress,
+  StackProps,
   Text,
   VStack,
 } from '@chakra-ui/react'
@@ -32,7 +33,7 @@ type CommunityDelegateProps = {
   community: Community
 }
 
-export const Delegates = ({ community }: { community: Community }) => {
+export const Delegates = ({ community, ...props }: { community: Community } & StackProps) => {
   const { isAuthenticated, profile } = useAuth()
   const { data, isLoading, error } = useDelegations(community)
   const [delegation, setDelegation] = useState<Delegation | undefined>()
@@ -59,7 +60,7 @@ export const Delegates = ({ community }: { community: Community }) => {
   }
 
   return (
-    <VStack alignItems='start' flex={1}>
+    <VStack {...props}>
       <Heading size='sm'>Delegate your vote</Heading>
       <Text fontSize='small' fontStyle='italic'>
         You can delegate your voting power to any community member to vote on your behalf. You may revoke the delegation

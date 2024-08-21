@@ -126,7 +126,7 @@ export const CommunitiesView = ({ community, chain: chainAlias, refetch }: Commu
       </GridItem>
       <GridItem gridArea='links'>
         <WhiteBox flexWrap={{ base: 'wrap', lg: 'nowrap' }}>
-          <VStack alignItems='start' fontSize='sm' flexDir='column' flex={1}>
+          <VStack alignItems='start' fontSize='sm' flexDir='column' flex={{ base: 'initial', lg: 1 }}>
             <Heading size={'sm'} mb={2}>
               Community Info
             </Heading>
@@ -173,7 +173,7 @@ export const CommunitiesView = ({ community, chain: chainAlias, refetch }: Commu
             )}
             <CensusTypeInfo community={community} />
           </VStack>
-          <Delegates community={community} />
+          <Delegates community={community} alignItems='start' flex={{ base: 'initial', lg: 1 }} />
         </WhiteBox>
       </GridItem>
       {!!communityPolls && (
