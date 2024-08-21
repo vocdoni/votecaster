@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/vocdoni/vote-frame/mongo"
+	"github.com/vocdoni/vote-frame/reputation"
 )
 
 const (
@@ -11,6 +12,16 @@ const (
 	minPaginatedItems   = int64(1)
 	maxPaginatedItems   = int64(100)
 )
+
+// VotecasterProfile is the profile of a votecaster user.
+type VotecasterProfile struct {
+	User               *mongo.User             `json:"user"`
+	Polls              []mongo.ElectionRanking `json:"polls"`
+	MutedUsers         []*mongo.User           `json:"mutedUsers"`
+	Delegations        []mongo.Delegation      `json:"delegations"`
+	Reputation         reputation.Reputation  `json:"reputation"`
+	WarpcastAPIEnabled bool                    `json:"warpcastApiEnabled"`
+}
 
 // FarcasterProfile is the profile of a farcaster user.
 type FarcasterProfile struct {

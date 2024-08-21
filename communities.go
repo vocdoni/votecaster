@@ -65,7 +65,7 @@ func (v *vocdoniHandler) CommunityStatus(community *mongo.Community) (bool, int,
 	nTokens := len(community.Census.Addresses)
 	// iterate over the addresses of the community getting status of token in census3
 	for _, contract := range community.Census.Addresses {
-		chainID, ok := communityhub.ChainIDByShortName[contract.Blockchain]
+		chainID, ok := v.comhub.Census3ChainID(contract.Blockchain)
 		if !ok {
 			return false, 0, fmt.Errorf("invalid blockchain alias")
 		}
