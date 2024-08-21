@@ -11,7 +11,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/vocdoni/census3/apiclient"
-	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/alfafrens"
 	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/farcasterapi"
@@ -31,7 +30,6 @@ type Updater struct {
 
 	db            *dbmongo.MongoStorage
 	fapi          farcasterapi.API
-	airstack      *airstack.Airstack
 	census3       *apiclient.HTTPclient
 	lastUpdate    time.Time
 	maxConcurrent int
@@ -62,16 +60,12 @@ type Updater struct {
 // including the parent context, the database, the Airstack client, the Census3
 // client, and the maximum number of concurrent updates.
 func NewUpdater(ctx context.Context, db *dbmongo.MongoStorage, fapi farcasterapi.API,
-	as *airstack.Airstack, c3 *apiclient.HTTPclient, maxConcurrent int,
-) (*Updater, error) {
+	c3 *apiclient.HTTPclient, maxConcurrent int) (*Updater, error) {
 	if db == nil {
 		return nil, errors.New("database is required")
 	}
 	if fapi == nil {
 		return nil, errors.New("farcaster api is required")
-	}
-	if as == nil {
-		return nil, errors.New("airstack client is required")
 	}
 	if c3 == nil {
 		return nil, errors.New("census3 client is required")
@@ -82,7 +76,6 @@ func NewUpdater(ctx context.Context, db *dbmongo.MongoStorage, fapi farcasterapi
 		cancel:                     cancel,
 		db:                         db,
 		fapi:                       fapi,
-		airstack:                   as,
 		census3:                    c3,
 		lastUpdate:                 time.Time{},
 		maxConcurrent:              maxConcurrent,
@@ -387,17 +380,9 @@ func (u *Updater) fetchHolders() error {
 	}
 	log.Debugw("haberdashery nft holders", "holders", len(u.haberdasheryNFTHolders))
 	// update TokyoDAO NFT holders
-	tokyoDAONFTHolders, err := u.airstack.Client.TokenBalances(
-		TokyoDAONFTAddress, TokyoDAONFTChainShortName)
+	u.tokyoDAONFTHolders, err = u.tokenHolders(TokyoDAONFTAddress, TokyoDAONFTChainChainID)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error getting TokyoDAO NFT holders: %w", err))
-	} else {
-		u.tokyoDAONFTHolders = make(map[common.Address]*big.Int)
-		for _, holder := range tokyoDAONFTHolders {
-			if holder.Balance.Cmp(big.NewInt(0)) > 0 {
-				u.tokyoDAONFTHolders[holder.Address] = holder.Balance
-			}
-		}
 	}
 	log.Debugw("tokyo dao nft holders", "holders", len(u.tokyoDAONFTHolders))
 	// update Proxy
@@ -617,19 +602,11 @@ func (u *Updater) communityConstants(community *dbmongo.Community) (float64, uin
 		}
 		censusSize = uint64(len(users))
 	case dbmongo.TypeCommunityCensusERC20, dbmongo.TypeCommunityCensusNFT:
-		singleUsers := map[common.Address]bool{}
-		for _, token := range community.Census.Addresses {
-			holders, err := u.airstack.TokenBalances(common.HexToAddress(token.Address), token.Blockchain)
-			if err != nil {
-				return 0, 0, fmt.Errorf("error fetching token holders: %w", err)
-			}
-			for _, holder := range holders {
-				if _, ok := singleUsers[holder.Address]; !ok {
-					singleUsers[holder.Address] = true
-				}
-			}
+		holders, err := u.census3.AllHoldersByStrategy(community.Census.Strategy)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error fetching token holders: %w", err)
 		}
-		censusSize = uint64(len(singleUsers))
+		censusSize = uint64(len(holders))
 	case dbmongo.TypeCommunityCensusFollowers:
 		fid, err := communityhub.DecodeUserChannelFID(community.Census.Channel)
 		if err != nil {
