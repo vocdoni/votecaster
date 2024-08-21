@@ -63,13 +63,11 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 	} else {
 		profile.Reputation = *reputation.ReputationToAPIResponse(rep)
 	}
-	log.Info(profile)
 	// Marshal the response
 	data, err := json.Marshal(profile)
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)
 	}
-	log.Info(string(data))
 	return ctx.Send(data, apirest.HTTPstatusOK)
 }
 
