@@ -1,27 +1,21 @@
 import {
-  Alert,
-  AlertDescription,
   Avatar,
   Button,
   Flex,
   FormControl,
   FormControlProps,
   FormErrorMessage,
-  FormHelperText,
   FormLabel,
   IconButton,
   Input,
   InputGroup,
   InputRightElement,
-  Link,
-  ListItem,
   Radio,
   RadioGroup,
   Select,
   Spinner,
   Stack,
   Text,
-  UnorderedList,
 } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { chakraComponents, GroupBase, OptionProps, Select as RSelect } from 'chakra-react-select'
@@ -130,9 +124,8 @@ const CensusTypeSelector = ({
     { value: 'community', label: '🏘️ Community based', visible: !!complete },
     { value: 'channel', label: '⛩ Farcaster channel gated' },
     { value: 'followers', label: '❤️ My Farcaster followers and me' },
-    { value: 'custom', label: '🦄 Token based via CSV', visible: !!complete && !composer },
-    { value: 'nft', label: '🎨 NFT based via Census3' },
-    { value: 'erc20', label: '💰 ERC20 based via Census3' },
+    { value: 'nft', label: '🎨 NFT based via Census3', visible: !complete },
+    { value: 'erc20', label: '💰 ERC20 based via Census3', visible: !complete },
   ].filter((o) => o.visible !== false)
 
   return (
@@ -236,51 +229,6 @@ const CensusTypeSelector = ({
           <FormLabel htmlFor='channel'>Farcaster channel</FormLabel>
           <Controller name='channel' render={({ field }) => <ChannelSelector admin={admin} {...field} />} />
           <FormErrorMessage>{errors.channel?.message?.toString()}</FormErrorMessage>
-        </FormControl>
-      )}
-      {censusType === 'custom' && (
-        <FormControl isRequired {...props} isDisabled={isDisabled}>
-          <FormLabel htmlFor='csv'>CSV files</FormLabel>
-          <Input
-            id='csv'
-            placeholder='Upload CSV'
-            type='file'
-            multiple
-            accept='text/csv,application/csv,.csv'
-            {...register('csv', {
-              required: {
-                value: true,
-                message: 'This field is required',
-              },
-            })}
-          />
-          {errors.csv ? (
-            <FormErrorMessage>{errors.csv?.message?.toString()}</FormErrorMessage>
-          ) : (
-            <FormHelperText>
-              <Alert status='info'>
-                <AlertDescription>
-                  The CSV files <strong>must include Ethereum addresses and their balances</strong> from any network.
-                  You can build your own at:
-                  <UnorderedList>
-                    <ListItem>
-                      <Link isExternal href='https://holders.at' variant='primary'>
-                        holders.at
-                      </Link>{' '}
-                      for NFTs
-                    </ListItem>
-                    <ListItem>
-                      <Link isExternal href='https://collectors.poap.xyz' variant='primary'>
-                        collectors.poap.xyz
-                      </Link>{' '}
-                      for POAPs
-                    </ListItem>
-                  </UnorderedList>
-                  <strong>If an address appears multiple times, its balances will be aggregated.</strong>
-                </AlertDescription>
-              </Alert>
-            </FormHelperText>
-          )}
         </FormControl>
       )}
     </>

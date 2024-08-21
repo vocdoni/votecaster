@@ -10,7 +10,7 @@ declare global {
     blockchain: string
   }
 
-  type CensusType = 'farcaster' | 'channel' | 'followers' | 'custom' | 'erc20' | 'nft' | 'community' | 'alfafrens'
+  type CensusType = 'farcaster' | 'channel' | 'followers' | 'erc20' | 'nft' | 'community' | 'alfafrens'
 
   type Census = {
     censusId: string

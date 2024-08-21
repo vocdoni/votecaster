@@ -193,18 +193,6 @@ export const usePollFormProvider = () => {
             })
             break
           }
-          case 'custom': {
-            const lineBreak = new Uint8Array([10]) // 10 is the byte value for '\n'
-            const contents = new Blob(
-              Array.from(data.csv as unknown as Iterable<unknown>).flatMap((file: unknown) => [
-                file as BlobPart,
-                lineBreak,
-              ]),
-              { type: 'text/csv' }
-            )
-            call = bfetch(`${appUrl}/census/csv`, { method: 'POST', body: contents })
-            break
-          }
           case 'community': {
             if (!data.community) {
               throw new Error('community not received 🤔')
@@ -233,9 +221,6 @@ export const usePollFormProvider = () => {
           }
           if (census.fromTotalAddresses) {
             setCensusRecords(census.fromTotalAddresses)
-          }
-          if (data.censusType === 'custom') {
-            census.size = census.usernames.length
           }
 
           election.census = census

@@ -18,8 +18,6 @@ export const censusTypeToEnum = (census: CensusType) => {
       return ContractCensusType.CHANNEL
     case 'followers':
       return ContractCensusType.FOLLOWERS
-    case 'custom':
-      return ContractCensusType.CSV
     case 'erc20':
       return ContractCensusType.ERC20
     case 'nft':
