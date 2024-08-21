@@ -51,13 +51,7 @@ const Form: FC<FormProps> = ({ communityId, composer, ...props }) => {
               <>
                 <Question />
                 <Choices />
-                <CensusTypeSelector
-                  complete
-                  isDisabled={loading}
-                  composer={composer}
-                  showAsSelect
-                  communityId={communityId}
-                />
+                <CensusTypeSelector oneClickPoll isDisabled={loading} showAsSelect communityId={communityId} />
                 <Notify />
                 <Duration />
 

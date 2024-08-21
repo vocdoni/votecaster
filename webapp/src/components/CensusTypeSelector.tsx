@@ -38,18 +38,16 @@ export type CensusFormValues = ChannelFormValues & {
 }
 
 export type CensusTypeSelectorProps = FormControlProps & {
-  complete?: boolean
+  oneClickPoll?: boolean
   communityId?: string
   admin?: boolean
-  composer?: boolean
   showAsSelect?: boolean
 }
 
 const CensusTypeSelector = ({
-  complete,
+  oneClickPoll,
   communityId,
   admin,
-  composer,
   showAsSelect,
   isDisabled,
   ...props
@@ -81,7 +79,7 @@ const CensusTypeSelector = ({
   } = useQuery({
     queryKey: ['communities', 'byAdmin', profile?.fid],
     queryFn: fetchCommunitiesByAdmin(bfetch, profile!, { offset: 0, limit: 20 }),
-    enabled: isAuthenticated && !!complete,
+    enabled: isAuthenticated && !!oneClickPoll,
   })
   const [initCommunity, setInitCommunity] = useState<Community | undefined>(undefined)
 
@@ -120,12 +118,12 @@ const CensusTypeSelector = ({
   }
 
   const options = [
-    { value: 'farcaster', label: '🌐 All farcaster users', visible: !!complete },
-    { value: 'community', label: '🏘️ Community based', visible: !!complete },
+    { value: 'farcaster', label: '🌐 All farcaster users', visible: !!oneClickPoll },
+    { value: 'community', label: '🏘️ Community based', visible: !!oneClickPoll },
     { value: 'channel', label: '⛩ Farcaster channel gated' },
     { value: 'followers', label: '❤️ My Farcaster followers and me' },
-    { value: 'nft', label: '🎨 NFT based via Census3', visible: !complete },
-    { value: 'erc20', label: '💰 ERC20 based via Census3', visible: !complete },
+    { value: 'nft', label: '🎨 NFT based via Census3', visible: !oneClickPoll },
+    { value: 'erc20', label: '💰 ERC20 based via Census3', visible: !oneClickPoll },
   ].filter((o) => o.visible !== false)
 
   return (

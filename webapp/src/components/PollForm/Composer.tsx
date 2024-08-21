@@ -52,7 +52,7 @@ export const Composer: React.FC = () => {
               <Text fontWeight={600}>Advanced settings</Text>
             </AccordionButton>
             <AccordionPanel as={VStack} gap={4}>
-              <CensusTypeSelector composer complete showAsSelect isDisabled={loading} />
+              <CensusTypeSelector oneClickPoll showAsSelect isDisabled={loading} />
               <Notify />
               <Duration />
             </AccordionPanel>
