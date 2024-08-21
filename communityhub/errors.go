@@ -6,6 +6,9 @@ var (
 	// ErrMissingDB is returned when no database is provided during CommunituHub
 	// initialization
 	ErrMissingDB = fmt.Errorf("missing db")
+	// ErrMissingCensus3 is returned when no census3 client is provided during
+	// CommunityHub initialization
+	ErrMissingCensus3 = fmt.Errorf("missing db")
 	// ErrMissingContracts is returned when no contracts addresses and chain ids
 	// are provided during CommunityHub initialization
 	ErrMissingContracts = fmt.Errorf("missing contracts addresses and chain id")

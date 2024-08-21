@@ -32,45 +32,44 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 	if err != nil {
 		return ctx.Send([]byte("could not get user access profile"), apirest.HTTPstatusInternalErr)
 	}
-	profile := map[string]any{
-		"user":               user,
-		"warpcastApiEnabled": accessprofile.WarpcastAPIKey != "",
+	profile := VotecasterProfile{
+		User:               user,
+		Polls:              []mongo.ElectionRanking{},
+		MutedUsers:         []*mongo.User{},
+		Delegations:        []mongo.Delegation{},
+		Reputation:         reputation.Reputation{},
+		WarpcastAPIEnabled: accessprofile.WarpcastAPIKey != "",
 	}
 	// Get the elections created by the user. If the user is not found, it
 	// continues with an empty list.
-	userElections, err := v.db.ElectionsByUser(auth.UserID, 16)
+	profile.Polls, err = v.db.ElectionsByUser(auth.UserID, 16)
 	if err != nil && !errors.Is(err, mongo.ErrElectionUnknown) {
 		log.Warnw("could not get user elections", "error", err)
-	} else {
-		profile["polls"] = userElections
 	}
 	// Get muted users by current user. If the user is not found, it continues
 	// with an empty list.
-	mutedUsers, err := v.db.ListNotificationMutedUsers(auth.UserID)
+	profile.MutedUsers, err = v.db.ListNotificationMutedUsers(auth.UserID)
 	if err != nil && !errors.Is(err, mongo.ErrUserUnknown) {
 		log.Warnw("could not get muted users", "error", err)
-	} else {
-		profile["mutedUsers"] = mutedUsers
 	}
 	// get user delegations
-	delegations, err := v.db.DelegationsFrom(auth.UserID)
-	if err != nil {
+	if profile.Delegations, err = v.db.DelegationsFrom(auth.UserID); err != nil {
 		return fmt.Errorf("could not get user delegations: %v", err)
-	} else {
-		profile["delegations"] = delegations
 	}
 	// get user reputation
 	rep, err := v.db.DetailedUserReputation(auth.UserID)
-	if err != nil {
+	if err != nil && !errors.Is(err, mongo.ErrUserUnknown) {
 		log.Warnw("could not get user reputation", "error", err)
 	} else {
-		profile["reputation"] = reputation.ReputationToAPIResponse(rep)
+		profile.Reputation = *reputation.ReputationToAPIResponse(rep)
 	}
+	log.Info(profile)
 	// Marshal the response
 	data, err := json.Marshal(profile)
 	if err != nil {
 		return fmt.Errorf("could not marshal response: %v", err)
 	}
+	log.Info(string(data))
 	return ctx.Send(data, apirest.HTTPstatusOK)
 }
 

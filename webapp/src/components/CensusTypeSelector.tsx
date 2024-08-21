@@ -29,7 +29,7 @@ import { useEffect, useState } from 'react'
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { MdArrowDropDown } from 'react-icons/md'
-import { fetchAirstackBlockchains } from '~queries/census'
+import { fetchTokenBasedBlockchains } from '~queries/census'
 import { fetchCommunitiesByAdmin } from '~queries/communities'
 import { ucfirst } from '~util/strings'
 import { useAuth } from './Auth/useAuth'
@@ -78,8 +78,7 @@ const CensusTypeSelector = ({
   })
   const { data: blockchains, isLoading: bloading } = useQuery({
     queryKey: ['blockchains'],
-    queryFn: fetchAirstackBlockchains(bfetch),
-    enabled: import.meta.env.airstackEnabled,
+    queryFn: fetchTokenBasedBlockchains(bfetch),
   })
   const {
     data: communities,
@@ -132,8 +131,8 @@ const CensusTypeSelector = ({
     { value: 'channel', label: '⛩ Farcaster channel gated' },
     { value: 'followers', label: '❤️ My Farcaster followers and me' },
     { value: 'custom', label: '🦄 Token based via CSV', visible: !!complete && !composer },
-    { value: 'nft', label: '🎨 NFT based via airstack', isDisabled: !import.meta.env.airstackEnabled },
-    { value: 'erc20', label: '💰 ERC20 based via airstack', isDisabled: !import.meta.env.airstackEnabled },
+    { value: 'nft', label: '🎨 NFT based via Census3' },
+    { value: 'erc20', label: '💰 ERC20 based via Census3' },
   ].filter((o) => o.visible !== false)
 
   return (
@@ -157,7 +156,7 @@ const CensusTypeSelector = ({
           <RadioGroup onChange={(val: CensusType) => setValue('censusType', val)} value={censusType} id='census-type'>
             <Stack direction='column' flexWrap='wrap'>
               {options.map((option, index) => (
-                <Radio key={index} value={option.value} isDisabled={option.isDisabled || isDisabled}>
+                <Radio key={index} value={option.value} isDisabled={isDisabled}>
                   {option.label}
                 </Radio>
               ))}
@@ -200,7 +199,7 @@ const CensusTypeSelector = ({
             <Flex>
               <Select
                 {...register(`addresses.${index}.blockchain`, { required })}
-                defaultValue='ethereum'
+                defaultValue='eth'
                 w='auto'
                 icon={bloading ? <Spinner /> : <MdArrowDropDown />}
               >

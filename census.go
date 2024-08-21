@@ -523,11 +523,34 @@ func (v *vocdoniHandler) censusQueueInfo(msg *apirest.APIdata, ctx *httprouter.H
 	return ctx.Send(data, http.StatusOK)
 }
 
+// tokenBasedCensusBlockchains returns the supported blockchains for token
+// based censuses, it queries the census3 API to get the supported blockchains.
+func (v *vocdoniHandler) tokenBasedCensusBlockchains(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	info, err := v.census3.Info()
+	if err != nil {
+		return ctx.Send([]byte(fmt.Sprintf("error getting blockchains: %v", err)), http.StatusInternalServerError)
+	}
+	var blockchains []string
+	for _, b := range info.SupportedChains {
+		blockchains = append(blockchains, b.ShortName)
+	}
+	data, err := json.Marshal(map[string][]string{"blockchains": blockchains})
+	if err != nil {
+		return ctx.Send([]byte(fmt.Sprintf("error encoding blockchains: %v", err)), http.StatusInternalServerError)
+	}
+	return ctx.Send(data, http.StatusOK)
+}
+
 const (
 	MAXNFTTokens   = 3
 	MAXERC20Tokens = 1
 )
 
+// tokenBasedCensus method creates a new census from the token holders of a
+// group of NFTs or a single ERC20 token. The census is created by the census
+// strategy ID in Census3 service. The process is async and returns the json
+// encoded censusID. It updates the progress in the queue and the result when
+// it's ready.
 func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, createdByFID uint64, delegations []mongo.Delegation) ([]byte, error) {
 	if v.census3 == nil {
 		return nil, fmt.Errorf("census3 client not available")

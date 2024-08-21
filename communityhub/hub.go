@@ -52,6 +52,7 @@ type CommunityHub struct {
 
 	ChainAliases map[string]uint64
 	contracts    map[string]*HubContract
+	c3info       *c3api.APIInfo
 }
 
 // NewCommunityHub function initializes a new CommunityHub instance. It returns
@@ -81,6 +82,13 @@ func NewCommunityHub(
 	if len(conf.ChainAliases) == 0 {
 		return nil, ErrMissingContracts
 	}
+	if census3 == nil {
+		return nil, ErrMissingCensus3
+	}
+	info, err := census3.Info()
+	if err != nil {
+		return nil, err
+	}
 	// initialize the context and the listener
 	ctx, cancel := context.WithCancel(goblalCtx)
 	communityHub := &CommunityHub{
@@ -92,6 +100,7 @@ func NewCommunityHub(
 		census3:      census3,
 		ChainAliases: conf.ChainAliases,
 		contracts:    map[string]*HubContract{},
+		c3info:       info,
 	}
 	// set the scanner cooldowns from the configuration if they are defined, or
 	// use the default one
@@ -576,6 +585,19 @@ func (ch *CommunityHub) updateCommunityToDB(hcommunity *HubCommunity) error {
 	return nil
 }
 
+// Census3ChainID method gets the chain ID from the short name of the blockchain
+// in the census3 service. It iterates over the supported chains in the census3
+// service and returns the chain ID if the short name is found. If the short
+// name is not found, it returns 0 and false.
+func (ch *CommunityHub) Census3ChainID(shortName string) (uint64, bool) {
+	for _, chain := range ch.c3info.SupportedChains {
+		if chain.ShortName == shortName {
+			return chain.ChainID, true
+		}
+	}
+	return 0, false
+}
+
 // registerTokenAddresses method registers the token addresses in the census3
 // service. It skips if the census type is not ERC20 or NFT. It creates the
 // token in the census3 service and creates a new strategy with the created
@@ -607,8 +629,13 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 	newTokens := false
 	// iterate over the token addresses trying to create the token in the census3
 	for _, cAddress := range hcommunity.CensusAddesses {
-		// get the chain ID from the blockchain alias
-		chainID, ok := ChainIDByShortName[cAddress.Blockchain]
+		// overwrite 'ethereum' to 'eth' to match the census3 service and
+		// ensure backwards compatibility
+		if cAddress.Blockchain == "ethereum" {
+			cAddress.Blockchain = "eth"
+		}
+		// get the chain ID from the blockchain shortname
+		chainID, ok := ch.Census3ChainID(cAddress.Blockchain)
 		if !ok {
 			return fmt.Errorf("invalid blockchain")
 		}
@@ -618,10 +645,7 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 			ID:      cAddress.Address.Hex(),
 			Type:    tokenType,
 			ChainID: chainID,
-		}); err != nil && !strings.Contains(err.Error(), "409 Conflict") {
-			// if something goes wrong creating the token, return the error only
-			// if it is not a conflict error (which means the token is already
-			// created)
+		}); err != nil {
 			return err
 		}
 		// set the flag to know if there are new tokens to create their strategy
