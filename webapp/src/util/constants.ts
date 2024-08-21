@@ -15,7 +15,7 @@ export const explorers = {
 export enum RoutePath {
   Base = '/',
   About = '/about',
-  CommunitiesForm = '/communities/form',
+  CommunitiesForm = '/communities/new',
   CommunitiesPaginatedList = '/communities/page?/:page?',
   Community = '/communities/:chain/:id',
   CommunityOld = '/communities/:id',

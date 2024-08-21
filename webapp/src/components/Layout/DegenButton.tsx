@@ -1,9 +1,10 @@
 import { Box, Button, ButtonProps, Image } from '@chakra-ui/react'
 import { Link } from 'react-router-dom'
+import { RoutePath } from '~constants'
 import hat from '/degen-hat.png'
 
 export const CreateFarcasterCommunityButton = () => (
-  <Link to='/communities/new'>
+  <Link to={RoutePath.CommunitiesForm}>
     <DegenButton>Create your Farcaster community</DegenButton>
   </Link>
 )

@@ -3,6 +3,7 @@ import { FaRegStar, FaUsers } from 'react-icons/fa6'
 import { MdOutlineGroupAdd } from 'react-icons/md'
 import { Outlet, Link as RouterLink, useLocation } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
+import { RoutePath } from '~constants'
 
 const CommunitiesLayout = () => (
   <VStack spacing={4} w='full' alignItems='start'>
@@ -30,7 +31,7 @@ const CommunitiesLayout = () => (
       <Text fontSize='larger' fontWeight='500'>
         Create your own community and start managing its governance
       </Text>
-      <Link as={RouterLink} to='/communities/new'>
+      <Link as={RouterLink} to={RoutePath.CommunitiesForm}>
         <Button leftIcon={<MdOutlineGroupAdd />}>Create a community</Button>
       </Link>
     </Box>
