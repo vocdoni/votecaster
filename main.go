@@ -628,19 +628,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if as != nil { // if airstack activated
-		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/nft", http.MethodPost, "private", handler.censusTokenNFTAirstack); err != nil {
-			log.Fatal(err)
-		}
-
-		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/erc20", http.MethodPost, "private", handler.censusTokenERC20Airstack); err != nil {
-			log.Fatal(err)
-		}
-		if err := uAPI.Endpoint.RegisterMethod("/census/airstack/blockchains", http.MethodGet, "public", handler.censusBlockchainsAirstack); err != nil {
-			log.Fatal(err)
-		}
-	}
-
 	if err := uAPI.Endpoint.RegisterMethod("/create/check/{electionID}", http.MethodGet, "public", handler.checkElection); err != nil {
 		log.Fatal(err)
 	}

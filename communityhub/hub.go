@@ -14,6 +14,7 @@ import (
 	c3cli "github.com/vocdoni/census3/apiclient"
 	"github.com/vocdoni/census3/helpers/strategyoperators"
 	c3web3 "github.com/vocdoni/census3/helpers/web3"
+	"github.com/vocdoni/census3/scanner/providers"
 	dbmongo "github.com/vocdoni/vote-frame/mongo"
 	"go.vocdoni.io/dvote/log"
 )
@@ -589,28 +590,46 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 	if hcommunity.CensusType != CensusTypeERC20 && hcommunity.CensusType != CensusTypeNFT {
 		return nil
 	}
-	nTokens := len(hcommunity.CensusAddesses)
-	if nTokens == 0 {
+	// return an error if the community census has not addresses
+	if len(hcommunity.CensusAddesses) == 0 {
 		return fmt.Errorf("no token addresses")
 	}
+	// convert the token type to the expected format in the census3 service
+	tokenType := providers.TokenTypeName(providers.CONTRACT_TYPE_ERC20)
+	if hcommunity.CensusType == CensusTypeNFT {
+		tokenType = providers.TokenTypeName(providers.CONTRACT_TYPE_ERC721)
+	}
+	// create some structures to store the token aliases, the predicate tokens,
+	// if there are new tokens to create their strategy
 	tokenAliases := []string{}
 	predicateTokens := map[string]*c3api.StrategyToken{}
-	tokenCreated := false
+	// create a flag to know if there are new tokens to create their strategy
+	newTokens := false
+	// iterate over the token addresses trying to create the token in the census3
 	for _, cAddress := range hcommunity.CensusAddesses {
+		// get the chain ID from the blockchain alias
 		chainID, ok := ChainIDByShortName[cAddress.Blockchain]
 		if !ok {
 			return fmt.Errorf("invalid blockchain")
 		}
+		// try to create the token in the census3 service
 		var err error
 		if err = ch.census3.CreateToken(&c3api.Token{
 			ID:      cAddress.Address.Hex(),
+			Type:    tokenType,
 			ChainID: chainID,
-		}); err != nil && !strings.Contains(err.Error(), "token already created") {
+		}); err != nil && !strings.Contains(err.Error(), "409 Conflict") {
+			// if something goes wrong creating the token, return the error only
+			// if it is not a conflict error (which means the token is already
+			// created)
 			return err
 		}
-		tokenCreated = tokenCreated || err == nil
+		// set the flag to know if there are new tokens to create their strategy
+		newTokens = newTokens || err == nil
+		// store the token alias and the token in the predicate tokens
 		tokenAlias := fmt.Sprintf("%s:%s", cAddress.Blockchain, cAddress.Address.Hex())
 		tokenAliases = append(tokenAliases, tokenAlias)
+		// store the required information about the token in the predicate tokens
 		predicateTokens[tokenAlias] = &c3api.StrategyToken{
 			ID:      cAddress.Address.Hex(),
 			ChainID: chainID,
@@ -618,8 +637,12 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 	}
 	// if no token was created, check if the community census has already a
 	// strategy set, if so, skip
-	if !tokenCreated {
-		if _, err := ch.db.CommunityCensusStrategy(hcommunity.CommunityID); err == nil {
+	if !newTokens {
+		community, err := ch.db.Community(hcommunity.CommunityID)
+		if err != nil {
+			return err
+		}
+		if community.Census.Strategy != 0 {
 			return nil
 		}
 	}
