@@ -351,7 +351,7 @@ func main() {
 	}
 
 	// start reputation updater
-	repUpdater, err := reputation.NewUpdater(mainCtx, db, neynarcli, as, census3Client, concurrentReputationUpdates)
+	repUpdater, err := reputation.NewUpdater(mainCtx, db, neynarcli, census3Client, concurrentReputationUpdates)
 	if err != nil {
 		log.Fatal(err)
 	}
