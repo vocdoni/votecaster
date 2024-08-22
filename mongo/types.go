@@ -112,14 +112,15 @@ type Election struct {
 
 // Census stores the census of an election ready to be used for voting on farcaster.
 type Census struct {
-	CensusID           string            `json:"censusId" bson:"_id"`
-	Root               string            `json:"root" bson:"root"`
-	ElectionID         string            `json:"electionId" bson:"electionId"`
-	Participants       map[string]string `json:"participants" bson:"participants"`
-	FromTotalAddresses uint32            `json:"fromTotalAddresses" bson:"fromTotalAddresses"`
-	CreatedBy          uint64            `json:"createdBy" bson:"createdBy"`
-	TotalWeight        string            `json:"totalWeight" bson:"totalWeight"`
-	URL                string            `json:"url" bson:"url"`
+	CensusID              string            `json:"censusId" bson:"_id"`
+	Root                  string            `json:"root" bson:"root"`
+	ElectionID            string            `json:"electionId" bson:"electionId"`
+	Participants          map[string]string `json:"participants" bson:"participants"`
+	FromTotalParticipants uint32            `json:"fromTotalParticipants" bson:"fromTotalParticipants"`
+	FromTotalAddresses    uint32            `json:"fromTotalAddresses" bson:"fromTotalAddresses"`
+	CreatedBy             uint64            `json:"createdBy" bson:"createdBy"`
+	TotalWeight           string            `json:"totalWeight" bson:"totalWeight"`
+	URL                   string            `json:"url" bson:"url"`
 }
 
 // ElectionMeta stores non related election information that is useful

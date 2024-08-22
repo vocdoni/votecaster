@@ -261,6 +261,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 		// since each participant can have multiple signers, we need to get the unique usernames
 		uniqueParticipantsMap := make(map[string]*big.Int)
 		totalWeight := new(big.Int).SetUint64(0)
+		totalParticipants := uint32(0) // including delegations
 		for _, p := range participants {
 			if _, ok := uniqueParticipantsMap[p.Username]; ok {
 				// if the username is already in the map, continue
@@ -268,6 +269,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			}
 			uniqueParticipantsMap[p.Username] = p.Weight
 			totalWeight.Add(totalWeight, p.Weight)
+			totalParticipants += p.Delegations + 1
 		}
 		uniqueParticipants := []string{}
 		for k := range uniqueParticipantsMap {
@@ -280,13 +282,15 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			"size", len(ci.Usernames),
 			"totalWeight", totalWeight.String(),
 			"duration", time.Since(startTime),
-			"fromTotalAddresses", totalCSVaddresses)
+			"fromTotalAddresses", totalCSVaddresses,
+			"fromTotalParticipants", totalParticipants,
+		)
 
 		// store the census info in the map
 		v.backgroundQueue.Store(censusID.String(), *ci)
 
 		// add participants to the census in the database
-		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, totalWeight, ci.Url); err != nil {
+		if err := v.db.AddParticipantsToCensus(censusID, uniqueParticipantsMap, ci.FromTotalAddresses, totalParticipants, totalWeight, ci.Url); err != nil {
 			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
 		}
 	}()
@@ -612,6 +616,7 @@ func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, c
 		// since each participant can have multiple signers, we need to get the unique usernames
 		uniqueParticipantsMap := make(map[string]*big.Int)
 		totalWeight := new(big.Int).SetUint64(0)
+		totalParticipants := uint32(0) // including delegations
 		for _, p := range participants {
 			if _, ok := uniqueParticipantsMap[p.Username]; ok {
 				// if the username is already in the map, continue
@@ -619,6 +624,7 @@ func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, c
 			}
 			uniqueParticipantsMap[p.Username] = p.Weight
 			totalWeight.Add(totalWeight, p.Weight)
+			totalParticipants += p.Delegations + 1
 		}
 		uniqueParticipants := []string{}
 		for k := range uniqueParticipantsMap {
@@ -633,6 +639,7 @@ func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, c
 			"duration", time.Since(startTime),
 			"totalAddresses", ci.FromTotalAddresses,
 			"participants", len(ci.Usernames),
+			"totalParticipants", totalParticipants,
 		)
 		// store the census info in the memory map
 		v.backgroundQueue.Store(censusID.String(), *ci)
@@ -641,6 +648,7 @@ func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, c
 			censusID,
 			uniqueParticipantsMap,
 			ci.FromTotalAddresses,
+			totalParticipants,
 			totalWeight,
 			ci.Url,
 		); err != nil {
@@ -709,9 +717,11 @@ func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint6
 			return
 		}
 		uniqueParticipantsMap := make(map[string]*big.Int)
+		totalParticipants := uint32(0) // including delegations
 		for _, p := range participants {
 			if _, ok := uniqueParticipantsMap[p.Username]; !ok {
 				uniqueParticipantsMap[p.Username] = new(big.Int).SetUint64(1)
+				totalParticipants += p.Delegations + 1
 			}
 		}
 		// only return the username list if it's less than the maxUsersNamesToReturn
@@ -727,6 +737,7 @@ func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint6
 			censusID,
 			uniqueParticipantsMap,
 			censusInfo.FromTotalAddresses,
+			totalParticipants,
 			new(big.Int).SetUint64(uint64(len(uniqueParticipantsMap))),
 			censusInfo.Url,
 		); err != nil {
@@ -788,6 +799,7 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []mongo.Del
 		}
 		uniqueParticipantsMap := make(map[string]*big.Int)
 		totalWeight := new(big.Int).SetUint64(0)
+		totalParticipants := uint32(0) // including delegations
 		for _, p := range participants {
 			if _, ok := uniqueParticipantsMap[p.Username]; ok {
 				// if the username is already in the map, continue
@@ -795,6 +807,7 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []mongo.Del
 			}
 			uniqueParticipantsMap[p.Username] = p.Weight
 			totalWeight.Add(totalWeight, p.Weight)
+			totalParticipants += p.Delegations + 1
 		}
 		// only return the username list if it's less than the maxUsersNamesToReturn
 		if len(uniqueParticipantsMap) < maxUsersNamesToReturn {
@@ -807,6 +820,7 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []mongo.Del
 			censusID,
 			uniqueParticipantsMap,
 			uint32(len(users)),
+			totalParticipants,
 			totalWeight,
 			censusInfo.Url,
 		); err != nil {
@@ -817,7 +831,9 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []mongo.Del
 		v.backgroundQueue.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from user followers",
 			"fid", userFID,
-			"participants", len(censusInfo.Usernames))
+			"participants", len(censusInfo.Usernames),
+			"totalParticipants", totalParticipants,
+		)
 	}()
 	// return the censusID to the client
 	return json.Marshal(map[string]string{"censusId": censusID.String()})
@@ -891,6 +907,7 @@ func (v *vocdoniHandler) censusAlfafrensChannel(censusID types.HexBytes, ownerFI
 			censusID,
 			uniqueParticipantsMap,
 			censusInfo.FromTotalAddresses,
+			uint32(len(uniqueParticipantsMap)),
 			new(big.Int).SetUint64(uint64(len(uniqueParticipantsMap))),
 			censusInfo.Url,
 		); err != nil {
