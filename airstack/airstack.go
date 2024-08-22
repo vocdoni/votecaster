@@ -58,6 +58,10 @@ func NewAirstack(
 	}, nil
 }
 
+func (a *Airstack) ApiKey() string {
+	return a.Client.ApiKey()
+}
+
 // MaxHolders returns the maximum number of holders allowed to be retrieved from the Airstack API
 func (a *Airstack) MaxHolders() uint32 {
 	return a.maxHolders
@@ -166,7 +170,7 @@ func (a *Airstack) NumHoldersByTokenAnkrAPI(tokenAddress, blockchain string) (ui
 	return uint32(holderCount.(float64)), nil
 }
 
-func ValidateFrameMessage(msg []byte) {
+func ValidateFrameMessage(msg []byte, apikey string) {
 	go func() {
 		req, err := http.NewRequest(http.MethodPost, validateFrameEndpoint, bytes.NewBuffer(msg))
 		if err != nil {
@@ -174,6 +178,8 @@ func ValidateFrameMessage(msg []byte) {
 			return
 		}
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+apikey)
+
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
 			log.Warn("error sending request:", err)

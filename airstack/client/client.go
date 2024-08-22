@@ -78,6 +78,10 @@ func NewClient(ctx context.Context, endpoint, apiKey string, blockchains []strin
 	return ac, nil
 }
 
+func (c *Client) ApiKey() string {
+	return c.apiKey
+}
+
 func (c *Client) blockchainToTokenBlockchain(b string) (gql.TokenBlockchain, bool) {
 	tokenBlockchain, ok := airstackSupportedBlockchains[b]
 	if !ok {

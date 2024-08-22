@@ -84,7 +84,9 @@ func (v *vocdoniHandler) composerActionHandler(msg *apirest.APIdata, ctx *httpro
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
 	}
 	// validate the frame package to airstack
-	airstack.ValidateFrameMessage(msg.Data)
+	if v.airstack != nil {
+		airstack.ValidateFrameMessage(msg.Data, v.airstack.ApiKey())
+	}
 	// decode the message bytes
 	messageBytes, err := hex.DecodeString(packet.TrustedData.MessageBytes)
 	if err != nil {

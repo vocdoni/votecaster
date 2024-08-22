@@ -169,7 +169,9 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
 	}
 	// validate the frame package to airstack
-	airstack.ValidateFrameMessage(msg.Data)
+	if v.airstack != nil {
+		airstack.ValidateFrameMessage(msg.Data, v.airstack.ApiKey())
+	}
 	// check if the user has delegated their vote
 	dbElection, err := v.db.Election(electionIDbytes)
 	if err != nil {
