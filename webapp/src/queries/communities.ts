@@ -46,6 +46,11 @@ export const useCommunity = (id?: string) => {
   })
 }
 
+export const fetchCommunityStatus = (bfetch: FetchFunction, communityId: CommunityID) => async () => {
+  const response = await bfetch(`${appUrl}/communities/${communityId}/status`)
+  return response.json() as Promise<{ ready: boolean; progress: number }>
+}
+
 export const updateCommunity = async (bfetch: FetchFunction, community: Community) => {
   const response = await bfetch(`${appUrl}/communities/${community.id}`, {
     method: 'PUT',

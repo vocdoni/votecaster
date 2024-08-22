@@ -238,6 +238,7 @@ declare global {
     groupChat: string
     disabled: boolean
     userRef: Profile
+    ready: boolean
   }
 
   type CommunityCreate = Omit<Community, 'userRef'>

@@ -1,4 +1,7 @@
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
   Avatar,
   Button,
   Flex,
@@ -10,6 +13,7 @@ import {
   Input,
   InputGroup,
   InputRightElement,
+  Progress,
   Radio,
   RadioGroup,
   Select,
@@ -17,14 +21,14 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { chakraComponents, GroupBase, OptionProps, Select as RSelect } from 'chakra-react-select'
 import { useEffect, useState } from 'react'
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { MdArrowDropDown } from 'react-icons/md'
 import { fetchTokenBasedBlockchains } from '~queries/census'
-import { fetchCommunitiesByAdmin } from '~queries/communities'
+import { fetchCommunitiesByAdmin, fetchCommunityStatus } from '~queries/communities'
 import { ucfirst } from '~util/strings'
 import { useAuth } from './Auth/useAuth'
 import ChannelSelector, { ChannelFormValues } from './Census/ChannelSelector'
@@ -82,9 +86,11 @@ const CensusTypeSelector = ({
     enabled: isAuthenticated && !!oneClickPoll,
   })
   const [initCommunity, setInitCommunity] = useState<Community | undefined>(undefined)
+  const [syncProgress, setSyncProgress] = useState<number | null>(null)
 
   const censusType = watch('censusType')
   const addresses = watch('addresses')
+  const community = watch('community')
 
   // reset address fields when censusType changes
   useEffect(() => {
@@ -104,6 +110,7 @@ const CensusTypeSelector = ({
 
     setInitCommunity(communities?.communities.find((c) => c.id === communityId))
   }, [communityId, cloading, communities, isSuccess])
+
   // yeah we need to do it in two steps, or use a timeout which would have been a worse solution
   useEffect(() => {
     if (!initCommunity) return
@@ -111,6 +118,31 @@ const CensusTypeSelector = ({
     setValue('censusType', 'community')
     setValue('community', initCommunity)
   }, [initCommunity])
+
+  const { mutate: checkCommunityStatus } = useMutation({
+    mutationFn: fetchCommunityStatus(bfetch, community?.id as CommunityID),
+    onSuccess: (data) => {
+      if (data.ready) {
+        setValue('community', { ...community, ready: true } as Community)
+        setSyncProgress(null)
+      } else {
+        setSyncProgress(data.progress)
+      }
+    },
+    onSettled: async () => {
+      // Refetch communities to get the updated one
+      if (community && !community.ready) {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        checkCommunityStatus()
+      }
+    },
+  })
+
+  useEffect(() => {
+    if (community && !community.ready) {
+      checkCommunityStatus()
+    }
+  }, [community, checkCommunityStatus])
 
   const required = {
     value: true,
@@ -174,6 +206,22 @@ const CensusTypeSelector = ({
                 />
               )}
             />
+            {community && !community.ready && (
+              <Alert status='info' mt={3}>
+                <AlertIcon />
+                <AlertDescription>
+                  Your community is not ready yet, please wait for the sync process to finish.{' '}
+                  {syncProgress !== null && (
+                    <>
+                      <Text size='sm' fontWeight={500} mt={2}>
+                        Progress: {syncProgress}%
+                      </Text>
+                      <Progress value={syncProgress} size='sm' colorScheme='purple' />
+                    </>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
           </FormControl>
         ) : (
           <Flex alignItems='center' direction='column' w='full'>

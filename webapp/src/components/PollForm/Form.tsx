@@ -35,6 +35,8 @@ const Form: FC<FormProps> = ({ communityId, composer, ...props }) => {
   const { reputation } = useReputation()
   const { isAuthenticated } = useAuth()
 
+  const community = methods.watch('community')
+
   return (
     <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 550 }} {...props}>
       <Card w='100%' borderRadius={composer ? 0 : 6}>
@@ -63,7 +65,12 @@ const Form: FC<FormProps> = ({ communityId, composer, ...props }) => {
                 )}
                 {isAuthenticated ? (
                   <>
-                    <Button type='submit' isLoading={loading} loadingText={status}>
+                    <Button
+                      type='submit'
+                      isLoading={loading}
+                      loadingText={status}
+                      isDisabled={community && !community.ready}
+                    >
                       Create
                     </Button>
                     {!composer && <ReputationCard reputation={reputation!} />}
