@@ -616,6 +616,14 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 	if len(hcommunity.CensusAddesses) == 0 {
 		return fmt.Errorf("no token addresses")
 	}
+	// log the token addresses to register
+	log.Infow("registering token addresses", "communityID", hcommunity.CommunityID, "censusType", hcommunity.CensusType, "addresses", func() []string {
+		addresses := make([]string, len(hcommunity.CensusAddesses))
+		for i, cAddress := range hcommunity.CensusAddesses {
+			addresses[i] = cAddress.Address.Hex()
+		}
+		return addresses
+	})
 	// convert the token type to the expected format in the census3 service
 	tokenType := providers.TokenTypeName(providers.CONTRACT_TYPE_ERC20)
 	if hcommunity.CensusType == CensusTypeNFT {
@@ -646,7 +654,7 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 			Type:    tokenType,
 			ChainID: chainID,
 		}); err != nil && !errors.Is(err, c3cli.ErrAlreadyExists) && !strings.Contains(err.Error(), "already created") {
-			return err
+			return fmt.Errorf("error creating token: %w", err)
 		}
 		// set the flag to know if there are new tokens to create their strategy
 		newTokens = newTokens || err == nil
@@ -664,7 +672,7 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 	if !newTokens {
 		community, err := ch.db.Community(hcommunity.CommunityID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error getting community: %w", err)
 		}
 		if community.Census.Strategy != 0 {
 			return nil
@@ -680,7 +688,7 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 		token := predicateTokens[tokenAliases[0]]
 		tokenInfo, err := ch.census3.Token(token.ID, token.ChainID, "")
 		if err != nil {
-			return err
+			return fmt.Errorf("error getting token info: %w", err)
 		}
 		strategyID = tokenInfo.DefaultStrategy
 	} else {
@@ -691,7 +699,7 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 			Tokens:    predicateTokens,
 		})
 		if err != nil && !errors.Is(err, c3cli.ErrAlreadyExists) && !strings.Contains(err.Error(), "already created") {
-			return err
+			return fmt.Errorf("error creating strategy: %w", err)
 		}
 	}
 	// set the strategy ID in the community
