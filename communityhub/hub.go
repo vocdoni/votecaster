@@ -623,7 +623,8 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 			addresses[i] = cAddress.Address.Hex()
 		}
 		return addresses
-	})
+	}())
+
 	// convert the token type to the expected format in the census3 service
 	tokenType := providers.TokenTypeName(providers.CONTRACT_TYPE_ERC20)
 	if hcommunity.CensusType == CensusTypeNFT {
