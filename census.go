@@ -568,35 +568,38 @@ func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, c
 		return nil, fmt.Errorf("cannot add census to database: %w", err)
 	}
 	v.backgroundQueue.Store(censusID.String(), CensusInfo{})
+	log.Debugw("building token based census", "censusID", censusID)
 	go func() {
 		startTime := time.Now()
-		log.Debugw("building Airstack based census", "censusID", censusID)
 		// get holders for each token
 		var holders [][]string
 		var err error
 		v.trackStepProgress(censusID, 1, 3, func(progress chan int) {
+			log.Debugw("getting holders from census3", "strategyID", strategyID)
 			rawHolders, err := v.census3.AllHoldersByStrategy(strategyID)
 			if err != nil {
 				log.Warnw("failed to build token based census, cannot get holders", "err", err.Error())
 				v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})
 				return
 			}
+			log.Debugw("holders received from census3", "count", len(rawHolders))
 			for address, balance := range rawHolders {
 				holders = append(holders, []string{address.Hex(), balance.String()})
 			}
 		})
 		if err != nil {
-			log.Warnw("failed to build census from NFT, cannot get holders", "err", err.Error())
+			log.Warnw("failed to build census, cannot get holders", "err", err.Error())
 			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
 		// create census from token holders
 		var participants []*FarcasterParticipant
 		v.trackStepProgress(censusID, 2, 3, func(progress chan int) {
+			log.Debugw("processing holders", "count", len(holders))
 			participants, _, err = v.processCensusRecords(holders, delegations, progress)
 		})
 		if err != nil {
-			log.Warnw("failed to build census from NFT", "err", err.Error())
+			log.Warnw("failed to build census", "err", err.Error())
 			v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})
 			return
 		}
@@ -655,6 +658,8 @@ func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, c
 			log.Errorw(err, fmt.Sprintf("failed to add participants to census %s", censusID.String()))
 		}
 	}()
+
+	// return the censusID to the client
 	data, err := json.Marshal(map[string]string{"censusId": censusID.String()})
 	if err != nil {
 		return nil, err
@@ -931,52 +936,6 @@ func (v *vocdoniHandler) checkNFTContractHandler(msg *apirest.APIdata, ctx *http
 	return ctx.Send([]byte("ok"), http.StatusOK)
 }
 
-// getTokenHoldersFromAirstack retuns a list of token holders ans their balances given a list of tokens
-// It fetches the information of the token holders by consuming the Airstack API
-// The holders list balances is truncated to the number of decimals of the token (if any).
-func (v *vocdoniHandler) getTokenHoldersFromAirstack(
-	tokens []*CensusToken, censusID types.HexBytes, progress chan int,
-) ([][]string, error) {
-	holders := make([][]string, 0)
-	processedTokens := 0
-	totalTokens := len(tokens)
-	totalHolders := 0
-	for _, token := range tokens {
-		tokenAddress := common.HexToAddress(token.Address)
-		// Get the number of decimals for the token
-		decimals, err := v.airstack.TokenDecimalsByToken(token.Address, token.Blockchain)
-		if err != nil {
-			log.Warnw("failed to fetch token details", "token", token.Address, "error", err)
-		}
-
-		tokenHolders, err := v.airstack.TokenBalances(tokenAddress, token.Blockchain)
-		if err != nil {
-			log.Warnw("failed to create census for token %s: %v", token.Address, err)
-			v.backgroundQueue.Store(censusID.String(), CensusInfo{
-				Error: fmt.Sprintf("cannot get token %s details: %v", token.Address, err),
-			})
-			return nil, err
-		}
-
-		for _, tokenHolder := range tokenHolders {
-			holders = append(holders, []string{tokenHolder.Address.String(), helpers.TruncateDecimals(tokenHolder.Balance, uint32(decimals)).String()})
-		}
-
-		totalHolders += len(tokenHolders)
-		// update the progress if the progress channel is provided
-		// since the response time of GetTokenBalances is unknown, because it dependends on the total number
-		// holders and cannot be known beforehand, update at least the progress between tokens
-		if progress != nil {
-			if currentProcessedTokens := processedTokens + 1; totalTokens >= int(currentProcessedTokens) {
-				currentProgress := 100 * currentProcessedTokens / totalTokens
-				progress <- currentProgress
-			}
-		}
-	}
-	log.Debugf("airstack total holders found: %d", totalHolders)
-	return holders, nil
-}
-
 func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, progress chan int) ([]*FarcasterParticipant, uint32, error) {
 	records, err := ParseCSV(csv)
 	if err != nil {
@@ -1058,12 +1017,13 @@ func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, delegations []mo
 					log.Warnw("error decoding signer", "signer", signer, "err", err)
 					return
 				}
-				participantsCh <- &FarcasterParticipant{
+				// send the participant to the channel
+				safeSendParticipant(participantsCh, &FarcasterParticipant{
 					PubKey:   signerBytes,
 					Weight:   big.NewInt(finalWeight),
 					Username: user.Username,
 					FID:      fid,
-				}
+				})
 			}
 			// update the progress if the progress channel is provided
 			if progress != nil {
@@ -1189,14 +1149,23 @@ func findWeightAndSignersForCensusRecord(user *mongo.User, addressMap map[string
 			log.Warnw("error decoding signer", "signer", signer, "err", err)
 			continue
 		}
-		participantsCh <- &FarcasterParticipant{
+		safeSendParticipant(participantsCh, &FarcasterParticipant{
 			PubKey:      signerBytes,
 			Weight:      finalWeight,
 			Username:    user.Username,
 			FID:         user.UserID,
 			Delegations: delegationsCount,
-		}
+		})
 	}
+}
+
+func safeSendParticipant(ch chan *FarcasterParticipant, value *FarcasterParticipant) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warn("attempted to send participant on a closed channel")
+		}
+	}()
+	ch <- value
 }
 
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.

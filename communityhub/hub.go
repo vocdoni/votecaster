@@ -617,14 +617,6 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 	if len(hcommunity.CensusAddesses) == 0 {
 		return fmt.Errorf("no token addresses")
 	}
-	// log the token addresses to register
-	log.Infow("registering token addresses", "communityID", hcommunity.CommunityID, "censusType", hcommunity.CensusType, "addresses", func() []string {
-		addresses := make([]string, len(hcommunity.CensusAddesses))
-		for i, cAddress := range hcommunity.CensusAddesses {
-			addresses[i] = cAddress.Address.Hex()
-		}
-		return addresses
-	}())
 
 	// convert the token type to the expected format in the census3 service
 	tokenType := providers.TokenTypeName(providers.CONTRACT_TYPE_ERC20)
@@ -669,6 +661,14 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 		if isTokenAlreadyCreated(cAddress.Address) {
 			continue
 		}
+
+		// log the token addresses to register
+		log.Infow("registering token addresses",
+			"communityID", hcommunity.CommunityID,
+			"censusType", hcommunity.CensusType,
+			"addresses", cAddress.Address.Hex(),
+		)
+
 		// try to create the token in the census3 service
 		var err error
 		if err = ch.census3.CreateToken(&c3api.Token{
