@@ -1089,6 +1089,9 @@ func (v *vocdoniHandler) trackStepProgress(censusID types.HexBytes, step, totalS
 // It creates a FarcasterParticipant for each signer of the user and sends it to the participants channel.
 // If a participant has weight 0, it is not sent to the channel.
 func findWeightAndSignersForCensusRecord(user *mongo.User, addressMap map[string]*big.Int, db *mongo.MongoStorage, delegations []mongo.Delegation, participantsCh chan *FarcasterParticipant) {
+	if user == nil || db == nil || participantsCh == nil {
+		return
+	}
 	// find the addres on the map to get the weight
 	// the weight is the sum of the weights of all the addresses of the user
 	userWeight := new(big.Int).SetUint64(0)
