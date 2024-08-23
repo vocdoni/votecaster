@@ -210,7 +210,8 @@ const CensusTypeSelector = ({
               <Alert status='info' mt={3}>
                 <AlertIcon />
                 <AlertDescription>
-                  Your community is not ready yet, please wait for the sync process to finish.{' '}
+                  Your community is not ready yet, please wait for the bootstrap sync process to finish. This step only
+                  needs to run once.
                   {syncProgress !== null && (
                     <>
                       <Text size='sm' fontWeight={500} mt={2}>
