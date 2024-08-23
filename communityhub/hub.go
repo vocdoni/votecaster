@@ -243,17 +243,18 @@ func (ch *CommunityHub) SyncCommunities() {
 								}
 								if !errors.Is(err, ErrCommunityNotFound) {
 									log.Warnw("failed to get community from database", "error", err)
+									continue
 								}
 								// store the community in the database
 								if err := ch.addCommunityToDB(onchainCommunity); err != nil {
 									log.Warnw("failed to add community to database", "error", err)
+									continue
 								}
 								// register token addresses in the census3
 								// service and set the strategy ID in the
 								// community
 								if err := ch.registerTokenAddresses(onchainCommunity); err != nil {
 									log.Warnw("failed to register token addresses", "error", err)
-									continue
 								}
 								continue
 							}
@@ -636,6 +637,22 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 	predicateTokens := map[string]*c3api.StrategyToken{}
 	// create a flag to know if there are new tokens to create their strategy
 	newTokens := false
+
+	// prepare everything to check if the token is already created
+	existingTokensOnCensus3, err := ch.census3.Tokens(-1, "", "")
+	if err != nil {
+		return fmt.Errorf("error getting existing tokens: %w", err)
+	}
+
+	isTokenAlreadyCreated := func(tokenAddress common.Address) bool {
+		for _, token := range existingTokensOnCensus3 {
+			if common.HexToAddress(token.ID).Hex() == tokenAddress.Hex() {
+				return true
+			}
+		}
+		return false
+	}
+
 	// iterate over the token addresses trying to create the token in the census3
 	for _, cAddress := range hcommunity.CensusAddesses {
 		// overwrite 'ethereum' to 'eth' to match the census3 service and
@@ -648,13 +665,20 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 		if !ok {
 			return fmt.Errorf("invalid blockchain")
 		}
+		// skip if the token is already created
+		if isTokenAlreadyCreated(cAddress.Address) {
+			continue
+		}
 		// try to create the token in the census3 service
 		var err error
 		if err = ch.census3.CreateToken(&c3api.Token{
 			ID:      cAddress.Address.Hex(),
 			Type:    tokenType,
 			ChainID: chainID,
-		}); err != nil && !errors.Is(err, c3cli.ErrAlreadyExists) && !strings.Contains(err.Error(), "already created") {
+		}); err != nil {
+			if errors.Is(err, c3cli.ErrAlreadyExists) || strings.Contains(err.Error(), "already created") {
+				continue
+			}
 			return fmt.Errorf("error creating token: %w", err)
 		}
 		// set the flag to know if there are new tokens to create their strategy
