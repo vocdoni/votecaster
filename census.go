@@ -1230,6 +1230,13 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 	pendingAddresses := []string{}
 	var processedAddresses atomic.Uint32
 
+	// Defer closing the channels
+	defer func() {
+		close(participantsCh)
+		close(pendingAddressesCh)
+		close(concurrencyLimit)
+	}()
+
 	// Start goroutines to consume data from channels
 	go func() {
 		for {
@@ -1305,9 +1312,6 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 	}
 
 	wg.Wait()
-	close(participantsCh)
-	close(pendingAddressesCh)
-	close(concurrencyLimit)
 
 	// Fetch the remaining users from the farcaster API
 	count := 0
