@@ -236,6 +236,48 @@ func (ms *MongoStorage) UserByAddress(address string) (*User, error) {
 	return &userByAddress, nil
 }
 
+// UserByAddressBulk returns a map of users that have the given addresses. If the user is not found, it returns an error.
+func (ms *MongoStorage) UserByAddressBulk(addresses []string) (map[string]*User, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	// Normalize all addresses
+	var normalizedAddresses []string
+	for _, addr := range addresses {
+		normalizedAddresses = append(normalizedAddresses, helpers.NormalizeAddressString(addr))
+	}
+
+	// MongoDB query to find all users whose addresses match any in the list
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Query to find users with any of the provided addresses
+	filter := bson.M{"addresses": bson.M{"$in": normalizedAddresses}}
+	cur, err := ms.users.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	// Mapping addresses to users
+	userMap := make(map[string]*User)
+	for cur.Next(ctx) {
+		var user User
+		if err := cur.Decode(&user); err != nil {
+			return nil, err
+		}
+		for _, addr := range user.Addresses {
+			userMap[helpers.NormalizeAddressString(addr)] = &user
+		}
+	}
+
+	if err := cur.Err(); err != nil {
+		return nil, err
+	}
+
+	return userMap, nil
+}
+
 // UserBySigner returns the user that has the given signer. If the user is not found, it returns an error.
 func (ms *MongoStorage) UserBySigner(signer string) (*User, error) {
 	ms.keysLock.RLock()

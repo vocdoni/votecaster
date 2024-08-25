@@ -1228,10 +1228,40 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 	var wg sync.WaitGroup
 	participantsCh := make(chan *FarcasterParticipant) // Channel to collect participants
 	pendingAddressesCh := make(chan string)            // Channel to collect pending addresses
-	concurrencyLimit := make(chan struct{}, 10)        // Concurrency limiter, N is the max number of goroutines
+	concurrencyLimit := make(chan struct{}, 20)        // Concurrency limiter, N is the max number of goroutines
 	participants := []*FarcasterParticipant{}
 	pendingAddresses := []string{}
 	var processedAddresses atomic.Uint32
+	var totalProcessedAddresses atomic.Uint32
+
+	// Collect all addresses to process
+	addresses := make([]string, 0, len(addressMap))
+	for address := range addressMap {
+		addresses = append(addresses, address)
+	}
+
+	// Fetch users by addresses in bulk
+	log.Infow("fetching users from database", "count", len(addresses))
+	startTime := time.Now()
+	batchSize := 10000
+	usersByAddress := make(map[string]*mongo.User)
+	for i := 0; i < len(addresses); i += batchSize {
+		end := i + batchSize
+		if end > len(addresses) {
+			end = len(addresses)
+		}
+		batchAddresses := addresses[i:end]
+		usersByAddressAux, err := v.db.UserByAddressBulk(batchAddresses)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error fetching users from database: %w", err)
+		}
+		// Process the results of this batch
+		for addr, user := range usersByAddressAux {
+			usersByAddress[addr] = user
+		}
+		progress <- int(50 * end / len(addresses))
+	}
+	log.Infow("users fetched from database", "count", len(usersByAddress), "elapsed (s)", time.Since(startTime).Seconds())
 
 	// Defer closing the channels
 	defer func() {
@@ -1283,28 +1313,31 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 				if progress == nil {
 					return
 				}
-				progress <- int(100 * processedAddresses.Load() / uniqueAddressesCount)
+				progress <- 50 + int(50*totalProcessedAddresses.Load()/uniqueAddressesCount)
 			}
 		}
 	}()
 
 	// Processing addresses
+	log.Infow("processing addresses for census", "count", len(addressMap))
+
+	startTime = time.Now()
 	for address := range addressMap {
 		concurrencyLimit <- struct{}{}
 		wg.Add(1)
 		go func(addr string) {
 			defer wg.Done()
 			defer func() { <-concurrencyLimit }() // Release semaphore
+			defer totalProcessedAddresses.Add(1)
 
-			user, err := v.db.UserByAddress(addr)
-			if err != nil {
-				if !errors.Is(err, mongo.ErrUserUnknown) {
-					log.Warnw("error fetching user from database", "address", addr, "error", err)
-				} else {
-					pendingAddressesCh <- addr
-				}
+			// Check if the user was found in the database
+			user, found := usersByAddress[addr]
+			if !found {
+				pendingAddressesCh <- addr
 				return
 			}
+
+			// If the user has no signers, add it to the pending addresses
 			if len(user.Signers) == 0 {
 				pendingAddressesCh <- addr
 				return
@@ -1313,62 +1346,67 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 			processedAddresses.Add(1)
 		}(address)
 	}
-
+	log.Debug("waiting for goroutines to finish on processing addresses")
 	wg.Wait()
+	log.Infow("finish processing addresses", "users found", len(participants), "elapsed (s)", time.Since(startTime).Seconds())
 
-	// Fetch the remaining users from the farcaster API
-	count := 0
-	for i := 0; i < len(pendingAddresses); i += neynar.MaxAddressesPerRequest {
-		// Fetch the user data from the farcaster API
-		ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
-		defer cancel()
-		to := i + neynar.MaxAddressesPerRequest
-		if to > len(pendingAddresses) {
-			to = len(pendingAddresses)
-		}
-		log.Debugw("fetching users from neynar", "from", i, "to", to, "total", len(pendingAddresses))
-		usersData, err := v.fcapi.UserDataByVerificationAddress(ctx2, pendingAddresses[i:to])
-		if err != nil {
-			if errors.Is(err, farcasterapi.ErrNoDataFound) {
-				break
+	// Fetch the remaining users from the Neynar API. Only if the number of cenus addresses is less than 5000
+	if len(pendingAddresses) < 5000 {
+		count := 0
+		for i := 0; i < len(pendingAddresses); i += neynar.MaxAddressesPerRequest {
+			// Fetch the user data from the farcaster API
+			ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+			to := i + neynar.MaxAddressesPerRequest
+			if to > len(pendingAddresses) {
+				to = len(pendingAddresses)
 			}
-			log.Errorw(err, "error fetching users from Neynar API")
-		}
-		log.Debugw("users found on neynar", "count", len(usersData))
-		for _, userData := range usersData {
-			// Add or update the user on the database
-			dbUser, err := v.db.User(userData.FID)
+			log.Debugw("fetching users from neynar", "from", i, "to", to, "total", len(pendingAddresses))
+			usersData, err := v.fcapi.UserDataByVerificationAddress(ctx2, pendingAddresses[i:to])
 			if err != nil {
-				log.Debugw("adding new user to database", "fid", userData.FID)
-				if err := v.db.AddUser(
-					userData.FID,
-					userData.Username,
-					userData.Displayname,
-					helpers.NormalizeAddressStringSlice(userData.VerificationsAddresses),
-					userData.Signers,
-					helpers.NormalizeAddressString(userData.CustodyAddress),
-					0,
-				); err != nil {
-					return nil, 0, err
+				if errors.Is(err, farcasterapi.ErrNoDataFound) {
+					break
 				}
-			} else {
-				log.Debugw("updating user on database", "fid", userData.FID)
-				dbUser.Addresses = helpers.NormalizeAddressStringSlice(userData.VerificationsAddresses)
-				dbUser.Username = userData.Username
-				dbUser.Signers = userData.Signers
-				dbUser.CustodyAddress = helpers.NormalizeAddressString(userData.CustodyAddress)
-				if err := v.db.UpdateUser(dbUser); err != nil {
-					return nil, 0, err
-				}
+				log.Errorw(err, "error fetching users from Neynar API")
 			}
+			log.Debugw("users found on neynar", "count", len(usersData))
+			for _, userData := range usersData {
+				// Add or update the user on the database
+				dbUser, err := v.db.User(userData.FID)
+				if err != nil {
+					log.Debugw("adding new user to database", "fid", userData.FID)
+					if err := v.db.AddUser(
+						userData.FID,
+						userData.Username,
+						userData.Displayname,
+						helpers.NormalizeAddressStringSlice(userData.VerificationsAddresses),
+						userData.Signers,
+						helpers.NormalizeAddressString(userData.CustodyAddress),
+						0,
+					); err != nil {
+						return nil, 0, err
+					}
+				} else {
+					log.Debugw("updating user on database", "fid", userData.FID)
+					dbUser.Addresses = helpers.NormalizeAddressStringSlice(userData.VerificationsAddresses)
+					dbUser.Username = userData.Username
+					dbUser.Signers = userData.Signers
+					dbUser.CustodyAddress = helpers.NormalizeAddressString(userData.CustodyAddress)
+					if err := v.db.UpdateUser(dbUser); err != nil {
+						return nil, 0, err
+					}
+				}
 
-			findWeightAndSignersForCensusRecord(dbUser, addressMap, v.db, delegations, participantsCh)
-			count++
+				findWeightAndSignersForCensusRecord(dbUser, addressMap, v.db, delegations, participantsCh)
+				count++
+			}
+			processedAddresses.Add(uint32(to - i))
 		}
-		processedAddresses.Add(uint32(to - i))
-	}
-	if len(pendingAddresses) > 0 {
-		log.Infow("users found on remote farcaster API", "count", count, "ratio", fmt.Sprintf("%.2f%%", 100*float64(count)/float64(len(pendingAddresses))))
+		if len(pendingAddresses) > 0 {
+			log.Infow("users found on neynar", "count", count, "ratio", fmt.Sprintf("%.2f%%", 100*float64(count)/float64(len(pendingAddresses))))
+		}
+	} else {
+		log.Warnf("skipping fetching users from Neynar API due to the number of pending addresses %d", len(pendingAddresses))
 	}
 
 	return participants, uint32(len(addressMap)), nil
