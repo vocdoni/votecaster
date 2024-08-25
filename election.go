@@ -394,6 +394,18 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		}
 	}
 
+	// Extract the total participants from the census, try several sources
+	totalParticipants := census.FromTotalParticipants
+	if totalParticipants == 0 {
+		totalParticipants = uint32(len(census.Participants))
+		if totalParticipants == 0 {
+			totalParticipants = uint32(dbElection.FarcasterUserCount)
+		}
+		if totalParticipants == 0 {
+			totalParticipants = uint32(census.FromTotalAddresses)
+		}
+	}
+
 	electionInfo := &ElectionInfo{
 		CreatedTime:             dbElection.CreatedTime,
 		ElectionID:              dbElection.ElectionID,
@@ -401,7 +413,7 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		EndTime:                 dbElection.EndTime,
 		Question:                dbElection.Question,
 		CastedVotes:             dbElection.CastedVotes,
-		CensusParticipantsCount: uint64(dbElection.FarcasterUserCount),
+		CensusParticipantsCount: uint64(totalParticipants),
 		Turnout:                 helpers.CalculateTurnout(census.TotalWeight, dbElection.CastedWeight),
 		FID:                     dbElection.UserID,
 		Username:                username,
