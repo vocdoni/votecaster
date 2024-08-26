@@ -241,18 +241,12 @@ func (ms *MongoStorage) UserByAddressBulk(addresses []string) (map[string]*User,
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
-	// Normalize all addresses
-	var normalizedAddresses []string
-	for _, addr := range addresses {
-		normalizedAddresses = append(normalizedAddresses, helpers.NormalizeAddressString(addr))
-	}
-
 	// MongoDB query to find all users whose addresses match any in the list
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// Query to find users with any of the provided addresses
-	filter := bson.M{"addresses": bson.M{"$in": normalizedAddresses}}
+	filter := bson.M{"addresses": bson.M{"$in": helpers.NormalizeAddressStringSlice(addresses)}}
 	cur, err := ms.users.Find(ctx, filter)
 	if err != nil {
 		return nil, err
@@ -267,7 +261,7 @@ func (ms *MongoStorage) UserByAddressBulk(addresses []string) (map[string]*User,
 			return nil, err
 		}
 		for _, addr := range user.Addresses {
-			userMap[helpers.NormalizeAddressString(addr)] = &user
+			userMap[addr] = &user
 		}
 	}
 
@@ -343,4 +337,76 @@ func (ms *MongoStorage) updateUser(user *User) error {
 		return fmt.Errorf("cannot update user: %w", err)
 	}
 	return nil
+}
+
+func (ms *MongoStorage) NormalizeUserAddresses() error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+
+	// Context with a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	// Cursor to iterate over all users
+	cur, err := ms.users.Find(ctx, bson.M{})
+	if err != nil {
+		return fmt.Errorf("error fetching users: %w", err)
+	}
+	defer cur.Close(ctx)
+
+	// Prepare bulk update operations
+	var bulkOps []mongo.WriteModel
+
+	for cur.Next(ctx) {
+		var user User
+		if err := cur.Decode(&user); err != nil {
+			return fmt.Errorf("error decoding user: %w", err)
+		}
+
+		// Normalize addresses
+		normalizedAddresses := make([]string, len(user.Addresses))
+		for i, addr := range user.Addresses {
+			normalizedAddresses[i] = helpers.NormalizeAddressString(addr)
+		}
+
+		// Check if an update is necessary
+		if !equalStringSlices(normalizedAddresses, user.Addresses) {
+			// Create update operation if normalization changed the addresses
+			update := mongo.NewUpdateOneModel()
+			update.SetFilter(bson.M{"_id": user.UserID})
+			update.SetUpdate(bson.M{"$set": bson.M{"addresses": normalizedAddresses}})
+			bulkOps = append(bulkOps, update)
+		}
+	}
+
+	if err := cur.Err(); err != nil {
+		return fmt.Errorf("cursor error: %w", err)
+	}
+
+	// Perform bulk update if there are any updates
+	if len(bulkOps) > 0 {
+		bulkOpts := options.BulkWrite().SetOrdered(true)
+		_, err := ms.users.BulkWrite(ctx, bulkOps, bulkOpts)
+		if err != nil {
+			return fmt.Errorf("error performing bulk update: %w", err)
+		}
+		log.Infof("Normalized %d user addresses in the database", len(bulkOps))
+	} else {
+		log.Info("No user addresses needed normalization")
+	}
+
+	return nil
+}
+
+// Helper function to compare two slices of strings
+func equalStringSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

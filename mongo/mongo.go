@@ -137,6 +137,15 @@ func New(url, database string) (*MongoStorage, error) {
 	if err := migrate.Up(ctx, migrate.AllAvailable); err != nil {
 		log.Errorw(err, "error running migrations")
 	}
+	// Normalize user addresses
+	go func() {
+		startTime := time.Now()
+		log.Infow("normalizing user addresses")
+		if err := ms.NormalizeUserAddresses(); err != nil {
+			log.Error(err)
+		}
+		log.Infow("normalized user addresses", "duration", time.Since(startTime))
+	}()
 	return ms, nil
 }
 

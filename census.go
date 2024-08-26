@@ -1305,7 +1305,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 	// Fetch users by addresses in bulk
 	log.Infow("fetching users from database", "count", len(addresses))
 	startTime := time.Now()
-	batchSize := 5000
+	batchSize := 10000
 	for i := 0; i < len(addresses); i += batchSize {
 		end := i + batchSize
 		if end > len(addresses) {
@@ -1317,8 +1317,8 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 			return nil, 0, fmt.Errorf("error fetching users from database: %w", err)
 		}
 
-		// Process the results of this batch, for each address check if it was found in the database
 		for _, addr := range batchAddresses {
+			// Process the results of this batch, for each address check if it was found in the database
 			concurrencyLimit <- struct{}{}
 			wg.Add(1)
 			go func(addr string) {
@@ -1342,10 +1342,8 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 				processedAddresses.Add(1)
 			}(addr)
 		}
+		wg.Wait()
 	}
-
-	log.Debug("waiting for goroutines to finish on processing addresses...")
-	wg.Wait()
 	log.Infow("users fetched from database", "count", processedAddresses.Load(), "elapsed (s)", time.Since(startTime).Seconds())
 
 	// Fetch the remaining users from the Neynar API. Only if the number of cenus addresses is less than 5000
