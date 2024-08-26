@@ -1312,7 +1312,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 			end = len(addresses)
 		}
 		batchAddresses := addresses[i:end]
-		usersByAddressAux, err := v.db.UserByAddressBulk(batchAddresses)
+		usersByAddress, err := v.db.UserByAddressBulk(batchAddresses)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error fetching users from database: %w", err)
 		}
@@ -1326,7 +1326,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 				defer func() { <-concurrencyLimit }() // Release semaphore
 				defer totalProcessedAddresses.Add(1)
 
-				user, ok := usersByAddressAux[addr]
+				user, ok := usersByAddress[helpers.NormalizeAddressString(addr)]
 				if !ok || user == nil {
 					pendingAddressesCh <- addr
 					return
