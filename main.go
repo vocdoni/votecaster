@@ -355,7 +355,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	repUpdater.Start(reputationUpdateInterval)
+	if err := repUpdater.Start(reputationUpdateInterval); err != nil {
+		log.Fatal(err)
+	}
 	defer repUpdater.Stop()
 
 	// Create the Vocdoni handler

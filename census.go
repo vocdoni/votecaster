@@ -81,11 +81,12 @@ const (
 
 // CensusInfo contains the information of a census.
 type CensusInfo struct {
-	Root               types.HexBytes `json:"root"`
-	Url                string         `json:"uri"`
-	Size               uint64         `json:"size"`
-	Usernames          []string       `json:"usernames,omitempty"`
-	FromTotalAddresses uint32         `json:"fromTotalAddresses,omitempty"`
+	Root                      types.HexBytes `json:"root"`
+	Url                       string         `json:"uri"`
+	Size                      uint64         `json:"size"`
+	Usernames                 []string       `json:"usernames,omitempty"`
+	FromTotalAddresses        uint32         `json:"fromTotalAddresses,omitempty"`
+	FarcasterParticipantCount uint32         `json:"farcasterParticipantCount,omitempty"`
 
 	Error    string          `json:"-"`
 	Progress uint32          `json:"-"` // Progress of the census creation process (0-100)
@@ -276,6 +277,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			uniqueParticipants = append(uniqueParticipants, k)
 		}
 		ci.Usernames = uniqueParticipants
+		ci.FarcasterParticipantCount = uint32(len(uniqueParticipants))
 		ci.FromTotalAddresses = totalCSVaddresses
 		log.Infow("census created from CSV",
 			"censusID", censusID.String(),
@@ -635,6 +637,7 @@ func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, c
 		}
 		ci.Usernames = uniqueParticipants
 		ci.FromTotalAddresses = uint32(len(holders))
+		ci.FarcasterParticipantCount = uint32(len(uniqueParticipants))
 		log.Infow("token census based created",
 			"censusID", censusID.String(),
 			"size", len(ci.Usernames),
@@ -736,6 +739,7 @@ func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint6
 			}
 		}
 		censusInfo.FromTotalAddresses = uint32(len(users))
+		censusInfo.FarcasterParticipantCount = uint32(len(uniqueParticipantsMap))
 		v.backgroundQueue.Store(censusID.String(), *censusInfo)
 		// add participants to the census in the database
 		if err := v.db.AddParticipantsToCensus(
@@ -833,6 +837,7 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []mongo.Del
 		}
 
 		censusInfo.FromTotalAddresses = uint32(len(users))
+		censusInfo.FarcasterParticipantCount = uint32(len(uniqueParticipantsMap))
 		v.backgroundQueue.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from user followers",
 			"fid", userFID,
@@ -906,6 +911,7 @@ func (v *vocdoniHandler) censusAlfafrensChannel(censusID types.HexBytes, ownerFI
 			censusInfo.Usernames = append(censusInfo.Usernames, username)
 		}
 		censusInfo.FromTotalAddresses = uint32(len(users))
+		censusInfo.FarcasterParticipantCount = uint32(len(uniqueParticipantsMap))
 		v.backgroundQueue.Store(censusID.String(), *censusInfo)
 		// add participants to the census in the database
 		if err := v.db.AddParticipantsToCensus(
@@ -1228,7 +1234,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 	var wg sync.WaitGroup
 	participantsCh := make(chan *FarcasterParticipant) // Channel to collect participants
 	pendingAddressesCh := make(chan string)            // Channel to collect pending addresses
-	concurrencyLimit := make(chan struct{}, 20)        // Concurrency limiter, N is the max number of goroutines
+	concurrencyLimit := make(chan struct{}, 10)        // Concurrency limiter, N is the max number of goroutines
 	participants := []*FarcasterParticipant{}
 	pendingAddresses := []string{}
 	var processedAddresses atomic.Uint32
@@ -1239,29 +1245,6 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 	for address := range addressMap {
 		addresses = append(addresses, address)
 	}
-
-	// Fetch users by addresses in bulk
-	log.Infow("fetching users from database", "count", len(addresses))
-	startTime := time.Now()
-	batchSize := 10000
-	usersByAddress := make(map[string]*mongo.User)
-	for i := 0; i < len(addresses); i += batchSize {
-		end := i + batchSize
-		if end > len(addresses) {
-			end = len(addresses)
-		}
-		batchAddresses := addresses[i:end]
-		usersByAddressAux, err := v.db.UserByAddressBulk(batchAddresses)
-		if err != nil {
-			return nil, 0, fmt.Errorf("error fetching users from database: %w", err)
-		}
-		// Process the results of this batch
-		for addr, user := range usersByAddressAux {
-			usersByAddress[addr] = user
-		}
-		progress <- int(50 * end / len(addresses))
-	}
-	log.Infow("users fetched from database", "count", len(usersByAddress), "elapsed (s)", time.Since(startTime).Seconds())
 
 	// Defer closing the channels
 	defer func() {
@@ -1313,42 +1296,56 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 				if progress == nil {
 					return
 				}
-				progress <- 50 + int(50*totalProcessedAddresses.Load()/uniqueAddressesCount)
+				progress <- int(100 * totalProcessedAddresses.Load() / uniqueAddressesCount)
 			}
 		}
 	}()
 
-	// Processing addresses
-	log.Infow("processing addresses for census", "count", len(addressMap))
+	// Fetch users by addresses in bulk
+	log.Infow("fetching users from database", "count", len(addresses))
+	startTime := time.Now()
+	batchSize := 10000
+	for i := 0; i < len(addresses); i += batchSize {
+		end := i + batchSize
+		if end > len(addresses) {
+			end = len(addresses)
+		}
+		batchAddresses := addresses[i:end]
+		usersByAddressAux, err := v.db.UserByAddressBulk(batchAddresses)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error fetching users from database: %w", err)
+		}
 
-	startTime = time.Now()
-	for address := range addressMap {
-		concurrencyLimit <- struct{}{}
-		wg.Add(1)
-		go func(addr string) {
-			defer wg.Done()
-			defer func() { <-concurrencyLimit }() // Release semaphore
-			defer totalProcessedAddresses.Add(1)
+		// Process the results of this batch, for each address check if it was found in the database
+		for _, addr := range batchAddresses {
+			concurrencyLimit <- struct{}{}
+			wg.Add(1)
+			go func(addr string) {
+				defer wg.Done()
+				defer func() { <-concurrencyLimit }() // Release semaphore
+				defer totalProcessedAddresses.Add(1)
 
-			// Check if the user was found in the database
-			user, found := usersByAddress[addr]
-			if !found {
-				pendingAddressesCh <- addr
-				return
-			}
+				user, ok := usersByAddressAux[addr]
+				if !ok || user == nil {
+					pendingAddressesCh <- addr
+					return
+				}
 
-			// If the user has no signers, add it to the pending addresses
-			if len(user.Signers) == 0 {
-				pendingAddressesCh <- addr
-				return
-			}
-			findWeightAndSignersForCensusRecord(user, addressMap, v.db, delegations, participantsCh)
-			processedAddresses.Add(1)
-		}(address)
+				// If the user has no signers, add it to the pending addresses
+				if len(user.Signers) == 0 {
+					pendingAddressesCh <- addr
+					return
+				}
+
+				findWeightAndSignersForCensusRecord(user, addressMap, v.db, delegations, participantsCh)
+				processedAddresses.Add(1)
+			}(addr)
+		}
 	}
-	log.Debug("waiting for goroutines to finish on processing addresses")
+
+	log.Debug("waiting for goroutines to finish on processing addresses...")
 	wg.Wait()
-	log.Infow("finish processing addresses", "users found", len(participants), "elapsed (s)", time.Since(startTime).Seconds())
+	log.Infow("users fetched from database", "count", processedAddresses.Load(), "elapsed (s)", time.Since(startTime).Seconds())
 
 	// Fetch the remaining users from the Neynar API. Only if the number of cenus addresses is less than 5000
 	if len(pendingAddresses) < 5000 {
