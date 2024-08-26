@@ -1119,11 +1119,13 @@ func findWeightAndSignersForCensusRecord(user *mongo.User, addressMap map[string
 	for _, delegation := range delegations {
 		// if the user has delegated its vote, assign weight 0
 		if delegation.From == user.UserID {
+			log.Debugw("found delegation for user (outgoing)", "fid", user.Username, "delegated to", delegation.To)
 			userWeight = big.NewInt(0)
 			continue
 		}
 		// if the user has votes delegated to him, sum them on deleagatedWeight
 		if delegation.To == user.UserID {
+			log.Debugw("found delegation for user (incoming)", "fid", user.Username, "delegated from", delegation.From)
 			delegator, err := db.User(delegation.From)
 			if err != nil {
 				log.Warnw("error fetching user from database", "fid", delegation.From, "error", err)
@@ -1250,7 +1252,6 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 	defer func() {
 		close(participantsCh)
 		close(pendingAddressesCh)
-		close(concurrencyLimit)
 	}()
 
 	// Start goroutines to consume data from channels
