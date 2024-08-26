@@ -389,7 +389,7 @@ func dynamicUpdateDocument(item interface{}, alwaysUpdateTags []string) (bson.M,
 // to return, and the offset (the number of objects to skip).
 func paginatedObjects(collection *mongo.Collection, query bson.M, opts *options.FindOptions, limit, offset int64, results any) (int64, error) {
 	// count total communities by query
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	total, err := collection.CountDocuments(ctx, query)
 	if err != nil {
@@ -407,18 +407,18 @@ func paginatedObjects(collection *mongo.Collection, query bson.M, opts *options.
 	if offset != 0 {
 		opts = opts.SetSkip(offset)
 	}
-	ctx, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel2()
-	cursor, err := collection.Find(ctx, query, opts)
+	cursor, err := collection.Find(ctx2, query, opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "no documents in result") {
 			return total, nil
 		}
 		return total, err
 	}
-	ctx, cancel3 := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx3, cancel3 := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel3()
-	if err := cursor.All(ctx, results); err != nil {
+	if err := cursor.All(ctx3, results); err != nil {
 		return total, err
 	}
 	return total, nil
