@@ -39,6 +39,7 @@ import { humanDate, participation } from '~util/strings'
 import { CensusTypeInfo } from './CensusTypeInfo'
 import { Delegates } from './Delegates'
 import { ManageCommunity } from './Manage'
+import { NotifyMembers } from './Notify'
 
 type CommunitiesViewProps = {
   community?: Community
@@ -119,6 +120,7 @@ export const CommunitiesView = ({ community, chain: chainAlias, refetch }: Commu
                     <Button leftIcon={<MdHowToVote />}>Create vote</Button>
                   </RouterLink>
                 )}
+                <NotifyMembers community={community} />
               </Flex>
             )}
           </Box>

@@ -738,6 +738,18 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}/announcements/users", http.MethodGet, "private", handler.usersToAnnounceHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}/announcements", http.MethodPost, "private", handler.sendAnnouncementsHandler); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}/announcements/queue/{queueID}", http.MethodGet, "private", handler.announcementsQueueHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/short", http.MethodGet, "private", handler.shortURLHanlder); err != nil {
 		log.Fatal(err)
 	}

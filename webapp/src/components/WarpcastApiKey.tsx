@@ -1,28 +1,12 @@
-import {
-  Box,
-  BoxProps,
-  Button,
-  FormControl,
-  FormErrorMessage,
-  Heading,
-  HStack,
-  Input,
-  Link,
-  Text,
-  VStack,
-} from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { Box, BoxProps, Button, FormControl, FormErrorMessage, HStack, Input, Link, Text } from '@chakra-ui/react'
+import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-
 import { appUrl } from '~constants'
-import { fetchWarpcastAPIEnabled } from '~queries/profile'
+import { useWarpcastApiEnabled } from '~queries/profile'
 import { useAuth } from './Auth/useAuth'
 import { Check } from './Check'
 
-type WarpcastApiKeyFormValues = {
-  apikey: string
-}
+type WarpcastApiKeyFormValues = { apikey: string }
 
 export const WarpcastApiKey: React.FC = (props: BoxProps) => {
   const {
@@ -32,106 +16,99 @@ export const WarpcastApiKey: React.FC = (props: BoxProps) => {
     setError,
     formState: { errors },
   } = useForm<WarpcastApiKeyFormValues>({
-    defaultValues: {
-      apikey: '',
-    },
+    defaultValues: { apikey: '' },
   })
   const { bfetch } = useAuth()
-  const [loading, setLoading] = useState<boolean>(false)
-  const {
-    data: isAlreadyEnabled,
-    error,
-    isLoading,
-    refetch,
-  } = useQuery<boolean, Error>({
-    queryKey: ['apiKeyEnabled'],
-    queryFn: fetchWarpcastAPIEnabled(bfetch),
-  })
+  const { data: isAlreadyEnabled, error, isLoading, refetch } = useWarpcastApiEnabled()
 
-  const onSubmit = async (data: WarpcastApiKeyFormValues) => {
-    setLoading(true)
-    try {
+  const { mutate: setApiKey, status: setApiKeyStatus } = useMutation({
+    mutationFn: async (apikey: string) => {
       await bfetch(`${appUrl}/profile/warpcast`, {
         method: 'POST',
-        body: JSON.stringify({ apikey: data.apikey }),
-      }).then(() => refetch())
-      reset({ apikey: '' }) // Reset the apikey field
-    } catch (e) {
-      if (e instanceof Error) {
-        setError('apikey', { message: e.message })
+        body: JSON.stringify({ apikey }),
+      })
+    },
+    onSuccess: () => {
+      reset({ apikey: '' })
+      refetch()
+    },
+    onError: (error: any) => {
+      if (error instanceof Error) {
+        setError('apikey', { message: error.message })
       }
-      console.error('could not set apikey', e)
-    } finally {
-      setLoading(false)
-    }
-  }
+      console.error('could not set apikey', error)
+    },
+  })
 
-  const revokeApiKey = async () => {
-    setLoading(true)
-    try {
+  const { mutate: revokeApiKey, status: revokeApiKeyStatus } = useMutation({
+    mutationFn: async () => {
       await bfetch(`${appUrl}/profile/warpcast`, {
         method: 'POST',
         body: JSON.stringify({ apikey: null }),
-      }).then(() => refetch())
-      reset({ apikey: '' }) // Reset the apikey field
-    } catch (e) {
-      if (e instanceof Error) {
-        setError('apikey', { message: e.message })
+      })
+    },
+    onSuccess: () => {
+      reset({ apikey: '' })
+      refetch()
+    },
+    onError: (error: any) => {
+      if (error instanceof Error) {
+        setError('apikey', { message: error.message })
       }
-      console.error('could not set apikey', e)
-    } finally {
-      setLoading(false)
-    }
+      console.error('could not set apikey', error)
+    },
+  })
+
+  const onSubmit = (data: WarpcastApiKeyFormValues) => {
+    setApiKey(data.apikey)
   }
 
   return (
-    <Box borderRadius='md' p={4} bg='purple.100' {...props}>
-      <Heading fontSize='xl' mb={4} fontWeight='600' color='purple.800' pos='relative'>
-        Warpcast Api Key
-      </Heading>
-      <VStack spacing={4} align='stretch'>
-        <Text>Set your Warpcast API Key here to unlock awesome features like poll reminders.</Text>
-        {(isLoading || error) && <Check isLoading={isLoading} error={error} />}
-
-        {!isAlreadyEnabled && (
-          <>
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <Box borderRadius='md' p={4} bg='purple.50'>
-                <HStack spacing={4}>
-                  <FormControl isInvalid={!!errors.apikey}>
-                    <Input
-                      placeholder='Paste here your API Key'
-                      {...register('apikey', { required: 'This field is required' })}
-                    />
-                    <FormErrorMessage>{errors.apikey?.message?.toString()}</FormErrorMessage>
-                  </FormControl>
-                  <Button type='submit' colorScheme='purple' flexGrow={1} isLoading={loading}>
-                    Save
-                  </Button>
-                </HStack>
-                <Text fontSize={'sm'} mt={2}>
-                  Get your Warpcast API Key from the{' '}
-                  <Link textDecoration='underline' href='https://warpcast.com/~/developers/api-keys' isExternal>
-                    official developer portal
-                  </Link>
-                  .
-                </Text>
-              </Box>
-            </form>
-          </>
-        )}
-
-        {isAlreadyEnabled && (
-          <>
-            <HStack spacing={4} p={4} bg='purple.50' borderRadius='md'>
-              <Text>You already registered a valid API Key.</Text>
-              <Button colorScheme='red' isLoading={loading} onClick={revokeApiKey}>
-                Revoke
-              </Button>
-            </HStack>
-          </>
-        )}
-      </VStack>
+    <Box borderRadius='md' {...props}>
+      {(isLoading || error) && <Check isLoading={isLoading} error={error} />}
+      {!isLoading && !isAlreadyEnabled && (
+        <>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Box borderRadius='md' p={4} bg='purple.50'>
+              <HStack spacing={4}>
+                <FormControl isInvalid={!!errors.apikey}>
+                  <Input
+                    placeholder='Paste here your API Key'
+                    {...register('apikey', {
+                      required: 'This field is required',
+                      minLength: {
+                        message: 'Too short, are you sure this is a valid API Key?',
+                        value: 64,
+                      },
+                    })}
+                  />
+                  <FormErrorMessage>{errors.apikey?.message?.toString()}</FormErrorMessage>
+                </FormControl>
+                <Button type='submit' colorScheme='purple' flexGrow={1} isLoading={setApiKeyStatus === 'pending'}>
+                  Save
+                </Button>
+              </HStack>
+              <Text fontSize={'sm'} mt={2}>
+                Get your Warpcast API Key from the{' '}
+                <Link textDecoration='underline' href='https://warpcast.com/~/developers/api-keys' isExternal>
+                  official developer portal
+                </Link>
+                .
+              </Text>
+            </Box>
+          </form>
+        </>
+      )}
+      {!isLoading && isAlreadyEnabled && (
+        <>
+          <HStack spacing={4} p={4} bg='purple.50' borderRadius='md'>
+            <Text>You already registered a valid API Key.</Text>
+            <Button colorScheme='red' isLoading={revokeApiKeyStatus === 'pending'} onClick={() => revokeApiKey()}>
+              Revoke
+            </Button>
+          </HStack>
+        </>
+      )}
     </Box>
   )
 }

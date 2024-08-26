@@ -214,6 +214,7 @@ declare global {
     user: User
     reputation?: Reputation
     delegations?: Delegation[]
+    warpcastApiEnabled: boolean
   }
 
   type Channel = {

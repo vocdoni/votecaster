@@ -344,3 +344,14 @@ func (ms *MongoStorage) SetCommunityCensusStrategy(communityID string, strategyI
 	_, err := ms.communities.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"census.strategy": strategyID}})
 	return err
 }
+
+// SetCommunityLastAnnouncement sets the last announcement time of the community
+// with the given ID.
+func (ms *MongoStorage) SetCommunityLastAnnouncement(communityID string, t time.Time) error {
+	ms.keysLock.Lock()
+	defer ms.keysLock.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := ms.communities.UpdateOne(ctx, bson.M{"_id": communityID}, bson.M{"$set": bson.M{"lastAnnouncement": t}})
+	return err
+}

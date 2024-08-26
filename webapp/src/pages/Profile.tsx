@@ -1,4 +1,4 @@
-import { Box, Grid, GridItem, Link, Text, VStack } from '@chakra-ui/react'
+import { Box, Grid, GridItem, Heading, Link, Text, VStack } from '@chakra-ui/react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '~components/Auth/useAuth'
 import { Check } from '~components/Check'
@@ -64,7 +64,7 @@ const Profile = () => {
       </GridItem>
       <GridItem gridArea='muted'>{isOwnProfile && <MutedUsersList list={user?.mutedUsers} />}</GridItem>
       <GridItem gridArea='delegations'>{isOwnProfile && <Delegations delegations={user?.delegations} />}</GridItem>
-      <GridItem gridArea='warpcastapikey'>{isOwnProfile && <WarpcastApiKey />}</GridItem>
+      <GridItem gridArea='warpcastapikey'>{isOwnProfile && <ProfileWarpcastApiKey />}</GridItem>
       <GridItem gridArea='polls'>
         <UserPolls
           polls={user?.polls || []}
@@ -75,5 +75,16 @@ const Profile = () => {
     </Grid>
   )
 }
+
+const ProfileWarpcastApiKey = () => (
+  <PurpleBox>
+    <Heading fontSize='xl' fontWeight='600' color='purple.800' pos='relative'>
+      Warpcast Api Key
+    </Heading>
+    <Text>Set your Warpcast API Key here to unlock awesome features like poll reminders.</Text>
+
+    <WarpcastApiKey />
+  </PurpleBox>
+)
 
 export default Profile

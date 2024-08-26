@@ -19,7 +19,7 @@ type VotecasterProfile struct {
 	Polls              []mongo.ElectionRanking `json:"polls"`
 	MutedUsers         []*mongo.User           `json:"mutedUsers"`
 	Delegations        []mongo.Delegation      `json:"delegations"`
-	Reputation         reputation.Reputation  `json:"reputation"`
+	Reputation         reputation.Reputation   `json:"reputation"`
 	WarpcastAPIEnabled bool                    `json:"warpcastApiEnabled"`
 }
 
@@ -145,26 +145,21 @@ type CensusAddress struct {
 // (FarcasterProfile), the census addresses (CensusAddress) and the channels
 // (Channel)
 type Community struct {
-	ID              string           `json:"id"`
-	Name            string           `json:"name"`
-	LogoURL         string           `json:"logoURL"`
-	GroupChatURL    string           `json:"groupChat"`
-	Admins          []*User          `json:"admins,omitempty"`
-	Notifications   bool             `json:"notifications"`
-	CensusType      string           `json:"censusType,omitempty"`
-	CensusAddresses []*CensusAddress `json:"censusAddresses,omitempty"`
-	CensusChannel   *Channel         `json:"censusChannel,omitempty"`
-	UserRef         *User            `json:"userRef,omitempty"`
-	Channels        []string         `json:"channels,omitempty"`
-	Disabled        bool             `json:"disabled"`
-	Ready           bool             `json:"ready"`
-}
-
-// CommunityStatus defines the status of a community, including if it is ready
-// to be used and the progress of the community setup
-type CommunityStatus struct {
-	Ready    bool `json:"ready"`
-	Progress int  `json:"progress"`
+	ID                   string           `json:"id"`
+	Name                 string           `json:"name"`
+	LogoURL              string           `json:"logoURL"`
+	GroupChatURL         string           `json:"groupChat"`
+	Admins               []*User          `json:"admins,omitempty"`
+	Notifications        bool             `json:"notifications"`
+	CensusType           string           `json:"censusType,omitempty"`
+	CensusAddresses      []*CensusAddress `json:"censusAddresses,omitempty"`
+	CensusChannel        *Channel         `json:"censusChannel,omitempty"`
+	UserRef              *User            `json:"userRef,omitempty"`
+	Channels             []string         `json:"channels,omitempty"`
+	Disabled             bool             `json:"disabled"`
+	Ready                bool             `json:"ready"`
+	CanSendAnnouncements bool             `json:"canSendAnnouncements"`
+	Progress             int              `json:"progress"`
 }
 
 // CommunityList defines the list of communities
@@ -241,6 +236,34 @@ type RemindersStatus struct {
 	AlreadySent int               `json:"alreadySent"`
 	Total       int               `json:"total"`
 	Fails       map[string]string `json:"fails,omitempty"`
+}
+
+// AnnouncementRequest defines the parameters to send an announcement, including
+// the content of the announcement and the users to send the announcement to.
+type AnnouncementRequest struct {
+	Content string `json:"content"` // content of the reminder
+}
+
+// AnnouncementResponse defines the response of an announcement request,
+// including the queue ID of the background process that will send the
+// announcement. It allows to check the status of the process.
+type AnnouncementResponse struct {
+	QueuedID string `json:"queuedId"`
+}
+
+// AnnouncementStatus defines the status of an announcement process, including
+// the number of announcements that have been already sent, the total number of
+// announcements to send and the list of users that have failed to receive the
+// announcement (with the error message). It also includes the error message in
+// case of an global error and a flag to indicate if the process has been
+// completed.
+type AnnouncementStatus struct {
+	CommunityID string            `json:"communityId"`
+	Completed   bool              `json:"completed"`
+	AlreadySent int               `json:"alreadySent"`
+	Total       int               `json:"total"`
+	Fails       map[string]string `json:"fails,omitempty"`
+	Error       string            `json:"error,omitempty"`
 }
 
 // ComposerActionResponse is the response of the composer endpoint, which is a

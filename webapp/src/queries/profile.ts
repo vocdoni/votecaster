@@ -44,6 +44,15 @@ export const fetchWarpcastAPIEnabled = (bfetch: FetchFunction) => async (): Prom
   return data.warpcastApiEnabled
 }
 
+export const useWarpcastApiEnabled = () => {
+  const { bfetch } = useAuth()
+
+  return useQuery<boolean, Error>({
+    queryKey: ['apiKeyEnabled'],
+    queryFn: fetchWarpcastAPIEnabled(bfetch),
+  })
+}
+
 export const useFirstDegenOrEnsName = (addresses: string[] = []) => {
   const { degen: connected } = useHealthcheck()
   const { getContract } = useBlockchain(degen)
