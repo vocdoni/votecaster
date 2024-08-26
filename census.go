@@ -1305,7 +1305,7 @@ func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []
 	// Fetch users by addresses in bulk
 	log.Infow("fetching users from database", "count", len(addresses))
 	startTime := time.Now()
-	batchSize := 10000
+	batchSize := 5000
 	for i := 0; i < len(addresses); i += batchSize {
 		end := i + batchSize
 		if end > len(addresses) {
