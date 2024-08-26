@@ -12,7 +12,7 @@ func Test_solveNestedDelegations(t *testing.T) {
 		two   = primitive.NewObjectID()
 		three = primitive.NewObjectID()
 	)
-	setA := []Delegation{
+	setA := []*Delegation{
 		{
 			ID:         one,
 			From:       1,
@@ -32,7 +32,7 @@ func Test_solveNestedDelegations(t *testing.T) {
 			CommuniyID: "a",
 		},
 	}
-	expectedA := []Delegation{
+	expectedA := []*Delegation{
 		{
 			ID:         one,
 			From:       1,
@@ -73,7 +73,7 @@ func Test_solveNestedDelegations(t *testing.T) {
 		}
 	}
 
-	filterB := []Delegation{
+	filterB := []*Delegation{
 		{
 			ID:         one,
 			From:       1,
@@ -82,7 +82,7 @@ func Test_solveNestedDelegations(t *testing.T) {
 		},
 	}
 
-	expectedB := []Delegation{
+	expectedB := []*Delegation{
 		{
 			ID:         one,
 			From:       1,

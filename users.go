@@ -36,7 +36,7 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 		User:               user,
 		Polls:              []mongo.ElectionRanking{},
 		MutedUsers:         []*mongo.User{},
-		Delegations:        []mongo.Delegation{},
+		Delegations:        []*mongo.Delegation{},
 		Reputation:         reputation.Reputation{},
 		WarpcastAPIEnabled: accessprofile.WarpcastAPIKey != "",
 	}

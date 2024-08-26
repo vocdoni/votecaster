@@ -18,7 +18,7 @@ type VotecasterProfile struct {
 	User               *mongo.User             `json:"user"`
 	Polls              []mongo.ElectionRanking `json:"polls"`
 	MutedUsers         []*mongo.User           `json:"mutedUsers"`
-	Delegations        []mongo.Delegation      `json:"delegations"`
+	Delegations        []*mongo.Delegation     `json:"delegations"`
 	Reputation         reputation.Reputation   `json:"reputation"`
 	WarpcastAPIEnabled bool                    `json:"warpcastApiEnabled"`
 }

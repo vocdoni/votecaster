@@ -47,7 +47,7 @@ func (ms *MongoStorage) Delegation(id string) (Delegation, error) {
 }
 
 // DelegationsFrom retrieves all delegations from a user by their user ID provided
-func (ms *MongoStorage) DelegationsFrom(userID uint64) ([]Delegation, error) {
+func (ms *MongoStorage) DelegationsFrom(userID uint64) ([]*Delegation, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -58,7 +58,7 @@ func (ms *MongoStorage) DelegationsFrom(userID uint64) ([]Delegation, error) {
 }
 
 // DelegationsTo retrieves all delegations to a user by their user ID provided
-func (ms *MongoStorage) DelegationsTo(userID uint64) ([]Delegation, error) {
+func (ms *MongoStorage) DelegationsTo(userID uint64) ([]*Delegation, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -70,7 +70,7 @@ func (ms *MongoStorage) DelegationsTo(userID uint64) ([]Delegation, error) {
 
 // DelegationsByCommunity retrieves all delegations to a community by the
 // community ID provided
-func (ms *MongoStorage) DelegationsByCommunity(communityID string) ([]Delegation, error) {
+func (ms *MongoStorage) DelegationsByCommunity(communityID string) ([]*Delegation, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -82,7 +82,7 @@ func (ms *MongoStorage) DelegationsByCommunity(communityID string) ([]Delegation
 
 // FinalDelegationsByCommunity retrieves all delegations to a community by the
 // community ID provided, solving nested delegations
-func (ms *MongoStorage) FinalDelegationsByCommunity(communityID string) ([]Delegation, error) {
+func (ms *MongoStorage) FinalDelegationsByCommunity(communityID string) ([]*Delegation, error) {
 	communityDelegations, err := ms.DelegationsByCommunity(communityID)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func (ms *MongoStorage) FinalDelegationsByCommunity(communityID string) ([]Deleg
 
 // DelegationsByCommunityFrom retrieves all delegations from a user to a
 // community by the community ID and user ID provided
-func (ms *MongoStorage) DelegationsByCommunityFrom(communityID string, userID uint64) ([]Delegation, error) {
+func (ms *MongoStorage) DelegationsByCommunityFrom(communityID string, userID uint64) ([]*Delegation, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
@@ -103,7 +103,7 @@ func (ms *MongoStorage) DelegationsByCommunityFrom(communityID string, userID ui
 	if err != nil {
 		return nil, err
 	}
-	userDelegations := []Delegation{}
+	userDelegations := []*Delegation{}
 	for _, delegation := range communityDelegations {
 		if delegation.From == userID {
 			userDelegations = append(userDelegations, delegation)
@@ -129,7 +129,7 @@ func (ms *MongoStorage) DeleteDelegation(id string) error {
 	return err
 }
 
-func (ms *MongoStorage) filterDelegations(ctx context.Context, filter bson.M) ([]Delegation, error) {
+func (ms *MongoStorage) filterDelegations(ctx context.Context, filter bson.M) ([]*Delegation, error) {
 	cursor, err := ms.delegations.Find(ctx, filter)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -137,7 +137,7 @@ func (ms *MongoStorage) filterDelegations(ctx context.Context, filter bson.M) ([
 		}
 		return nil, err
 	}
-	var delegations []Delegation
+	var delegations []*Delegation
 	err = cursor.All(ctx, &delegations)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -152,15 +152,15 @@ func (ms *MongoStorage) filterDelegations(ctx context.Context, filter bson.M) ([
 // chains of delegations, for example, if user A delegates to user B and user B
 // delegates to user C, the function will return a list of delegations where
 // user A delegates to user C and user B delegates to user C.
-func solveNestedDelegations(original, filtered []Delegation) []Delegation {
+func solveNestedDelegations(original, filtered []*Delegation) []*Delegation {
 	if filtered == nil {
-		filtered = append([]Delegation{}, original...)
+		filtered = append([]*Delegation{}, original...)
 	}
-	finalDelegations := []Delegation{}
+	finalDelegations := []*Delegation{}
 	for _, delegation := range filtered {
 		// check if the delegation is to a user that has already delegated to
 		// another user
-		delegateDelegations := []Delegation{}
+		delegateDelegations := []*Delegation{}
 		for _, originalDelegation := range original {
 			if originalDelegation.From == delegation.To {
 				delegateDelegations = append(delegateDelegations, originalDelegation)

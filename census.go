@@ -558,7 +558,7 @@ const (
 // strategy ID in Census3 service. The process is async and returns the json
 // encoded censusID. It updates the progress in the queue and the result when
 // it's ready.
-func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, createdByFID uint64, delegations []mongo.Delegation) ([]byte, error) {
+func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, createdByFID uint64, delegations []*mongo.Delegation) ([]byte, error) {
 	if v.census3 == nil {
 		return nil, fmt.Errorf("census3 client not available")
 	}
@@ -673,7 +673,7 @@ func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, c
 // censusWarpcastChannel helper method creates a new census from a Warpcast
 // Channel. The process is async and returns the json encoded censusID. It
 // updates the progress in the queue and the result when it's ready.
-func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint64, delegations []mongo.Delegation) ([]byte, error) {
+func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint64, delegations []*mongo.Delegation) ([]byte, error) {
 	// create a censusID for the queue and store into it
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
@@ -765,7 +765,7 @@ func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint6
 // progress in the queue and the result when it's ready. If something fails
 // during the process, it returns an error or the error is stored in the queue
 // if it's async.
-func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []mongo.Delegation) ([]byte, error) {
+func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []*mongo.Delegation) ([]byte, error) {
 	// create a censusID for the queue and store into it
 	censusID, err := v.cli.NewCensus(api.CensusTypeWeighted)
 	if err != nil {
@@ -954,7 +954,7 @@ func (v *vocdoniHandler) farcasterCensusFromEthereumCSV(csv []byte, progress cha
 // of FIDs. It queries the database to get the users signer keys and creates the
 // participants from them. It returns the list of participants and a map of the
 // FIDs that failed to get the users from the database or decoding the keys.
-func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, delegations []mongo.Delegation, progress chan int) []*FarcasterParticipant {
+func (v *vocdoniHandler) farcasterCensusFromFids(fids []uint64, delegations []*mongo.Delegation, progress chan int) []*FarcasterParticipant {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	// get participants from the users fids, quering the database and to get the
@@ -1094,7 +1094,7 @@ func (v *vocdoniHandler) trackStepProgress(censusID types.HexBytes, step, totalS
 // It finds the final weight, including delegations, and the signers of a user.
 // It creates a FarcasterParticipant for each signer of the user and sends it to the participants channel.
 // If a participant has weight 0, it is not sent to the channel.
-func findWeightAndSignersForCensusRecord(user *mongo.User, addressMap map[string]*big.Int, db *mongo.MongoStorage, delegations []mongo.Delegation, participantsCh chan *FarcasterParticipant) {
+func findWeightAndSignersForCensusRecord(user *mongo.User, addressMap map[string]*big.Int, db *mongo.MongoStorage, delegations []*mongo.Delegation, participantsCh chan *FarcasterParticipant) {
 	if user == nil || db == nil || participantsCh == nil {
 		return
 	}
@@ -1180,7 +1180,7 @@ func safeSendParticipant(ch chan *FarcasterParticipant, value *FarcasterParticip
 // processRecord processes a single record of a plain-text census and returns the corresponding Farcaster participants.
 // The record is expected to be a string containing the address and the weight.
 // Returns the list of participants and the total number of unique addresses available in the records.
-func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []mongo.Delegation, progress chan int) ([]*FarcasterParticipant, uint32, error) {
+func (v *vocdoniHandler) processCensusRecords(records [][]string, delegations []*mongo.Delegation, progress chan int) ([]*FarcasterParticipant, uint32, error) {
 	// Create a context to cancel the goroutines
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
