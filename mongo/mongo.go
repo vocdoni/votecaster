@@ -153,6 +153,15 @@ func (ms *MongoStorage) createIndexes() error {
 		return fmt.Errorf("failed to create index on addresses for users: %w", err)
 	}
 
+	// Create an index for the 'username' field on users
+	usernameIndexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "username", Value: 1}}, // 1 for ascending order
+		Options: nil,
+	}
+	if _, err := ms.users.Indexes().CreateOne(ctx, usernameIndexModel); err != nil {
+		return fmt.Errorf("failed to create index on username for users: %w", err)
+	}
+
 	// Index model for the 'signers' field
 	signersIndexModel := mongo.IndexModel{
 		Keys:    bson.D{{Key: "signers", Value: 1}}, // 1 for ascending order

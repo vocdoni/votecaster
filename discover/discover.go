@@ -305,17 +305,13 @@ func (d *FarcasterDiscover) runPendingProfiles(ctx context.Context) {
 				log.Warnw("failed to get users with pending profile", "error", err)
 				continue
 			}
-			if len(users) == 0 {
-				// no pending users, wait a bit more
-				time.Sleep(Throttle * 10)
-				continue
-			}
 			for _, fid := range users {
-				time.Sleep(Throttle)
+				time.Sleep(Throttle * 10)
 				if err := d.updateUser(fid); err != nil {
 					log.Warnw("failed to update user profile", "error", err)
 				}
 			}
+			time.Sleep(Throttle * 200)
 		}
 	}
 }
