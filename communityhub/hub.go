@@ -649,6 +649,11 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 
 	// iterate over the token addresses trying to create the token in the census3
 	for _, cAddress := range hcommunity.CensusAddesses {
+		// overwrite 'ethereum' to 'eth' to match the census3 service and
+		// ensure backwards compatibility
+		if cAddress.Blockchain == "ethereum" {
+			cAddress.Blockchain = "eth"
+		}
 		// get the chain ID from the blockchain shortname
 		chainID, ok := ch.Census3ChainID(cAddress.Blockchain)
 		if !ok {
@@ -656,11 +661,6 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 		}
 		// skip if the token is already created
 		if !isTokenAlreadyCreated(cAddress.Address) {
-			// overwrite 'ethereum' to 'eth' to match the census3 service and
-			// ensure backwards compatibility
-			if cAddress.Blockchain == "ethereum" {
-				cAddress.Blockchain = "eth"
-			}
 			// log the token addresses to register
 			log.Infow("registering token addresses",
 				"communityID", hcommunity.CommunityID,
