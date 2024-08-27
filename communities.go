@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -17,6 +18,9 @@ import (
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
 )
+
+// syncedCommunities is a map to store the communities that are already synced for a quick check
+var syncedCommunities sync.Map
 
 func (v *vocdoniHandler) parseCommunityIDFromURL(ctx *httprouter.HTTPContext) (string, string, uint64, error) {
 	// get community id from the URL
@@ -56,6 +60,12 @@ func (v *vocdoniHandler) CommunityStatus(community *mongo.Community) (bool, int,
 	if community == nil {
 		return false, 0, fmt.Errorf("community not found")
 	}
+
+	// quick check if the community is already synced
+	if _, ok := syncedCommunities.Load(community.ID); ok {
+		return true, 100, nil
+	}
+
 	// return true if the community is not based on ERC20 or NFT
 	if community.Census.Type != mongo.TypeCommunityCensusERC20 &&
 		community.Census.Type != mongo.TypeCommunityCensusNFT {
@@ -79,6 +89,9 @@ func (v *vocdoniHandler) CommunityStatus(community *mongo.Community) (bool, int,
 		}
 		synced = synced && tokenInfo.Status.Synced
 		progress += tokenInfo.Status.Progress / nTokens
+	}
+	if synced {
+		syncedCommunities.Store(community.ID, true)
 	}
 	return synced, progress, nil
 }
@@ -498,6 +511,9 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 	}); err != nil {
 		return fmt.Errorf("error updating community: %w", err)
 	}
+	// remove the community from the synced communities map, so it will be checked again
+	syncedCommunities.Delete(communityID)
+
 	return ctx.Send([]byte("ok"), http.StatusOK)
 }
 
