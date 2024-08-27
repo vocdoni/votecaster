@@ -57,8 +57,6 @@ const viteconfig: UserConfigFn = ({ mode }) => {
       'import.meta.env.VOCDONI_EXPLORER': JSON.stringify(explorer),
       'import.meta.env.MAINTENANCE': process.env.MAINTENANCE === 'true',
       'import.meta.env.VOCDONI_ADMINFID': parseInt(process.env.ADMINFID || '7548'),
-      'import.meta.env.airstackEnabled':
-        process.env.VOCDONI_AIRSTACKAPIKEY && process.env.VOCDONI_AIRSTACKAPIKEY !== '',
       'import.meta.env.chains': JSON.stringify(getConfiguredChains(configuredChains)),
     },
     plugins: [
