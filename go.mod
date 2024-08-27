@@ -1,8 +1,6 @@
 module github.com/vocdoni/vote-frame
 
-go 1.22.2
-
-toolchain go1.23.0
+go 1.23.0
 
 // replace github.com/vocdoni/census3 => ../census3
 

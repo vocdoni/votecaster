@@ -28,7 +28,7 @@ COPY chains_config.json /
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm run -r build
 
-FROM golang:1.22 AS builder
+FROM golang:1.23 AS builder
 
 WORKDIR /src
 ENV CGO_ENABLED=1

@@ -649,41 +649,40 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 
 	// iterate over the token addresses trying to create the token in the census3
 	for _, cAddress := range hcommunity.CensusAddesses {
-		// skip if the token is already created
-		if isTokenAlreadyCreated(cAddress.Address) {
-			continue
-		}
-		// overwrite 'ethereum' to 'eth' to match the census3 service and
-		// ensure backwards compatibility
-		if cAddress.Blockchain == "ethereum" {
-			cAddress.Blockchain = "eth"
-		}
 		// get the chain ID from the blockchain shortname
 		chainID, ok := ch.Census3ChainID(cAddress.Blockchain)
 		if !ok {
 			return fmt.Errorf("invalid blockchain")
 		}
-		// log the token addresses to register
-		log.Infow("registering token addresses",
-			"communityID", hcommunity.CommunityID,
-			"censusType", hcommunity.CensusType,
-			"addresses", cAddress.Address.Hex(),
-		)
-
-		// try to create the token in the census3 service
-		var err error
-		if err = ch.census3.CreateToken(&c3api.Token{
-			ID:      cAddress.Address.Hex(),
-			Type:    tokenType,
-			ChainID: chainID,
-		}); err != nil {
-			if errors.Is(err, c3cli.ErrAlreadyExists) || strings.Contains(err.Error(), "already created") {
-				continue
+		// skip if the token is already created
+		if !isTokenAlreadyCreated(cAddress.Address) {
+			// overwrite 'ethereum' to 'eth' to match the census3 service and
+			// ensure backwards compatibility
+			if cAddress.Blockchain == "ethereum" {
+				cAddress.Blockchain = "eth"
 			}
-			return fmt.Errorf("error creating token: %w", err)
+			// log the token addresses to register
+			log.Infow("registering token addresses",
+				"communityID", hcommunity.CommunityID,
+				"censusType", hcommunity.CensusType,
+				"addresses", cAddress.Address.Hex(),
+			)
+
+			// try to create the token in the census3 service
+			var err error
+			if err = ch.census3.CreateToken(&c3api.Token{
+				ID:      cAddress.Address.Hex(),
+				Type:    tokenType,
+				ChainID: chainID,
+			}); err != nil {
+				if errors.Is(err, c3cli.ErrAlreadyExists) || strings.Contains(err.Error(), "already created") {
+					continue
+				}
+				return fmt.Errorf("error creating token: %w", err)
+			}
+			// set the flag to know if there are new tokens to create their strategy
+			newTokens = newTokens || err == nil
 		}
-		// set the flag to know if there are new tokens to create their strategy
-		newTokens = newTokens || err == nil
 		// store the token alias and the token in the predicate tokens
 		tokenAlias := fmt.Sprintf("%s:%s", cAddress.Blockchain, cAddress.Address.Hex())
 		tokenAliases = append(tokenAliases, tokenAlias)
