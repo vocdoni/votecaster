@@ -512,8 +512,13 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 	}); err != nil {
 		return fmt.Errorf("error updating community: %w", err)
 	}
+
 	// remove the community from the synced communities map, so it will be checked again
 	syncedCommunities.Delete(communityID)
+	// set the strategy to zero to force the community strategy to be updated
+	if err := v.db.SetCommunityCensusStrategy(communityID, 0); err != nil {
+		return fmt.Errorf("error setting community census strategy to 0: %w", err)
+	}
 
 	return ctx.Send([]byte("ok"), http.StatusOK)
 }
