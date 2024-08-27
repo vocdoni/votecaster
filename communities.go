@@ -78,11 +78,12 @@ func (v *vocdoniHandler) CommunityStatus(community *mongo.Community) (bool, int,
 	for _, contract := range community.Census.Addresses {
 		chainID, ok := v.comhub.Census3ChainID(contract.Blockchain)
 		if !ok {
-			return false, 0, fmt.Errorf("invalid blockchain alias")
+			log.Warnf("invalid blockchain alias %s for community %s", contract.Blockchain, community.ID)
+			continue
 		}
 		tokenInfo, err := v.census3.Token(contract.Address, chainID, "")
 		if err != nil {
-			return false, 0, fmt.Errorf("error getting token info: %w", err)
+			return false, 0, fmt.Errorf("error getting token info for %s: %w", contract.Address, err)
 		}
 		if tokenInfo == nil {
 			return false, 0, fmt.Errorf("token not found")

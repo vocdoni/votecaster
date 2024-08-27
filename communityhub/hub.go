@@ -210,6 +210,7 @@ func (ch *CommunityHub) SyncCommunities() {
 				// getting the info of the communities stored in the database
 				// from the contract and updating them in the database
 				for _, contract := range ch.contracts {
+					time.Sleep(2 * time.Second)
 					log.Debugw("syncing communities", "chainAlias", contract.ChainAlias, "contract", contract.Address.String())
 					nextID, err := contract.NextContractID()
 					if err != nil {
@@ -224,6 +225,7 @@ func (ch *CommunityHub) SyncCommunities() {
 						case <-ch.ctx.Done():
 							return
 						default:
+							time.Sleep(2 * time.Second)
 							// get the community from the contract
 							communityID, ok := ch.CommunityIDByChainAlias(id, contract.ChainAlias)
 							if !ok {
@@ -647,6 +649,10 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 
 	// iterate over the token addresses trying to create the token in the census3
 	for _, cAddress := range hcommunity.CensusAddesses {
+		// skip if the token is already created
+		if isTokenAlreadyCreated(cAddress.Address) {
+			continue
+		}
 		// overwrite 'ethereum' to 'eth' to match the census3 service and
 		// ensure backwards compatibility
 		if cAddress.Blockchain == "ethereum" {
@@ -657,11 +663,6 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 		if !ok {
 			return fmt.Errorf("invalid blockchain")
 		}
-		// skip if the token is already created
-		if isTokenAlreadyCreated(cAddress.Address) {
-			continue
-		}
-
 		// log the token addresses to register
 		log.Infow("registering token addresses",
 			"communityID", hcommunity.CommunityID,
