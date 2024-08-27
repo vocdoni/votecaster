@@ -35,19 +35,18 @@ func (v *vocdoniHandler) communityUserProfiles(community *mongo.Community) (map[
 	}
 	chainIDs := map[string]uint64{}
 	for _, contract := range community.Census.Addresses {
-		switch contract.Blockchain {
-		case "ethereum":
-			chainIDs[contract.Blockchain] = 1
-		case "base":
-			chainIDs[contract.Blockchain] = 8453
-		case "zora":
-			chainIDs[contract.Blockchain] = 7777777
-		case "degen":
-			chainIDs[contract.Blockchain] = 666666666
-		default:
-			return nil, fmt.Errorf("unsupported blockchain: %s", contract.Blockchain)
+		name := contract.Blockchain
+		if name == "ethereum" {
+			name = "eth"
 		}
+		chainID, ok := v.comhub.Census3ChainID(name)
+		if !ok {
+			log.Warnf("invalid blockchain alias %s for community %s", name, community.ID)
+			continue
+		}
+		chainIDs[contract.Blockchain] = chainID
 	}
+
 	// create two goroutines, one to fetch holders from census3 and another
 	// to fetch user profiles from the database based on the addresses fetched
 	// create a channel to communicate the fetched holders, a list to store the
