@@ -197,8 +197,9 @@ func (u *Updater) UserReputation(userID uint64, commit bool) (*Reputation, error
 	}
 	// update user reputation in the database if commit is true
 	if commit {
+		log.Debugw("update user reputation", "user", user.UserID, "points", fmt.Sprintf("%+v", rep))
 		if err := u.db.SetDetailedReputationForUser(user.UserID, rep); err != nil {
-			return nil, fmt.Errorf("error updating user reputation: %w", err)
+			log.Warnw("error updating user reputation", "error", err)
 		}
 	}
 	return ReputationToAPIResponse(rep), nil
