@@ -76,6 +76,9 @@ func (v *vocdoniHandler) CommunityStatus(community *mongo.Community) (bool, int,
 	nTokens := len(community.Census.Addresses)
 	// iterate over the addresses of the community getting status of token in census3
 	for _, contract := range community.Census.Addresses {
+		if contract.Blockchain == "ethereum" {
+			contract.Blockchain = "eth"
+		}
 		chainID, ok := v.comhub.Census3ChainID(contract.Blockchain)
 		if !ok {
 			log.Warnf("invalid blockchain alias %s for community %s", contract.Blockchain, community.ID)
@@ -494,6 +497,8 @@ func (v *vocdoniHandler) communitySettingsHandler(msg *apirest.APIdata, ctx *htt
 			typedCommunity.LogoURL = avatarURL
 		}
 	}
+
+	log.Infow("updating community", "community", communityID)
 	// update the community in the community hub
 	if err := v.comhub.UpdateCommunity(&communityhub.HubCommunity{
 		CommunityID:    communityID,
