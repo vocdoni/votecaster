@@ -321,13 +321,12 @@ func vote(packet *FrameSignaturePacket, electionID types.HexBytes, root []byte, 
 	}
 
 	// sign and send the vote transaction
-	stx := models.SignedTx{}
-	stx.Tx, err = proto.Marshal(&models.Tx{Payload: &models.Tx_Vote{Vote: vote}})
+	tx, err := proto.Marshal(&models.Tx{Payload: &models.Tx_Vote{Vote: vote}})
 	if err != nil {
 		return voteData, fmt.Errorf("failed to marshal vote transaction: %w", err)
 	}
 
-	txHash, nullifier, err := cli.SignAndSendTx(&stx)
+	txHash, nullifier, err := cli.SignAndSendTx(tx)
 	if err != nil {
 		return voteData, fmt.Errorf("failed to sign and send vote transaction: %w", err)
 	}
