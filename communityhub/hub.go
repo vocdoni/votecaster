@@ -652,7 +652,7 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 		// get the chain ID from the blockchain shortname
 		chainID, ok := ch.Census3ChainID(cAddress.Blockchain)
 		if !ok {
-			return fmt.Errorf("invalid blockchain")
+			return fmt.Errorf("invalid blockchain %s for token %s", cAddress.Blockchain, cAddress.Address.Hex())
 		}
 		// skip if the token is already created
 		if !isTokenAlreadyCreated(cAddress.Address) {
