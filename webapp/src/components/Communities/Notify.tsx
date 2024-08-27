@@ -13,6 +13,7 @@ import {
   ModalHeader,
   ModalOverlay,
   Progress,
+  Text,
   Textarea,
   useDisclosure,
   VStack,
@@ -37,9 +38,10 @@ export const NotifyMembers = ({ community }: { community: Community }) => {
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Notify community members</ModalHeader>
+          <ModalHeader>Notify all community members</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
+            <Text>Send a Direct Cast from your Farcaster account to all the members of your community.</Text>
             {isLoading ? (
               <Progress size='xs' isIndeterminate />
             ) : apiEnabled ? (
@@ -118,7 +120,7 @@ export const NotifyMembersForm = ({ community, onClose }: NotifyMembersFormProps
 
         <FormControl>
           <Checkbox id='appendUrl' {...register('appendUrl')}>
-            Append my community URL to the message
+            Add my community URL to the message
           </Checkbox>
         </FormControl>
         {mutation.error && (
@@ -129,7 +131,7 @@ export const NotifyMembersForm = ({ community, onClose }: NotifyMembersFormProps
         )}
 
         <Button type='submit' alignSelf='end' colorScheme='purple' isLoading={mutation.status === 'pending'}>
-          Send Notification
+          Send
         </Button>
       </VStack>
     </form>
