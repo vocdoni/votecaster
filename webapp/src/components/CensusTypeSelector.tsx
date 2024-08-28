@@ -267,7 +267,7 @@ const CensusTypeSelector = ({
           </FormControl>
         ))}
       {censusType === 'nft' && addressFields.length < 3 && (
-        <Button variant='ghost' onClick={() => appendAddress({ address: '', blockchain: 'ethereum' })}>
+        <Button variant='ghost' onClick={() => appendAddress({ address: '', blockchain: 'base' })}>
           Add address
         </Button>
       )}
