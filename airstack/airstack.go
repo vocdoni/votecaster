@@ -177,7 +177,7 @@ func ValidateFrameMessage(msg []byte, apikey string) {
 			log.Warn("error creating request:", err)
 			return
 		}
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Header.Set("Authorization", "Bearer "+apikey)
 
 		res, err := http.DefaultClient.Do(req)
@@ -191,7 +191,11 @@ func ValidateFrameMessage(msg []byte, apikey string) {
 			return
 		}
 		if res.StatusCode != http.StatusOK {
-			log.Warn("unexpected status code:", res.StatusCode)
+			log.Warnw("airstack API returned unexpected status",
+				"code", res.StatusCode,
+				"url", req.URL.String(),
+				"authorization", req.Header.Get("Authorization"),
+			)
 			return
 		}
 		isValid, ok := airstackResponse["isValid"]
