@@ -27,6 +27,8 @@ import { useEffect, useState } from 'react'
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form'
 import { BiTrash } from 'react-icons/bi'
 import { MdArrowDropDown } from 'react-icons/md'
+import { Link as RouterLink } from 'react-router-dom'
+import { RoutePath } from '~constants'
 import { fetchTokenBasedBlockchains } from '~queries/census'
 import { fetchCommunitiesByAdmin, fetchCommunityStatus } from '~queries/communities'
 import { ucfirst } from '~util/strings'
@@ -154,8 +156,8 @@ const CensusTypeSelector = ({
     { value: 'community', label: '🏘️ Community based', visible: !!oneClickPoll },
     { value: 'channel', label: '⛩ Farcaster channel gated' },
     { value: 'followers', label: '❤️ My Farcaster followers and me' },
-    { value: 'nft', label: '🎨 NFT based via Census3', visible: !oneClickPoll },
-    { value: 'erc20', label: '💰 ERC20 based via Census3', visible: !oneClickPoll },
+    { value: 'nft', label: '🎨 NFT based' },
+    { value: 'erc20', label: '💰 ERC20 based' },
   ].filter((o) => o.visible !== false)
 
   return (
@@ -230,7 +232,19 @@ const CensusTypeSelector = ({
             <CreateFarcasterCommunityButton />
           </Flex>
         ))}
+      {['erc20', 'nft'].includes(censusType) && oneClickPoll && (
+        <Alert status='info'>
+          <AlertIcon />
+          <AlertDescription>
+            This type of census is only available for Votecaster Communities.{' '}
+            <Button as={RouterLink} to={RoutePath.CommunitiesForm} colorScheme='purple' size='xs'>
+              Create yours here.
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       {['erc20', 'nft'].includes(censusType) &&
+        !oneClickPoll &&
         addressFields.map((field, index) => (
           <FormControl key={field.id} {...props} isDisabled={isDisabled}>
             <FormLabel>
@@ -266,7 +280,7 @@ const CensusTypeSelector = ({
             </Flex>
           </FormControl>
         ))}
-      {censusType === 'nft' && addressFields.length < 3 && (
+      {censusType === 'nft' && !oneClickPoll && addressFields.length < 3 && (
         <Button variant='ghost' onClick={() => appendAddress({ address: '', blockchain: 'base' })}>
           Add address
         </Button>

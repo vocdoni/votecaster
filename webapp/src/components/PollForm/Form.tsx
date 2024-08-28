@@ -36,6 +36,9 @@ const Form: FC<FormProps> = ({ communityId, composer, ...props }) => {
   const { isAuthenticated } = useAuth()
 
   const community = methods.watch('community')
+  const censusType = methods.watch('censusType')
+
+  const isDisabled = (community && !community.ready) || ['nft', 'erc20'].includes(censusType)
 
   return (
     <Flex flexDir='column' alignItems='center' w={{ base: 'full', sm: 450, md: 550 }} {...props}>
@@ -65,12 +68,7 @@ const Form: FC<FormProps> = ({ communityId, composer, ...props }) => {
                 )}
                 {isAuthenticated ? (
                   <>
-                    <Button
-                      type='submit'
-                      isLoading={loading}
-                      loadingText={status}
-                      isDisabled={community && !community.ready}
-                    >
+                    <Button type='submit' isLoading={loading} loadingText={status} isDisabled={isDisabled}>
                       Create
                     </Button>
                     {!composer && <ReputationCard reputation={reputation!} />}
