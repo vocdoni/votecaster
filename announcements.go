@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -65,9 +66,11 @@ func (v *vocdoniHandler) communityUserProfiles(community *mongo.Community) (map[
 		for addr := range holderAddrsCh {
 			user, err := v.db.UserByAddress(addr)
 			if err != nil {
-				errsMtx.Lock()
-				backgroundErrs = append(backgroundErrs, fmt.Errorf("failed to get user by address: %w", err))
-				errsMtx.Unlock()
+				if !errors.Is(err, mongo.ErrUserUnknown) {
+					errsMtx.Lock()
+					backgroundErrs = append(backgroundErrs, fmt.Errorf("failed to get user by address (%s): %w", addr, err))
+					errsMtx.Unlock()
+				}
 				continue
 			}
 			communityUsers[user.UserID] = user.Username

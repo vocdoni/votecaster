@@ -168,6 +168,9 @@ func boostersReputation(rep *Boosters) uint64 {
 // if DAO => Y = Y * daoMultiplier
 // if Channel => Y = Y * channelMultiplier
 func communityYieldRate(p, cs, r float64, dao, channel bool) float64 {
+	if cs <= 0 {
+		return 0
+	}
 	y := (yieldParamA*p + yieldParamB*math.Log(cs)) * r
 	if dao {
 		y *= daoMultiplier
