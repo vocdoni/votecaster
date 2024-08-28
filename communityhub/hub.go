@@ -723,7 +723,7 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 	} else {
 		var err error
 		alias := fmt.Sprintf("CommunityHub-%s", hcommunity.Name)
-		predicate := strings.Join(tokenAliases, fmt.Sprintf(" %s ", strategyoperators.ORSUMTag))
+		predicate := joinStrategyTokens(tokenAliases, strategyoperators.ORSUMTag)
 		strategyID, err = ch.census3.CreateStrategy(&c3api.Strategy{
 			Alias:     alias,
 			Predicate: predicate,
@@ -735,4 +735,31 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 	}
 	// set the strategy ID in the community
 	return ch.db.SetCommunityCensusStrategy(hcommunity.CommunityID, strategyID)
+}
+
+// joinStrategyTokens combines tokenAliases with the specified operator and appropriate parentheses.
+func joinStrategyTokens(tokenAliases []string, operator string) string {
+	if len(tokenAliases) == 0 {
+		return ""
+	}
+	if len(tokenAliases) == 1 {
+		return tokenAliases[0]
+	}
+	if len(tokenAliases) == 2 {
+		return fmt.Sprintf("%s %s %s", tokenAliases[0], operator, tokenAliases[1])
+	}
+	// if more than two, we need to add parentheses around the tokens
+	result := tokenAliases[0]
+
+	// Loop through the remaining tokens, concatenating them with the operator.
+	for i := 1; i < len(tokenAliases); i++ {
+		result = fmt.Sprintf("%s %s %s", result, operator, tokenAliases[i])
+
+		// Add parentheses around everything but the last token.
+		if i < len(tokenAliases)-1 {
+			result = fmt.Sprintf("(%s)", result)
+		}
+	}
+
+	return result
 }
