@@ -1493,6 +1493,8 @@ github.com/viant/assertly v0.4.8/go.mod h1:aGifi++jvCrUaklKEKT0BU95igDNaqkvz+49u
 github.com/viant/toolbox v0.24.0/go.mod h1:OxMCG57V0PXuIP2HNQrtJf2CjqdmbrOx5EkMILuUhzM=
 github.com/vocdoni/census3 v0.1.4-0.20240827102031-e434bb15bc32 h1:3fXY9mnr/NFs4ZQWWbom7F+/pCNxmS6cXsRyicmIbEo=
 github.com/vocdoni/census3 v0.1.4-0.20240827102031-e434bb15bc32/go.mod h1:7KLBLNKtZk2O0nWaM64vfeF6eNhvxyXOPudxpgdWH+4=
+github.com/vocdoni/census3 v0.1.4-0.20240828120240-246d1eae504a h1:tWZA0Cd2ixdA3+B8hTgMZK604zQ4uFL7FwjTztF6RW4=
+github.com/vocdoni/census3 v0.1.4-0.20240828120240-246d1eae504a/go.mod h1:7KLBLNKtZk2O0nWaM64vfeF6eNhvxyXOPudxpgdWH+4=
 github.com/vocdoni/storage-proofs-eth-go v0.1.6 h1:mF6VNGudgCjjgjxs5Z2GGMM2tS79+xFBWcr7BnPuhAY=
 github.com/vocdoni/storage-proofs-eth-go v0.1.6/go.mod h1:aoD9pKg8kDFQ5I6b3obGPTwjC+DsaW2h4wt2UQEjQrg=
 github.com/wangjia184/sortedset v0.0.0-20160527075905-f5d03557ba30/go.mod h1:YkocrP2K2tcw938x9gCOmT5G5eCD6jsTz0SZuyAqwIE=

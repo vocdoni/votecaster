@@ -13,7 +13,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
-	github.com/vocdoni/census3 v0.1.4-0.20240827102031-e434bb15bc32
+	github.com/vocdoni/census3 v0.1.4-0.20240828120240-246d1eae504a
 	github.com/xakep666/mongo-migrate v0.3.2
 	github.com/zeebo/blake3 v0.2.3
 	go.mongodb.org/mongo-driver v1.14.0

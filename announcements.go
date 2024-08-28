@@ -98,7 +98,7 @@ func (v *vocdoniHandler) communityUserProfiles(community *mongo.Community) (map[
 				errsMtx.Unlock()
 				continue
 			}
-			holdersQueueID, err := v.census3.HoldersByStrategy(tokenInfo.DefaultStrategy)
+			holdersQueueID, err := v.census3.HoldersByStrategy(tokenInfo.DefaultStrategy, false)
 			if err != nil {
 				errsMtx.Lock()
 				backgroundErrs = append(backgroundErrs, fmt.Errorf("failed to get holders queue id: %w", err))

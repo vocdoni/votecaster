@@ -578,7 +578,7 @@ func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, c
 		var err error
 		v.trackStepProgress(censusID, 1, 3, func(progress chan int) {
 			log.Debugw("getting holders from census3", "strategyID", strategyID)
-			rawHolders, err := v.census3.AllHoldersByStrategy(strategyID)
+			rawHolders, err := v.census3.AllHoldersByStrategy(strategyID, true)
 			if err != nil {
 				log.Warnw("failed to build token based census, cannot get holders", "err", err.Error())
 				v.backgroundQueue.Store(censusID.String(), CensusInfo{Error: err.Error()})

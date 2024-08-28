@@ -603,7 +603,7 @@ func (u *Updater) communityConstants(community *dbmongo.Community) (float64, uin
 		}
 		censusSize = uint64(len(users))
 	case dbmongo.TypeCommunityCensusERC20, dbmongo.TypeCommunityCensusNFT:
-		holders, err := u.census3.AllHoldersByStrategy(community.Census.Strategy)
+		holders, err := u.census3.AllHoldersByStrategy(community.Census.Strategy, false)
 		if err != nil {
 			return 0, 0, fmt.Errorf("error fetching token holders: %w", err)
 		}
@@ -870,5 +870,5 @@ func (u *Updater) tokenHolders(address common.Address, chainID uint64) (map[comm
 	if err != nil {
 		return nil, fmt.Errorf("error getting token info: %w", err)
 	}
-	return u.census3.AllHoldersByStrategy(tokenInfo.DefaultStrategy)
+	return u.census3.AllHoldersByStrategy(tokenInfo.DefaultStrategy, true)
 }
