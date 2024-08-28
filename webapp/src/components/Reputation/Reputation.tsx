@@ -159,8 +159,8 @@ export const ReputationTable = ({ reputation }: { reputation: Reputation }) => {
       <Thead>
         <Tr>
           <Th>Action</Th>
-          <Th>Earned points</Th>
-          <Th>Available Points</Th>
+          <Th>Earned reputation</Th>
+          <Th>Available reputation</Th>
         </Tr>
       </Thead>
       <Tbody>

@@ -3,6 +3,7 @@ import {
   Button,
   Flex,
   Heading,
+  HStack,
   Icon,
   Image,
   Link,
@@ -14,6 +15,7 @@ import {
   VStack,
 } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
+import { FaVoteYea } from 'react-icons/fa'
 import { FaCheck, FaPlay, FaRegCircleStop, FaRegCopy } from 'react-icons/fa6'
 import { IoMdArrowBack } from 'react-icons/io'
 import { Link as RouterLink } from 'react-router-dom'
@@ -91,18 +93,35 @@ export const PollView = ({ poll, loading }: PollViewProps) => {
               </Flex>
             </Skeleton>
             <Image src={`${appUrl}/preview/${poll.electionId}`} fallback={<Skeleton height={200} />} />
-            <Button
-              fontSize={'sm'}
-              onClick={onCopy}
-              colorScheme='purple'
-              alignSelf='start'
-              bg={hasCopied ? 'purple.600' : 'purple.300'}
-              color='white'
-              size='xs'
-              rightIcon={<Icon as={hasCopied ? FaCheck : FaRegCopy} />}
-            >
-              Copy frame link
-            </Button>
+            <HStack>
+              <Button
+                fontSize={'sm'}
+                onClick={onCopy}
+                colorScheme='purple'
+                alignSelf='start'
+                bg={hasCopied ? 'purple.600' : 'purple.300'}
+                color='white'
+                size='xs'
+                rightIcon={<Icon as={hasCopied ? FaCheck : FaRegCopy} />}
+              >
+                Copy frame link
+              </Button>
+              <Button
+                as={Link}
+                href={`https://warpcast.com/~/developers/frames?url=${encodeURIComponent(electionURL)}`}
+                fontSize={'sm'}
+                onClick={onCopy}
+                colorScheme='purple'
+                alignSelf='start'
+                color='white'
+                bg='purple.300'
+                size='xs'
+                rightIcon={<Icon as={FaVoteYea} />}
+                isExternal
+              >
+                Vote
+              </Button>
+            </HStack>
           </VStack>
           <ResultsSection poll={poll} loading={loading} />
         </VStack>
