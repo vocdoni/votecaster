@@ -194,7 +194,8 @@ func ValidateFrameMessage(msg []byte, apikey string) {
 			log.Warnw("airstack API returned unexpected status",
 				"code", res.StatusCode,
 				"url", req.URL.String(),
-				"authorization", req.Header.Get("Authorization"),
+				"authorization", req.Header.Get("x-airstack-hubs"),
+				"apikey", apikey,
 			)
 			return
 		}
