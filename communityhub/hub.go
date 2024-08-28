@@ -276,7 +276,11 @@ func (ch *CommunityHub) SyncCommunities() {
 							// service and set the strategy ID in the community
 							// if it need to be updated
 							if err := ch.registerTokenAddresses(onchainCommunity); err != nil {
-								log.Warnw("failed to register token addresses", "error", err)
+								log.Warnw("failed to register token addresses",
+									"error", err,
+									"community", onchainCommunity.CommunityID,
+									"addresses", onchainCommunity.CensusAddesses,
+								)
 								continue
 							}
 						}
@@ -718,13 +722,15 @@ func (ch *CommunityHub) registerTokenAddresses(hcommunity *HubCommunity) error {
 		strategyID = tokenInfo.DefaultStrategy
 	} else {
 		var err error
+		alias := fmt.Sprintf("CommunityHub-%s", hcommunity.Name)
+		predicate := strings.Join(tokenAliases, fmt.Sprintf(" %s ", strategyoperators.ORSUMTag))
 		strategyID, err = ch.census3.CreateStrategy(&c3api.Strategy{
-			Alias:     fmt.Sprintf("CommunityHub-%s", hcommunity.Name),
-			Predicate: strings.Join(tokenAliases, fmt.Sprintf(" %s ", strategyoperators.ORSUMTag)),
+			Alias:     alias,
+			Predicate: predicate,
 			Tokens:    predicateTokens,
 		})
 		if err != nil && !errors.Is(err, c3cli.ErrAlreadyExists) && !strings.Contains(err.Error(), "already created") {
-			return fmt.Errorf("error creating strategy: %w", err)
+			return fmt.Errorf("error creating strategy (alias:%s predicate:%s tokens:%+v): %w", alias, predicate, predicateTokens, err)
 		}
 	}
 	// set the strategy ID in the community
