@@ -178,7 +178,7 @@ func ValidateFrameMessage(msg []byte, apikey string) {
 			return
 		}
 		req.Header.Set("Content-Type", "application/octet-stream")
-		req.Header.Set("Authorization", "Bearer "+apikey)
+		req.Header.Set("x-airstack-hubs", apikey)
 
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
