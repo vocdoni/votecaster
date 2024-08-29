@@ -24,6 +24,10 @@ func generateElectionCacheKey(election *api.Election, imageType int) string {
 			}
 			return 0
 		}(), imageType)
+	case imageTypePreview:
+		// set current date and hour to cache file name
+		dhour := time.Now().Format("2006-01-02_15")
+		return fmt.Sprintf("%s_%s_%d", election.ElectionID.String(), dhour, imageType)
 	case imageTypeQuestion:
 		return fmt.Sprintf("%s_%d", election.ElectionID.String(), imageType)
 	default:

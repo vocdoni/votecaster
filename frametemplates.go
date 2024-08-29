@@ -63,6 +63,7 @@ var body = `
 </html>`
 
 var frameMain = header + `
+    <meta name="cache-control" content="max-age=1800" />
     <meta name="fc:frame" content="vNext" />
     <meta name="fc:frame:image" content="{image}" />
     <meta name="fc:frame:image:aspect_ratio" content="1:1" />
