@@ -160,7 +160,7 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 }
 
 func landingPNGfile(election *api.Election) string {
-	pngFile, err := imageframe.QuestionImage(election)
+	pngFile, err := imageframe.Preview(election)
 	if err != nil {
 		log.Warnw("failed to create landing image", "error", err)
 		return imageLink(imageframe.NotFoundImage())

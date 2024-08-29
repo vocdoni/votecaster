@@ -35,6 +35,7 @@ const (
 	imageType = iota
 	imageTypeQuestion
 	imageTypeResults
+	imageTypePreview
 )
 
 var (
@@ -89,6 +90,8 @@ type ImageRequest struct {
 	VoteCount     uint64   `json:"voteCount"`
 	Participation float32  `json:"participation"`
 	Turnout       float32  `json:"turnout"`
+	Ends          string   `json:"ends,omitempty"`
+	Ended         bool     `json:"ended,omitempty"`
 }
 
 // ErrorImage creates an image representing an error message.
@@ -163,6 +166,41 @@ func QuestionImage(election *api.Election) (string, error) {
 	// Add some time to allow the image to be generated
 	time.Sleep(2 * time.Second)
 	return generateElectionCacheKey(election, imageTypeQuestion), nil
+}
+
+// Preview creates an image representing a question preview.
+func Preview(election *api.Election) (string, error) {
+	if election == nil || election.Metadata == nil {
+		return "", fmt.Errorf("election has no metadata")
+	}
+	metadata := helpers.UnpackMetadata(election.Metadata)
+	// Check if the image is already in the cache
+	if id := electionImageCacheKey(election, imageTypePreview); id != "" {
+		return id, nil
+	}
+
+	title := metadata.Questions[0].Title["default"]
+	ends := election.EndDate.Format("2006-01-02 15:04:05")
+	ended := election.EndDate.Before(time.Now())
+
+	requestData := ImageRequest{
+		Type:     "preview",
+		Ends:     ends,
+		Question: title,
+		Ended:    ended,
+	}
+
+	go func() {
+		png, err := makeRequest(requestData)
+		if err != nil {
+			log.Warnw("failed to create image", "error", err)
+			return
+		}
+		cacheElectionImage(png, election, imageTypePreview)
+	}()
+	// Add some time to allow the image to be generated
+	time.Sleep(2 * time.Second)
+	return generateElectionCacheKey(election, imageTypePreview), nil
 }
 
 // ResultsImage creates an image showing the results of a poll.
