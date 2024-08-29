@@ -584,7 +584,7 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 		if err != nil {
 			return fmt.Errorf("failed to create election: %w", err)
 		}
-		if err := v.saveElectionAndProfile(election, profile, source, census.FarcasterParticipantCount,
+		if err := v.saveElectionAndProfile(election, profile, source, desc.UsersCount,
 			desc.UsersCountInitial, communityID); err != nil {
 			return fmt.Errorf("failed to save election and profile: %w", err)
 		}

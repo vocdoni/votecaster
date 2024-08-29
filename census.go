@@ -299,7 +299,7 @@ func (v *vocdoniHandler) censusCSV(msg *apirest.APIdata, ctx *httprouter.HTTPCon
 			uniqueParticipants = append(uniqueParticipants, k)
 		}
 		ci.Usernames = uniqueParticipants
-		ci.FarcasterParticipantCount = uint32(len(uniqueParticipants))
+		ci.FarcasterParticipantCount = totalParticipants
 		ci.FromTotalAddresses = totalCSVaddresses
 		log.Infow("census created from CSV",
 			"censusID", censusID.String(),
@@ -659,7 +659,7 @@ func (v *vocdoniHandler) tokenBasedCensus(strategyID uint64, tokenType string, c
 		}
 		ci.Usernames = uniqueParticipants
 		ci.FromTotalAddresses = uint32(len(holders))
-		ci.FarcasterParticipantCount = uint32(len(uniqueParticipants))
+		ci.FarcasterParticipantCount = totalParticipants
 		log.Infow("token census based created",
 			"censusID", censusID.String(),
 			"size", len(ci.Usernames),
@@ -759,7 +759,7 @@ func (v *vocdoniHandler) censusWarpcastChannel(channelID string, authorFID uint6
 			}
 		}
 		censusInfo.FromTotalAddresses = uint32(len(users))
-		censusInfo.FarcasterParticipantCount = uint32(len(uniqueParticipantsMap))
+		censusInfo.FarcasterParticipantCount = totalParticipants
 		v.backgroundQueue.Store(censusID.String(), *censusInfo)
 		// add participants to the census in the database
 		if err := v.db.AddParticipantsToCensus(
@@ -853,7 +853,7 @@ func (v *vocdoniHandler) censusFollowers(userFID uint64, delegations []*mongo.De
 		}
 
 		censusInfo.FromTotalAddresses = uint32(len(users))
-		censusInfo.FarcasterParticipantCount = uint32(len(uniqueParticipantsMap))
+		censusInfo.FarcasterParticipantCount = totalParticipants
 		v.backgroundQueue.Store(censusID.String(), *censusInfo)
 		log.Infow("census created from user followers",
 			"fid", userFID,
