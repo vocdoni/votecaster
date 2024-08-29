@@ -4,7 +4,6 @@ import (
 	"math"
 
 	"github.com/vocdoni/vote-frame/mongo"
-	"go.vocdoni.io/dvote/log"
 )
 
 // totalReputation calculates the reputation of a user based on their activity
@@ -196,6 +195,5 @@ func communityTotalPoints(censusType string, m, p float64, cs, r uint64) uint64 
 	default:
 		return 0
 	}
-	log.Debugw("community total points", "y", y, "m", m)
 	return uint64(y * m)
 }
