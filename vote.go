@@ -126,7 +126,12 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 				log.Errorw(err, "failed to add user to database")
 			}
 		}
-		if err := v.db.IncreaseVoteCount(voteData.FID, electionIDbytes, voteData.Proof.LeafWeight); err != nil {
+		participation, err := v.db.ParticipantParticipation(election.Census.CensusRoot, voteData.FID)
+		if err != nil {
+			log.Errorw(err, "could not get participant participation from database, fallback to 1")
+			participation = 1
+		}
+		if err := v.db.IncreaseVoteCount(voteData.FID, electionIDbytes, voteData.Proof.LeafWeight, participation); err != nil {
 			log.Errorw(err, "failed to increase vote count")
 		}
 

@@ -14,10 +14,15 @@ import (
 	"go.vocdoni.io/dvote/types"
 )
 
-func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBytes, weight *big.Int) error {
+func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBytes, weight *big.Int, participation uint32) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
-	log.Debugw("increase vote count", "userID", userFID, "electionID", electionID.String(), "weight", weight.String())
+	log.Debugw("increase vote count",
+		"userID", userFID,
+		"electionID", electionID.String(),
+		"weight", weight.String(),
+		"participation", participation,
+	)
 
 	user, err := ms.userData(userFID)
 	if err != nil {
@@ -46,7 +51,7 @@ func (ms *MongoStorage) IncreaseVoteCount(userFID uint64, electionID types.HexBy
 			return err
 		}
 	}
-	election.CastedVotes++
+	election.CastedVotes += uint64(participation)
 	election.LastVoteTime = time.Now()
 	accCastedWeight, _ := new(big.Int).SetString(election.CastedWeight, 10)
 	if accCastedWeight == nil {

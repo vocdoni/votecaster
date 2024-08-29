@@ -139,6 +139,7 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	}
 	// set the electionID for the census root previously stored on the database (if any).
 	if req.Census != nil && req.Census.Root != nil {
+		log.Debugw("set census root to election", "root", req.Census.Root.String(), "election", electionID.String())
 		if err := v.db.SetElectionIdForCensusRoot(req.Census.Root, electionID); err != nil {
 			log.Errorw(err, fmt.Sprintf("failed to set electionID for census root %s", req.Census.Root))
 		}
@@ -583,7 +584,7 @@ func (v *vocdoniHandler) createAndSaveElectionAndProfile(desc *ElectionDescripti
 		if err != nil {
 			return fmt.Errorf("failed to create election: %w", err)
 		}
-		if err := v.saveElectionAndProfile(election, profile, source, desc.UsersCount,
+		if err := v.saveElectionAndProfile(election, profile, source, census.FarcasterParticipantCount,
 			desc.UsersCountInitial, communityID); err != nil {
 			return fmt.Errorf("failed to save election and profile: %w", err)
 		}

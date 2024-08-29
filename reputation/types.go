@@ -64,6 +64,9 @@ type Reputation struct {
 // ReputationToAPIResponse function converts a mongo.Reputation struct to a
 // Reputation struct.
 func ReputationToAPIResponse(rep *mongo.Reputation) *Reputation {
+	if rep == nil {
+		return nil
+	}
 	activityPoints := &ActivityReputationCounts{
 		FollowersCount:        rep.FollowersCount,
 		ElectionsCreatedCount: rep.ElectionsCreatedCount,

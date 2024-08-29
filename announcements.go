@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	DefaultAnnouncementTimeSpan = 24 * time.Hour
+	DefaultAnnouncementTimeSpan = 10 * time.Minute
 )
 
 // communityUserProfiles returns a map of user fids and usernames of DAOs

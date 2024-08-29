@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,15 +32,22 @@ func (ms *MongoStorage) AddCensus(censusID types.HexBytes, userFID uint64) error
 }
 
 // AddParticipantsToCensus updates a census document with participants and their associated values.
-func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, participants map[string]*big.Int,
-	fromTotalAddresses, fromTotalParticipants uint32, totalWeight *big.Int, censusURI string,
+func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, participants map[string]struct {
+	Weight        *big.Int
+	Participation uint32
+},
+	fromTotalAddresses uint32, censusURI string,
 ) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
 
 	participantsString := map[string]string{}
+	totalParticipants := uint32(0)
+	totalWeight := new(big.Int)
 	for k, v := range participants {
-		participantsString[k] = v.String()
+		participantsString[k] = fmt.Sprintf("%s:%d", v.Weight.String(), v.Participation)
+		totalParticipants += v.Participation
+		totalWeight.Add(totalWeight, v.Weight)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -47,7 +56,7 @@ func (ms *MongoStorage) AddParticipantsToCensus(censusID types.HexBytes, partici
 		"$set": bson.M{
 			"participants":          participantsString,
 			"fromTotalAddresses":    fromTotalAddresses,
-			"fromTotalParticipants": fromTotalParticipants,
+			"fromTotalParticipants": totalParticipants,
 			"totalWeight":           totalWeight.String(),
 			"url":                   censusURI,
 		},
@@ -78,6 +87,40 @@ func (ms *MongoStorage) Census(censusID types.HexBytes) (Census, error) {
 	return census, nil
 }
 
+// ParticipantParticipation retrieves the participation value for a given participant in a census.
+func (ms *MongoStorage) ParticipantParticipation(censusRoot types.HexBytes, fid uint64) (uint32, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	user, err := ms.userData(fid)
+	if err != nil {
+		return 0, fmt.Errorf("could not get user %d from database", fid)
+	}
+
+	var census Census
+	err = ms.census.FindOne(ctx, bson.M{"root": censusRoot.String()}).Decode(&census)
+	if err != nil {
+		return 0, fmt.Errorf("cannot find Census with root: %w", err)
+	}
+	participant, ok := census.Participants[user.Username]
+	if !ok {
+		// just return 1 as fallback
+		return 1, nil
+	}
+	weightAndParticipation := strings.Split(participant, ":")
+	if len(weightAndParticipation) != 2 {
+		return 1, nil
+	}
+	participation, err := strconv.ParseUint(weightAndParticipation[1], 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("cannot parse participation: %w", err)
+	}
+	return uint32(participation), nil
+}
+
 // ParticipantsByWeight retrieves the top N participants by weight in a census.
 func (ms *MongoStorage) ParticipantsByWeight(electionID types.HexBytes, n int) (map[string]*big.Int, error) {
 	census, err := ms.censusFromElection(electionID)
@@ -86,7 +129,7 @@ func (ms *MongoStorage) ParticipantsByWeight(electionID types.HexBytes, n int) (
 	}
 	keys := []string{}
 	for k := range census.Participants {
-		keys = append(keys, k)
+		keys = append(keys, strings.Split(k, ":")[0])
 	}
 	// sort the keys by the value of the participants, descending
 	sort.SliceStable(keys, func(i, j int) bool {
@@ -176,14 +219,9 @@ func (ms *MongoStorage) SetElectionIdForCensusRoot(root, electionID types.HexByt
 	update := bson.M{"$set": bson.M{"electionId": electionID.String()}}
 
 	// Execute the update operation
-	result, err := ms.census.UpdateOne(ctx, bson.M{"root": root.String()}, update)
+	_, err := ms.census.UpdateOne(ctx, bson.M{"root": root.String()}, update)
 	if err != nil {
 		return fmt.Errorf("cannot update ElectionID for Census with root %s: %w", root.String(), err)
-	}
-
-	// If the root is not found, MatchedCount will be 0. We treat this as a no-op success.
-	if result.MatchedCount == 0 {
-		return nil
 	}
 
 	return nil

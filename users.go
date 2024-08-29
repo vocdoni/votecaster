@@ -58,7 +58,7 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 	}
 	// get user reputation
 	rep, err := v.db.DetailedUserReputation(auth.UserID)
-	if err != nil && !errors.Is(err, mongo.ErrUserUnknown) {
+	if err != nil && !errors.Is(err, mongo.ErrUserUnknown) || rep == nil {
 		log.Warnw("could not get user reputation", "error", err)
 	} else {
 		profile.Reputation = *reputation.ReputationToAPIResponse(rep)
