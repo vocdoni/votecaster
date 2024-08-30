@@ -176,37 +176,42 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	if err := json.Unmarshal(msg.Data, packet); err != nil {
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
 	}
-	// check if the user has delegated their vote
-	dbElection, err := v.db.Election(electionIDbytes)
-	if err != nil {
-		response, err := handleVoteError(err, nil, electionIDbytes)
+
+	// check if the user is eligible to vote and extract the vote data
+	vote, voteErr := extractVoteDataAndCheckIfEligible(packet, electionID, election.Census.CensusRoot, v.cli)
+	if voteErr != nil {
+		// first check if the user has delegated their vote to show the correct error message
+		dbElection, err := v.db.Election(electionIDbytes)
 		if err != nil {
-			return fmt.Errorf("failed to handle election error: %w", err)
+			response, err := handleVoteError(err, nil, electionIDbytes)
+			if err != nil {
+				return fmt.Errorf("failed to handle election error: %w", err)
+			}
+			ctx.SetResponseContentType("text/html; charset=utf-8")
+			return ctx.Send([]byte(response), http.StatusOK)
 		}
-		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(response), http.StatusOK)
-	}
-	if dbElection.Community != nil {
-		delegations, err := v.db.DelegationsByCommunityFrom(dbElection.Community.ID, uint64(packet.UntrustedData.FID))
-		if err != nil {
-			log.Warnw("failed to fetch delegations", "error", err)
-		}
-		if len(delegations) > 0 {
-			if response, err := handleVoteError(ErrVoteDelegated, &voteData{
-				FID: uint64(packet.UntrustedData.FID),
-			}, electionIDbytes); err != nil {
-				ctx.SetResponseContentType("text/html; charset=utf-8")
-				return ctx.Send([]byte(response), http.StatusOK)
+		if dbElection.Community != nil {
+			delegations, err := v.db.DelegationsByCommunityFrom(dbElection.Community.ID, uint64(packet.UntrustedData.FID))
+			if err != nil {
+				log.Warnw("failed to fetch delegations", "error", err)
+			}
+			if len(delegations) > 0 {
+				if response, err := handleVoteError(ErrVoteDelegated, &voteData{
+					FID: uint64(packet.UntrustedData.FID),
+				}, electionIDbytes); err != nil {
+					ctx.SetResponseContentType("text/html; charset=utf-8")
+					return ctx.Send([]byte(response), http.StatusOK)
+				}
 			}
 		}
+
+		// handle the error (if any)
+		if response, err := handleVoteError(voteErr, vote, electionIDbytes); err != nil {
+			ctx.SetResponseContentType("text/html; charset=utf-8")
+			return ctx.Send([]byte(response), http.StatusOK)
+		}
 	}
-	// check if the user is eligible to vote and extract the vote data
-	voteData, err := extractVoteDataAndCheckIfEligible(packet, electionID, election.Census.CensusRoot, v.cli)
-	// handle the error (if any)
-	if response, err := handleVoteError(err, voteData, electionIDbytes); err != nil {
-		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(response), http.StatusOK)
-	}
+
 	// get the election metadata (question, title, etc.)
 	metadata := helpers.UnpackMetadata(election.Metadata)
 	png, err := imageframe.QuestionImage(election)
