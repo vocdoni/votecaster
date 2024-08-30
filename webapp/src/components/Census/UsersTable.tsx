@@ -1,4 +1,4 @@
-import { Checkbox, Box, Input, Table, TableProps, Tbody, Td, Th, Thead, Tr, Button, HStack } from '@chakra-ui/react'
+import { Box, Button, Checkbox, HStack, Input, Table, TableProps, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react'
 import { useState } from 'react'
 
 interface UsersTableProps extends TableProps {
@@ -20,17 +20,34 @@ export const UsersTable = ({
   const [selectedUsers, setSelectedUsers] = useState<string[][]>([])
   const [filterText, setFilterText] = useState('')
   const [selectedAll, setSelectedAll] = useState(false)
+  let participation = false
 
   if (!users || !users.length) return
 
-  // check if table has weight column only if has the hasWeight prop is not defined
+  // check if table has weight column only if hasWeight prop is not defined
   if (hasWeight === undefined) {
     hasWeight = users[0].length > 1
   }
 
+  if (hasWeight) {
+    participation = users[0][1].includes(':')
+  }
+
   const filteredUsers = users
     .filter(([username]) => username.toLowerCase().includes(filterText.toLowerCase()))
-    .sort((a, b) => (hasWeight ? (BigInt(a[1] || '0') < BigInt(b[1] || '0') ? 1 : -1) : 0))
+    .sort((a, b) => {
+      if (hasWeight) {
+        if (participation) {
+          const weightA = a[1].split(':').shift()
+          const weightB = b[1].split(':').shift()
+
+          return Number(weightA) < Number(weightB) ? 1 : -1
+        }
+        return a[1] < b[1] ? 1 : -1
+      }
+
+      return a[0] < b[0] ? 1 : -1
+    })
 
   const handleCheckboxChange = (username: string, weight: string, isChecked: boolean) => {
     const data = [username]
@@ -88,6 +105,7 @@ export const UsersTable = ({
           <Tr>
             <Th>Username</Th>
             {hasWeight && <Th>Weight</Th>}
+            {participation && <Th>Participation</Th>}
           </Tr>
         </Thead>
         <Tbody>
@@ -103,7 +121,8 @@ export const UsersTable = ({
                 )}
                 {username}
               </Td>
-              {hasWeight && !!weight && <Td>{weight}</Td>}
+              {hasWeight && !!weight && <Td isNumeric>{weight.split(':')[0]}</Td>}
+              {participation && !!weight && <Td isNumeric>{weight.split(':')[1]}</Td>}
             </Tr>
           ))}
         </Tbody>
