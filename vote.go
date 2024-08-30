@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/imageframe"
 	"go.vocdoni.io/proto/build/go/models"
@@ -81,6 +82,12 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	if err := json.Unmarshal(msg.Data, packet); err != nil {
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
 	}
+
+	// validate the frame package to airstack
+	if v.airstack != nil {
+		airstack.ValidateFrameMessage(msg.Data, v.airstack.ApiKey())
+	}
+
 	// check if the user has delegated their vote
 	dbElection, err := v.db.Election(electionIDbytes)
 	if err != nil {

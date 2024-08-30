@@ -137,6 +137,11 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return nil
 	}
 
+	// validate the frame package to airstack
+	if v.airstack != nil {
+		airstack.ValidateFrameMessage(msg.Data, v.airstack.ApiKey())
+	}
+
 	election, err := v.election(electionID)
 	if err != nil {
 		return fmt.Errorf("failed to get election: %w", err)
@@ -164,6 +169,11 @@ func landingPNGfile(election *api.Election) string {
 }
 
 func (v *vocdoniHandler) info(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// validate the frame package to airstack
+	if v.airstack != nil {
+		airstack.ValidateFrameMessage(msg.Data, v.airstack.ApiKey())
+	}
+
 	// get the electionID from the URL and fetch the election from the vochain
 	electionID := ctx.URLParam("electionID")
 	electionIDbytes, err := hex.DecodeString(electionID)

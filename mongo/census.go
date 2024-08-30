@@ -206,8 +206,9 @@ func (ms *MongoStorage) censusFromElection(electionID types.HexBytes) (*Census, 
 	return &census, nil
 }
 
-// SetElectionIdForCensusRoot updates the ElectionID for a given census document by its root.
-// If the root is not found, it returns nil, indicating no error occurred.
+// SetElectionIdForCensusRoot updates the electionId for a given census document.
+// It will only be set if the electionId field is empty.
+// If the census does not exist, it returns nil without error.
 func (ms *MongoStorage) SetElectionIdForCensusRoot(root, electionID types.HexBytes) error {
 	ms.keysLock.Lock()
 	defer ms.keysLock.Unlock()
@@ -215,11 +216,17 @@ func (ms *MongoStorage) SetElectionIdForCensusRoot(root, electionID types.HexByt
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Prepare the filter to find the first census document with the given root and an empty electionId
+	filter := bson.M{
+		"root":       root.String(),
+		"electionId": "", // Match only documents where electionId is an empty string
+	}
+
 	// Prepare the update document to set the new ElectionID
 	update := bson.M{"$set": bson.M{"electionId": electionID.String()}}
 
-	// Execute the update operation
-	_, err := ms.census.UpdateOne(ctx, bson.M{"root": root.String()}, update)
+	// Execute the update operation, limiting to the first match
+	_, err := ms.census.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("cannot update ElectionID for Census with root %s: %w", root.String(), err)
 	}

@@ -150,6 +150,10 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 }
 
 func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	// validate the frame package to airstack
+	if v.airstack != nil {
+		airstack.ValidateFrameMessage(msg.Data, v.airstack.ApiKey())
+	}
 	electionID, err := hex.DecodeString(ctx.URLParam("electionID"))
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
@@ -171,10 +175,6 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 	packet := &FrameSignaturePacket{}
 	if err := json.Unmarshal(msg.Data, packet); err != nil {
 		return fmt.Errorf("failed to unmarshal frame signature packet: %w", err)
-	}
-	// validate the frame package to airstack
-	if v.airstack != nil {
-		airstack.ValidateFrameMessage(msg.Data, v.airstack.ApiKey())
 	}
 	// check if the user has delegated their vote
 	dbElection, err := v.db.Election(electionIDbytes)

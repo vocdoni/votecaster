@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httputil"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -193,8 +192,6 @@ func ValidateFrameMessage(msg []byte, apikey string) {
 		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Header.Set("x-airstack-hubs", apikey)
 
-		log.Debugf("doing airstack request: %s", printHTTPRequest(req))
-
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
 			log.Warn("error sending request:", err)
@@ -206,7 +203,6 @@ func ValidateFrameMessage(msg []byte, apikey string) {
 			log.Warn("error decoding response:", err)
 			return
 		}
-		log.Debugw("airstack response", "response", fmt.Sprintf("%+v", airstackResponse))
 		if res.StatusCode != http.StatusOK {
 			log.Warnw("airstack API returned unexpected status",
 				"code", res.StatusCode,
@@ -218,25 +214,19 @@ func ValidateFrameMessage(msg []byte, apikey string) {
 			)
 			return
 		}
-		isValid, ok := airstackResponse["isValid"]
+		isValid, ok := airstackResponse["valid"]
 		if !ok {
 			log.Warn("isValid field missing in response")
+			log.Debugw("airstack response", "response", fmt.Sprintf("%+v", airstackResponse))
 			return
 		}
 		if valid, ok := isValid.(bool); !ok || !valid {
 			log.Warn("invalid frame message")
+			log.Debugw("airstack response", "response", fmt.Sprintf("%+v", airstackResponse))
 			return
 		}
+		log.Infow("frame message validated by airstack")
 	}()
-}
-
-func printHTTPRequest(req *http.Request) string {
-	// Dump the request as a string
-	requestDump, err := httputil.DumpRequestOut(req, true)
-	if err != nil {
-		return err.Error()
-	}
-	return (string(requestDump))
 }
 
 // FrameSignaturePacket mirrors the JSON structure received by the Frame server.

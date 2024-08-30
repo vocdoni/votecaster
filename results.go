@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/communityhub"
 	"github.com/vocdoni/vote-frame/helpers"
 	"github.com/vocdoni/vote-frame/imageframe"
@@ -49,6 +50,12 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return errorImageResponse(ctx, fmt.Errorf("invalid electionID"))
 	}
 	log.Infow("received results request", "electionID", electionID)
+
+	// validate the frame package to airstack
+	if v.airstack != nil {
+		airstack.ValidateFrameMessage(msg.Data, v.airstack.ApiKey())
+	}
+
 	electionIDbytes, err := hex.DecodeString(electionID)
 	if err != nil {
 		return errorImageResponse(ctx, fmt.Errorf("failed to decode electionID: %w", err))
@@ -64,7 +71,7 @@ func (v *vocdoniHandler) results(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return errorImageResponse(ctx, fmt.Errorf("failed to fetch election: %w", err))
 	}
 	metadata := helpers.UnpackMetadata(election.Metadata)
-	if election.Results == nil || len(election.Results) == 0 {
+	if len(election.Results) == 0 {
 		return errorImageResponse(ctx, fmt.Errorf("election results not ready"))
 	}
 
