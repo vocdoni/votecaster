@@ -3,6 +3,7 @@ package airstack
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -172,25 +173,40 @@ func (a *Airstack) NumHoldersByTokenAnkrAPI(tokenAddress, blockchain string) (ui
 }
 
 func ValidateFrameMessage(msg []byte, apikey string) {
+	framePkg := &FrameSignaturePacket{}
+	if err := json.Unmarshal(msg, framePkg); err != nil {
+		log.Warn("failed to unmarshal frame signature packet:", err)
+		return
+	}
 	go func() {
-		req, err := http.NewRequest(http.MethodPost, validateFrameEndpoint, bytes.NewBuffer(msg))
+		msgData, err := hex.DecodeString(framePkg.TrustedData.MessageBytes)
+		if err != nil {
+			log.Warn("failed to decode message bytes:", err)
+			return
+		}
+		req, err := http.NewRequest(http.MethodPost, validateFrameEndpoint, bytes.NewBuffer(msgData))
 		if err != nil {
 			log.Warn("error creating request:", err)
 			return
 		}
+
 		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Header.Set("x-airstack-hubs", apikey)
+
+		log.Debugf("doing airstack request: %s", printHTTPRequest(req))
 
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
 			log.Warn("error sending request:", err)
 			return
 		}
+		defer res.Body.Close()
 		airstackResponse := make(map[string]interface{})
 		if err := json.NewDecoder(res.Body).Decode(&airstackResponse); err != nil {
 			log.Warn("error decoding response:", err)
 			return
 		}
+		log.Debugw("airstack response", "response", fmt.Sprintf("%+v", airstackResponse))
 		if res.StatusCode != http.StatusOK {
 			log.Warnw("airstack API returned unexpected status",
 				"code", res.StatusCode,
@@ -198,7 +214,7 @@ func ValidateFrameMessage(msg []byte, apikey string) {
 				"authorization", req.Header.Get("x-airstack-hubs"),
 				"apikey", apikey,
 				"response", fmt.Sprintf("%+v", airstackResponse),
-				"request", printHTTPRequest(req),
+				"msg size", len(msgData),
 			)
 			return
 		}
@@ -221,4 +237,11 @@ func printHTTPRequest(req *http.Request) string {
 		return err.Error()
 	}
 	return (string(requestDump))
+}
+
+// FrameSignaturePacket mirrors the JSON structure received by the Frame server.
+type FrameSignaturePacket struct {
+	TrustedData struct {
+		MessageBytes string `json:"messageBytes"`
+	} `json:"trustedData"`
 }
