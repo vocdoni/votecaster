@@ -24,6 +24,9 @@ func generateElectionCacheKey(election *api.Election, imageType int) string {
 			}
 			return 0
 		}(), imageType)
+	case imageTypePreview:
+		// set current hour to cache file name
+		return fmt.Sprintf("%s_%s_%d", election.ElectionID.String(), roundToQuarterHour(time.Now()).Format("15_04"), imageType)
 	case imageTypeQuestion:
 		return fmt.Sprintf("%s_%d", election.ElectionID.String(), imageType)
 	default:
@@ -31,6 +34,24 @@ func generateElectionCacheKey(election *api.Election, imageType int) string {
 		// fallback
 		return fmt.Sprintf("%s_%d", election.ElectionID.String(), imageType)
 	}
+}
+
+// rounds minutes to the nearest quarter hour, for caching purposes
+func roundToQuarterHour(t time.Time) time.Time {
+	// Get the number of minutes
+	minutes := t.Minute()
+	// Calculate the remainder when dividing by 15
+	remainder := minutes % 15
+	// Calculate the number of minutes to add to round to the nearest quarter hour
+	if remainder < 8 {
+		// Round down
+		t = t.Add(time.Duration(-remainder) * time.Minute)
+	} else {
+		// Round up
+		t = t.Add(time.Duration(15-remainder) * time.Minute)
+	}
+	// Zero out the seconds and nanoseconds
+	return t.Truncate(time.Minute)
 }
 
 // cacheElectionImage adds an image to the LRU cache.
