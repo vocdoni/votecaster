@@ -439,6 +439,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/ping", http.MethodGet, "public", func(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+		return ctx.Send([]byte("pong"), http.StatusOK)
+	}); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/auth", http.MethodGet, "public", handler.authLinkHandler); err != nil {
 		log.Fatal(err)
 	}

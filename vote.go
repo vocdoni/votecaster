@@ -88,31 +88,6 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 		airstack.ValidateFrameMessage(msg.Data, v.airstack.ApiKey())
 	}
 
-	// check if the user has delegated their vote
-	dbElection, err := v.db.Election(electionIDbytes)
-	if err != nil {
-		response, err := handleVoteError(err, nil, electionIDbytes)
-		if err != nil {
-			return fmt.Errorf("failed to handle election error: %w", err)
-		}
-		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(response), http.StatusOK)
-	}
-	if dbElection.Community != nil {
-		delegations, err := v.db.DelegationsByCommunityFrom(dbElection.Community.ID, uint64(packet.UntrustedData.FID))
-		if err != nil {
-			log.Warnw("failed to fetch delegations", "error", err)
-		}
-		if len(delegations) > 0 {
-			if response, err := handleVoteError(ErrVoteDelegated, &voteData{
-				FID: uint64(packet.UntrustedData.FID),
-			}, electionIDbytes); err != nil {
-				ctx.SetResponseContentType("text/html; charset=utf-8")
-				return ctx.Send([]byte(response), http.StatusOK)
-			}
-		}
-	}
-
 	// get the vote count for future check
 	voteCount, err := v.cli.ElectionVoteCount(electionIDbytes)
 	if err != nil {
@@ -120,25 +95,42 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	}
 
 	// cast the vote
-	voteData, err := vote(packet, electionIDbytes, election.Census.CensusRoot, v.cli)
-	// handle the error (if any)
-	if response, err := handleVoteError(err, voteData, electionIDbytes); err != nil {
-		ctx.SetResponseContentType("text/html; charset=utf-8")
-		return ctx.Send([]byte(response), http.StatusOK)
+	vote, voteErr := vote(packet, electionIDbytes, election.Census.CensusRoot, v.cli)
+	if voteErr != nil {
+		// check if the user has delegated their vote, if so, return an error
+		dbElection, _ := v.db.Election(electionIDbytes)
+		if dbElection != nil && dbElection.Community != nil {
+			delegations, err := v.db.DelegationsByCommunityFrom(dbElection.Community.ID, uint64(packet.UntrustedData.FID))
+			if err != nil {
+				log.Warnw("failed to fetch delegations", "error", err)
+			}
+			if len(delegations) > 0 {
+				if response, err := handleVoteError(ErrVoteDelegated, vote, electionIDbytes); err != nil {
+					ctx.SetResponseContentType("text/html; charset=utf-8")
+					return ctx.Send([]byte(response), http.StatusOK)
+				}
+			}
+		}
+
+		// handle the error (if any)
+		if response, err := handleVoteError(voteErr, vote, electionIDbytes); err != nil {
+			ctx.SetResponseContentType("text/html; charset=utf-8")
+			return ctx.Send([]byte(response), http.StatusOK)
+		}
 	}
 
 	go func() {
-		if !v.db.UserExists(voteData.FID) {
-			if err := v.db.AddUser(voteData.FID, "", "", []string{}, []string{}, "", 0); err != nil {
+		if !v.db.UserExists(vote.FID) {
+			if err := v.db.AddUser(vote.FID, "", "", []string{}, []string{}, "", 0); err != nil {
 				log.Errorw(err, "failed to add user to database")
 			}
 		}
-		participation, err := v.db.ParticipantParticipation(election.Census.CensusRoot, voteData.FID)
+		participation, err := v.db.ParticipantParticipation(election.Census.CensusRoot, vote.FID)
 		if err != nil {
 			log.Errorw(err, "could not get participant participation from database, fallback to 1")
 			participation = 1
 		}
-		if err := v.db.IncreaseVoteCount(voteData.FID, electionIDbytes, voteData.Proof.LeafWeight, participation); err != nil {
+		if err := v.db.IncreaseVoteCount(vote.FID, electionIDbytes, vote.Proof.LeafWeight, participation); err != nil {
 			log.Errorw(err, "failed to increase vote count")
 		}
 
@@ -168,7 +160,7 @@ func (v *vocdoniHandler) vote(msg *apirest.APIdata, ctx *httprouter.HTTPContext)
 	// wait some time so the vote is processed and the results are updated
 	time.Sleep(2 * time.Second)
 
-	response := strings.ReplaceAll(frame(frameAfterVote), "{nullifier}", fmt.Sprintf("%x", voteData.Nullifier))
+	response := strings.ReplaceAll(frame(frameAfterVote), "{nullifier}", fmt.Sprintf("%x", vote.Nullifier))
 	response = strings.ReplaceAll(response, "{title}", metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{processID}", electionID)
 	png := imageframe.AfterVoteImage()
