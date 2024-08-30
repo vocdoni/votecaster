@@ -10,6 +10,7 @@ require (
 	github.com/frankban/quicktest v1.14.6
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
+	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
@@ -172,6 +173,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/jmhodges/levigo v1.0.0 // indirect
+	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/koron/go-ssdp v0.0.4 // indirect

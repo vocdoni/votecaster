@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -11,10 +12,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/k0kubun/pp"
 	c3cli "github.com/vocdoni/census3/apiclient"
 	"github.com/vocdoni/vote-frame/airstack"
 	"github.com/vocdoni/vote-frame/communityhub"
@@ -132,10 +135,6 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	if err != nil {
 		return fmt.Errorf("failed to decode electionID: %w", err)
 	}
-	// check if the election is finished and if so, send the final results
-	if v.checkIfElectionFinishedAndHandle(electionID, ctx) {
-		return nil
-	}
 
 	// validate the frame package to airstack
 	if v.airstack != nil {
@@ -151,9 +150,34 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 		return fmt.Errorf("election has no questions")
 	}
 
-	response := strings.ReplaceAll(frame(frameMain), "{processID}", election.ElectionID.String())
+	// Use Go templates for the conditional logic in frameMain
+	tmpl, err := template.New("frame").Parse(frameMain)
+	if err != nil {
+		return fmt.Errorf("failed to parse template: %w", err)
+	}
+
+	ended := election.EndDate.Before(time.Now())
+
+	// Use an inline map to pass data to the template
+	frameData := map[string]interface{}{
+		"Ended": ended,
+	}
+
+	var buffer bytes.Buffer
+	err = tmpl.Execute(&buffer, frameData)
+	if err != nil {
+		return fmt.Errorf("failed to execute template: %w", err)
+	}
+
+	// Get the result as a string
+	response := buffer.String()
+
+	pp.Println(response)
+
+	// Perform string replacements for backwards compatibility
 	response = strings.ReplaceAll(response, "{title}", metadata.Title["default"])
 	response = strings.ReplaceAll(response, "{image}", landingPNGfile(election))
+	response = strings.ReplaceAll(response, "{server}", ctx.Request.Host)
 
 	ctx.SetResponseContentType("text/html; charset=utf-8")
 	return ctx.Send([]byte(response), http.StatusOK)

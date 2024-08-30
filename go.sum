@@ -831,6 +831,10 @@ github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7V
 github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
 github.com/jung-kurt/gofpdf v1.0.3-0.20190309125859-24315acbbda5/go.mod h1:7Id9E/uU8ce6rXgefFLlgrJj/GYY22cpxn+r32jIOes=
 github.com/jwilder/encoding v0.0.0-20170811194829-b4e1701a28ef/go.mod h1:Ct9fl0F6iIOGgxJ5npU/IUOhOhqlVrGjyIZc8/MagT0=
+github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 h1:uC1QfSlInpQF+M0ao65imhwqKnz3Q2z/d8PWZRMQvDM=
+github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88/go.mod h1:3w7q1U84EfirKl04SVQ/s7nPm1ZPhiXd34z40TNz36k=
+github.com/k0kubun/pp v3.0.1+incompatible h1:3tqvf7QgUnZ5tXO6pNAZlrvHgl6DvifjDrd9g2S9Z40=
+github.com/k0kubun/pp v3.0.1+incompatible/go.mod h1:GWse8YhT0p8pT4ir3ZgBbfZild3tgzSScAn6HmfYukg=
 github.com/kami-zh/go-capturer v0.0.0-20171211120116-e492ea43421d/go.mod h1:P2viExyCEfeWGU259JnaQ34Inuec4R38JCyBx2edgD0=
 github.com/karalabe/usb v0.0.0-20190919080040-51dc0efba356/go.mod h1:Od972xHfMJowv7NGVDiWVxk2zxnWgjLlJzE+F4F7AGU=
 github.com/karalabe/usb v0.0.0-20191104083709-911d15fe12a9/go.mod h1:Od972xHfMJowv7NGVDiWVxk2zxnWgjLlJzE+F4F7AGU=
@@ -1491,8 +1495,6 @@ github.com/vektah/gqlparser/v2 v2.5.1 h1:ZGu+bquAY23jsxDRcYpWjttRZrUz07LbiY77gUO
 github.com/vektah/gqlparser/v2 v2.5.1/go.mod h1:mPgqFBu/woKTVYWyNk8cO3kh4S/f4aRFZrvOnp3hmCs=
 github.com/viant/assertly v0.4.8/go.mod h1:aGifi++jvCrUaklKEKT0BU95igDNaqkvz+49uaYMPRU=
 github.com/viant/toolbox v0.24.0/go.mod h1:OxMCG57V0PXuIP2HNQrtJf2CjqdmbrOx5EkMILuUhzM=
-github.com/vocdoni/census3 v0.1.4-0.20240827102031-e434bb15bc32 h1:3fXY9mnr/NFs4ZQWWbom7F+/pCNxmS6cXsRyicmIbEo=
-github.com/vocdoni/census3 v0.1.4-0.20240827102031-e434bb15bc32/go.mod h1:7KLBLNKtZk2O0nWaM64vfeF6eNhvxyXOPudxpgdWH+4=
 github.com/vocdoni/census3 v0.1.4-0.20240828120240-246d1eae504a h1:tWZA0Cd2ixdA3+B8hTgMZK604zQ4uFL7FwjTztF6RW4=
 github.com/vocdoni/census3 v0.1.4-0.20240828120240-246d1eae504a/go.mod h1:7KLBLNKtZk2O0nWaM64vfeF6eNhvxyXOPudxpgdWH+4=
 github.com/vocdoni/storage-proofs-eth-go v0.1.6 h1:mF6VNGudgCjjgjxs5Z2GGMM2tS79+xFBWcr7BnPuhAY=

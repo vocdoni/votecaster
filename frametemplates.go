@@ -69,14 +69,17 @@ var frameMain = header + `
     <meta name="fc:frame:image:aspect_ratio" content="1:1" />
     <meta name="fc:frame:post_url" content="{server}/router/{processID}" />
 
+{{ if .Ended }}
     <meta name="fc:frame:button:1" content="🗳️ Vote" />
     <meta name="fc:frame:button:1:action" content="post" />
     <meta name="fc:frame:button:1:target" content="{server}/poll/{processID}" />
+{{ end }}
 
     <meta name="fc:frame:button:2" content="👀 Results" />
     <meta name="fc:frame:button:2:action" content="post" />
     <meta name="fc:frame:button:2:target" content="{server}/poll/results/{processID}" />
 
+{{ if .Ended }}
     <meta name="fc:frame:button:3" content="🔎 Info" />
     <meta name="fc:frame:button:3:action" content="post" />
     <meta name="fc:frame:button:3:target" content="{server}/info/{processID}" />
@@ -84,8 +87,9 @@ var frameMain = header + `
     <meta name="fc:frame:button:4" content="📝 New" />
     <meta name="fc:frame:button:4:action" content="link" />
     <meta name="fc:frame:button:4:target" content="{server}" />
+{{ end }}
 
-    <meta http-equiv="refresh" content="0;url={server}/app/#poll/{processID}" />
+    <!-- <meta http-equiv="refresh" content="0;url={server}/app/#poll/{processID}" /> -->
 ` + body
 
 var frameVote = header + `
