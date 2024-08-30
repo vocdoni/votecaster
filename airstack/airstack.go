@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -196,6 +197,8 @@ func ValidateFrameMessage(msg []byte, apikey string) {
 				"url", req.URL.String(),
 				"authorization", req.Header.Get("x-airstack-hubs"),
 				"apikey", apikey,
+				"response", fmt.Sprintf("%+v", airstackResponse),
+				"request", printHTTPRequest(req),
 			)
 			return
 		}
@@ -209,4 +212,13 @@ func ValidateFrameMessage(msg []byte, apikey string) {
 			return
 		}
 	}()
+}
+
+func printHTTPRequest(req *http.Request) string {
+	// Dump the request as a string
+	requestDump, err := httputil.DumpRequestOut(req, true)
+	if err != nil {
+		return ""
+	}
+	return (string(requestDump))
 }
