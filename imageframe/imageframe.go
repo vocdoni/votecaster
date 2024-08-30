@@ -106,7 +106,7 @@ func ErrorImage(errorMessage string) (string, error) {
 		}
 		AddImageToCacheWithID(imgCacheKey, png)
 	}()
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 	return imgCacheKey, nil
 }
 
@@ -126,7 +126,7 @@ func InfoImage(infoLines []string) (string, error) {
 		}
 		AddImageToCacheWithID(imgCacheKey, png)
 	}()
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 	return imgCacheKey, nil
 }
 
@@ -161,7 +161,7 @@ func QuestionImage(election *api.Election) (string, error) {
 		cacheElectionImage(png, election, imageTypeQuestion)
 	}()
 	// Add some time to allow the image to be generated
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 	return generateElectionCacheKey(election, imageTypeQuestion), nil
 }
 
@@ -184,7 +184,7 @@ func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeigh
 
 	if electiondb != nil {
 		if electiondb.FarcasterUserCount > 0 {
-			participation = (float32(election.VoteCount) * 100) / float32(electiondb.FarcasterUserCount)
+			participation = (float32(electiondb.CastedVotes) * 100) / float32(electiondb.FarcasterUserCount)
 		}
 		weightTurnout = helpers.CalculateTurnout(totalWeightStr, electiondb.CastedWeight)
 	}
@@ -218,7 +218,7 @@ func ResultsImage(election *api.Election, electiondb *mongo.Election, totalWeigh
 		}
 		cacheElectionImage(png, election, imageTypeResults)
 	}()
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 	return generateElectionCacheKey(election, imageTypeResults), nil
 }
 
