@@ -218,7 +218,7 @@ func printHTTPRequest(req *http.Request) string {
 	// Dump the request as a string
 	requestDump, err := httputil.DumpRequestOut(req, true)
 	if err != nil {
-		return ""
+		return err.Error()
 	}
 	return (string(requestDump))
 }
