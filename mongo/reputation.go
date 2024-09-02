@@ -153,6 +153,38 @@ func (ms *MongoStorage) SetDetailedReputationForCommunity(communityID string, re
 	return ms.updateReputation(reputation)
 }
 
+// CommunitiesReputationByParticipationAndCensusSize method returns the top 10
+// communities reputations sorted by participation and census size.
+func (ms *MongoStorage) CommunitiesReputationByParticipationAndCensusSize() ([]*Reputation, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+	// get the top 10 communities sorted by participation and census size
+	limit := int64(10)
+	opts := options.FindOptions{Limit: &limit}
+	opts.SetSort(bson.D{{Key: "participation", Value: -1}, {Key: "censusSize", Value: -1}})
+	filter := bson.M{"communityID": bson.M{"$exists": true}}
+	// find the communities reputation data
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cur, err := ms.reputations.Find(ctx, filter, &opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	// iterate over the results to get user or community data
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel2()
+	var reputations []*Reputation
+	for cur.Next(ctx2) {
+		var rep Reputation
+		if err := cur.Decode(&rep); err != nil {
+			return nil, err
+		}
+		reputations = append(reputations, &rep)
+	}
+	return reputations, nil
+}
+
 func (ms *MongoStorage) userReputation(userID uint64) (*Reputation, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
