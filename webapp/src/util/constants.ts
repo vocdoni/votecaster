@@ -24,7 +24,7 @@ export enum RoutePath {
   Composer = '/composer',
   Leaderboards = '/leaderboards',
   MyCommunitiesPaginatedList = '/communities/mine/:page?',
-  Points = '/points',
+  Points = '/points/:username?',
   Poll = '/poll/:pid',
   PollForm = '/form/:id?',
   Profile = '/profile',

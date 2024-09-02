@@ -65,6 +65,7 @@ export type Reputation = typeof baseRep
 
 export interface ReputationContextType {
   reputation: Reputation | undefined
+  status: string
   fetchReputation: () => void
 }
 

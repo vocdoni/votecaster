@@ -1,13 +1,14 @@
 import { Card, CardBody, CardHeader, Heading, Text, VStack } from '@chakra-ui/react'
+import { useParams } from 'react-router-dom'
 import { ReputationLeaderboard } from '~components/Reputation/Leaderboard'
 import { ReputationTable } from '~components/Reputation/Reputation'
-import { useReputation } from '~components/Reputation/useReputation'
+
+type Params = {
+  username: string
+}
 
 const Points = () => {
-  const { reputation } = useReputation()
-
-  // this is a restricted route, reputation should be there
-  if (!reputation) return null
+  const { username } = useParams<Params>()
 
   return (
     <VStack w='full'>
@@ -25,7 +26,7 @@ const Points = () => {
           Your reputation score
         </CardHeader>
         <CardBody>
-          <ReputationTable reputation={reputation} />
+          <ReputationTable username={username} />
         </CardBody>
       </Card>
     </VStack>

@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   CircularProgress,
   CircularProgressLabel,
@@ -12,6 +13,7 @@ import {
   PopoverCloseButton,
   PopoverContent,
   PopoverTrigger,
+  Progress,
   SimpleGrid,
   Stat,
   StatLabel,
@@ -31,6 +33,7 @@ import { ImStatsDots } from 'react-icons/im'
 import { MdOutlineHowToVote } from 'react-icons/md'
 import { SlPencil } from 'react-icons/sl'
 import { Reputation } from '~components/Reputation/ReputationContext'
+import { useReputation } from '~queries/profile'
 
 export const ReputationProgress = ({ reputation, ...props }: CircularProgressProps & { reputation?: Reputation }) => {
   if (!reputation) return
@@ -142,13 +145,23 @@ export const ReputationCard = ({ reputation }: { reputation?: Reputation }) => {
     </Popover>
   )
 }
-export const ReputationTable = ({ reputation }: { reputation: Reputation }) => {
+export const ReputationTable = ({ username }: { username?: string }) => {
+  const { data: reputation, error, isFetching } = useReputation(username)
+
   const totalReputation = reputation?.totalReputation
   const totalAvailable = useMemo(() => {
     if (!reputation) return 0
 
     return Object.values(reputation.activityInfo).reduce((acc, curr) => acc + curr, 0)
   }, [reputation])
+
+  if (isFetching) {
+    return <Progress size='xs' isIndeterminate colorScheme='purple' />
+  }
+
+  if (error) {
+    return <Alert status='error'>{error.message}</Alert>
+  }
 
   if (!reputation) {
     return null
