@@ -534,13 +534,14 @@ func (v *vocdoniHandler) communityDelegationsHandler(msg *apirest.APIdata, ctx *
 	if err != nil {
 		return ctx.Send([]byte(err.Error()), http.StatusBadRequest)
 	}
-	delegations, err := v.db.DelegationsByCommunity(communityID)
+	delegations, err := v.db.DelegationListWithUsernames(communityID)
 	if err != nil {
 		return ctx.Send([]byte("error getting delegations"), http.StatusInternalServerError)
 	}
 	if len(delegations) == 0 {
 		return ctx.Send(nil, http.StatusNoContent)
 	}
+
 	res, err := json.Marshal(delegations)
 	if err != nil {
 		return ctx.Send([]byte("error encoding delegations"), http.StatusInternalServerError)

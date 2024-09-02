@@ -342,6 +342,12 @@ type Delegation struct {
 	CommuniyID string             `json:"communityId" bson:"communityId"`
 }
 
+// DelegationWithUsername holds the username of the representative and the list of users that are delegating to them.
+type DelegationWithUsername struct {
+	UsernameFrom   string   `json:"usernameFrom" bson:"usernameFrom"`
+	DelegationList []string `json:"delegationList" bson:"delegationList"`
+}
+
 // dynamicUpdateDocument creates a BSON update document from a struct, including only non-zero fields.
 // It uses reflection to iterate over the struct fields and create the update document.
 // The struct fields must have a bson tag to be included in the update document.

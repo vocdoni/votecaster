@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -70,24 +71,21 @@ func (ms *MongoStorage) DelegationsTo(userID uint64) ([]*Delegation, error) {
 
 // DelegationsByCommunity retrieves all delegations to a community by the
 // community ID provided
-func (ms *MongoStorage) DelegationsByCommunity(communityID string) ([]*Delegation, error) {
+func (ms *MongoStorage) DelegationsByCommunity(communityID string, solveNested bool) ([]*Delegation, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	return ms.filterDelegations(ctx, bson.M{"communityId": communityID})
-}
-
-// FinalDelegationsByCommunity retrieves all delegations to a community by the
-// community ID provided, solving nested delegations
-func (ms *MongoStorage) FinalDelegationsByCommunity(communityID string) ([]*Delegation, error) {
-	communityDelegations, err := ms.DelegationsByCommunity(communityID)
+	delegations, err := ms.filterDelegations(ctx, bson.M{"communityId": communityID})
 	if err != nil {
 		return nil, err
 	}
-	return solveNestedDelegations(communityDelegations, nil), nil
+	if !solveNested {
+		return delegations, nil
+	}
+	return solveNestedDelegations(delegations, nil), nil
 }
 
 // DelegationsByCommunityFrom retrieves all delegations from a user to a
@@ -127,6 +125,68 @@ func (ms *MongoStorage) DeleteDelegation(id string) error {
 
 	_, err = ms.delegations.DeleteOne(ctx, bson.M{"_id": _id})
 	return err
+}
+
+func (ms *MongoStorage) DelegationListWithUsernames(communityID string) ([]*DelegationWithUsername, error) {
+	ms.keysLock.RLock()
+	defer ms.keysLock.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// MongoDB aggregation pipeline
+	pipeline := mongo.Pipeline{
+		// Match delegations by community ID
+		{{Key: "$match", Value: bson.M{"communityId": communityID}}},
+		// Lookup to join user data for "From" field
+		{{Key: "$lookup", Value: bson.M{
+			"from":         "users",
+			"localField":   "from",
+			"foreignField": "_id",
+			"as":           "userFrom",
+		}}},
+		// Unwind to deconstruct the array from the lookup
+		{{Key: "$unwind", Value: "$userFrom"}},
+		// Project to keep only necessary fields
+		{{Key: "$project", Value: bson.M{
+			"from":     1,
+			"to":       1,
+			"userFrom": "$userFrom.username",
+		}}},
+		// Group by "From" to collect all "To" users under each "From" user
+		{{Key: "$group", Value: bson.M{
+			"_id":            "$from",
+			"usernameFrom":   bson.M{"$first": "$userFrom"},
+			"delegationList": bson.M{"$addToSet": "$to"},
+		}}},
+		// Lookup to get usernames of the "To" users
+		{{Key: "$lookup", Value: bson.M{
+			"from":         "users",
+			"localField":   "delegationList",
+			"foreignField": "_id",
+			"as":           "delegationList",
+		}}},
+		// Project final structure with "usernameFrom" and "delegationList"
+		{{Key: "$project", Value: bson.M{
+			"usernameFrom":   1,
+			"delegationList": "$delegationList.username",
+		}}},
+	}
+
+	// Run the aggregation pipeline
+	cursor, err := ms.delegations.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("error aggregating delegations with usernames: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	// Decode the results into a slice of DelegationWithUsername
+	var result []*DelegationWithUsername
+	if err := cursor.All(ctx, &result); err != nil {
+		return nil, fmt.Errorf("error decoding aggregation result: %w", err)
+	}
+
+	return result, nil
 }
 
 func (ms *MongoStorage) filterDelegations(ctx context.Context, filter bson.M) ([]*Delegation, error) {
