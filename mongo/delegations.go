@@ -126,7 +126,6 @@ func (ms *MongoStorage) DeleteDelegation(id string) error {
 	_, err = ms.delegations.DeleteOne(ctx, bson.M{"_id": _id})
 	return err
 }
-
 func (ms *MongoStorage) DelegationListWithUsernames(communityID string) ([]*DelegationWithUsername, error) {
 	ms.keysLock.RLock()
 	defer ms.keysLock.RUnlock()
@@ -138,28 +137,28 @@ func (ms *MongoStorage) DelegationListWithUsernames(communityID string) ([]*Dele
 	pipeline := mongo.Pipeline{
 		// Match delegations by community ID
 		{{Key: "$match", Value: bson.M{"communityId": communityID}}},
-		// Lookup to join user data for "From" field
+		// Lookup to join user data for the "To" field (representative)
 		{{Key: "$lookup", Value: bson.M{
 			"from":         "users",
-			"localField":   "from",
+			"localField":   "to",
 			"foreignField": "_id",
-			"as":           "userFrom",
+			"as":           "userTo",
 		}}},
 		// Unwind to deconstruct the array from the lookup
-		{{Key: "$unwind", Value: "$userFrom"}},
+		{{Key: "$unwind", Value: "$userTo"}},
 		// Project to keep only necessary fields
 		{{Key: "$project", Value: bson.M{
-			"from":     1,
-			"to":       1,
-			"userFrom": "$userFrom.username",
+			"from":   1,
+			"to":     1,
+			"userTo": "$userTo.username",
 		}}},
-		// Group by "From" to collect all "To" users under each "From" user
+		// Group by "To" to collect all "From" users under each "To" user
 		{{Key: "$group", Value: bson.M{
-			"_id":            "$from",
-			"usernameFrom":   bson.M{"$first": "$userFrom"},
-			"delegationList": bson.M{"$addToSet": "$to"},
+			"_id":            "$to",
+			"username":       bson.M{"$first": "$userTo"},
+			"delegationList": bson.M{"$addToSet": "$from"},
 		}}},
-		// Lookup to get usernames of the "To" users
+		// Lookup to get usernames of the "From" users (delegators)
 		{{Key: "$lookup", Value: bson.M{
 			"from":         "users",
 			"localField":   "delegationList",
@@ -168,7 +167,7 @@ func (ms *MongoStorage) DelegationListWithUsernames(communityID string) ([]*Dele
 		}}},
 		// Project final structure with "usernameFrom" and "delegationList"
 		{{Key: "$project", Value: bson.M{
-			"usernameFrom":   1,
+			"username":       1,
 			"delegationList": "$delegationList.username",
 		}}},
 	}
