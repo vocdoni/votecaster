@@ -344,7 +344,7 @@ type Delegation struct {
 
 // DelegationWithUsername holds the username of the representative and the list of users that are delegating to them.
 type DelegationWithUsername struct {
-	UsernameFrom   string   `json:"username" bson:"usernameFrom"`
+	Username       string   `json:"username" bson:"username"`
 	DelegationList []string `json:"delegationList" bson:"delegationList"`
 }
 
