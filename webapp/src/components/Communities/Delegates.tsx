@@ -155,7 +155,7 @@ export const DelegatesTable = ({ delegates }: { delegates: Delegated[] }) => (
         <Flex alignItems='center' width='10rem'>
           {/* Set width for first column */}
           <DelegateUser user={delegate.to} maxW='7rem' />
-          <Badge alignSelf='center' colorScheme='purple'>
+          <Badge alignSelf='center' colorScheme='purple' ml={2}>
             +{delegate.list.length}
           </Badge>
         </Flex>
