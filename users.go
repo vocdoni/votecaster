@@ -170,12 +170,12 @@ func (v *vocdoniHandler) delegateVoteHandler(msg *apirest.APIdata, ctx *httprout
 	// check if the user is trying to delegate to a non-existing user
 	_, err = v.db.User(req.To)
 	if err != nil {
-		return ctx.Send([]byte("failied to get user to delegate to"), apirest.HTTPstatusInternalErr)
+		return ctx.Send([]byte("failed to get user to delegate to"), apirest.HTTPstatusInternalErr)
 	}
 	// check if the user is trying to delegate to a non-existing community
 	_, err = v.db.Community(req.CommuniyID)
 	if err != nil {
-		return ctx.Send([]byte("failied to get community to delegate to"), apirest.HTTPstatusInternalErr)
+		return ctx.Send([]byte("failed to get community to delegate to"), apirest.HTTPstatusInternalErr)
 	}
 	// get current delegations for the community to prevent circular delegations
 	delegations, err := v.db.DelegationsByCommunity(req.CommuniyID, true, false)
@@ -184,13 +184,13 @@ func (v *vocdoniHandler) delegateVoteHandler(msg *apirest.APIdata, ctx *httprout
 	}
 	// check if the delegation would create a circular delegation
 	for _, delegation := range delegations {
+		// prevent duplicated and overwrite delegations
+		if delegation.From == req.From {
+			return ctx.Send([]byte("vote already delegated"), apirest.HTTPstatusBadRequest)
+		}
 		// prevent circular delegation
 		if delegation.From == req.To && delegation.To == req.From {
 			return ctx.Send([]byte("circular delegation"), apirest.HTTPstatusBadRequest)
-		}
-		// prevent duplicated delegation
-		if delegation.To == req.To && delegation.From == req.From {
-			return ctx.Send([]byte("duplicated delegation"), apirest.HTTPstatusBadRequest)
 		}
 	}
 	// delegate the vote
