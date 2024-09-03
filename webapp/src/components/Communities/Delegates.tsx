@@ -1,6 +1,7 @@
 import {
   Alert,
   Avatar,
+  Badge,
   Box,
   Button,
   Flex,
@@ -32,7 +33,7 @@ import {
 } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { BsPersonRaisedHand } from 'react-icons/bs'
+import { FaHandHoldingDroplet } from 'react-icons/fa6'
 import { generatePath, Link as RouterLink } from 'react-router-dom'
 import { SignInButton } from '~components/Auth/SignInButton'
 import { useAuth } from '~components/Auth/useAuth'
@@ -101,7 +102,7 @@ export const DelegationsModal = ({ community }: { community: Community }) => {
 
   return (
     <>
-      <Button onClick={onOpen} size='sm' leftIcon={<BsPersonRaisedHand />}>
+      <Button onClick={onOpen} size='sm' leftIcon={<FaHandHoldingDroplet />}>
         Delegations
       </Button>
 
@@ -147,8 +148,11 @@ export const DelegatesTable = ({ delegates }: { delegates: Delegated[] }) => (
     <Tbody>
       {delegates.map((delegate) => (
         <Tr key={delegate.to.userID}>
-          <Td pl={0}>
+          <Td pl={0} display='flex' flexDir='row' gap={2}>
             <DelegateUser user={delegate.to} />
+            <Badge alignSelf='center' colorScheme='purple'>
+              {delegate.list.length}
+            </Badge>
           </Td>
           <Td pl={0}>
             <AvatarStack users={delegate.list} />
@@ -160,7 +164,7 @@ export const DelegatesTable = ({ delegates }: { delegates: Delegated[] }) => (
 )
 
 export const AvatarStack = ({ users }: { users: User[] }) => (
-  <Box display='flex' alignItems='center' position='relative'>
+  <Box display='flex' alignItems='center' flexWrap='wrap'>
     {users.map((user, index) => (
       <AvatarItem user={user} index={index} key={user.userID} total={users.length} />
     ))}
@@ -176,11 +180,10 @@ export const AvatarItem = ({ user, index, total }: { user: User; index: number; 
       to={generatePath(RoutePath.ProfileView, { id: user.username })}
       key={user.userID}
       style={{
-        position: 'relative',
-        left: `${index * (isHovered ? 5 : -5)}px`,
         transition: 'all 0.25s',
         zIndex: total - index,
-        marginRight: isHovered ? '10px' : 0,
+        marginRight: isHovered ? '15px' : 0,
+        marginLeft: isHovered ? (index !== 0 ? '5px' : -10) : '-10px',
       }}
       display='flex'
       alignItems='center'

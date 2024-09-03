@@ -90,5 +90,10 @@ export const transformDelegations = (delegations: Delegation[]): Delegated[] => 
     delegationMap.get(to)!.list.push(fromUser)
   })
 
-  return Array.from(delegationMap.values())
+  return Array.from(delegationMap.values()).sort((a, b) => {
+    if (b.list.length === a.list.length) {
+      return a.to.username.localeCompare(b.to.username)
+    }
+    return b.list.length - a.list.length
+  })
 }
