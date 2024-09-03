@@ -53,7 +53,7 @@ func (v *vocdoniHandler) profileHandler(msg *apirest.APIdata, ctx *httprouter.HT
 		log.Warnw("could not get muted users", "error", err)
 	}
 	// get user delegations
-	if profile.Delegations, err = v.db.DelegationsFrom(auth.UserID); err != nil {
+	if profile.Delegations, err = v.db.DelegationsFrom(auth.UserID, true); err != nil {
 		return fmt.Errorf("could not get user delegations: %v", err)
 	}
 	// get user reputation
@@ -178,7 +178,7 @@ func (v *vocdoniHandler) delegateVoteHandler(msg *apirest.APIdata, ctx *httprout
 		return ctx.Send([]byte("failied to get community to delegate to"), apirest.HTTPstatusInternalErr)
 	}
 	// get current delegations for the community to prevent circular delegations
-	delegations, err := v.db.DelegationsByCommunityFrom(req.CommuniyID, req.To)
+	delegations, err := v.db.DelegationsByCommunityFrom(req.CommuniyID, req.To, true)
 	if err != nil {
 		return ctx.Send([]byte("could not get delegations"), apirest.HTTPstatusInternalErr)
 	}

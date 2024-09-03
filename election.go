@@ -183,7 +183,7 @@ func (v *vocdoniHandler) showElection(msg *apirest.APIdata, ctx *httprouter.HTTP
 		// check if the user has delegated their vote, if so, return an error
 		dbElection, _ := v.db.Election(electionIDbytes)
 		if dbElection != nil && dbElection.Community != nil {
-			delegations, err := v.db.DelegationsByCommunityFrom(dbElection.Community.ID, uint64(packet.UntrustedData.FID))
+			delegations, err := v.db.DelegationsByCommunityFrom(dbElection.Community.ID, uint64(packet.UntrustedData.FID), false)
 			if err != nil {
 				log.Warnw("failed to fetch delegations", "error", err)
 			}

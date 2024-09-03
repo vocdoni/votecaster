@@ -471,7 +471,7 @@ func (v *vocdoniHandler) censusCommunity(msg *apirest.APIdata, ctx *httprouter.H
 	}
 	// getting the delegations of the community to build the census taking into
 	// account them
-	delegations, err := v.db.DelegationsByCommunity(req.CommunityID, true)
+	delegations, err := v.db.DelegationsByCommunity(req.CommunityID, true, false)
 	if err != nil {
 		return err
 	}
