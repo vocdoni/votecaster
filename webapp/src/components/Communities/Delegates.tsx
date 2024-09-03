@@ -21,13 +21,7 @@ import {
   ModalOverlay,
   Progress,
   StackProps,
-  Table,
-  Tbody,
-  Td,
   Text,
-  Th,
-  Thead,
-  Tr,
   useDisclosure,
   VStack,
 } from '@chakra-ui/react'
@@ -136,39 +130,50 @@ export const DelegationsModal = ({ community }: { community: Community }) => {
 }
 
 export const DelegatesTable = ({ delegates }: { delegates: Delegated[] }) => (
-  <Table fontSize='small'>
-    <Thead>
-      <Tr>
-        <Th width='10rem' pl={0}>
-          Delegate
-        </Th>
-        <Th pl={0}>Delegated from</Th>
-      </Tr>
-    </Thead>
-    <Tbody>
-      {delegates.map((delegate) => (
-        <Tr key={delegate.to.userID}>
-          <Td pl={0} display='flex' flexDir='row' gap={2}>
-            <DelegateUser user={delegate.to} />
-            <Badge alignSelf='center' colorScheme='purple'>
-              +{delegate.list.length}
-            </Badge>
-          </Td>
-          <Td pl={0}>
-            <AvatarStack users={delegate.list} />
-          </Td>
-        </Tr>
-      ))}
-    </Tbody>
-  </Table>
+  <Box width='100%' fontSize='small'>
+    {/* Header Row */}
+    <Flex justifyContent='space-between' padding='0.5rem' borderBottom='1px solid #e2e2e2'>
+      <Text fontWeight='bold' width='10rem'>
+        Delegate
+      </Text>
+      <Text fontWeight='bold' flex='1'>
+        Delegated from
+      </Text>
+    </Flex>
+
+    {/* Data Rows */}
+    {delegates.map((delegate) => (
+      <Flex
+        key={delegate.to.userID}
+        justifyContent='space-between'
+        padding='0.5rem'
+        alignItems='center'
+        flexWrap='nowrap' // Changed to nowrap to keep badge visible
+        minHeight='3rem' // Consistent row height
+        borderBottom='1px solid #e2e2e2'
+      >
+        <Flex alignItems='center' width='10rem'>
+          {/* Set width for first column */}
+          <DelegateUser user={delegate.to} maxW='7rem' />
+          <Badge alignSelf='center' colorScheme='purple'>
+            +{delegate.list.length}
+          </Badge>
+        </Flex>
+        <Flex flex='1' flexWrap='wrap'>
+          {/* Allow avatars to wrap */}
+          <AvatarStack users={delegate.list} />
+        </Flex>
+      </Flex>
+    ))}
+  </Box>
 )
 
 export const AvatarStack = ({ users }: { users: User[] }) => (
-  <Box display='flex' alignItems='center' flexWrap='wrap'>
+  <Flex alignItems='center' flexWrap='wrap' minHeight='2.5rem'>
     {users.map((user, index) => (
       <AvatarItem user={user} index={index} key={user.userID} total={users.length} />
     ))}
-  </Box>
+  </Flex>
 )
 
 export const AvatarItem = ({ user, index, total }: { user: User; index: number; total: number }) => {
@@ -179,17 +184,17 @@ export const AvatarItem = ({ user, index, total }: { user: User; index: number; 
       as={RouterLink}
       to={generatePath(RoutePath.ProfileView, { id: user.username })}
       key={user.userID}
-      style={{
-        transition: 'all 0.25s',
-        zIndex: total - index,
-        marginRight: isHovered ? '15px' : 0,
-        marginLeft: isHovered ? (index !== 0 ? '5px' : -10) : '-10px',
-      }}
-      display='flex'
-      alignItems='center'
-      gap={2}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      display='flex'
+      alignItems='center'
+      transition='all 0.25s'
+      zIndex={total - index}
+      mr={isHovered ? '15px' : 0}
+      ml={isHovered ? (index !== 0 ? '5px' : '-10px') : '-10px'}
+      whiteSpace='nowrap'
+      overflow='hidden'
+      maxWidth='8rem'
     >
       <Avatar src={user.avatar} size='xs' />
       {isHovered && (
@@ -201,13 +206,14 @@ export const AvatarItem = ({ user, index, total }: { user: User; index: number; 
   )
 }
 
-export const DelegateUser = ({ user }: { user: User }) => (
+export const DelegateUser = ({ user, ...props }: { user: User } & LinkProps) => (
   <Link
     as={RouterLink}
     to={generatePath(RoutePath.ProfileView, { id: user.username })}
     display='flex'
     alignItems='center'
     gap={2}
+    {...props}
   >
     <Avatar src={user.avatar} size='xs' />
     <Text display='flex' alignItems='center'>
