@@ -17,6 +17,7 @@ const baseRep = {
     hasProxyStudioNFT: false,
     hasNameDegen: false,
     hasFarcasterOGNFT: false,
+    hasMoxiePass: false,
   },
   boostersInfo: {
     degenAtLeast10kPuntuaction: 0,
@@ -24,6 +25,7 @@ const baseRep = {
     farcasterOGNFTPuntuaction: 0,
     haberdasheryNFTPuntuaction: 0,
     kiwiPuntuaction: 0,
+    moxiePassPuntuaction: 0,
     nameDegenPuntuaction: 0,
     proxyAtLeast5Puntuaction: 0,
     proxyStudioNFTPuntuaction: 0,
