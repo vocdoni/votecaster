@@ -57,8 +57,15 @@ declare global {
   type Delegation = {
     id: string
     from: number
+    fromUser: User
     to: number
+    toUser: User
     communityId: CommunityID
+  }
+
+  type Delegated = {
+    to: User
+    list: User[]
   }
 
   type Pagination = {

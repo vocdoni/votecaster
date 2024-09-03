@@ -1,5 +1,6 @@
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Flex,
@@ -10,20 +11,36 @@ import {
   InputGroup,
   Link,
   LinkProps,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   Progress,
   StackProps,
+  Table,
+  Tbody,
+  Td,
   Text,
+  Th,
+  Thead,
+  Tr,
+  useDisclosure,
   VStack,
 } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link as RouterLink } from 'react-router-dom'
+import { BsPersonRaisedHand } from 'react-icons/bs'
+import { generatePath, Link as RouterLink } from 'react-router-dom'
 import { SignInButton } from '~components/Auth/SignInButton'
 import { useAuth } from '~components/Auth/useAuth'
 import { Delegation } from '~components/Delegations'
+import { RoutePath } from '~constants'
 import { useCommunity, useDelegations } from '~queries/communities'
 import { useDelegateVote } from '~queries/profile'
-import { getDelegationsPath } from '~util/objects'
+import { transformDelegations } from '~util/mappings'
 
 type FormData = {
   to: string
@@ -52,13 +69,6 @@ export const Delegates = ({ community, ...props }: { community: Community } & St
 
   if (!community) return null
 
-  const path = getDelegationsPath(data || [])
-  if (path.length) {
-    for (const p of path) {
-      console.info('Delegation path:', p.join(' -> '))
-    }
-  }
-
   return (
     <VStack {...props}>
       <Heading size='sm'>Delegate your vote</Heading>
@@ -82,6 +92,126 @@ export const Delegates = ({ community, ...props }: { community: Community } & St
 type DelegatedCommunityProps = LinkProps & {
   delegation?: Delegation
 }
+
+export const DelegationsModal = ({ community }: { community: Community }) => {
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { data, isLoading, error } = useDelegations(community)
+
+  if (!data) return null
+
+  return (
+    <>
+      <Button onClick={onOpen} size='sm' leftIcon={<BsPersonRaisedHand />}>
+        Delegations
+      </Button>
+
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Delegations</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {isLoading && <Progress size='xs' colorScheme='purple' isIndeterminate />}
+            {error && <Alert status='error'>{error.toString()}</Alert>}
+            {data && (
+              <>
+                <DelegatesTable delegates={transformDelegations(data)} />
+                <Box fontSize='small' mt={2} textAlign='center'>
+                  {data.length} people delegated their vote
+                </Box>
+              </>
+            )}
+          </ModalBody>
+
+          <ModalFooter>
+            <Button colorScheme='purple' variant='ghost' onClick={onClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
+  )
+}
+
+export const DelegatesTable = ({ delegates }: { delegates: Delegated[] }) => (
+  <Table fontSize='small'>
+    <Thead>
+      <Tr>
+        <Th width='10rem' pl={0}>
+          Delegate
+        </Th>
+        <Th pl={0}>Delegated from</Th>
+      </Tr>
+    </Thead>
+    <Tbody>
+      {delegates.map((delegate) => (
+        <Tr key={delegate.to.userID}>
+          <Td pl={0}>
+            <DelegateUser user={delegate.to} />
+          </Td>
+          <Td pl={0}>
+            <AvatarStack users={delegate.list} />
+          </Td>
+        </Tr>
+      ))}
+    </Tbody>
+  </Table>
+)
+
+export const AvatarStack = ({ users }: { users: User[] }) => (
+  <Box display='flex' alignItems='center' position='relative'>
+    {users.map((user, index) => (
+      <AvatarItem user={user} index={index} key={user.userID} total={users.length} />
+    ))}
+  </Box>
+)
+
+export const AvatarItem = ({ user, index, total }: { user: User; index: number; total: number }) => {
+  const [isHovered, setIsHovered] = useState(false)
+
+  return (
+    <Link
+      as={RouterLink}
+      to={generatePath(RoutePath.ProfileView, { id: user.username })}
+      key={user.userID}
+      style={{
+        position: 'relative',
+        left: `${index * (isHovered ? 5 : -5)}px`,
+        transition: 'all 0.25s',
+        zIndex: total - index,
+        marginRight: isHovered ? '10px' : 0,
+      }}
+      display='flex'
+      alignItems='center'
+      gap={2}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <Avatar src={user.avatar} size='xs' />
+      {isHovered && (
+        <Text display='flex' alignItems='center'>
+          {user.displayName}
+        </Text>
+      )}
+    </Link>
+  )
+}
+
+export const DelegateUser = ({ user }: { user: User }) => (
+  <Link
+    as={RouterLink}
+    to={generatePath(RoutePath.ProfileView, { id: user.username })}
+    display='flex'
+    alignItems='center'
+    gap={2}
+  >
+    <Avatar src={user.avatar} size='xs' />
+    <Text display='flex' alignItems='center'>
+      {user.displayName}
+    </Text>
+  </Link>
+)
 
 export const DelegatedCommunity = ({ delegation, ...props }: DelegatedCommunityProps) => {
   const { data, isLoading, error } = useCommunity(delegation?.communityId)

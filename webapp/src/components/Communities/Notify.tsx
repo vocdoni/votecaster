@@ -31,7 +31,7 @@ export const NotifyMembers = ({ community }: { community: Community }) => {
   const { data: apiEnabled, isLoading } = useWarpcastApiEnabled()
   return (
     <>
-      <Button onClick={onOpen} leftIcon={<AiOutlineNotification />}>
+      <Button onClick={onOpen} leftIcon={<AiOutlineNotification />} size='sm'>
         Notify members
       </Button>
 

@@ -79,3 +79,16 @@ export const profileToUser = (profile: Profile): User => ({
   lastUpdated: new Date(),
   avatar: profile.pfpUrl,
 })
+
+export const transformDelegations = (delegations: Delegation[]): Delegated[] => {
+  const delegationMap = new Map<number, Delegated>()
+
+  delegations.forEach(({ to, toUser, fromUser }) => {
+    if (!delegationMap.has(to)) {
+      delegationMap.set(to, { to: toUser, list: [] })
+    }
+    delegationMap.get(to)!.list.push(fromUser)
+  })
+
+  return Array.from(delegationMap.values())
+}

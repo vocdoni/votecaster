@@ -37,7 +37,7 @@ import { fetchPollsByCommunity } from '~queries/rankings'
 import { getChain, getContractForChain } from '~util/chain'
 import { humanDate, participation } from '~util/strings'
 import { CensusTypeInfo } from './CensusTypeInfo'
-import { Delegates } from './Delegates'
+import { Delegates, DelegationsModal } from './Delegates'
 import { ManageCommunity } from './Manage'
 import { NotifyMembers } from './Notify'
 
@@ -93,7 +93,7 @@ export const CommunitiesView = ({ community, chain: chainAlias, refetch }: Commu
       <GridItem gridArea='profile'>
         <WhiteBox>
           <Avatar src={community.logoURL} />
-          <Box>
+          <Box flex={1}>
             <Heading size='md'>{community.name}</Heading>
             <Text fontSize='smaller' fontStyle='italic'>
               Managed by <CommunityAdmins community={community} />
@@ -109,20 +109,25 @@ export const CommunitiesView = ({ community, chain: chainAlias, refetch }: Commu
                 {chain.name}
               </Link>
             </Text>
-            {!!imAdmin && (
-              <Flex mt={4} gap={4}>
-                <Button leftIcon={<FaSliders />} onClick={openManageModal} variant={'outline'}>
-                  Manage
-                </Button>
-                <ManageCommunity {...modalProps} community={community} refetch={refetch} />
-                {!community.disabled && (
-                  <RouterLink to={`/form/${community.id}`}>
-                    <Button leftIcon={<MdHowToVote />}>Create vote</Button>
-                  </RouterLink>
-                )}
-                <NotifyMembers community={community} />
-              </Flex>
-            )}
+            <Flex mt={4} gap={2} flexWrap='wrap'>
+              {!!imAdmin && (
+                <>
+                  <Button leftIcon={<FaSliders />} onClick={openManageModal} variant={'outline'} size='sm'>
+                    Manage
+                  </Button>
+                  <ManageCommunity {...modalProps} community={community} refetch={refetch} />
+                  {!community.disabled && (
+                    <RouterLink to={`/form/${community.id}`}>
+                      <Button size='sm' leftIcon={<MdHowToVote />}>
+                        Create vote
+                      </Button>
+                    </RouterLink>
+                  )}
+                  <NotifyMembers community={community} />
+                </>
+              )}
+              <DelegationsModal community={community} />
+            </Flex>
           </Box>
         </WhiteBox>
       </GridItem>
