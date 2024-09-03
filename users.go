@@ -178,14 +178,19 @@ func (v *vocdoniHandler) delegateVoteHandler(msg *apirest.APIdata, ctx *httprout
 		return ctx.Send([]byte("failied to get community to delegate to"), apirest.HTTPstatusInternalErr)
 	}
 	// get current delegations for the community to prevent circular delegations
-	delegations, err := v.db.DelegationsByCommunityFrom(req.CommuniyID, req.To, true)
+	delegations, err := v.db.DelegationsByCommunity(req.CommuniyID, true, false)
 	if err != nil {
 		return ctx.Send([]byte("could not get delegations"), apirest.HTTPstatusInternalErr)
 	}
 	// check if the delegation would create a circular delegation
 	for _, delegation := range delegations {
-		if delegation.To == req.From {
+		// prevent circular delegation
+		if delegation.From == req.To && delegation.To == req.From {
 			return ctx.Send([]byte("circular delegation"), apirest.HTTPstatusBadRequest)
+		}
+		// prevent duplicated delegation
+		if delegation.To == req.To && delegation.From == req.From {
+			return ctx.Send([]byte("duplicated delegation"), apirest.HTTPstatusBadRequest)
 		}
 	}
 	// delegate the vote
