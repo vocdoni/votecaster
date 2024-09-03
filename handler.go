@@ -156,7 +156,7 @@ func (v *vocdoniHandler) landing(msg *apirest.APIdata, ctx *httprouter.HTTPConte
 	response = strings.ReplaceAll(response, "{image}", landingPNGfile(election))
 
 	ctx.SetResponseContentType("text/html; charset=utf-8")
-	ctx.SetHeader("Cache-Control", "max-age=300")
+	ctx.SetHeader("Cache-Control", "no-cache, max-age=0")
 	return ctx.Send([]byte(response), http.StatusOK)
 }
 

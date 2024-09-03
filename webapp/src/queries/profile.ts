@@ -5,6 +5,7 @@ import abi from '~abis/nftdegen.json'
 import { useAuth } from '~components/Auth/useAuth'
 import { useBlockchain } from '~components/Blockchains/BlockchainContext'
 import { useHealthcheck } from '~components/Healthcheck/use-healthcheck'
+import { Reputation } from '~components/Reputation/ReputationContext'
 import { appUrl, degenNameResolverContractAddress } from '~constants'
 
 export const fetchUserProfile =
@@ -23,6 +24,35 @@ export const useUserProfile = (username?: string) => {
     queryKey: ['profile', username],
     queryFn: fetchUserProfile(bfetch, username ?? null),
     enabled: !!bfetch,
+  })
+}
+
+// Define the query function to fetch reputation data
+const fetchReputation = async (bfetch: FetchFunction, username?: string) => {
+  let url = `${appUrl}/profile`
+  if (username) {
+    url += `/user/${username}`
+  }
+  const response = await bfetch(url)
+  if (!response.ok) {
+    throw new Error('Failed to fetch reputation')
+  }
+
+  return await response.json()
+}
+
+export const useReputation = (username?: string) => {
+  const { isAuthenticated, bfetch } = useAuth()
+  const queryKey = ['reputation']
+  if (username) {
+    queryKey.push(username)
+  }
+  return useQuery<UserProfileResponse, Error, Reputation>({
+    queryKey,
+    queryFn: () => fetchReputation(bfetch, username),
+    enabled: isAuthenticated,
+    select: (data) => data.reputation as Reputation,
+    staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
   })
 }
 

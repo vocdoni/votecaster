@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   CircularProgress,
   CircularProgressLabel,
@@ -6,12 +7,14 @@ import {
   Flex,
   Icon,
   IconButton,
+  Link,
   Popover,
   PopoverArrow,
   PopoverBody,
   PopoverCloseButton,
   PopoverContent,
   PopoverTrigger,
+  Progress,
   SimpleGrid,
   Stat,
   StatLabel,
@@ -31,6 +34,7 @@ import { ImStatsDots } from 'react-icons/im'
 import { MdOutlineHowToVote } from 'react-icons/md'
 import { SlPencil } from 'react-icons/sl'
 import { Reputation } from '~components/Reputation/ReputationContext'
+import { useReputation } from '~queries/profile'
 
 export const ReputationProgress = ({ reputation, ...props }: CircularProgressProps & { reputation?: Reputation }) => {
   if (!reputation) return
@@ -142,13 +146,23 @@ export const ReputationCard = ({ reputation }: { reputation?: Reputation }) => {
     </Popover>
   )
 }
-export const ReputationTable = ({ reputation }: { reputation: Reputation }) => {
+export const ReputationTable = ({ username }: { username?: string }) => {
+  const { data: reputation, error, isFetching } = useReputation(username)
+
   const totalReputation = reputation?.totalReputation
   const totalAvailable = useMemo(() => {
     if (!reputation) return 0
 
     return Object.values(reputation.activityInfo).reduce((acc, curr) => acc + curr, 0)
   }, [reputation])
+
+  if (isFetching) {
+    return <Progress size='xs' isIndeterminate colorScheme='purple' />
+  }
+
+  if (error) {
+    return <Alert status='error'>{error.message}</Alert>
+  }
 
   if (!reputation) {
     return null
@@ -190,22 +204,54 @@ export const ReputationTable = ({ reputation }: { reputation: Reputation }) => {
           <Td>{reputation.activityInfo.maxFollowersReputation}</Td>
         </Tr>
         <Tr>
-          <Td>Follow @vocdoni on Farcaster</Td>
-          <Td>{reputation.boostersInfo.vocdoniFarcasterFollowerPuntuaction}</Td>
+          <Td>
+            <WarpcastLink path='vocdoni'>Follow @vocdoni</WarpcastLink> on Farcaster
+          </Td>
           <Td>
             {reputation.boosters.isVocdoniFarcasterFollower
               ? reputation.boostersInfo.vocdoniFarcasterFollowerPuntuaction
               : 0}
           </Td>
+          <Td>{reputation.boostersInfo.vocdoniFarcasterFollowerPuntuaction}</Td>
         </Tr>
         <Tr>
-          <Td>Follow @votecasterio on Farcaster</Td>
-          <Td>{reputation.boostersInfo.votecasterFarcasterFollowerPuntuaction}</Td>
+          <Td>
+            <WarpcastLink path='votecaster'>Follow @votecaster</WarpcastLink> on Farcaster
+          </Td>
           <Td>
             {reputation.boosters.isVotecasterFarcasterFollower
               ? reputation.boostersInfo.votecasterFarcasterFollowerPuntuaction
               : 0}
           </Td>
+          <Td>{reputation.boostersInfo.votecasterFarcasterFollowerPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>Own a votecaster NFT pass</Td>
+          <Td>{reputation.boosters.hasVotecasterNFTPass ? reputation.boostersInfo.votecasterNFTPassPuntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.votecasterNFTPassPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>Own the votecaster launch NFT</Td>
+          <Td>
+            {reputation.boosters.hasVotecasterLaunchNFT ? reputation.boostersInfo.votecasterLaunchNFTPuntuaction : 0}
+          </Td>
+          <Td>{reputation.boostersInfo.votecasterLaunchNFTPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>
+            Recasted the <WarpcastLink path='vocdoni/0x7eafebeb'>votecaster launch cast</WarpcastLink>
+          </Td>
+          <Td>
+            {reputation.boosters.votecasterAnnouncementRecasted
+              ? reputation.boostersInfo.votecasterAnnouncementRecastedPuntuaction
+              : 0}
+          </Td>
+          <Td>{reputation.boostersInfo.votecasterAnnouncementRecastedPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>Hold Farcaster OG NFT</Td>
+          <Td>{reputation.boosters.hasFarcasterOGNFT ? reputation.boostersInfo.farcasterOGNFTPuntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.farcasterOGNFTPuntuaction}</Td>
         </Tr>
         <Tr>
           <Td>Hold +10k $degen</Td>
@@ -218,14 +264,28 @@ export const ReputationTable = ({ reputation }: { reputation: Reputation }) => {
           <Td>{reputation.boostersInfo.degenDAONFTPuntuaction}</Td>
         </Tr>
         <Tr>
-          <Td>Hold Haberdashery NFT</Td>
+          <Td>
+            Hold <OpenSeaCollection slug='degen-haberdashers'>Haberdashery NFT</OpenSeaCollection>
+          </Td>
           <Td>{reputation.boosters.hasHaberdasheryNFT ? reputation.boostersInfo.haberdasheryNFTPuntuaction : 0}</Td>
           <Td>{reputation.boostersInfo.haberdasheryNFTPuntuaction}</Td>
         </Tr>
         <Tr>
-          <Td>Hold Kiwi NFT</Td>
+          <Td>
+            Hold{' '}
+            <Link href='https://news.kiwistand.com/' isExternal>
+              🥝Kiwi NFT
+            </Link>
+          </Td>
           <Td>{reputation.boosters.hasKIWI ? reputation.boostersInfo.kiwiPuntuaction : 0}</Td>
           <Td>{reputation.boostersInfo.kiwiPuntuaction}</Td>
+        </Tr>
+        <Tr>
+          <Td>
+            Hold <WarpcastLink path='betashop.eth/0xd375d45d'>Ⓜ️oxie Pass</WarpcastLink>
+          </Td>
+          <Td>{reputation.boosters.hasMoxiePass ? reputation.boostersInfo.moxiePassPuntuaction : 0}</Td>
+          <Td>{reputation.boostersInfo.moxiePassPuntuaction}</Td>
         </Tr>
         <Tr>
           <Td>Hold .degen NFT</Td>
@@ -243,7 +303,9 @@ export const ReputationTable = ({ reputation }: { reputation: Reputation }) => {
           <Td>{reputation.boostersInfo.proxyAtLeast5Puntuaction}</Td>
         </Tr>
         <Tr>
-          <Td>Hold TokyoDAO NFT</Td>
+          <Td>
+            Hold <OpenSeaCollection slug='tokyo-dao-1'>TokyoDAO NFT</OpenSeaCollection>
+          </Td>
           <Td>{reputation.boosters.hasTokyoDAONFT ? reputation.boostersInfo.tokyoDAONFTPuntuaction : 0}</Td>
           <Td>{reputation.boostersInfo.tokyoDAONFTPuntuaction}</Td>
         </Tr>
@@ -256,6 +318,18 @@ export const ReputationTable = ({ reputation }: { reputation: Reputation }) => {
     </Table>
   )
 }
+
+const OpenSeaCollection = ({ slug, children }: PropsWithChildren<{ slug: string }>) => (
+  <Link href={`https://opensea.io/collection/${slug}`} isExternal>
+    {children}
+  </Link>
+)
+
+const WarpcastLink = ({ path, children }: PropsWithChildren<{ path: string }>) => (
+  <Link href={`https://warpcast.com/${path}`} isExternal>
+    {children}
+  </Link>
+)
 
 const FlexStatNumber = ({ children }: PropsWithChildren) => (
   <StatNumber fontSize='sm' display='flex' flexDir='row' alignItems='center' gap={1}>
