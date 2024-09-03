@@ -151,7 +151,7 @@ export const DelegatesTable = ({ delegates }: { delegates: Delegated[] }) => (
           <Td pl={0} display='flex' flexDir='row' gap={2}>
             <DelegateUser user={delegate.to} />
             <Badge alignSelf='center' colorScheme='purple'>
-              {delegate.list.length}
+              +{delegate.list.length}
             </Badge>
           </Td>
           <Td pl={0}>
