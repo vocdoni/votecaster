@@ -29,7 +29,7 @@ export const Layout = () => (
 )
 
 // We need to force the theme to light to avoid issues switching from the
-// composer layout (dark) to the default one (light)
+// composer layout (auto) to the default one (light)
 const ForceLightTheme = () => {
   const { setColorMode } = useColorMode()
   useEffect(() => {

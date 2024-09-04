@@ -25,7 +25,7 @@ const Feature: React.FC<FeatureProps> = ({ title, description }) => (
 export const Features = (props: BoxProps) => (
   <Box p={5} {...props}>
     <Heading textAlign='center' mb={8}>
-      Features for communities
+      Community features
     </Heading>
     <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={5}>
       <Feature

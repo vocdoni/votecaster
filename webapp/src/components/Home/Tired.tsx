@@ -20,9 +20,7 @@ export const Tired = () => (
       Votecaster changes that by integrating governance into the Farcaster social feed through Frames, while ensuring
       transparency, end-to-end verifiability, and flexibility, thanks to the use of the Vocdoni Protocol.
     </Text>
-    <Text fontWeight='bold'>
-      Running a quick poll to engage with the entire Farcaster community only takes 1 minute!
-    </Text>
+    <Text fontWeight='bold'>Survey all Farcaster only takes 1 minute!</Text>
     <RouterLink to='/form'>
       <Button fontWeight='500' leftIcon={<MdHowToVote />}>
         Create a poll now!

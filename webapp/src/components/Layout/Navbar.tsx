@@ -67,7 +67,7 @@ export const Navbar = () => {
         <IconButton
           icon={isOpen ? <Icon as={IoClose} /> : <Icon as={GiHamburgerMenu} />}
           aria-label={'Open Menu'}
-          display={{ lg: 'none' }}
+          display={{ base: 'flex', lg: 'none' }}
           onClick={isOpen ? onClose : onOpen}
         />
         <HStack spacing={8} alignItems={'center'}>
