@@ -85,8 +85,6 @@ export const NotifyMembersForm = ({ community, onClose }: NotifyMembersFormProps
       const uri = `${appUrl}/app/#` + RoutePath.Community.replace(':chain/:id', community.id.replace(':', '/'))
       const content = data.appendUrl ? `${data.content} - ${uri}` : data.content
 
-      console.log('content:', content, uri)
-
       return await bfetch(`${appUrl}/communities/${community.id}/announcements`, {
         method: 'POST',
         headers: {
@@ -102,12 +100,7 @@ export const NotifyMembersForm = ({ community, onClose }: NotifyMembersFormProps
   })
 
   return (
-    <form
-      onSubmit={handleSubmit(async (data: NotifyMembersFormValues) => {
-        console.log('data:', data)
-        return await mutation.mutate(data)
-      })}
-    >
+    <form onSubmit={handleSubmit(async (data: NotifyMembersFormValues) => await mutation.mutate(data))}>
       <VStack spacing={4} alignItems='start'>
         <FormControl isInvalid={!!errors.content}>
           <Textarea
