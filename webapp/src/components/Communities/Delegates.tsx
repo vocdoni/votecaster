@@ -22,6 +22,7 @@ import {
   Progress,
   StackProps,
   Text,
+  Tooltip,
   useDisclosure,
   VStack,
 } from '@chakra-ui/react'
@@ -190,18 +191,16 @@ export const AvatarItem = ({ user, index, total }: { user: User; index: number; 
       alignItems='center'
       transition='all 0.25s'
       zIndex={total - index}
-      mr={isHovered ? '15px' : 0}
-      ml={isHovered ? (index !== 0 ? '5px' : '-10px') : '-10px'}
+      pr={isHovered ? '20px' : 0}
+      ml={isHovered && index !== 0 ? 0 : '-10px'}
+      pl={isHovered && index !== 0 ? '10px' : 0}
       whiteSpace='nowrap'
       overflow='hidden'
       maxWidth='8rem'
     >
-      <Avatar src={user.avatar} size='xs' />
-      {isHovered && (
-        <Text display='flex' alignItems='center'>
-          {user.displayName}
-        </Text>
-      )}
+      <Tooltip label={user.displayName} offset={[0, 10]} hasArrow bg='gray.200' color='purple.700'>
+        <Avatar src={user.avatar} size='xs' />
+      </Tooltip>
     </Link>
   )
 }
