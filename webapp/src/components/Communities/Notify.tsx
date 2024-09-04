@@ -82,7 +82,7 @@ export const NotifyMembersForm = ({ community, onClose }: NotifyMembersFormProps
 
   const mutation = useMutation({
     mutationFn: async (data: NotifyMembersFormValues) => {
-      const uri = appUrl + RoutePath.Community.replace(':chain/:id', community.id.replace(':', '/'))
+      const uri = `${appUrl}/app/#` + RoutePath.Community.replace(':chain/:id', community.id.replace(':', '/'))
       const content = data.appendUrl ? `${data.content} - ${uri}` : data.content
 
       console.log('content:', content, uri)

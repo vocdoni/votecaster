@@ -164,6 +164,15 @@ func (v *vocdoniHandler) censusChannelOrAddresses(ctx context.Context,
 	return censusAddresses, censusChannel, user, nil
 }
 
+func (v *vocdoniHandler) redirectCommunitiesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	chainAlias := ctx.URLParam("chainAlias")
+	communityID := ctx.URLParam("communityID")
+
+	ctx.SetHeader("Location", "/app/#/communities/"+chainAlias+"/"+communityID)
+
+	return ctx.Send([]byte("redirecting to proper /app/#/communities path"), http.StatusMovedPermanently)
+}
+
 func (v *vocdoniHandler) listCommunitiesHandler(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
 	var err error
 	var dbCommunities []mongo.Community

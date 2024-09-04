@@ -728,6 +728,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}/{communityID}", http.MethodGet, "public", handler.redirectCommunitiesHandler); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := uAPI.Endpoint.RegisterMethod("/communities/{chainAlias}:{communityID}", http.MethodGet, "public", handler.communityHandler); err != nil {
 		log.Fatal(err)
 	}
