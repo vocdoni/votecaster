@@ -119,11 +119,6 @@ func (v *vocdoniHandler) createElection(msg *apirest.APIdata, ctx *httprouter.HT
 	req.ElectionDescription.UsersCount = census.FarcasterParticipantCount
 	if req.ElectionDescription.UsersCount == 0 {
 		req.ElectionDescription.UsersCount = uint32(len(census.Usernames))
-		// if no username list is provided, set the users count to the total number
-		// this happens in the case of all farcaster users poll and my followers
-		if req.ElectionDescription.UsersCount == 0 {
-			req.ElectionDescription.UsersCount = uint32(census.FromTotalAddresses)
-		}
 	}
 
 	// set from total addresses, this information provides the initial number of
@@ -399,9 +394,6 @@ func (v *vocdoniHandler) electionFullInfo(msg *apirest.APIdata, ctx *httprouter.
 		totalParticipants = uint32(len(census.Participants))
 		if totalParticipants == 0 {
 			totalParticipants = uint32(dbElection.FarcasterUserCount)
-		}
-		if totalParticipants == 0 {
-			totalParticipants = uint32(census.FromTotalAddresses)
 		}
 	}
 
