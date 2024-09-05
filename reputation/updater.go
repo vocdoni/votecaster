@@ -225,7 +225,7 @@ func (u *Updater) userPoints(userID, totalReputation uint64) (uint64, error) {
 			log.Warnw("error fetching community reputation", "error", err)
 			continue
 		}
-		points += communityTotalPoints(
+		points += CommunityTotalPoints(
 			community.Census.Type,
 			ownerMultiplier,
 			comRep.Participation,
@@ -244,7 +244,7 @@ func (u *Updater) userPoints(userID, totalReputation uint64) (uint64, error) {
 			log.Warnw("error fetching community reputation", "error", err)
 			continue
 		}
-		points += communityTotalPoints(
+		points += CommunityTotalPoints(
 			community.Census.Type,
 			voterMultiplier,
 			comRep.Participation,
@@ -254,7 +254,7 @@ func (u *Updater) userPoints(userID, totalReputation uint64) (uint64, error) {
 	return points, nil
 }
 
-// communityTotalPoints method calculates the points of a community based on the
+// CommunityTotalPoints method calculates the points of a community based on the
 // community type, the multiplier, the participation, the census size, and the
 // reputation of the owner. The total points are calculated as the yield rate
 // multiplied by the participation rate and the census size.
@@ -277,7 +277,7 @@ func (u *Updater) communityPoints(communityID string) (uint64, error) {
 		return 0, fmt.Errorf("error fetching user reputation: %w", err)
 	}
 	// calculate the points of the community based on the creator reputation
-	return communityTotalPoints(
+	return CommunityTotalPoints(
 		community.Census.Type,
 		communityMultiplier,
 		rep.Participation,

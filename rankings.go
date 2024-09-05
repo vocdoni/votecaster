@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/vocdoni/vote-frame/mongo"
+	"github.com/vocdoni/vote-frame/reputation"
 	"go.vocdoni.io/dvote/httprouter"
 	"go.vocdoni.io/dvote/httprouter/apirest"
 	"go.vocdoni.io/dvote/log"
@@ -306,4 +307,52 @@ func (v *vocdoniHandler) rankingByPoints(msg *apirest.APIdata, ctx *httprouter.H
 	}
 	ctx.SetResponseContentType("application/json")
 	return ctx.Send(jresponse, http.StatusOK)
+}
+
+func (v *vocdoniHandler) rankingByYieldRate(msg *apirest.APIdata, ctx *httprouter.HTTPContext) error {
+	reps, err := v.db.CommunitiesReputationByParticipationAndCensusSize()
+	if err != nil {
+		return fmt.Errorf("failed to get ranking: %w", err)
+	}
+	var rankingItems []mongo.ReputationRanking
+	for _, rep := range reps {
+		// get community info from reputation community id
+		community, err := v.db.Community(rep.CommunityID)
+		if err != nil {
+			log.Warnw("failed to fetch community", "error", err)
+			continue
+		}
+		// skip disabled communities
+		if community == nil || community.Disabled {
+			continue
+		}
+		// get creator reputation
+		creatorRep, err := v.db.DetailedUserReputation(community.Creator)
+		if err != nil {
+			log.Warnw("failed to fetch creator reputation", "error", err)
+			continue
+		}
+		// calculate the yield rate for the community
+		isDao := community.Census.Type == mongo.TypeCommunityCensusERC20 || community.Census.Type == mongo.TypeCommunityCensusNFT
+		isChannel := community.Census.Type == mongo.TypeCommunityCensusChannel
+		yieldRate := reputation.CommunityYieldRate(rep.Participation, float64(rep.CensusSize),
+			float64(creatorRep.TotalReputation), isDao, isChannel)
+		// add the community to the ranking
+		rankingItems = append(rankingItems, mongo.ReputationRanking{
+			CommunityID:      community.ID,
+			CommunityName:    community.Name,
+			ImageURL:         community.ImageURL,
+			CommunityCreator: community.Creator,
+			TotalPoints:      uint64(yieldRate),
+		})
+	}
+	// encode the response to json
+	res, err := json.Marshal(map[string]any{
+		"yieldRates": rankingItems,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+	ctx.SetResponseContentType("application/json")
+	return ctx.Send(res, http.StatusOK)
 }

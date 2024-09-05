@@ -166,7 +166,7 @@ func boostersReputation(rep *Boosters) uint64 {
 // Y = (A * participationRate + B * log(censusSize)) * ownerRep
 // if DAO => Y = Y * daoMultiplier
 // if Channel => Y = Y * channelMultiplier
-func communityYieldRate(p, cs, r float64, dao, channel bool) float64 {
+func CommunityYieldRate(p, cs, r float64, dao, channel bool) float64 {
 	if cs <= 0 {
 		return 0
 	}
@@ -179,19 +179,19 @@ func communityYieldRate(p, cs, r float64, dao, channel bool) float64 {
 	return y
 }
 
-// communityTotalPoints calculates the total points of a community based on the
+// CommunityTotalPoints calculates the total points of a community based on the
 // census type, the participation rate, the census size and the reputation of
 // the owner. The total points are calculated as the yield rate multiplied by
 // the participation rate and the census size.
-func communityTotalPoints(censusType string, m, p float64, cs, r uint64) uint64 {
+func CommunityTotalPoints(censusType string, m, p float64, cs, r uint64) uint64 {
 	var y float64
 	switch censusType {
 	case mongo.TypeCommunityCensusERC20, mongo.TypeCommunityCensusNFT:
-		y = communityYieldRate(p, float64(cs), float64(r), true, false)
+		y = CommunityYieldRate(p, float64(cs), float64(r), true, false)
 	case mongo.TypeCommunityCensusChannel:
-		y = communityYieldRate(p, float64(cs), float64(r), false, true)
+		y = CommunityYieldRate(p, float64(cs), float64(r), false, true)
 	case mongo.TypeCommunityCensusFollowers:
-		y = communityYieldRate(p, float64(cs), float64(r), false, false)
+		y = CommunityYieldRate(p, float64(cs), float64(r), false, false)
 	default:
 		return 0
 	}
