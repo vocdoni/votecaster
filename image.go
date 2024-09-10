@@ -134,6 +134,11 @@ func (v *vocdoniHandler) updloadAvatarHandler(msg *apirest.APIdata, ctx *httprou
 	if err != nil {
 		return fmt.Errorf("cannot marshal result: %w", err)
 	}
+	// get the community data from the contract and initialize it (scan the
+	// census contract if it is required)
+	if err := v.comhub.SyncNewCommunity(req.CommunityID, nil); err != nil {
+		return fmt.Errorf("cannot sync community: %w", err)
+	}
 	return ctx.Send(res, 200)
 }
 

@@ -162,27 +162,9 @@ func (ch *CommunityHub) ScanNewCommunities() {
 						log.Warnw("failed to get community ID by chain alias", "chainAlias", contract.ChainAlias, "ID", nextID)
 						continue
 					}
-					onchainCommunity, err := contract.Community(communityID)
-					if err != nil {
-						if err != ErrCommunityNotFound {
-							log.Warnw("failed to get community data", "error", err)
-						}
-						continue
-					}
-					if err := ch.validateData(onchainCommunity); err != nil {
-						log.Warnw("failed to validate community data", "error", err)
-						continue
-					}
-					// store the community in the database
-					if err := ch.addCommunityToDB(onchainCommunity); err != nil {
-						log.Warnw("failed to add community to database", "error", err)
-						continue
-					}
-					// register token addresses in the census3 service and set
-					// the strategy ID in the community
-					if err := ch.registerTokenAddresses(onchainCommunity); err != nil {
-						log.Warnw("failed to register token addresses", "error", err)
-						continue
+					// sync the new community
+					if err := ch.SyncNewCommunity(communityID, contract); err != nil && err != ErrCommunityNotFound {
+						log.Warnw("failed to sync new community", "error", err)
 					}
 				}
 			}
@@ -312,6 +294,39 @@ func (ch *CommunityHub) CommunityContract(communityID string) (*HubContract, err
 		return nil, ErrContractNotFound
 	}
 	return contract, nil
+}
+
+// SyncNewCommunity method gets the community data from the contract and updates
+// it in the database. It validates the data of the community and stores it in
+// the database. It registers the token addresses in the census3 service and
+// sets the strategy ID in the community. It returns an error if the data is
+// invalid, if the community cannot be stored in the database, or if the token
+// addresses cannot be registered in the census3 service.
+func (ch *CommunityHub) SyncNewCommunity(communityID string, contract *HubContract) error {
+	var err error
+	if contract == nil {
+		contract, err = ch.CommunityContract(communityID)
+		if err != nil {
+			return err
+		}
+	}
+	onchainCommunity, err := contract.Community(communityID)
+	if err != nil {
+		return err
+	}
+	if err := ch.validateData(onchainCommunity); err != nil {
+		return err
+	}
+	// store the community in the database
+	if err := ch.addCommunityToDB(onchainCommunity); err != nil {
+		return err
+	}
+	// register token addresses in the census3 service and set
+	// the strategy ID in the community
+	if err := ch.registerTokenAddresses(onchainCommunity); err != nil {
+		return err
+	}
+	return nil
 }
 
 // UpdateCommunity method updates a community in the contract and the database.
