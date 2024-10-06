@@ -18,26 +18,28 @@ type userdataV1 struct {
 	VerificationsAddresses []string `json:"verifications"`
 }
 
-type userdataV1Result struct {
-	User *userdataV1 `json:"user"`
-}
-
 type usersdataV1Result struct {
 	Users      []*userdataV1 `json:"users"`
 	NextCursor *cursor       `json:"next"`
-}
-
-type userdataV1Response struct {
-	Result *userdataV1Result `json:"result"`
 }
 
 type UsersdataV1Response struct {
 	Result *usersdataV1Result `json:"result"`
 }
 
+type UsersdataV2Response struct {
+	Users      []*userDataV2Wrapper `json:"users"`
+	NextCursor *cursor              `json:"next"`
+}
+
 type verifiedAddressesV2 struct {
 	EthAddresses []string `json:"eth_addresses"`
 	SolAddresses []string `json:"sol_addresses"`
+}
+
+type userDataV2Wrapper struct {
+	Object string      `json:"object"`
+	User   *userdataV2 `json:"user"`
 }
 
 type userdataV2 struct {
@@ -124,10 +126,6 @@ type warpcastChannel struct {
 
 type warpcastChannelResult struct {
 	Channel *warpcastChannel `json:"channel"`
-}
-
-type warpcastChannelResponse struct {
-	Result *warpcastChannelResult `json:"result"`
 }
 
 type warpcastChannelsResult struct {

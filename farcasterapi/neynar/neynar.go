@@ -35,7 +35,7 @@ const (
 	neynarGetCastEndpoint     = NeynarAPIEndpoint + "/v2/farcaster/cast?identifier=%s&type=hash"
 	neynarReplyEndpoint       = NeynarAPIEndpoint + "/v2/farcaster/cast"
 	neynarUserByEthAddresses  = NeynarAPIEndpoint + "/v2/farcaster/user/bulk-by-address?addresses=%s"
-	neynarUserFollowers       = NeynarAPIEndpoint + "/v1/farcaster/followers?fid=%d&limit=150&cursor=%s"
+	neynarUserFollowers       = NeynarAPIEndpoint + "/v2/farcaster/followers?fid=%d&limit=100&cursor=%s"
 	neynarChannelDataByID     = NeynarAPIEndpoint + "/v2/farcaster/channel?id=%s"
 	neynarSuggestChannels     = NeynarAPIEndpoint + "/v2/farcaster/channel/search?q=%s"
 	neynarUsersByChannelID    = NeynarAPIEndpoint + "/v2/farcaster/channel/followers?id=%s&limit=1000&cursor=%s"
@@ -356,20 +356,23 @@ func (n *NeynarAPI) UserFollowers(ctx context.Context, fid uint64) ([]uint64, er
 		if err != nil {
 			return nil, fmt.Errorf("error creating request: %w", err)
 		}
-		usersResponse := &UsersdataV1Response{}
+		usersResponse := &UsersdataV2Response{}
 		if err := json.Unmarshal(body, &usersResponse); err != nil {
 			return nil, fmt.Errorf("error unmarshalling response body: %w", err)
 		}
-		if usersResponse.Result.Users == nil {
+		if usersResponse.Users == nil {
 			return nil, farcasterapi.ErrNoDataFound
 		}
-		for _, user := range usersResponse.Result.Users {
-			userFIDs = append(userFIDs, user.Fid)
+		for _, user := range usersResponse.Users {
+			if user.User == nil {
+				continue
+			}
+			userFIDs = append(userFIDs, user.User.Fid)
 		}
-		if usersResponse.Result.NextCursor == nil || usersResponse.Result.NextCursor.Cursor == "" {
+		if usersResponse.NextCursor == nil || usersResponse.NextCursor.Cursor == "" {
 			break
 		}
-		cursor = usersResponse.Result.NextCursor.Cursor
+		cursor = usersResponse.NextCursor.Cursor
 	}
 	return userFIDs, nil
 }
